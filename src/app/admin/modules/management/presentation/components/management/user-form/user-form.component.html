@@ -243,7 +243,7 @@
                                 <div class="identity-hero" *ngIf="!isIdentityVerified">
                                     <div class="identity-hero__copy">
                                         <span class="identity-hero__badge">Verificación segura</span>
-                                        <strong>Sube la cédula o envía un link al cliente</strong>
+                                        <strong>Sube la cédula o el pasaporte, o envía un link al cliente</strong>
                                         <p>Los datos se digitalizan con IA y luego se aplican a la cuenta cuando finalizas la verificación.</p>
                                     </div>
                                     <div class="identity-hero__actions">
@@ -251,7 +251,7 @@
                                             [disabled]="scanningIdentity || finalizingIdentity"
                                             (click)="triggerIdentityFileInput()">
                                             <i class="pi" [ngClass]="scanningIdentity ? 'pi-spin pi-spinner' : 'pi-upload'"></i>
-                                            {{ scanningIdentity ? 'Escaneando...' : 'Subir cédula' }}
+                                            {{ scanningIdentity ? 'Escaneando...' : 'Subir documento' }}
                                         </button>
                                         <button type="button" class="identity-action identity-action--secondary"
                                             [disabled]="generatingIdentityLink || finalizingIdentity"
@@ -280,16 +280,16 @@
 
                                 <div class="identity-result" *ngIf="identityPreviewUrl || identityScanResult">
                                     <div class="identity-preview-card" *ngIf="identityPreviewUrl">
-                                        <img [src]="identityPreviewUrl" alt="Cédula del usuario">
+                                        <img [src]="identityPreviewUrl" alt="Documento de identidad del usuario">
                                         <span *ngIf="isIdentityVerified"><i class="pi pi-check-circle"></i> Imagen verificada</span>
                                     </div>
 
                                     <div class="identity-data-card">
                                         <div class="identity-data-card__header">
                                             <strong>Datos digitalizados</strong>
-                                            <span *ngIf="identityScanResult?.['es_cedula'] === true">
+                                            <span *ngIf="isIdentityDocumentValid()">
                                                 <i class="pi pi-check-circle"></i>
-                                                Cédula detectada
+                                                Documento detectado: {{ getIdentityDocumentLabel() }}
                                             </span>
                                         </div>
 

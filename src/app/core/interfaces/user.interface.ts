@@ -77,6 +77,8 @@ export interface User {
   status?: boolean;
   tag?: string;
   verificado?: boolean;
+  identity_document_type?: 'cedula' | 'pasaporte';
+  identity_document_number?: string;
   cedula_img?: any;
   noDocuments?: boolean;
   no_assistance?: boolean;
@@ -164,6 +166,8 @@ export interface ExtendedUser extends Omit<User, 'settings'> {
   developer?: boolean;
   tag?: string;
   verificado?: boolean;
+  identity_document_type?: 'cedula' | 'pasaporte';
+  identity_document_number?: string;
   cedula_img?: any;
 }
 

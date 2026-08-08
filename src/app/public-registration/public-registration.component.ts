@@ -4,6 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { getApiErrorMessage } from '../core/utils/api-error.util';
+import {
+  getIdentityDocumentNumber,
+  getIdentityDocumentType,
+  hasCompleteIdentityData,
+  isValidIdentityDocument,
+} from '../core/utils/identity-document.util';
 import { UserService, PublicRegistrationInfo } from '../core/services/user.service';
 import { PrimengModule } from '../shareds/libraries/primeng/primeng.module';
 
@@ -40,6 +46,8 @@ export class PublicRegistrationComponent implements OnInit {
     email: '',
     phone: '',
     dni: '',
+    identity_document_type: '',
+    identity_document_number: '',
     address: '',
     province: '',
     municipality: '',
@@ -105,16 +113,16 @@ export class PublicRegistrationComponent implements OnInit {
         const data = response?.data || {};
         this.identityScanData = data;
 
-        if (data.es_cedula !== true) {
+        if (!isValidIdentityDocument(data)) {
           this.identityScanned = false;
-          this.identityScanError = data.mensaje_usuario || 'La imagen subida no parece ser una cédula. Sube una foto clara de tu cédula de identidad.';
+          this.identityScanError = data.mensaje_usuario || 'La imagen no parece ser una cédula o un pasaporte. Sube una foto clara del documento.';
           return;
         }
 
         if (!this.hasCompleteIdentityData(data)) {
           this.identityScanned = false;
           this.visibleRegistrationFields.clear();
-          this.identityScanError = 'No se pudieron leer claramente los datos de la cédula. Sube una foto más clara donde se vea completo el nombre, apellido y número de cédula.';
+          this.identityScanError = 'No se pudieron leer claramente los datos del documento. Sube una foto más clara donde se vea completo el nombre, apellido y número.';
           return;
         }
 
@@ -123,7 +131,7 @@ export class PublicRegistrationComponent implements OnInit {
         this.prepareVisibleRegistrationFields();
         if (this.usesLinkedPhone()) {
           // El enlace entregado por la solicitud ya está ligado al WhatsApp del
-          // cliente. Tras leer una cédula válida, completar el registro es seguro
+          // cliente. Tras leer un documento válido, completar el registro es seguro
           // y no requiere otro dato manual.
           queueMicrotask(() => this.submit());
         }
@@ -131,7 +139,7 @@ export class PublicRegistrationComponent implements OnInit {
       error: (error) => {
         this.scanningIdentity = false;
         this.identityScanned = false;
-        this.identityScanError = error?.error?.message || 'No se pudo escanear la cédula. Intenta con una foto más clara.';
+        this.identityScanError = error?.error?.message || 'No se pudo escanear el documento de identidad. Intenta con una foto más clara.';
       }
     });
   }
@@ -151,14 +159,19 @@ export class PublicRegistrationComponent implements OnInit {
   private fillFormFromIdentity(data: any): void {
     const nombres = this.cleanText(data?.nombres);
     const apellidos = this.cleanText(data?.apellidos);
-    const cedula = this.cleanText(data?.cedula);
+    const documentNumber = getIdentityDocumentNumber(data);
+    const documentType = getIdentityDocumentType(data);
     const direccion = this.cleanText(data?.direccion);
     const provincia = this.cleanText(data?.provincia);
     const municipio = this.cleanText(data?.municipio);
 
     if (nombres) this.form.name = this.toTitleCase(nombres);
     if (apellidos) this.form.last_name = this.toTitleCase(apellidos);
-    if (cedula) this.form.dni = cedula;
+    if (documentNumber) {
+      this.form.dni = documentNumber;
+      this.form.identity_document_number = documentNumber;
+    }
+    if (documentType) this.form.identity_document_type = documentType;
     if (direccion) this.form.address = direccion;
     if (provincia) this.form.province = this.toTitleCase(provincia);
     if (municipio) this.form.municipality = this.toTitleCase(municipio);
@@ -180,12 +193,7 @@ export class PublicRegistrationComponent implements OnInit {
   }
 
   private hasCompleteIdentityData(data: any): boolean {
-    const nombres = this.cleanText(data?.nombres);
-    const apellidos = this.cleanText(data?.apellidos);
-    const cedula = this.cleanText(data?.cedula);
-    const cedulaDigits = cedula.replace(/\D/g, '');
-
-    return !!nombres && !!apellidos && cedulaDigits.length >= 9;
+    return hasCompleteIdentityData(data);
   }
 
   usesLinkedPhone(): boolean {
@@ -217,7 +225,7 @@ export class PublicRegistrationComponent implements OnInit {
   submit(): void {
     if (this.submitting || this.completed) return;
     if (!this.form.name || !this.form.last_name || !this.form.dni) {
-      this.messageService.add({ severity: 'warn', summary: 'Cédula incompleta', detail: 'No se pudieron leer todos los datos de la cédula. Sube una foto más clara.' });
+      this.messageService.add({ severity: 'warn', summary: 'Documento incompleto', detail: 'No se pudieron leer todos los datos del documento. Sube una foto más clara.' });
       return;
     }
     if (!this.usesLinkedPhone() && !this.form.phone) {

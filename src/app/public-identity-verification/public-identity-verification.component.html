@@ -31,24 +31,24 @@
         <i class="pi pi-id-card"></i>
         <div>
           <h2>{{ info?.user?.name || 'Cliente' }} {{ info?.user?.last_name || '' }}</h2>
-          <p>Sube una foto clara de tu cédula. Si los datos se leen correctamente, la cuenta se verifica automáticamente.</p>
+          <p>Sube una foto clara de tu cédula o pasaporte. Si los datos se leen correctamente, la cuenta se verifica automáticamente.</p>
         </div>
       </div>
 
       <label class="identity-upload">
         <input type="file" accept="image/*" (change)="onIdentityFileSelected($event)">
         <i class="pi pi-cloud-upload"></i>
-        <strong>{{ identityFile ? identityFile.name : 'Subir foto de la cédula' }}</strong>
+        <strong>{{ identityFile ? identityFile.name : 'Subir foto de la cédula o pasaporte' }}</strong>
         <span>Debe verse completa y legible.</span>
       </label>
 
       <div *ngIf="previewUrl || scanData" class="identity-result">
-        <img *ngIf="previewUrl" class="identity-preview" [src]="previewUrl" alt="Vista previa de la cédula">
+        <img *ngIf="previewUrl" class="identity-preview" [src]="previewUrl" alt="Vista previa del documento de identidad">
 
         <div class="identity-data">
           <div class="identity-data__header">
             <strong>Datos digitalizados</strong>
-            <span *ngIf="scanData?.['es_cedula'] === true"><i class="pi pi-check-circle"></i> Cédula detectada</span>
+            <span *ngIf="isDocumentValid()"><i class="pi pi-check-circle"></i> Documento detectado: {{ getDocumentLabel() }}</span>
           </div>
 
           <div *ngIf="getDataEntries().length; else emptyData" class="identity-data__list">
@@ -69,7 +69,7 @@
 
       <div *ngIf="scanning" class="identity-state">
         <p-progressSpinner strokeWidth="4" styleClass="identity-spinner"></p-progressSpinner>
-        <span>Escaneando cédula con IA...</span>
+        <span>Escaneando documento con IA...</span>
       </div>
 
       <div *ngIf="finalizing" class="identity-state">

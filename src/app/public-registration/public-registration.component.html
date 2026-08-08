@@ -33,21 +33,21 @@
         <i class="pi pi-id-card"></i>
         <div>
           <h2>Verifica tu identidad</h2>
-          <p>Sube una foto clara de tu cédula para completar tus datos automáticamente.</p>
+          <p>Sube una foto clara de tu cédula o pasaporte para completar tus datos automáticamente.</p>
         </div>
       </div>
 
       <label class="identity-upload">
         <input type="file" accept="image/*" (change)="onIdentityFileSelected($event)">
         <i class="pi pi-cloud-upload"></i>
-        <span>{{ identityFile ? identityFile.name : 'Subir foto de la cédula' }}</span>
+        <span>{{ identityFile ? identityFile.name : 'Subir foto de la cédula o pasaporte' }}</span>
       </label>
 
-      <img *ngIf="identityPreviewUrl" class="identity-preview" [src]="identityPreviewUrl" alt="Vista previa de la cédula">
+      <img *ngIf="identityPreviewUrl" class="identity-preview" [src]="identityPreviewUrl" alt="Vista previa del documento de identidad">
 
       <div *ngIf="scanningIdentity" class="registration-state">
         <p-progressSpinner strokeWidth="4" styleClass="registration-spinner"></p-progressSpinner>
-        <span>Escaneando cédula con IA...</span>
+        <span>Escaneando documento con IA...</span>
       </div>
 
       <div *ngIf="identityScanError" class="registration-error">
@@ -88,9 +88,9 @@
       </label>
 
       <label *ngIf="showRegistrationField('dni')">
-        DNI / Cedula
+        Documento de identidad
         <input pInputText type="text" name="dni" [(ngModel)]="form.dni" autocomplete="off"
-          placeholder="000-0000000-0">
+          placeholder="Número de cédula o pasaporte">
       </label>
 
       <div *ngIf="showRegistrationField('registration_device_platform')" class="platform-field">

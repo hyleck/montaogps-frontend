@@ -5,6 +5,12 @@ import { ActivatedRoute } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { UserService, PublicIdentityVerificationInfo } from '../core/services/user.service';
 import { getApiErrorMessage } from '../core/utils/api-error.util';
+import {
+  getIdentityDocumentLabel,
+  getIdentityDocumentNumber,
+  hasCompleteIdentityData,
+  isValidIdentityDocument,
+} from '../core/utils/identity-document.util';
 import { PrimengModule } from '../shareds/libraries/primeng/primeng.module';
 
 @Component({
@@ -79,7 +85,7 @@ export class PublicIdentityVerificationComponent implements OnInit, OnDestroy {
 
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      this.scanError = 'Debe subir una imagen clara de la cédula.';
+      this.scanError = 'Debe subir una imagen clara de la cédula o el pasaporte.';
       return;
     }
 
@@ -97,21 +103,21 @@ export class PublicIdentityVerificationComponent implements OnInit, OnDestroy {
         this.scanning = false;
         this.scanData = response?.data || null;
 
-        if (this.scanData?.['es_cedula'] !== true) {
+        if (!isValidIdentityDocument(this.scanData)) {
           this.scanError = this.scanData?.['mensaje_usuario']
-            || 'La imagen subida no parece ser una cédula. Sube una foto clara de tu cédula de identidad.';
+            || 'La imagen no parece ser una cédula o un pasaporte. Sube una foto clara del documento.';
           return;
         }
 
         if (!this.hasCompleteIdentityData(this.scanData)) {
-          this.scanError = 'No se pudieron leer claramente los datos de la cédula. Sube una foto donde se vea completo el nombre, apellido y número de cédula.';
+          this.scanError = 'No se pudieron leer claramente los datos del documento. Sube una foto donde se vea completo el nombre, apellido y número.';
           this.scanData = null;
           return;
         }
 
         this.messageService.add({
           severity: 'success',
-          summary: 'Cédula digitalizada',
+          summary: 'Documento digitalizado',
           detail: 'Estamos verificando tu cuenta automáticamente.',
           life: 3000
         });
@@ -120,16 +126,16 @@ export class PublicIdentityVerificationComponent implements OnInit, OnDestroy {
       error: (error) => {
         this.scanning = false;
         this.scanData = null;
-        this.scanError = error?.error?.message || 'No se pudo escanear la cédula. Intenta con una foto más clara.';
+        this.scanError = error?.error?.message || 'No se pudo escanear el documento de identidad. Intenta con una foto más clara.';
       }
     });
   }
 
   finalize(): void {
-    if (!this.identityFile || !this.scanData || this.scanData['es_cedula'] !== true || this.finalizing) return;
+    if (!this.identityFile || !isValidIdentityDocument(this.scanData) || this.finalizing) return;
     this.finalizing = true;
 
-    this.userService.finalizePublicIdentityVerification(this.token, this.identityFile, this.scanData).subscribe({
+    this.userService.finalizePublicIdentityVerification(this.token, this.identityFile, this.scanData!).subscribe({
       next: () => {
         this.finalizing = false;
         this.completed = true;
@@ -158,7 +164,6 @@ export class PublicIdentityVerificationComponent implements OnInit, OnDestroy {
     const labels: Record<string, string> = {
       nombres: 'Nombres',
       apellidos: 'Apellidos',
-      cedula: 'Cédula',
       fecha_nacimiento: 'Fecha de nacimiento',
       direccion: 'Dirección',
       municipio: 'Municipio',
@@ -166,19 +171,23 @@ export class PublicIdentityVerificationComponent implements OnInit, OnDestroy {
       confidence: 'Confianza'
     };
 
-    return Object.entries(labels)
+    const entries = Object.entries(labels)
       .map(([key, label]) => ({ label, value: this.scanData?.[key] }))
       .filter(item => item.value !== undefined && item.value !== null && item.value !== '');
+
+    const number = getIdentityDocumentNumber(this.scanData);
+    return number ? [{ label: this.getDocumentLabel(), value: number }, ...entries] : entries;
+  }
+
+  getDocumentLabel(): string {
+    return getIdentityDocumentLabel(this.scanData);
+  }
+
+  isDocumentValid(): boolean {
+    return isValidIdentityDocument(this.scanData);
   }
 
   private hasCompleteIdentityData(data: any): boolean {
-    const nombres = this.cleanText(data?.nombres);
-    const apellidos = this.cleanText(data?.apellidos);
-    const cedula = this.cleanText(data?.cedula);
-    return !!nombres && !!apellidos && cedula.replace(/\D/g, '').length >= 9;
-  }
-
-  private cleanText(value: any): string {
-    return typeof value === 'string' ? value.trim() : '';
+    return hasCompleteIdentityData(data);
   }
 }

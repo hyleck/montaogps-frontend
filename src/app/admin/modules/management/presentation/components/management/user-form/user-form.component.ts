@@ -53,6 +53,11 @@ import {
     CompanyTypeOption
 } from './constants/user-form.constants';
 import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
+import {
+    getIdentityDocumentLabel as resolveIdentityDocumentLabel,
+    getIdentityDocumentNumber,
+    isValidIdentityDocument
+} from '../../../../../../../core/utils/identity-document.util';
 
 @Component({
     selector: 'app-user-form',
@@ -943,7 +948,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             this.messageService.add({
                 severity: 'error',
                 summary: 'Archivo inválido',
-                detail: 'Debe subir una imagen de la cédula.'
+                detail: 'Debe subir una imagen de la cédula o el pasaporte.'
             });
             input.value = '';
             return;
@@ -971,16 +976,16 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                     this.scanningIdentity = false;
                     this.identityScanResult = response.data || null;
 
-                    if (response.data?.['es_cedula'] !== true) {
+                    if (!isValidIdentityDocument(response.data)) {
                         this.identityScanError = response.data?.['mensaje_usuario']
-                            || 'La imagen subida no parece ser una cédula. Debe subir una foto clara de la cédula de identidad.';
+                            || 'La imagen no parece ser una cédula o un pasaporte. Debe subir una foto clara del documento.';
                         this.playIdentityVoice(response.voiceAudio);
                         return;
                     }
 
                     this.messageService.add({
                         severity: 'success',
-                        summary: 'Cédula digitalizada',
+                        summary: `${this.getIdentityDocumentLabel(response.data)} digitalizado`,
                         detail: 'La cuenta se verificará automáticamente.',
                         life: 3000
                     });
@@ -988,7 +993,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 },
                 error: (error) => {
                     this.scanningIdentity = false;
-                    this.identityScanError = error?.error?.message || error?.message || 'No se pudo escanear la cédula.';
+                    this.identityScanError = error?.error?.message || error?.message || 'No se pudo escanear el documento de identidad.';
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
@@ -1003,11 +1008,11 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         const userId = this.userInput?._id;
         if (!userId || !this.identityFile || !this.identityScanResult) return;
 
-        if (this.identityScanResult['es_cedula'] !== true) {
+        if (!isValidIdentityDocument(this.identityScanResult)) {
             this.messageService.add({
                 severity: 'warn',
-                summary: 'Cédula inválida',
-                detail: 'Debe subir una cédula válida antes de finalizar.'
+                summary: 'Documento inválido',
+                detail: 'Debe subir una cédula o un pasaporte válido antes de finalizar.'
             });
             return;
         }
@@ -1065,7 +1070,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         const labels: Record<string, string> = {
             nombres: 'Nombres',
             apellidos: 'Apellidos',
-            cedula: 'Cédula',
             fecha_nacimiento: 'Fecha de nacimiento',
             lugar_nacimiento: 'Lugar de nacimiento',
             nacionalidad: 'Nacionalidad',
@@ -1080,9 +1084,22 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             confidence: 'Confianza'
         };
 
-        return Object.entries(labels)
+        const entries = Object.entries(labels)
             .map(([key, label]) => ({ label, value: this.identityScanResult?.[key] }))
             .filter(item => item.value !== undefined && item.value !== null && item.value !== '');
+
+        const documentNumber = getIdentityDocumentNumber(this.identityScanResult);
+        return documentNumber
+            ? [{ label: this.getIdentityDocumentLabel(), value: documentNumber }, ...entries]
+            : entries;
+    }
+
+    getIdentityDocumentLabel(data: any = this.identityScanResult): string {
+        return resolveIdentityDocumentLabel(data);
+    }
+
+    isIdentityDocumentValid(data: any = this.identityScanResult): boolean {
+        return isValidIdentityDocument(data);
     }
 
     private resetIdentityVerificationState(): void {
