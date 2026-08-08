@@ -1,232 +1,397 @@
-<div class="processes-container">
-    <!-- Header -->
-    <div class="processes-header">
-        <div class="processes-header__title">
-            <i class="pi pi-list"></i>
-            <h2>Procesos</h2>
-            <p-tag *ngIf="totalRecords > 0" [value]="totalRecords + ' registros'" [rounded]="true" severity="success" [style]="{'font-size': '0.75rem'}"></p-tag>
-        </div>
-    </div>
+<div class="processes-page">
+    <p-toast></p-toast>
 
-    <!-- Stats Cards -->
-    <div class="processes-stats" *ngIf="stats">
-        <p-tag *ngFor="let stat of stats.processesByType"
-            [value]="stat.count + '  ' + getTypeLabel(stat._id)"
-            [rounded]="true" severity="info"
-            [style]="{'font-size': '0.75rem', 'cursor': 'default'}">
-        </p-tag>
-        <p-tag [value]="stats.totalProcesses + '  Total'"
-            [rounded]="true" severity="danger"
-            [style]="{'font-size': '0.75rem', 'cursor': 'default'}">
-        </p-tag>
-    </div>
-
-    <!-- Filters -->
-    <div class="processes-filters">
-        <div class="filters-row">
-            <div class="filter-group filter-group--search">
-                <span class="p-input-icon-left search-field">
-                    <i class="pi pi-search"></i>
-                    <input pInputText type="text" [(ngModel)]="searchQuery"
-                        placeholder="Buscar por target, IMEI, referencia o detalle"
-                        (keyup.enter)="applyFilters()">
-                </span>
+    <header class="processes-hero">
+        <div class="processes-hero__identity">
+            <div class="processes-hero__icon" aria-hidden="true">
+                <i class="pi pi-history"></i>
             </div>
+            <div>
+                <span class="processes-eyebrow">Trazabilidad operativa</span>
+                <h1>Procesos</h1>
+                <p>Consulta, filtra y verifica cada cambio realizado sobre las cuentas y sus dispositivos.</p>
+            </div>
+        </div>
 
-            <div class="filter-group">
+        <div class="processes-hero__actions">
+            <div class="period-indicator">
+                <i class="pi pi-calendar"></i>
+                <div>
+                    <span>Período consultado</span>
+                    <strong>{{ getPeriodLabel() }}</strong>
+                </div>
+            </div>
+            <button type="button" pButton icon="pi pi-file-excel" label="Exportar"
+                class="p-button-outlined processes-export-button" (click)="exportExcel()">
+            </button>
+        </div>
+    </header>
+
+    <section class="processes-overview" aria-label="Resumen de procesos">
+        <article class="overview-card overview-card--total">
+            <div class="overview-card__icon"><i class="pi pi-database"></i></div>
+            <div class="overview-card__copy">
+                <span>Total histórico</span>
+                <strong>{{ stats?.totalProcesses || 0 | number }}</strong>
+                <small>Procesos registrados</small>
+            </div>
+        </article>
+
+        <article class="overview-card">
+            <div class="overview-card__icon overview-card__icon--results"><i class="pi pi-filter"></i></div>
+            <div class="overview-card__copy">
+                <span>En este período</span>
+                <strong>{{ totalRecords | number }}</strong>
+                <small>Coinciden con la consulta</small>
+            </div>
+        </article>
+
+        <article class="overview-card overview-card--pending">
+            <div class="overview-card__icon"><i class="pi pi-clock"></i></div>
+            <div class="overview-card__copy">
+                <span>Pendientes</span>
+                <strong>{{ getVisibleStatusCount('pending') }}</strong>
+                <small>En esta página</small>
+            </div>
+        </article>
+
+        <article class="overview-card overview-card--verified">
+            <div class="overview-card__icon"><i class="pi pi-check-circle"></i></div>
+            <div class="overview-card__copy">
+                <span>Verificados</span>
+                <strong>{{ getVisibleStatusCount('verified') }}</strong>
+                <small>En esta página</small>
+            </div>
+        </article>
+    </section>
+
+    <section class="process-types" *ngIf="stats?.processesByType?.length">
+        <div class="process-types__heading">
+            <span>Actividad por tipo</span>
+            <small>Histórico</small>
+        </div>
+        <div class="process-types__list">
+            <div class="process-type-stat" *ngFor="let stat of stats.processesByType">
+                <span>{{ getTypeLabel(stat._id) }}</span>
+                <strong>{{ stat.count }}</strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="processes-toolbar" aria-label="Búsqueda y filtros">
+        <div class="processes-toolbar__primary">
+            <label class="process-search">
+                <i class="pi pi-search" aria-hidden="true"></i>
+                <input pInputText type="search" [(ngModel)]="searchQuery"
+                    placeholder="Buscar objetivo, IMEI, referencia o detalle…"
+                    aria-label="Buscar procesos" (keyup.enter)="applyFilters()">
+                <button *ngIf="searchQuery" type="button" class="process-search__clear"
+                    aria-label="Limpiar búsqueda" (click)="searchQuery = ''; applyFilters()">
+                    <i class="pi pi-times"></i>
+                </button>
+            </label>
+
+            <button type="button" pButton icon="pi pi-sliders-h" label="Filtros"
+                class="p-button-outlined processes-filter-toggle"
+                [class.processes-filter-toggle--active]="filtersExpanded || getAppliedFilterCount() > 0"
+                (click)="filtersExpanded = !filtersExpanded">
+                <span *ngIf="getAppliedFilterCount() > 0" class="filter-count">{{ getAppliedFilterCount() }}</span>
+            </button>
+
+            <button type="button" pButton icon="pi pi-search" label="Buscar"
+                class="processes-search-button" (click)="applyFilters()">
+            </button>
+        </div>
+
+        <div class="processes-toolbar__filters" *ngIf="filtersExpanded">
+            <div class="filter-field">
+                <label>Tipo de proceso</label>
                 <p-dropdown [options]="typeOptions" [(ngModel)]="selectedType"
-                    placeholder="Tipo de proceso" [showClear]="true"
-                    optionLabel="label" optionValue="value"
-                    [style]="{'width': '100%'}" (onChange)="applyFilters()">
+                    placeholder="Todos los tipos" [showClear]="true"
+                    optionLabel="label" optionValue="value" appendTo="body"
+                    (onChange)="applyFilters()">
                 </p-dropdown>
             </div>
 
-            <div class="filter-group">
+            <div class="filter-field">
+                <label>Estado</label>
+                <p-dropdown [options]="verificationStatusOptions" [(ngModel)]="selectedVerificationStatus"
+                    placeholder="Todos los estados" [showClear]="true"
+                    optionLabel="label" optionValue="value" appendTo="body"
+                    (onChange)="applyFilters()">
+                    <ng-template pTemplate="selectedItem" let-option>
+                        <span class="process-status-badge"
+                            [ngClass]="getVerificationStatusClass(option?.value || selectedVerificationStatus || undefined)">
+                            <i [class]="getVerificationStatusIcon(option?.value || selectedVerificationStatus || undefined)"></i>
+                            {{ option?.label || getVerificationStatusLabel(selectedVerificationStatus || undefined) }}
+                        </span>
+                    </ng-template>
+                    <ng-template pTemplate="item" let-option>
+                        <span class="process-status-badge" [ngClass]="getVerificationStatusClass(option.value)">
+                            <i [class]="getVerificationStatusIcon(option.value)"></i>
+                            {{ option.label }}
+                        </span>
+                    </ng-template>
+                </p-dropdown>
+            </div>
+
+            <div class="filter-field">
+                <label>Empleado</label>
                 <p-dropdown [options]="employeeOptions" [(ngModel)]="selectedCreator"
-                    placeholder="Empleado" [showClear]="true" [filter]="true"
-                    optionLabel="label" optionValue="value"
-                    [style]="{'width': '100%'}" (onChange)="applyFilters()">
+                    placeholder="Todos los empleados" [showClear]="true" [filter]="true"
+                    filterPlaceholder="Buscar empleado" optionLabel="label" optionValue="value"
+                    appendTo="body" (onChange)="applyFilters()">
                 </p-dropdown>
             </div>
 
-            <div class="filter-group">
+            <div class="filter-field">
+                <label>Técnico</label>
                 <p-dropdown [options]="mechanicOptions" [(ngModel)]="selectedMechanic"
-                    placeholder="Mecánico" [showClear]="true" [filter]="true"
-                    optionLabel="label" optionValue="value"
-                    [style]="{'width': '100%'}" (onChange)="applyFilters()">
+                    placeholder="Todos los técnicos" [showClear]="true" [filter]="true"
+                    filterPlaceholder="Buscar técnico" optionLabel="label" optionValue="value"
+                    appendTo="body" (onChange)="applyFilters()">
                 </p-dropdown>
             </div>
 
-            <div class="filter-group">
-                <p-calendar [(ngModel)]="dateFrom" dateFormat="yy-mm-dd"
-                    placeholder="Desde fecha y hora" [showIcon]="true"
-                    [showTime]="true" [hourFormat]="'24'" [showSeconds]="false"
-                    [style]="{'width': '100%'}" inputStyleClass="filter-calendar-input"
+            <div class="filter-field">
+                <label>Desde</label>
+                <p-calendar [(ngModel)]="dateFrom" dateFormat="dd/mm/yy"
+                    placeholder="Fecha inicial" [showIcon]="true" [showTime]="true"
+                    [hourFormat]="'24'" [showSeconds]="false" appendTo="body"
                     (onSelect)="applyFilters()" (onClear)="applyFilters()">
                 </p-calendar>
             </div>
 
-            <div class="filter-group">
-                <p-calendar [(ngModel)]="dateTo" dateFormat="yy-mm-dd"
-                    placeholder="Hasta fecha y hora" [showIcon]="true"
-                    [showTime]="true" [hourFormat]="'24'" [showSeconds]="false"
-                    [style]="{'width': '100%'}" inputStyleClass="filter-calendar-input"
+            <div class="filter-field">
+                <label>Hasta</label>
+                <p-calendar [(ngModel)]="dateTo" dateFormat="dd/mm/yy"
+                    placeholder="Fecha final" [showIcon]="true" [showTime]="true"
+                    [hourFormat]="'24'" [showSeconds]="false" appendTo="body"
                     (onSelect)="applyFilters()" (onClear)="applyFilters()">
                 </p-calendar>
             </div>
 
-            <div class="filter-actions">
-                <button pButton icon="pi pi-search" label="Buscar"
-                    class="p-button-sm" (click)="applyFilters()"></button>
-                <button pButton icon="pi pi-file-excel" label="Excel"
-                    class="p-button-sm p-button-success" (click)="exportExcel()"></button>
-                <button pButton icon="pi pi-times" label="Limpiar"
-                    class="p-button-sm p-button-outlined" (click)="clearFilters()"></button>
+            <div class="filter-panel-actions">
+                <button type="button" pButton icon="pi pi-times" label="Restablecer"
+                    class="p-button-text" (click)="clearFilters()">
+                </button>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Table -->
-    <div class="processes-table">
-        <p-table [value]="processes" [loading]="loading" [lazy]="true"
-            [paginator]="true" [rows]="rowsPerPage" [totalRecords]="totalRecords"
-            (onLazyLoad)="onPageChange($event)" [rowsPerPageOptions]="[10, 20, 50]"
-            [showCurrentPageReport]="true"
-            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} procesos"
-            styleClass="p-datatable-sm p-datatable-striped"
-            [rowHover]="true"
-            responsiveLayout="scroll">
+    <section class="processes-list-card">
+        <div class="processes-list-card__header">
+            <div>
+                <span class="section-kicker">Registro de actividad</span>
+                <h2>Historial de procesos</h2>
+                <p>{{ totalRecords | number }} resultados dentro del período seleccionado</p>
+            </div>
+            <div class="list-legend">
+                <span><i class="legend-dot legend-dot--verified"></i>Verificado</span>
+                <span><i class="legend-dot legend-dot--pending"></i>Pendiente</span>
+                <span><i class="legend-dot legend-dot--rejected"></i>Rechazado</span>
+            </div>
+        </div>
 
-            <ng-template pTemplate="header">
-                <tr>
-                    <th style="width: 140px;">Fecha</th>
-                    <th style="width: 130px;">Tipo</th>
-                    <th style="width: 160px;">Target</th>
-                    <th style="width: 160px;">IMEI</th>
-                    <th style="width: 150px;">Empleado</th>
-                    <th style="width: 150px;">Técnico</th>
-                    <th style="width: 70px;">Detalle</th>
-                </tr>
-            </ng-template>
+        <div class="processes-table">
+            <p-table [value]="processes" [loading]="loading" [lazy]="true"
+                [paginator]="true" [rows]="rowsPerPage" [totalRecords]="totalRecords"
+                (onLazyLoad)="onPageChange($event)" [rowsPerPageOptions]="[10, 20, 50]"
+                [showCurrentPageReport]="true"
+                currentPageReportTemplate="{first}–{last} de {totalRecords}"
+                styleClass="processes-data-table" [rowHover]="true" responsiveLayout="scroll">
 
-            <ng-template pTemplate="body" let-process>
-                <tr>
-                    <td>
-                        <span class="date-cell">
-                            {{ process.createdAt | date:'dd/MM/yy HH:mm' }}
-                        </span>
-                    </td>
-                    <td>
-                        <p-tag [value]="getTypeLabel(process.type)"
-                            [severity]="getTypeSeverity(process.type)"
-                            [rounded]="true"
-                            [style]="{'font-size': '0.75rem'}">
-                        </p-tag>
-                    </td>
-                    <td>
-                        <span class="target-cell">{{ getTargetName(process.target) | titlecase }}</span>
-                    </td>
-                    <td>
-                        <span class="imei-cell" style="font-family: monospace; font-size: 0.8rem;">
-                            {{ getTargetImei(process.target) }}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="creator-cell">{{ getCreatorName(process.creator) | titlecase }}</span>
-                    </td>
-                    <td>
-                        <span class="creator-cell">{{ getTechnicianName(process) | titlecase }}</span>
-                    </td>
-                    <td style="text-align: center;">
-                        <button pButton icon="pi pi-eye" class="p-button-rounded p-button-text p-button-sm"
-                            (click)="showDetail(process)" title="Ver detalle">
-                        </button>
-                    </td>
-                </tr>
-            </ng-template>
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th class="column-date">Fecha</th>
+                        <th class="column-process">Proceso</th>
+                        <th class="column-target">Objetivo</th>
+                        <th class="column-status">Estado</th>
+                        <th class="column-people">Responsables</th>
+                        <th class="column-action"><span class="sr-only">Acciones</span></th>
+                    </tr>
+                </ng-template>
 
-            <ng-template pTemplate="emptymessage">
-                <tr>
-                    <td colspan="8" style="text-align: center; padding: 40px 20px;">
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: 0.6;">
-                            <i class="pi pi-inbox" style="font-size: 2.5rem;"></i>
-                            <span>No se encontraron procesos</span>
-                        </div>
-                    </td>
-                </tr>
-            </ng-template>
-        </p-table>
-    </div>
+                <ng-template pTemplate="body" let-process>
+                    <tr [ngClass]="getProcessRowClass(process.verificationStatus)">
+                        <td>
+                            <div class="process-date">
+                                <strong>{{ process.createdAt | date:'dd MMM yyyy' }}</strong>
+                                <span><i class="pi pi-clock"></i>{{ process.createdAt | date:'HH:mm' }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="process-type-cell">
+                                <p-tag [value]="getTypeLabel(process.type)"
+                                    [severity]="getTypeSeverity(process.type)" [rounded]="true">
+                                </p-tag>
+                                <span *ngIf="process.description">{{ process.description }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="process-target">
+                                <div class="process-target__icon"><i class="pi pi-map-marker"></i></div>
+                                <div>
+                                    <strong>{{ getTargetName(process.target) | titlecase }}</strong>
+                                    <span>IMEI {{ getTargetImei(process.target) }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <p-dropdown class="verification-status-dropdown"
+                                [ngClass]="getVerificationStatusClass(process.verificationStatus)"
+                                [options]="verificationStatusOptions"
+                                [ngModel]="getVerificationStatus(process.verificationStatus)"
+                                optionLabel="label" optionValue="value"
+                                [disabled]="updatingVerificationId === process._id"
+                                (onChange)="updateProcessVerificationStatus(process, $event.value)" appendTo="body">
+                                <ng-template pTemplate="selectedItem" let-option>
+                                    <span class="process-status-badge"
+                                        [ngClass]="getVerificationStatusClass(option?.value || process.verificationStatus)">
+                                        <i [class]="getVerificationStatusIcon(option?.value || process.verificationStatus)"></i>
+                                        {{ option?.label || getVerificationStatusLabel(process.verificationStatus) }}
+                                    </span>
+                                </ng-template>
+                                <ng-template pTemplate="item" let-option>
+                                    <span class="process-status-badge" [ngClass]="getVerificationStatusClass(option.value)">
+                                        <i [class]="getVerificationStatusIcon(option.value)"></i>
+                                        {{ option.label }}
+                                    </span>
+                                </ng-template>
+                            </p-dropdown>
+                        </td>
+                        <td>
+                            <div class="process-people">
+                                <span title="Empleado"><i class="pi pi-user-edit"></i>{{ getCreatorName(process.creator) | titlecase }}</span>
+                                <span title="Técnico"><i class="pi pi-wrench"></i>{{ getTechnicianName(process) | titlecase }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <button type="button" pButton icon="pi pi-arrow-right"
+                                class="p-button-rounded p-button-text process-detail-button"
+                                (click)="showDetail(process)" aria-label="Ver detalle del proceso">
+                            </button>
+                        </td>
+                    </tr>
+                </ng-template>
+
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="6">
+                            <div class="processes-empty-state">
+                                <div class="processes-empty-state__icon"><i class="pi pi-search"></i></div>
+                                <h3>No encontramos procesos</h3>
+                                <p>Prueba con otra búsqueda o restablece los filtros seleccionados.</p>
+                                <button type="button" pButton label="Restablecer filtros" icon="pi pi-refresh"
+                                    class="p-button-outlined" (click)="clearFilters()">
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </section>
 </div>
 
-<!-- Detail Dialog -->
 <p-dialog [(visible)]="detailDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"
-    [style]="{width: '600px', maxHeight: '80vh'}" styleClass="process-detail-dialog">
+    [style]="{width: '820px', maxWidth: '96vw'}" [breakpoints]="{'960px': '92vw', '640px': '97vw'}"
+    styleClass="process-detail-dialog">
 
     <ng-template pTemplate="header">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <i class="pi pi-info-circle" style="font-size: 18px; opacity: 0.7;"></i>
-            <span>Detalle del Proceso</span>
+        <div class="detail-dialog-heading">
+            <div class="detail-dialog-heading__icon"><i class="pi pi-file-edit"></i></div>
+            <div>
+                <span>Detalle de auditoría</span>
+                <strong>{{ selectedProcess ? getTypeLabel(selectedProcess.type) : 'Proceso' }}</strong>
+            </div>
         </div>
     </ng-template>
 
     <ng-template pTemplate="content">
         <div class="process-detail" *ngIf="selectedProcess">
-            <div class="detail-section">
-                <div class="detail-row">
-                    <label>Tipo</label>
-                    <p-tag [value]="getTypeLabel(selectedProcess.type)"
-                        [severity]="getTypeSeverity(selectedProcess.type)">
-                    </p-tag>
+            <section class="detail-summary">
+                <div class="detail-summary__main">
+                    <span class="section-kicker">Resumen del proceso</span>
+                    <h2>{{ getTypeLabel(selectedProcess.type) }}</h2>
+                    <p>{{ selectedProcess.description || 'Proceso registrado en el historial operativo.' }}</p>
+                    <div class="detail-summary__meta">
+                        <span><i class="pi pi-calendar"></i>{{ selectedProcess.createdAt | date:'dd/MM/yyyy · HH:mm:ss' }}</span>
+                        <span><i class="pi pi-hashtag"></i>{{ selectedProcess.reference || selectedProcess._id }}</span>
+                    </div>
                 </div>
-                <div class="detail-row">
-                    <label>Fecha</label>
-                    <span>{{ selectedProcess.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+
+                <div class="detail-summary__status">
+                    <label>Estado de revisión</label>
+                    <p-dropdown class="verification-status-dropdown verification-status-dropdown--detail"
+                        [ngClass]="getVerificationStatusClass(selectedProcess.verificationStatus)"
+                        [options]="verificationStatusOptions"
+                        [ngModel]="getVerificationStatus(selectedProcess.verificationStatus)"
+                        optionLabel="label" optionValue="value"
+                        [disabled]="updatingVerificationId === selectedProcess._id"
+                        (onChange)="updateProcessVerificationStatus(selectedProcess, $event.value)" appendTo="body">
+                        <ng-template pTemplate="selectedItem" let-option>
+                            <span class="process-status-badge"
+                                [ngClass]="getVerificationStatusClass(option?.value || selectedProcess.verificationStatus)">
+                                <i [class]="getVerificationStatusIcon(option?.value || selectedProcess.verificationStatus)"></i>
+                                {{ option?.label || getVerificationStatusLabel(selectedProcess.verificationStatus) }}
+                            </span>
+                        </ng-template>
+                        <ng-template pTemplate="item" let-option>
+                            <span class="process-status-badge" [ngClass]="getVerificationStatusClass(option.value)">
+                                <i [class]="getVerificationStatusIcon(option.value)"></i>
+                                {{ option.label }}
+                            </span>
+                        </ng-template>
+                    </p-dropdown>
+                    <small *ngIf="selectedProcess.verifiedAt">
+                        {{ getReviewerName(selectedProcess.verifiedBy) }} ·
+                        {{ selectedProcess.verifiedAt | date:'dd/MM/yyyy HH:mm' }}
+                    </small>
                 </div>
-                <div class="detail-row">
-                    <label>Descripción</label>
-                    <span>{{ selectedProcess.description }}</span>
-                </div>
-                <div class="detail-row" *ngIf="selectedProcess.details">
-                    <label>Detalles</label>
-                    <span>{{ selectedProcess.details }}</span>
-                </div>
+            </section>
+
+            <div class="detail-grid">
+                <section class="detail-card">
+                    <div class="detail-card__heading">
+                        <i class="pi pi-map-marker"></i>
+                        <div><span>Objetivo</span><small>Dispositivo relacionado</small></div>
+                    </div>
+                    <dl class="detail-data-list">
+                        <div><dt>Nombre</dt><dd>{{ getTargetName(selectedProcess.target) }}</dd></div>
+                        <div><dt>IMEI</dt><dd class="mono-value">{{ getTargetImei(selectedProcess.target) }}</dd></div>
+                        <div *ngIf="selectedProcess.target?.sim_card_number">
+                            <dt>SIM</dt><dd class="mono-value">{{ selectedProcess.target.sim_card_number }}</dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <section class="detail-card">
+                    <div class="detail-card__heading">
+                        <i class="pi pi-users"></i>
+                        <div><span>Responsables</span><small>Cuenta y personal</small></div>
+                    </div>
+                    <dl class="detail-data-list">
+                        <div><dt>Usuario</dt><dd>{{ selectedProcess.user.name || selectedProcess.user.email || '-' }}</dd></div>
+                        <div><dt>Empleado</dt><dd>{{ getCreatorName(selectedProcess.creator) }}</dd></div>
+                        <div><dt>Técnico</dt><dd>{{ getTechnicianName(selectedProcess) }}</dd></div>
+                    </dl>
+                </section>
             </div>
 
-            <div class="detail-section">
-                <h4><i class="pi pi-map-marker"></i> Target</h4>
-                <div class="detail-row">
-                    <label>Nombre</label>
-                    <span>{{ getTargetName(selectedProcess.target) }}</span>
+            <section class="detail-card detail-card--wide" *ngIf="selectedProcess.details">
+                <div class="detail-card__heading">
+                    <i class="pi pi-align-left"></i>
+                    <div><span>Detalle operativo</span><small>Información registrada durante el proceso</small></div>
                 </div>
-                <div class="detail-row">
-                    <label>IMEI</label>
-                    <span style="font-family: monospace;">{{ getTargetImei(selectedProcess.target) }}</span>
-                </div>
-                <div class="detail-row" *ngIf="selectedProcess.target?.sim_card_number">
-                    <label>SIM</label>
-                    <span style="font-family: monospace;">{{ selectedProcess.target.sim_card_number }}</span>
-                </div>
-            </div>
+                <p class="detail-description">{{ selectedProcess.details }}</p>
+            </section>
 
-            <div class="detail-section">
-                <h4><i class="pi pi-user"></i> Usuario</h4>
-                <div class="detail-row">
-                    <label>Nombre</label>
-                    <span>{{ selectedProcess.user.name || '-' }}</span>
+            <section class="detail-card detail-card--wide" *ngIf="selectedProcess.before || selectedProcess.after">
+                <div class="detail-card__heading">
+                    <i class="pi pi-sync"></i>
+                    <div><span>Cambios registrados</span><small>Comparación antes y después</small></div>
                 </div>
-                <div class="detail-row">
-                    <label>Email</label>
-                    <span>{{ selectedProcess.user.email || '-' }}</span>
-                </div>
-                <div class="detail-row">
-                    <label>Empleado</label>
-                    <span>{{ getCreatorName(selectedProcess.creator) }}</span>
-                </div>
-            </div>
-
-            <div class="detail-section" *ngIf="selectedProcess.before || selectedProcess.after">
-                <h4><i class="pi pi-history"></i> Cambios</h4>
                 <div class="changes-grid">
                     <div class="change-block" *ngIf="selectedProcess.before">
                         <label>Antes</label>
@@ -237,23 +402,21 @@
                         <pre>{{ selectedProcess.after | json }}</pre>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="detail-section">
-                <div class="detail-row">
-                    <label>Referencia</label>
-                    <span style="font-family: monospace; font-size: 0.85rem;">{{ selectedProcess.reference }}</span>
-                </div>
-                <div class="detail-row">
-                    <label>ID</label>
-                    <span style="font-family: monospace; font-size: 0.85rem;">{{ selectedProcess._id }}</span>
-                </div>
-            </div>
+            <section class="detail-technical-data">
+                <span><strong>Referencia</strong>{{ selectedProcess.reference || '-' }}</span>
+                <span *ngIf="selectedProcess.target?.solicitud_id">
+                    <strong>Solicitud de origen</strong>{{ selectedProcess.target.solicitud_id }}
+                </span>
+                <span><strong>ID interno</strong>{{ selectedProcess._id }}</span>
+            </section>
         </div>
     </ng-template>
 
     <ng-template pTemplate="footer">
-        <button pButton label="Cerrar" icon="pi pi-times" class="p-button-text"
-            (click)="detailDialogVisible = false"></button>
+        <button type="button" pButton label="Cerrar detalle" icon="pi pi-times"
+            class="p-button-outlined" (click)="detailDialogVisible = false">
+        </button>
     </ng-template>
 </p-dialog>

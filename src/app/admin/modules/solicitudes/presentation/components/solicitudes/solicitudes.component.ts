@@ -6956,7 +6956,10 @@ async initLocationMap(): Promise<void> {
             // Complete install: update solicitud status + sync GPS data to Montao Rent vehicle
             if (sol._id) {
                 this.solicitudesService.completeInstall(sol._id, deviceId, this.installData.device_imei).subscribe({
-                    next: () => this.loadSolicitudes(false),
+                    next: (response) => {
+                        this.showSolicitudOperationWarnings(response as any);
+                        this.loadSolicitudes(false);
+                    },
                     error: () => this.loadSolicitudes(false)
                 });
             }

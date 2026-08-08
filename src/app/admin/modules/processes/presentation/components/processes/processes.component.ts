@@ -1,16 +1,25 @@
 import { Component, OnInit } from '@angular/core';
-import { ProcessesService, ProcessItem, PROCESS_TYPE_LABELS } from '../../services/processes.service';
+import {
+  ProcessesService,
+  ProcessItem,
+  PROCESS_TYPE_LABELS,
+  PROCESS_VERIFICATION_STATUS_LABELS,
+  ProcessVerificationStatus,
+} from '../../services/processes.service';
 import { UserService } from 'src/app/core/services/user.service';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { ColorsService } from 'src/app/core/services/colors.service';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import * as XLSX from 'xlsx-js-style';
+import { MessageService } from 'primeng/api';
+import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 
 @Component({
   selector: 'app-processes',
   standalone: false,
   templateUrl: './processes.component.html',
-  styleUrls: ['./processes.component.css']
+  styleUrls: ['./processes.component.css'],
+  providers: [MessageService],
 })
 export class ProcessesComponent implements OnInit {
 
@@ -27,8 +36,10 @@ export class ProcessesComponent implements OnInit {
   selectedType: number | null = null;
   selectedCreator: string | null = null;
   selectedMechanic: string | null = null;
-  dateFrom: Date | null = this.getTodayRange().from;
-  dateTo: Date | null = this.getTodayRange().to;
+  selectedVerificationStatus: ProcessVerificationStatus | null = null;
+  dateFrom: Date | null = this.getCurrentMonthRange().from;
+  dateTo: Date | null = this.getCurrentMonthRange().to;
+  filtersExpanded = false;
 
   typeOptions = Object.entries(PROCESS_TYPE_LABELS).map(([key, label]) => ({
     label,
@@ -36,6 +47,11 @@ export class ProcessesComponent implements OnInit {
   }));
 
   processTypeLabels = PROCESS_TYPE_LABELS;
+  verificationStatusOptions = Object.entries(PROCESS_VERIFICATION_STATUS_LABELS).map(([value, label]) => ({
+    label,
+    value: value as ProcessVerificationStatus,
+  }));
+  updatingVerificationId: string | null = null;
 
   // Stats
   stats: any = null;
@@ -62,7 +78,8 @@ export class ProcessesComponent implements OnInit {
     private userService: UserService,
     private vehicleBrandsService: VehicleBrandsService,
     private colorsService: ColorsService,
-    private protocolsService: ProtocolsService
+    private protocolsService: ProtocolsService,
+    private messageService: MessageService,
   ) {}
 
   ngOnInit(): void {
@@ -80,6 +97,7 @@ export class ProcessesComponent implements OnInit {
     if (this.selectedType !== null && this.selectedType !== undefined) filters.type = this.selectedType;
     if (this.selectedCreator) filters.creator = this.selectedCreator;
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
+    if (this.selectedVerificationStatus) filters.verificationStatus = this.selectedVerificationStatus;
     if (this.dateFrom) filters.dateFrom = this.dateFrom.toISOString();
     if (this.dateTo) filters.dateTo = this.dateTo.toISOString();
     if (this.searchQuery?.trim()) filters.search = this.searchQuery.trim();
@@ -119,9 +137,10 @@ export class ProcessesComponent implements OnInit {
     this.selectedType = null;
     this.selectedCreator = null;
     this.selectedMechanic = null;
-    const todayRange = this.getTodayRange();
-    this.dateFrom = todayRange.from;
-    this.dateTo = todayRange.to;
+    this.selectedVerificationStatus = null;
+    const currentMonthRange = this.getCurrentMonthRange();
+    this.dateFrom = currentMonthRange.from;
+    this.dateTo = currentMonthRange.to;
     this.currentPage = 1;
     this.loadProcesses();
   }
@@ -137,6 +156,7 @@ export class ProcessesComponent implements OnInit {
     if (this.selectedType !== null && this.selectedType !== undefined) filters.type = this.selectedType;
     if (this.selectedCreator) filters.creator = this.selectedCreator;
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
+    if (this.selectedVerificationStatus) filters.verificationStatus = this.selectedVerificationStatus;
     if (this.dateFrom) filters.dateFrom = this.dateFrom.toISOString();
     if (this.dateTo) filters.dateTo = this.dateTo.toISOString();
     if (this.searchQuery?.trim()) filters.search = this.searchQuery.trim();
@@ -147,6 +167,7 @@ export class ProcessesComponent implements OnInit {
     const data = allProcesses.map(p => ({
       'Fecha': new Date(p.createdAt).toLocaleString('es-DO'),
       'Tipo': this.getTypeLabel(p.type),
+      'Estado': this.getVerificationStatusLabel(p.verificationStatus),
       'Target': this.getTargetName(p.target),
       'IMEI': this.getTargetImei(p.target),
       'Marca': this.brandsMap[p.target?.['target_brand_id']] || p.target?.['target_brand_id'] || '',
@@ -168,6 +189,7 @@ export class ProcessesComponent implements OnInit {
     ws['!cols'] = [
       { wch: 20 },  // Fecha
       { wch: 22 },  // Tipo
+      { wch: 14 },  // Estado
       { wch: 25 },  // Target
       { wch: 18 },  // IMEI
       { wch: 15 },  // Marca
@@ -189,7 +211,7 @@ export class ProcessesComponent implements OnInit {
       font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 11 },
       alignment: { horizontal: 'center' }
     };
-    const colLetters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'];
+    const colLetters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P'];
     colLetters.forEach(col => {
       const cell = ws[`${col}1`];
       if (cell) cell.s = headerStyle;
@@ -233,11 +255,12 @@ export class ProcessesComponent implements OnInit {
     XLSX.writeFile(wb, `procesos_${new Date().toISOString().split('T')[0]}.xlsx`);
   }
 
-  private getTodayRange(): { from: Date; to: Date } {
-    const from = new Date();
+  private getCurrentMonthRange(): { from: Date; to: Date } {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
     from.setHours(0, 0, 0, 0);
 
-    const to = new Date();
+    const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     to.setHours(23, 59, 59, 999);
 
     return { from, to };
@@ -270,6 +293,95 @@ export class ProcessesComponent implements OnInit {
       19: 'danger',   // Desinstalación
     };
     return severities[type] || 'info';
+  }
+
+  getVerificationStatus(status?: ProcessVerificationStatus): ProcessVerificationStatus {
+    return status || 'pending';
+  }
+
+  getVerificationStatusLabel(status?: ProcessVerificationStatus): string {
+    return PROCESS_VERIFICATION_STATUS_LABELS[this.getVerificationStatus(status)];
+  }
+
+  getVerificationStatusClass(status?: ProcessVerificationStatus): string {
+    return `process-status--${this.getVerificationStatus(status)}`;
+  }
+
+  getVerificationStatusIcon(status?: ProcessVerificationStatus): string {
+    const icons: Record<ProcessVerificationStatus, string> = {
+      pending: 'pi pi-clock',
+      verified: 'pi pi-check-circle',
+      rejected: 'pi pi-times-circle',
+    };
+    return icons[this.getVerificationStatus(status)];
+  }
+
+  getProcessRowClass(status?: ProcessVerificationStatus): string {
+    return this.getVerificationStatus(status) === 'verified' ? 'process-row--verified' : '';
+  }
+
+  getVisibleStatusCount(status: ProcessVerificationStatus): number {
+    return this.processes.filter(process => this.getVerificationStatus(process.verificationStatus) === status).length;
+  }
+
+  getPeriodLabel(): string {
+    if (!this.dateFrom && !this.dateTo) return 'Todas las fechas';
+
+    const formatter = new Intl.DateTimeFormat('es-DO', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const from = this.dateFrom ? formatter.format(this.dateFrom) : 'Inicio';
+    const to = this.dateTo ? formatter.format(this.dateTo) : 'Hoy';
+    return `${from} — ${to}`;
+  }
+
+  getAppliedFilterCount(): number {
+    return [
+      this.selectedType,
+      this.selectedCreator,
+      this.selectedMechanic,
+      this.selectedVerificationStatus,
+    ].filter(value => value !== null && value !== undefined && value !== '').length;
+  }
+
+  updateProcessVerificationStatus(
+    process: ProcessItem,
+    status: ProcessVerificationStatus,
+  ): void {
+    if (this.updatingVerificationId || this.getVerificationStatus(process.verificationStatus) === status) {
+      return;
+    }
+
+    this.updatingVerificationId = process._id;
+    this.processesService.updateVerificationStatus(process._id, status).subscribe({
+      next: (updated) => {
+        const index = this.processes.findIndex(item => item._id === updated._id);
+        if (index >= 0) this.processes[index] = updated;
+        if (this.selectedProcess?._id === updated._id) this.selectedProcess = updated;
+        this.updatingVerificationId = null;
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Estado actualizado',
+          detail: `El proceso quedó ${this.getVerificationStatusLabel(updated.verificationStatus).toLowerCase()}.`,
+          life: 2800,
+        });
+      },
+      error: (error) => {
+        this.updatingVerificationId = null;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo actualizar',
+          detail: getApiErrorMessage(error, 'No se pudo cambiar el estado del proceso.'),
+          life: 4000,
+        });
+      },
+    });
+  }
+
+  getReviewerName(reviewer: any): string {
+    return this.getCreatorName(reviewer);
   }
 
   showDetail(process: ProcessItem): void {

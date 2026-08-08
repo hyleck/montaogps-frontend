@@ -8,16 +8,37 @@ export interface ProcessItem {
   type: number;
   description: string;
   details?: string;
-  target: { _id: string; name?: string; device_imei?: string; sim_card_number?: string; [key: string]: any };
+  target: {
+    _id: string;
+    name?: string;
+    device_imei?: string;
+    sim_card_number?: string;
+    solicitud_id?: string;
+    solicitud_installation_id?: string;
+    solicitud_installation_index?: number;
+    [key: string]: any;
+  };
   user: { _id: string; name?: string; email?: string; [key: string]: any };
   reference: string;
   before: any;
   after: any;
   registrationDate: string;
   creator: any;
+  verificationStatus?: ProcessVerificationStatus;
+  verifiedBy?: any;
+  verifiedAt?: string;
+  verificationNote?: string;
   createdAt: string;
   updatedAt: string;
 }
+
+export type ProcessVerificationStatus = 'pending' | 'verified' | 'rejected';
+
+export const PROCESS_VERIFICATION_STATUS_LABELS: Record<ProcessVerificationStatus, string> = {
+  pending: 'Pendiente',
+  verified: 'Verificado',
+  rejected: 'Rechazado',
+};
 
 export interface PaginatedProcessResponse {
   data: ProcessItem[];
@@ -94,6 +115,7 @@ export class ProcessesService {
       dateFrom?: string;
       dateTo?: string;
       search?: string;
+      verificationStatus?: ProcessVerificationStatus;
     }
   ): Observable<PaginatedProcessResponse> {
     let url = `${this.apiUrl}/paginated?page=${page}&limit=${limit}`;
@@ -103,7 +125,19 @@ export class ProcessesService {
     if (filters?.dateFrom) url += `&dateFrom=${encodeURIComponent(filters.dateFrom)}`;
     if (filters?.dateTo) url += `&dateTo=${encodeURIComponent(filters.dateTo)}`;
     if (filters?.search) url += `&search=${encodeURIComponent(filters.search)}`;
+    if (filters?.verificationStatus) url += `&verificationStatus=${encodeURIComponent(filters.verificationStatus)}`;
     return this.http.get<PaginatedProcessResponse>(url);
+  }
+
+  updateVerificationStatus(
+    processId: string,
+    status: ProcessVerificationStatus,
+    note?: string,
+  ): Observable<ProcessItem> {
+    return this.http.patch<ProcessItem>(`${this.apiUrl}/${processId}/verification-status`, {
+      status,
+      ...(note?.trim() ? { note: note.trim() } : {}),
+    });
   }
 
   getStats(): Observable<any> {

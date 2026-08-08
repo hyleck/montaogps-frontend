@@ -132,10 +132,13 @@ export class PublicIdentityVerificationComponent implements OnInit, OnDestroy {
   }
 
   finalize(): void {
-    if (!this.identityFile || !isValidIdentityDocument(this.scanData) || this.finalizing) return;
+    const identityFile = this.identityFile;
+    const scanData = this.scanData;
+
+    if (!identityFile || !scanData || !isValidIdentityDocument(scanData) || this.finalizing) return;
     this.finalizing = true;
 
-    this.userService.finalizePublicIdentityVerification(this.token, this.identityFile, this.scanData!).subscribe({
+    this.userService.finalizePublicIdentityVerification(this.token, identityFile, scanData).subscribe({
       next: () => {
         this.finalizing = false;
         this.completed = true;
