@@ -229,6 +229,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private loadingMoreUsers: boolean = false;
   private totalUsersCount: number = 0;
   private userRouteLoadRequestId: number = 0;
+  private loadingUserRouteId = '';
   private usersListLoadRequestId: number = 0;
   private targetsLoadRequestId: number = 0;
   private userPathLoadRequestId: number = 0;
@@ -3400,10 +3401,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         // distinctUntilChanged() removed to allow re-triggering search with same term after user modifications
         switchMap(searchTerm => {
           const requestedUserId = String(this.selectedUser?._id || '').trim();
-          const routeUserId = String(this.route.snapshot.paramMap.get('user') || '').trim();
-          const routeIsChanging = this.isValidManagementUserId(routeUserId)
-            && routeUserId !== requestedUserId;
-          if (!this.isValidManagementUserId(requestedUserId) || routeIsChanging) {
+          if (!this.isValidManagementUserId(requestedUserId) || this.loadingUserRouteId) {
             // La ruta y los query params pueden emitirse antes de que termine de
             // cargar el usuario. Conservamos la búsqueda y evitamos enviar un
             // `parent` vacío al backend.
@@ -3590,9 +3588,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   get isUserSearchReady(): boolean {
     const selectedUserId = String(this.selectedUser?._id || '').trim();
-    if (!this.isValidManagementUserId(selectedUserId)) return false;
-    const routeUserId = String(this.route.snapshot.paramMap.get('user') || '').trim();
-    return !this.isValidManagementUserId(routeUserId) || routeUserId === selectedUserId;
+    return !this.loadingUserRouteId && this.isValidManagementUserId(selectedUserId);
   }
 
   private cleanupSubscriptions(): void {
@@ -3745,15 +3741,18 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   private loadUserFromParams(userId: string): void {
     const requestId = ++this.userRouteLoadRequestId;
+    this.loadingUserRouteId = userId;
     this.managementService.loadUserData(userId)
       .then(user => {
         if (requestId !== this.userRouteLoadRequestId || user._id !== userId) {
           return;
         }
+        this.loadingUserRouteId = '';
         this.handleUserLoaded(user);
       })
       .catch(() => {
         if (requestId === this.userRouteLoadRequestId) {
+          this.loadingUserRouteId = '';
           this.uiService.setLoading(false);
         }
       });
