@@ -31,6 +31,10 @@ export interface ExpenseReceipt {
   createdAt?: string;
 }
 
+export type ExpenseReceiptAccountingCategory =
+  | 'gasto_operativo'
+  | 'gasto_representacion';
+
 export interface ExpenseReceiptPage {
   data: ExpenseReceipt[];
   total: number;
@@ -54,6 +58,16 @@ export class ExpenseReceiptsService {
   private readonly apiUrl = `${environment.apiUrl}/expense-receipts`;
 
   constructor(private readonly http: HttpClient) {}
+
+  upload(
+    image: File,
+    accountingCategory: ExpenseReceiptAccountingCategory,
+  ): Observable<ExpenseReceipt> {
+    const formData = new FormData();
+    formData.append('image', image, image.name);
+    formData.append('accounting_category', accountingCategory);
+    return this.http.post<ExpenseReceipt>(this.apiUrl, formData);
+  }
 
   getAll(filters: ExpenseReceiptFilters = {}): Observable<ExpenseReceiptPage> {
     let params = new HttpParams();

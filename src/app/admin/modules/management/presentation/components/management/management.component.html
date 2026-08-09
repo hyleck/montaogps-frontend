@@ -120,7 +120,7 @@
                         <div class="management__input-search">
                             <label for="management-search"><i class="pi pi-search"></i></label>
                             <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search"
-                                type="text" [placeholder]="translations.searchUsers | translate">
+                                type="text" [disabled]="!isUserSearchReady" [placeholder]="translations.searchUsers | translate">
 
                         </div>
                         <button (click)="showUserForm()" class="button button--primary-flat-red"
@@ -690,7 +690,7 @@
                 <div class="management__input-search">
                     <label for="management-search"><i class="pi pi-search"></i></label>
                     <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search" type="text"
-                        [placeholder]="translations.searchUsers | translate">
+                        [disabled]="!isUserSearchReady" [placeholder]="translations.searchUsers | translate">
 
                 </div>
                 <button (click)="showUserForm()" class="button button--primary-flat-red">

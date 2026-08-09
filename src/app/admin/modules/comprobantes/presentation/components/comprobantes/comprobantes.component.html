@@ -5,7 +5,13 @@
       <h1>Comprobantes</h1>
       <p>Comprobantes subidos por empleados y técnicos internos, digitalizados y organizados por fecha y categoría.</p>
     </div>
-    <div class="header-badge"><i class="pi pi-sparkles"></i><span>Digitalización con IA</span></div>
+    <div class="header-actions">
+      <div class="header-badge"><i class="pi pi-sparkles"></i><span>Digitalización con IA</span></div>
+      <button type="button" class="upload-receipt-btn" (click)="openUploadModal()">
+        <i class="pi pi-upload"></i>
+        Subir comprobante
+      </button>
+    </div>
   </header>
 
   <section class="stats-grid">
@@ -25,6 +31,7 @@
   </section>
 
   <div class="error-banner" *ngIf="error"><i class="pi pi-exclamation-triangle"></i><span>{{ error }}</span><button type="button" (click)="error = ''">×</button></div>
+  <div class="success-banner" *ngIf="success"><i class="pi pi-check-circle"></i><span>{{ success }}</span><button type="button" (click)="success = ''">×</button></div>
   <div class="loading-state" *ngIf="loading"><span class="loader"></span><strong>Cargando comprobantes…</strong></div>
   <div class="empty-state" *ngIf="!loading && receipts.length === 0"><i class="pi pi-receipt"></i><h2>No hay comprobantes</h2><p>No encontramos registros con los filtros seleccionados.</p></div>
 
@@ -54,6 +61,80 @@
 
   <nav class="pagination" *ngIf="!loading && totalPages > 1"><button type="button" (click)="changePage(page - 1)" [disabled]="page === 1"><i class="pi pi-chevron-left"></i> Anterior</button><span>Página <strong>{{ page }}</strong> de {{ totalPages }}</span><button type="button" (click)="changePage(page + 1)" [disabled]="page === totalPages">Siguiente <i class="pi pi-chevron-right"></i></button></nav>
 </main>
+
+<div class="upload-modal" *ngIf="uploadModalOpen" (click)="closeUploadModal()">
+  <section class="upload-modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="uploadReceiptTitle">
+    <header class="upload-modal-header">
+      <div class="upload-modal-icon"><i class="pi pi-receipt"></i></div>
+      <div>
+        <span>NUEVO REGISTRO</span>
+        <h2 id="uploadReceiptTitle">Subir comprobante</h2>
+        <p>La imagen se guardará y la IA extraerá sus datos automáticamente.</p>
+      </div>
+      <button type="button" class="upload-modal-close" (click)="closeUploadModal()" [disabled]="uploading" aria-label="Cerrar">×</button>
+    </header>
+
+    <div class="upload-modal-body">
+      <label class="upload-category-field">
+        <span>Categoría del gasto <em>Obligatoria</em></span>
+        <div class="upload-select-control">
+          <i class="pi pi-tag"></i>
+          <select [(ngModel)]="uploadCategory" [disabled]="uploading">
+            <option value="" disabled>Seleccione una categoría</option>
+            <option value="gasto_operativo">Gasto operativo</option>
+            <option value="gasto_representacion">Gasto de representación</option>
+          </select>
+          <i class="pi pi-chevron-down"></i>
+        </div>
+      </label>
+
+      <input
+        #uploadInput
+        id="receiptUploadInput"
+        class="hidden-file-input"
+        type="file"
+        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+        (change)="onUploadFileSelected($event)"
+      >
+
+      <label
+        for="receiptUploadInput"
+        class="upload-dropzone"
+        [class.has-preview]="!!uploadPreviewUrl"
+        [class.is-disabled]="uploading"
+        (dragover)="onUploadDragOver($event)"
+        (drop)="onUploadFileDropped($event)"
+      >
+        <ng-container *ngIf="!uploadPreviewUrl; else uploadPreview">
+          <span class="dropzone-icon"><i class="pi pi-image"></i></span>
+          <strong>Seleccione o arrastre la imagen</strong>
+          <small>JPG, PNG o WEBP · máximo 12 MB</small>
+        </ng-container>
+        <ng-template #uploadPreview>
+          <img [src]="uploadPreviewUrl" alt="Vista previa del comprobante">
+          <span class="replace-upload-image"><i class="pi pi-refresh"></i> Cambiar imagen</span>
+        </ng-template>
+      </label>
+
+      <div class="selected-upload-file" *ngIf="uploadFile">
+        <i class="pi pi-file"></i>
+        <div><strong>{{ uploadFile.name }}</strong><span>{{ (uploadFile.size / 1048576) | number:'1.1-1' }} MB</span></div>
+        <button type="button" (click)="clearUploadFile()" [disabled]="uploading" aria-label="Quitar imagen"><i class="pi pi-times"></i></button>
+      </div>
+
+      <div class="upload-error" *ngIf="uploadError"><i class="pi pi-exclamation-triangle"></i><span>{{ uploadError }}</span></div>
+      <div class="upload-information"><i class="pi pi-info-circle"></i><span>El comprobante quedará registrado a nombre del usuario root conectado.</span></div>
+    </div>
+
+    <footer class="upload-modal-footer">
+      <button type="button" class="upload-cancel-btn" (click)="closeUploadModal()" [disabled]="uploading">Cerrar</button>
+      <button type="button" class="upload-submit-btn" (click)="submitReceipt()" [disabled]="uploading || !uploadFile || !uploadCategory">
+        <i class="pi" [ngClass]="uploading ? 'pi-spin pi-spinner' : 'pi-sparkles'"></i>
+        {{ uploading ? 'Digitalizando comprobante…' : 'Digitalizar y guardar' }}
+      </button>
+    </footer>
+  </section>
+</div>
 
 <div class="receipt-modal" *ngIf="selectedReceipt" (click)="closeReceipt()">
   <section class="modal-card" (click)="$event.stopPropagation()">

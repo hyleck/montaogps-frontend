@@ -59,6 +59,7 @@ export class ProcessesComponent implements OnInit {
   // Detail dialog
   selectedProcess: ProcessItem | null = null;
   detailDialogVisible = false;
+  detailChangeRows: Array<{ key: string; label: string; before: string; after: string }> = [];
 
   // Technicians map
   techniciansMap: { [id: string]: string } = {};
@@ -386,7 +387,87 @@ export class ProcessesComponent implements OnInit {
 
   showDetail(process: ProcessItem): void {
     this.selectedProcess = process;
+    this.detailChangeRows = this.buildChangeRows(process.before, process.after);
     this.detailDialogVisible = true;
+  }
+
+  private buildChangeRows(before: any, after: any): Array<{ key: string; label: string; before: string; after: string }> {
+    const previous = before && typeof before === 'object' ? before : {};
+    const current = after && typeof after === 'object' ? after : {};
+    const keys = Array.from(new Set([...Object.keys(previous), ...Object.keys(current)]));
+
+    return keys
+      .filter(key => JSON.stringify(previous[key] ?? null) !== JSON.stringify(current[key] ?? null))
+      .map(key => ({
+        key,
+        label: this.getChangeFieldLabel(key),
+        before: this.formatChangeValue(key, previous[key]),
+        after: this.formatChangeValue(key, current[key]),
+      }));
+  }
+
+  private getChangeFieldLabel(key: string): string {
+    const labels: Record<string, string> = {
+      status: 'Estado',
+      lastProcess: 'Último proceso',
+      processType: 'Tipo de proceso',
+      processDate: 'Fecha del proceso',
+      device_imei: 'IMEI',
+      sim_card_number: 'Número SIM',
+      expiration_date: 'Fecha de expiración',
+      installation_date: 'Fecha de instalación',
+      mechanic_id: 'Técnico',
+      gps_model: 'Modelo GPS',
+    };
+
+    return labels[key] || key
+      .replace(/_/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/^./, value => value.toUpperCase());
+  }
+
+  private formatChangeValue(key: string, value: any): string {
+    if (value === null || value === undefined || value === '') return 'Sin dato';
+    if (key === 'status') {
+      const statuses: Record<string, string> = {
+        pending: 'Pendiente',
+        completed: 'Completado',
+        cancelled: 'Cancelado',
+        in_progress: 'En progreso',
+      };
+      return statuses[String(value)] || String(value);
+    }
+    if (key === 'processType') {
+      const numericType = Number(value);
+      if (Number.isFinite(numericType)) return this.getTypeLabel(numericType);
+
+      const normalizedType = String(value).trim().toLowerCase().replace(/[\s-]+/g, '_');
+      const processTypes: Record<string, number> = {
+        installation: 1,
+        installation_date: 2,
+        expiration: 3,
+        renewal: 4,
+        technician_change: 8,
+        gps_change: 9,
+        checkup: 10,
+        installation_details_change: 10,
+        gps_model_change: 11,
+        imei_change: 12,
+        sim_change: 13,
+        sim_number: 14,
+        sim_type_change: 15,
+        restoration: 16,
+        automatic_activation: 17,
+        reinstallation: 18,
+        uninstall: 19,
+      };
+      return processTypes[normalizedType]
+        ? this.getTypeLabel(processTypes[normalizedType])
+        : String(value);
+    }
+    if (typeof value === 'boolean') return value ? 'Sí' : 'No';
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
   }
 
   getCreatorName(creator: any): string {

@@ -129,6 +129,45 @@ export interface Solicitud {
     idempotency_key?: string;
     expected_version?: number;
     operation_warnings?: string[];
+    client_acceptance_notification_sent_at?: string | Date;
+    client_registration_invitation_sent_at?: string | Date;
+    client_registration_short_code?: string;
+    completion_transfer_mode?: SolicitudCompletionTransferMode;
+    completion_transfer_target_user_id?: string;
+}
+
+export type SolicitudCompletionTransferMode = 'automatic' | 'disabled' | 'custom';
+
+export type SolicitudCompletionPreviewState =
+    | 'will_run'
+    | 'already_done'
+    | 'deferred'
+    | 'not_applicable'
+    | 'attention';
+
+export interface SolicitudCompletionPreviewAction {
+    key: string;
+    title: string;
+    detail: string;
+    state: SolicitudCompletionPreviewState;
+    icon: string;
+    count?: number;
+}
+
+export interface SolicitudCompletionPreview {
+    solicitud_id: string;
+    client_name: string;
+    mode: 'status_update' | 'complete_install';
+    transfer?: {
+        mode: SolicitudCompletionTransferMode;
+        target_user: {
+            id: string;
+            name: string;
+            last_name: string;
+            email: string;
+        } | null;
+    };
+    actions: SolicitudCompletionPreviewAction[];
 }
 
 export interface SolicitudesRealtimeState {
@@ -232,6 +271,17 @@ export class SolicitudesService {
     ): Observable<SolicitudInstallationDeviceDetails> {
         return this.http.get<SolicitudInstallationDeviceDetails>(
             `${this.apiUrl}/${encodeURIComponent(solicitudId)}/installations/${installationIndex}/device-details`,
+        );
+    }
+
+    getCompletionPreview(
+        solicitudId: string,
+        mode: 'status_update' | 'complete_install' = 'status_update',
+    ): Observable<SolicitudCompletionPreview> {
+        const params = new HttpParams().set('mode', mode);
+        return this.http.get<SolicitudCompletionPreview>(
+            `${this.apiUrl}/${encodeURIComponent(solicitudId)}/completion-preview`,
+            { params },
         );
     }
 

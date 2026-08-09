@@ -49,4 +49,44 @@ describe('ComprobantesComponent', () => {
       page: 1,
     }));
   });
+
+  it('uploads a receipt from gps-frontend with the selected accounting category', () => {
+    const uploaded = receipt({
+      _id: 'uploaded-receipt',
+      accounting_category: 'gasto_operativo',
+      merchant_name: 'Papelería Central',
+    });
+    const service = {
+      getAll: jasmine.createSpy('getAll').and.returnValue(of({ data: [uploaded], total: 1 })),
+      upload: jasmine.createSpy('upload').and.returnValue(of(uploaded)),
+    };
+    const component = new ComprobantesComponent(service as any);
+    component.uploadModalOpen = true;
+    component.uploadCategory = 'gasto_operativo';
+    component.uploadFile = new File(['image'], 'comprobante.jpg', { type: 'image/jpeg' });
+
+    component.submitReceipt();
+
+    expect(service.upload).toHaveBeenCalledWith(
+      jasmine.any(File),
+      'gasto_operativo',
+    );
+    expect(component.uploadModalOpen).toBeFalse();
+    expect(component.success).toContain('digitalizado');
+    expect(service.getAll).toHaveBeenCalled();
+  });
+
+  it('requires a category before uploading from gps-frontend', () => {
+    const service = {
+      getAll: jasmine.createSpy('getAll').and.returnValue(of({ data: [], total: 0 })),
+      upload: jasmine.createSpy('upload'),
+    };
+    const component = new ComprobantesComponent(service as any);
+    component.uploadFile = new File(['image'], 'comprobante.jpg', { type: 'image/jpeg' });
+
+    component.submitReceipt();
+
+    expect(service.upload).not.toHaveBeenCalled();
+    expect(component.uploadError).toContain('Seleccione');
+  });
 });

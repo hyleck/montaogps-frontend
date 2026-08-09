@@ -2025,7 +2025,7 @@
     [header]="isSelectedSolicitudFinalized() ? 'Solicitud finalizada' : (isEditMode ? 'Editar Solicitud' : 'Nueva Solicitud')"
     [modal]="true" [draggable]="false" [resizable]="false"
     styleClass="p-fluid app-dark-dialog sol-request-form-dialog"
-    (onHide)="hideDialog()">
+    (onHide)="onRequestDialogHidden()">
     <ng-template pTemplate="content">
         <div *ngIf="selectedSolicitud" class="sol-form" [class.sol-form--readonly]="isSelectedSolicitudFinalized()">
 
@@ -3152,7 +3152,7 @@
     [resizable]="false"
     [closable]="true"
     [closeOnEscape]="true"
-    [style]="{width: '520px'}"
+    [style]="{width: '700px', maxWidth: '96vw'}"
     [breakpoints]="{'640px': '94vw'}"
     styleClass="app-dark-dialog sol-completion-confirm-dialog"
     (onHide)="cancelSolicitudCompletion()">
@@ -3184,18 +3184,107 @@
             </div>
         </div>
 
-        <div
-            *ngIf="completionDeinstallationReasonLabel"
-            class="sol-completion-confirm__device-impact"
-            role="note">
-            <i class="pi pi-ban" aria-hidden="true"></i>
+        <div class="sol-completion-confirm__plan-heading" *ngIf="completionVisibleActions.length">
             <div>
-                <strong>Los dispositivos pasarán a cancelados</strong>
-                <span>
-                    Los dispositivos de las desinstalaciones realizadas se marcarán como cancelados con la razón
-                    <b>{{ completionDeinstallationReasonLabel }}</b>.
-                </span>
+                <span>Plan de finalización</span>
+                <strong>Esto es lo que ocurrirá al confirmar</strong>
             </div>
+            <span class="sol-completion-confirm__plan-count">
+                {{ completionActionsToRunCount }}
+                {{ completionActionsToRunCount === 1 ? 'acción' : 'acciones' }}
+            </span>
+        </div>
+
+        <div *ngIf="completionPreviewLoading" class="sol-completion-confirm__loading" role="status">
+            <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+            <span>Verificando los procesos con el servidor...</span>
+        </div>
+
+        <div *ngIf="completionPreviewError" class="sol-completion-confirm__preview-error" role="alert">
+            <i class="pi pi-info-circle" aria-hidden="true"></i>
+            <span>{{ completionPreviewError }}</span>
+        </div>
+
+        <div class="sol-completion-confirm__processes" *ngIf="completionVisibleActions.length">
+            <article class="sol-completion-confirm__process"
+                *ngFor="let action of completionVisibleActions; trackBy: trackByCompletionPreviewAction"
+                [attr.data-state]="action.state">
+                <span class="sol-completion-confirm__process-icon" aria-hidden="true">
+                    <i class="pi" [ngClass]="action.icon"></i>
+                </span>
+                <div class="sol-completion-confirm__process-copy">
+                    <div class="sol-completion-confirm__process-title">
+                        <strong>{{ action.title }}</strong>
+                        <span>{{ getCompletionPreviewStateLabel(action) }}</span>
+                    </div>
+                    <p>{{ action.detail }}</p>
+                    <small *ngIf="action.key === 'cancel_uninstalled_devices' && completionDeinstallationReasonLabel">
+                        Razón: {{ completionDeinstallationReasonLabel }}
+                    </small>
+                    <div *ngIf="action.key === 'transfer_devices' && action.count"
+                        class="sol-completion-transfer">
+                        <div class="sol-completion-transfer__actions">
+                            <button type="button"
+                                class="sol-completion-transfer__option sol-completion-transfer__option--cancel"
+                                [class.is-active]="completionTransferMode === 'disabled'"
+                                (click)="cancelCompletionDeviceTransfer()">
+                                <i class="pi" [ngClass]="completionTransferMode === 'disabled' ? 'pi-check' : 'pi-ban'" aria-hidden="true"></i>
+                                {{ completionTransferMode === 'disabled' ? 'Transferencia cancelada' : 'Cancelar transferencia' }}
+                            </button>
+                            <button type="button"
+                                class="sol-completion-transfer__option"
+                                [class.is-active]="completionTransferMode === 'custom'"
+                                (click)="personalizeCompletionDeviceTransfer()">
+                                <i class="pi pi-sliders-h" aria-hidden="true"></i>
+                                Personalizar
+                            </button>
+                            <button *ngIf="completionTransferMode !== 'automatic'"
+                                type="button"
+                                class="sol-completion-transfer__automatic"
+                                (click)="useAutomaticCompletionDeviceTransfer()">
+                                Usar transferencia automática
+                            </button>
+                        </div>
+
+                        <div *ngIf="completionTransferMode === 'custom'"
+                            class="sol-completion-transfer__custom">
+                            <label for="completion-transfer-email">Cuenta que recibirá los GPS</label>
+                            <div class="sol-completion-transfer__search">
+                                <span class="p-input-icon-left">
+                                    <i class="pi pi-envelope" aria-hidden="true"></i>
+                                    <input id="completion-transfer-email"
+                                        type="email"
+                                        pInputText
+                                        [(ngModel)]="completionTransferTargetEmail"
+                                        placeholder="correo@cliente.com"
+                                        (ngModelChange)="onCompletionTransferTargetEmailChange()"
+                                        (keydown.enter)="$event.preventDefault(); searchCompletionTransferTarget()">
+                                </span>
+                                <button type="button"
+                                    class="sol-completion-transfer__search-button"
+                                    [disabled]="completionTransferTargetSearching"
+                                    (click)="searchCompletionTransferTarget()">
+                                    <i class="pi" [ngClass]="completionTransferTargetSearching ? 'pi-spin pi-spinner' : 'pi-search'" aria-hidden="true"></i>
+                                    {{ completionTransferTargetSearching ? 'Buscando' : 'Buscar cuenta' }}
+                                </button>
+                            </div>
+                            <div *ngIf="completionTransferTarget" class="sol-completion-transfer__target">
+                                <span><i class="pi pi-user" aria-hidden="true"></i></span>
+                                <div>
+                                    <strong>{{ completionTransferTargetLabel }}</strong>
+                                    <small>{{ completionTransferTarget.email }}</small>
+                                </div>
+                                <i class="pi pi-check-circle" aria-label="Cuenta seleccionada"></i>
+                            </div>
+                            <p *ngIf="completionTransferTargetError"
+                                class="sol-completion-transfer__error" role="alert">
+                                <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+                                {{ completionTransferTargetError }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </article>
         </div>
 
         <div class="sol-completion-confirm__notice" role="alert">
@@ -3207,7 +3296,8 @@
         </div>
 
         <p class="sol-completion-confirm__instruction">
-            Verifica los datos, el dispositivo y los detalles del proceso antes de continuar.
+            Las acciones externas se intentarán después de guardar el cierre. Si alguna falla, la plataforma mostrará
+            una advertencia específica para poder reintentarla.
         </p>
     </div>
 
@@ -3220,9 +3310,10 @@
                 Cancelar
             </button>
             <button type="button" class="sol-btn sol-completion-confirm__approve"
+                [disabled]="completionPreviewLoading || completionTransferPreferenceSaving || completionTransferTargetSearching || (completionTransferMode === 'custom' && !completionTransferTarget)"
                 (click)="approveSolicitudCompletion()">
-                <i class="pi pi-lock" aria-hidden="true"></i>
-                Sí, completar definitivamente
+                <i class="pi" [ngClass]="completionPreviewLoading || completionTransferPreferenceSaving ? 'pi-spin pi-spinner' : 'pi-lock'" aria-hidden="true"></i>
+                {{ completionPreviewLoading ? 'Verificando...' : completionTransferPreferenceSaving ? 'Guardando decisiones...' : 'Sí, completar definitivamente' }}
             </button>
         </div>
     </ng-template>

@@ -9,6 +9,9 @@ import {
     InstallationDetail,
     SolicitudesService,
     Solicitud,
+    SolicitudCompletionPreview,
+    SolicitudCompletionPreviewAction,
+    SolicitudCompletionTransferMode,
     TechnicianRecommendation,
     TechnicianScheduleConflict,
     VapiCallDetails,
@@ -55,6 +58,7 @@ type SolicitudLocationConfigTarget = 'root' | 'installation';
 type SolicitudLocationConfigMethod = 'search' | 'coordinates' | 'link';
 type SolicitudExportFormat = 'pdf' | 'excel';
 type SolicitudCancellationAction = 'cancel' | 'new' | 'duplicate';
+type SolicitudCompletionMode = 'status_update' | 'complete_install';
 
 interface SolicitudLocationSuggestion {
     description: string;
@@ -402,6 +406,25 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     processLocationMapMarker: any = null;
     completionConfirmDialogVisible = false;
     completionSolicitud: Solicitud | null = null;
+    completionPreview: SolicitudCompletionPreview | null = null;
+    completionPreviewLoading = false;
+    completionPreviewError = '';
+    completionTransferMode: SolicitudCompletionTransferMode = 'automatic';
+    completionTransferTargetEmail = '';
+    completionTransferTarget: User | null = null;
+    completionTransferTargetError = '';
+    completionTransferTargetSearching = false;
+    completionTransferPreferenceSaving = false;
+    private completionTransferPreferenceTouched = false;
+    private completionTransferAutomaticAction: SolicitudCompletionPreviewAction | null = null;
+    private completionRegistrationAutomaticAction: SolicitudCompletionPreviewAction | null = null;
+    private readonly hiddenCompletionActionKeys = new Set([
+        'close_request',
+        'register_processes',
+        'client_notification',
+        'return_conversation',
+    ]);
+    private completionPreviewRequestId = 0;
     private pendingCompletionAction: (() => void) | null = null;
     cancellationDialogVisible = false;
     cancellationSolicitud: Solicitud | null = null;
@@ -480,6 +503,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     reassignmentSaving = false;
     reassignmentError = '';
     private readonly failedTechnicianPhotos = new Set<string>();
+    private requestDialogOverlayCleanupTimer?: ReturnType<typeof setTimeout>;
     verifyingAvailabilityId = '';
     availabilityCallLoadingId = '';
     availabilityTranscriptDialogVisible = false;
@@ -751,6 +775,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         if (this.locationConfigSearchTimer) {
             clearTimeout(this.locationConfigSearchTimer);
         }
+        if (this.requestDialogOverlayCleanupTimer) {
+            clearTimeout(this.requestDialogOverlayCleanupTimer);
+        }
+        this.cleanupOrphanedDialogMasks();
     }
 
     async loadInitialData(): Promise<void> {
@@ -5053,7 +5081,11 @@ async initLocationMap(): Promise<void> {
         });
     }
 
-    private confirmSolicitudCompletion(solicitud: Solicitud, accept: () => void): void {
+    private confirmSolicitudCompletion(
+        solicitud: Solicitud,
+        accept: () => void,
+        mode: SolicitudCompletionMode = 'status_update',
+    ): void {
         if (
             ['desinstalacion', 'mixta'].includes(solicitud.type)
             && !this.hasValidDeinstallationReason(solicitud)
@@ -5068,27 +5100,532 @@ async initLocationMap(): Promise<void> {
         }
 
         this.completionSolicitud = solicitud;
+        this.completionTransferMode = this.normalizeCompletionTransferMode(
+            solicitud.completion_transfer_mode,
+        );
+        this.completionTransferTargetEmail = '';
+        this.completionTransferTarget = null;
+        this.completionTransferTargetError = '';
+        this.completionTransferTargetSearching = false;
+        this.completionTransferPreferenceSaving = false;
+        this.completionTransferPreferenceTouched = false;
         this.pendingCompletionAction = accept;
+        this.completionPreview = this.ensureCurrentInstallTransferAction(
+            this.buildLocalCompletionPreview(solicitud, mode),
+            mode,
+        );
+        this.captureAutomaticCompletionActions(this.completionPreview);
+        this.updateCompletionTransferPreview();
+        this.completionPreviewError = '';
         this.completionConfirmDialogVisible = true;
+        this.loadCompletionPreview(solicitud, mode);
     }
 
     cancelSolicitudCompletion(): void {
+        this.completionPreviewRequestId += 1;
         this.completionConfirmDialogVisible = false;
         this.completionSolicitud = null;
+        this.completionPreview = null;
+        this.completionPreviewLoading = false;
+        this.completionPreviewError = '';
+        this.resetCompletionTransferPreference();
         this.pendingCompletionAction = null;
     }
 
-    approveSolicitudCompletion(): void {
+    async approveSolicitudCompletion(): Promise<void> {
         const action = this.pendingCompletionAction;
         if (!action) {
             this.cancelSolicitudCompletion();
             return;
         }
 
+        if (this.completionTransferMode === 'custom' && !this.completionTransferTarget?._id) {
+            this.completionTransferTargetError = 'Busca y selecciona la cuenta que recibirá los dispositivos.';
+            return;
+        }
+
+        const solicitud = this.completionSolicitud;
+        if (solicitud?._id) {
+            this.completionTransferPreferenceSaving = true;
+            try {
+                const payload: Partial<Solicitud> = {
+                    completion_transfer_mode: this.completionTransferMode,
+                    expected_version: solicitud.__v,
+                };
+                if (this.completionTransferMode === 'custom') {
+                    payload.completion_transfer_target_user_id = String(
+                        this.completionTransferTarget?._id || '',
+                    );
+                }
+                const updated = await firstValueFrom(
+                    this.solicitudesService.update(solicitud._id, payload).pipe(
+                        timeout({ first: this.solicitudesLoadTimeoutMs }),
+                    ),
+                );
+                // Conservar los cambios todavía no guardados del formulario (incluido
+                // el estado "completada"). Solo sincronizamos la versión que cambió
+                // al persistir esta decisión previa al cierre.
+                solicitud.__v = updated.__v;
+                solicitud.completion_transfer_mode = this.completionTransferMode;
+                solicitud.completion_transfer_target_user_id =
+                    this.completionTransferMode === 'custom'
+                        ? String(this.completionTransferTarget?._id || '')
+                        : undefined;
+                if (this.selectedSolicitud && this.selectedSolicitud._id === updated._id) {
+                    this.selectedSolicitud.__v = updated.__v;
+                    this.selectedSolicitud.completion_transfer_mode =
+                        solicitud.completion_transfer_mode;
+                    this.selectedSolicitud.completion_transfer_target_user_id =
+                        solicitud.completion_transfer_target_user_id;
+                }
+            } catch (error) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'No se guardó la transferencia',
+                    detail: getApiErrorMessage(
+                        error,
+                        'No se pudo guardar el destino de los dispositivos. La solicitud no fue completada.',
+                    ),
+                });
+                return;
+            } finally {
+                this.completionTransferPreferenceSaving = false;
+            }
+        }
+
         this.pendingCompletionAction = null;
         this.completionSolicitud = null;
+        this.completionPreview = null;
+        this.completionPreviewLoading = false;
+        this.completionPreviewError = '';
         this.completionConfirmDialogVisible = false;
+        this.resetCompletionTransferPreference();
         action();
+    }
+
+    get completionTransferAction(): SolicitudCompletionPreviewAction | null {
+        return this.completionPreview?.actions?.find(
+            action => action.key === 'transfer_devices',
+        ) || null;
+    }
+
+    get completionHasTransferableDevices(): boolean {
+        return Number(this.completionTransferAction?.count || 0) > 0;
+    }
+
+    get completionTransferTargetLabel(): string {
+        if (!this.completionTransferTarget) return '';
+        return [
+            this.completionTransferTarget.name,
+            this.completionTransferTarget.last_name,
+        ].filter(Boolean).join(' ').trim()
+            || String(this.completionTransferTarget.email || '').trim();
+    }
+
+    cancelCompletionDeviceTransfer(): void {
+        this.completionTransferPreferenceTouched = true;
+        this.completionTransferMode = 'disabled';
+        this.completionTransferTarget = null;
+        this.completionTransferTargetError = '';
+        this.updateCompletionTransferPreview();
+    }
+
+    personalizeCompletionDeviceTransfer(): void {
+        this.completionTransferPreferenceTouched = true;
+        this.completionTransferMode = 'custom';
+        this.completionTransferTargetError = this.completionTransferTarget
+            ? ''
+            : 'Busca la cuenta destino por su correo electrónico.';
+        this.updateCompletionTransferPreview();
+    }
+
+    useAutomaticCompletionDeviceTransfer(): void {
+        this.completionTransferPreferenceTouched = true;
+        this.completionTransferMode = 'automatic';
+        this.completionTransferTarget = null;
+        this.completionTransferTargetEmail = '';
+        this.completionTransferTargetError = '';
+        this.updateCompletionTransferPreview();
+    }
+
+    async searchCompletionTransferTarget(): Promise<void> {
+        const email = this.completionTransferTargetEmail.trim().toLowerCase();
+        this.completionTransferTarget = null;
+        this.completionTransferTargetError = '';
+        if (!email) {
+            this.completionTransferTargetError = 'Escribe el correo de la cuenta destino.';
+            this.updateCompletionTransferPreview();
+            return;
+        }
+
+        this.completionTransferTargetSearching = true;
+        try {
+            const user = await firstValueFrom(
+                this.userService.getDeviceRecipientByEmail(email).pipe(
+                    timeout({ first: this.solicitudesLoadTimeoutMs }),
+                ),
+            );
+            this.completionTransferTarget = user;
+            this.completionTransferPreferenceTouched = true;
+            this.completionTransferTargetEmail = String(user.email || email);
+            this.completionTransferTargetError = '';
+        } catch (error) {
+            this.completionTransferTargetError = getApiErrorMessage(
+                error,
+                'No se encontró una cuenta registrada con ese correo.',
+            );
+        } finally {
+            this.completionTransferTargetSearching = false;
+            this.updateCompletionTransferPreview();
+        }
+    }
+
+    onCompletionTransferTargetEmailChange(): void {
+        this.completionTransferPreferenceTouched = true;
+        this.completionTransferTarget = null;
+        this.completionTransferTargetError = '';
+        this.updateCompletionTransferPreview();
+    }
+
+    private normalizeCompletionTransferMode(
+        value: unknown,
+    ): SolicitudCompletionTransferMode {
+        return value === 'disabled' || value === 'custom'
+            ? value
+            : 'automatic';
+    }
+
+    private resetCompletionTransferPreference(): void {
+        this.completionTransferMode = 'automatic';
+        this.completionTransferTargetEmail = '';
+        this.completionTransferTarget = null;
+        this.completionTransferTargetError = '';
+        this.completionTransferTargetSearching = false;
+        this.completionTransferPreferenceSaving = false;
+        this.completionTransferPreferenceTouched = false;
+        this.completionTransferAutomaticAction = null;
+        this.completionRegistrationAutomaticAction = null;
+    }
+
+    private captureAutomaticCompletionActions(
+        preview: SolicitudCompletionPreview,
+    ): void {
+        const transfer = preview.actions.find(action => action.key === 'transfer_devices');
+        const registration = preview.actions.find(action => action.key === 'registration_link');
+        if (transfer) this.completionTransferAutomaticAction = { ...transfer };
+        if (registration) this.completionRegistrationAutomaticAction = { ...registration };
+    }
+
+    private updateCompletionTransferPreview(): void {
+        if (!this.completionPreview) return;
+        const count = Number(this.completionTransferAction?.count || 0);
+        if (!count) return;
+
+        const replacement: SolicitudCompletionPreviewAction = {
+            key: 'transfer_devices',
+            title: 'Transferir dispositivos GPS',
+            icon: 'pi-send',
+            count,
+            state: 'will_run',
+            detail: `Se aplicará la transferencia automática de ${count} dispositivo${count === 1 ? '' : 's'} según la cuenta de la solicitud.`,
+        };
+        if (this.completionTransferMode === 'automatic' && this.completionTransferAutomaticAction) {
+            Object.assign(replacement, this.completionTransferAutomaticAction);
+        } else if (this.completionTransferMode === 'disabled') {
+            replacement.state = 'not_applicable';
+            replacement.detail = 'Transferencia cancelada. Los dispositivos conservarán su propietario actual al finalizar.';
+        } else if (this.completionTransferMode === 'custom') {
+            replacement.state = this.completionTransferTarget ? 'will_run' : 'attention';
+            replacement.detail = this.completionTransferTarget
+                ? `Se transferirán ${count} dispositivo${count === 1 ? '' : 's'} a ${this.completionTransferTargetLabel}.`
+                : 'Selecciona la cuenta que recibirá los dispositivos antes de completar.';
+        }
+
+        let registrationReplacement = this.completionRegistrationAutomaticAction;
+        if (this.completionTransferMode === 'disabled') {
+            registrationReplacement = {
+                key: 'registration_link',
+                title: 'Enlace de registro',
+                detail: 'La transferencia fue cancelada; el enlace no se modificará al cerrar.',
+                state: 'not_applicable',
+                icon: 'pi-link',
+                count: 0,
+            };
+        } else if (this.completionTransferMode === 'custom') {
+            registrationReplacement = {
+                key: 'registration_link',
+                title: 'Enlace de registro',
+                detail: this.completionTransferTarget
+                    ? 'Los dispositivos irán directamente a la cuenta personalizada; no se usará un enlace de registro.'
+                    : 'Primero selecciona una cuenta destino para omitir el enlace de registro.',
+                state: this.completionTransferTarget ? 'not_applicable' : 'attention',
+                icon: 'pi-link',
+                count: 0,
+            };
+        }
+
+        this.completionPreview = {
+            ...this.completionPreview,
+            actions: this.completionPreview.actions.map(action => {
+                if (action.key === 'transfer_devices') return replacement;
+                if (action.key === 'registration_link' && registrationReplacement) {
+                    return { ...registrationReplacement };
+                }
+                return action;
+            }),
+        };
+    }
+
+    get completionActionsToRunCount(): number {
+        return this.completionVisibleActions
+            .filter(action => action.state === 'will_run')
+            .length;
+    }
+
+    get completionVisibleActions(): SolicitudCompletionPreviewAction[] {
+        return (this.completionPreview?.actions || []).filter(action => {
+            if (this.hiddenCompletionActionKeys.has(action.key)) return false;
+            if (action.state === 'will_run') return true;
+
+            // Esta fila también funciona como configuración. Si existen GPS
+            // involucrados debe permanecer accesible para cancelar, personalizar
+            // o restaurar la transferencia aunque el usuario cambie su estado.
+            return action.key === 'transfer_devices' && Number(action.count || 0) > 0;
+        });
+    }
+
+    getCompletionPreviewStateLabel(action: SolicitudCompletionPreviewAction): string {
+        const labels: Record<SolicitudCompletionPreviewAction['state'], string> = {
+            will_run: 'Se realizará',
+            already_done: 'Ya realizado',
+            deferred: 'Al registrarse',
+            not_applicable: 'No se realizará',
+            attention: 'Requiere atención',
+        };
+        return labels[action.state];
+    }
+
+    trackByCompletionPreviewAction(
+        _index: number,
+        action: SolicitudCompletionPreviewAction,
+    ): string {
+        return action.key;
+    }
+
+    private loadCompletionPreview(
+        solicitud: Solicitud,
+        mode: SolicitudCompletionMode,
+    ): void {
+        const solicitudId = String(solicitud._id || '').trim();
+        if (!solicitudId) {
+            this.completionPreviewError = 'La solicitud aún no tiene un identificador para verificar el cierre.';
+            return;
+        }
+
+        const requestId = ++this.completionPreviewRequestId;
+        this.completionPreviewLoading = true;
+        this.solicitudesService.getCompletionPreview(solicitudId, mode).pipe(
+            timeout({ first: this.solicitudesLoadTimeoutMs }),
+            finalize(() => {
+                if (requestId === this.completionPreviewRequestId) {
+                    this.completionPreviewLoading = false;
+                }
+            }),
+        ).subscribe({
+            next: preview => {
+                if (
+                    requestId !== this.completionPreviewRequestId
+                    || !this.completionConfirmDialogVisible
+                    || String(this.completionSolicitud?._id || '') !== solicitudId
+                ) return;
+                const effectivePreview = this.ensureCurrentInstallTransferAction(
+                    preview,
+                    mode,
+                );
+                this.completionPreview = effectivePreview;
+                if (!preview.transfer || preview.transfer.mode === 'automatic') {
+                    this.captureAutomaticCompletionActions(effectivePreview);
+                }
+                if (!this.completionTransferPreferenceTouched && preview.transfer) {
+                    this.completionTransferMode = this.normalizeCompletionTransferMode(
+                        preview.transfer.mode,
+                    );
+                    const target = preview.transfer.target_user;
+                    this.completionTransferTarget = target
+                        ? ({
+                            _id: target.id,
+                            name: target.name,
+                            last_name: target.last_name,
+                            email: target.email,
+                        } as User)
+                        : null;
+                    this.completionTransferTargetEmail = target?.email || '';
+                }
+                this.updateCompletionTransferPreview();
+                this.completionPreviewError = '';
+            },
+            error: error => {
+                if (requestId !== this.completionPreviewRequestId) return;
+                this.completionPreviewError = getApiErrorMessage(
+                    error,
+                    'No se pudo verificar el detalle con el servidor. Se muestra una estimación basada en la solicitud cargada.',
+                );
+            },
+        });
+    }
+
+    private buildLocalCompletionPreview(
+        solicitud: Solicitud,
+        mode: SolicitudCompletionMode,
+    ): SolicitudCompletionPreview {
+        const completed = (solicitud.installations || []).filter(
+            installation => installation.completed && !installation.cancelled,
+        );
+        const auditable = completed.filter(installation => Boolean(String(
+            this.getProcessTypeForSolicitud(solicitud, installation) === 'cambio'
+                ? installation.new_device_imei || installation.device_imei
+                : installation.device_imei,
+        ).trim()));
+        const transferable = completed.filter(installation =>
+            ['instalacion', 'reinstalacion', 'cambio'].includes(
+                this.getProcessTypeForSolicitud(solicitud, installation),
+            ) && Boolean(String(installation.device_imei || '').trim()),
+        );
+        const uninstallations = completed.filter(installation =>
+            this.getProcessTypeForSolicitud(solicitud, installation) === 'desinstalacion'
+            && Boolean(String(installation.device_imei || '').trim()),
+        );
+        const hasRegistrationLink = Boolean(
+            solicitud.client_registration_invitation_sent_at
+            && solicitud.client_registration_short_code,
+        );
+        const hasKnownAccount = Boolean(String(solicitud.client_id || '').trim());
+        const actions: SolicitudCompletionPreviewAction[] = [
+            {
+                key: 'close_request',
+                title: 'Cerrar la solicitud',
+                detail: 'Se marcará como completada y quedará bloqueada para nuevos cambios de estado.',
+                state: 'will_run',
+                icon: 'pi-lock',
+            },
+            {
+                key: 'register_processes',
+                title: 'Registrar el historial de procesos',
+                detail: auditable.length
+                    ? `Se sincronizarán ${auditable.length} proceso${auditable.length === 1 ? '' : 's'} realizado${auditable.length === 1 ? '' : 's'} en el módulo Procesos.`
+                    : 'No hay procesos realizados con un identificador de dispositivo para registrar.',
+                state: auditable.length ? 'will_run' : 'not_applicable',
+                icon: 'pi-list',
+                count: auditable.length,
+            },
+            {
+                key: 'client_notification',
+                title: 'Notificar al cliente',
+                detail: solicitud.client_acceptance_notification_sent_at
+                    ? 'El cliente ya fue notificado al aceptar el técnico. No se enviará otra notificación al cerrar.'
+                    : 'El cierre no enviará una notificación nueva al cliente.',
+                state: solicitud.client_acceptance_notification_sent_at
+                    ? 'already_done'
+                    : 'not_applicable',
+                icon: 'pi-bell',
+            },
+            {
+                key: 'registration_link',
+                title: 'Enlace de registro',
+                detail: hasKnownAccount
+                    ? 'El cliente ya tiene una cuenta seleccionada; no necesita un enlace de registro.'
+                    : hasRegistrationLink && transferable.length
+                        ? 'Se actualizará el enlace que ya recibió el cliente con los dispositivos terminados.'
+                        : 'No se enviará un enlace nuevo al finalizar.',
+                state: hasKnownAccount
+                    ? 'not_applicable'
+                    : hasRegistrationLink && transferable.length
+                        ? 'will_run'
+                        : transferable.length
+                            ? 'attention'
+                            : 'not_applicable',
+                icon: 'pi-link',
+                count: hasRegistrationLink ? transferable.length : 0,
+            },
+            {
+                key: 'transfer_devices',
+                title: 'Transferir dispositivos GPS',
+                detail: !transferable.length
+                    ? 'No hay dispositivos terminados que deban transferirse.'
+                    : hasKnownAccount
+                        ? `Se intentará transferir ${transferable.length} dispositivo${transferable.length === 1 ? '' : 's'} a la cuenta seleccionada.`
+                        : hasRegistrationLink
+                            ? 'Quedarán vinculados al enlace para asignarlos cuando el cliente complete su registro.'
+                            : 'No se encontró una cuenta ni un enlace para completar la transferencia.',
+                state: !transferable.length
+                    ? 'not_applicable'
+                    : hasKnownAccount
+                        ? 'will_run'
+                        : hasRegistrationLink
+                            ? 'deferred'
+                            : 'attention',
+                icon: 'pi-send',
+                count: transferable.length,
+            },
+            {
+                key: 'cancel_uninstalled_devices',
+                title: 'Cancelar dispositivos desinstalados',
+                detail: uninstallations.length
+                    ? `Se intentará cancelar ${uninstallations.length} dispositivo${uninstallations.length === 1 ? '' : 's'} desinstalado${uninstallations.length === 1 ? '' : 's'}.`
+                    : 'No hay desinstalaciones realizadas que requieran cancelar dispositivos.',
+                state: uninstallations.length ? 'will_run' : 'not_applicable',
+                icon: 'pi-ban',
+                count: uninstallations.length,
+            },
+            {
+                key: 'return_conversation',
+                title: 'Devolver la conversación a Ester',
+                detail: solicitud.client_phone
+                    ? 'La conversación de WhatsApp del cliente volverá a Ester Assistant.'
+                    : 'No se encontró un teléfono para devolver una conversación a Ester.',
+                state: solicitud.client_phone ? 'will_run' : 'not_applicable',
+                icon: 'pi-comments',
+            },
+        ];
+
+        if (mode === 'complete_install') {
+            actions.push({
+                key: 'sync_montao_rent',
+                title: 'Sincronizar Montao Rent',
+                detail: solicitud.id_rent
+                    ? 'Se intentará actualizar el vehículo relacionado con el GPS y el IMEI instalados.'
+                    : 'Esta solicitud no tiene un vehículo de Montao Rent relacionado.',
+                state: solicitud.id_rent ? 'will_run' : 'not_applicable',
+                icon: 'pi-sync',
+            });
+        }
+
+        return {
+            solicitud_id: String(solicitud._id || ''),
+            client_name: String(solicitud.client_name || ''),
+            mode,
+            actions,
+        };
+    }
+
+    private ensureCurrentInstallTransferAction(
+        preview: SolicitudCompletionPreview,
+        mode: SolicitudCompletionMode,
+    ): SolicitudCompletionPreview {
+        const currentImei = String(this.installData.device_imei || '').trim();
+        if (mode !== 'complete_install' || !currentImei) return preview;
+
+        return {
+            ...preview,
+            actions: preview.actions.map(action => action.key === 'transfer_devices'
+                ? {
+                    ...action,
+                    count: Math.max(1, Number(action.count || 0)),
+                    state: 'will_run',
+                    detail: `Se asignará el GPS ${currentImei} a la cuenta indicada al completar la instalación.`,
+                }
+                : action),
+        };
     }
 
     openReassignmentDialog(solicitud: Solicitud, event?: Event): void {
@@ -5169,7 +5706,29 @@ async initLocationMap(): Promise<void> {
     }
 
     hideDialog(): void {
+        this.closeRequestFormChildDialogs();
         this.dialogVisible = false;
+    }
+
+    onRequestDialogHidden(): void {
+        // The header X updates `dialogVisible` directly, so it does not pass
+        // through hideDialog(). Close every dialog opened from the request
+        // form here as well; otherwise its modal mask remains above the page.
+        this.closeRequestFormChildDialogs();
+        this.resetRequestDialogState();
+        this.scheduleOrphanedDialogMaskCleanup();
+    }
+
+    private closeRequestFormChildDialogs(): void {
+        this.installationModalVisible = false;
+        this.locationConfigDialogVisible = false;
+        this.clientSelectionDialogVisible = false;
+        this.newClientDialogVisible = false;
+        this.technicianSelectionDialogVisible = false;
+        this.missingClientDialogVisible = false;
+    }
+
+    private resetRequestDialogState(): void {
         this.closeTechnicianSelection();
         this.selectedSolicitud = null;
         this.selectedSolicitudOriginalStatus = '';
@@ -5177,6 +5736,42 @@ async initLocationMap(): Promise<void> {
         this.deinstallationReasonError = false;
         this.resetTechnicianScheduleValidation();
         this.resetTechnicianRecommendation();
+    }
+
+    private scheduleOrphanedDialogMaskCleanup(): void {
+        if (this.requestDialogOverlayCleanupTimer) {
+            clearTimeout(this.requestDialogOverlayCleanupTimer);
+        }
+        this.requestDialogOverlayCleanupTimer = setTimeout(() => {
+            this.requestDialogOverlayCleanupTimer = undefined;
+            this.cleanupOrphanedDialogMasks();
+        }, 350);
+    }
+
+    private cleanupOrphanedDialogMasks(): void {
+        if (typeof document === 'undefined') return;
+
+        document.querySelectorAll<HTMLElement>('.p-dialog-mask').forEach(mask => {
+            // PrimeNG keeps the mask briefly while the leave animation runs.
+            // A mask without a dialog can no longer serve any purpose and is
+            // precisely the layer that blocks the application in this case.
+            if (!mask.querySelector('.p-dialog')) {
+                mask.remove();
+            }
+        });
+
+        const activeModalExists = Array.from(
+            document.querySelectorAll<HTMLElement>('.p-dialog-mask .p-dialog'),
+        ).some(dialog => {
+            const style = globalThis.getComputedStyle?.(dialog);
+            return dialog.getClientRects().length > 0
+                && style?.display !== 'none'
+                && style?.visibility !== 'hidden';
+        });
+
+        if (!activeModalExists) {
+            document.body.classList.remove('p-overflow-hidden');
+        }
     }
 
     getStatusIcon(status: string): string {
@@ -6871,7 +7466,7 @@ async initLocationMap(): Promise<void> {
         if (sol.status !== 'completada') {
             this.confirmSolicitudCompletion(sol, () => {
                 void this.performDeviceInstallation();
-            });
+            }, 'complete_install');
             return;
         }
 
@@ -6917,6 +7512,11 @@ async initLocationMap(): Promise<void> {
             if (matchedColor) resolvedColor = matchedColor.value;
         }
 
+        const completionTargetUserId =
+            sol.completion_transfer_mode === 'custom'
+                ? String(sol.completion_transfer_target_user_id || '').trim()
+                : '';
+        const deviceOwnerId = completionTargetUserId || this.installData.parent_id;
         const targetData: any = {
             name: this.installData.name,
             device_imei: this.installData.device_imei,
@@ -6943,8 +7543,8 @@ async initLocationMap(): Promise<void> {
             status: true,
             canceled: false,
             delete: false,
-            index: this.installData.parent_id,
-            parent_id: this.installData.parent_id,
+            index: deviceOwnerId,
+            parent_id: deviceOwnerId,
             creator_id: currentUser?.id || '',
             description: sol.description || ''
         };

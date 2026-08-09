@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import {
   ExpenseReceipt,
+  ExpenseReceiptAccountingCategory,
   ExpenseReceiptsService,
 } from '../../../../../../core/services/expense-receipts.service';
 
@@ -23,13 +24,14 @@ interface ReceiptDateGroup {
   styleUrls: ['./comprobantes.component.css'],
   standalone: false,
 })
-export class ComprobantesComponent implements OnInit {
+export class ComprobantesComponent implements OnInit, OnDestroy {
   receipts: ExpenseReceipt[] = [];
   total = 0;
   page = 1;
   readonly limit = 30;
   loading = true;
   error = '';
+  success = '';
   search = '';
   accountingCategory = '';
   status = '';
@@ -37,6 +39,12 @@ export class ComprobantesComponent implements OnInit {
   dateTo = '';
   selectedReceipt: ExpenseReceipt | null = null;
   reprocessingId = '';
+  uploadModalOpen = false;
+  uploadFile: File | null = null;
+  uploadPreviewUrl = '';
+  uploadCategory: ExpenseReceiptAccountingCategory | '' = '';
+  uploadError = '';
+  uploading = false;
   private readonly dateKeyFormatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Santo_Domingo',
     year: 'numeric',
@@ -72,6 +80,10 @@ export class ComprobantesComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadReceipts();
+  }
+
+  ngOnDestroy(): void {
+    this.releaseUploadPreview();
   }
 
   get totalPages(): number {
@@ -169,6 +181,78 @@ export class ComprobantesComponent implements OnInit {
     this.selectedReceipt = null;
   }
 
+  openUploadModal(): void {
+    this.resetUploadForm();
+    this.success = '';
+    this.uploadModalOpen = true;
+  }
+
+  closeUploadModal(): void {
+    if (this.uploading) return;
+    this.uploadModalOpen = false;
+    this.resetUploadForm();
+  }
+
+  onUploadFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] || null;
+    input.value = '';
+    if (file) this.selectUploadFile(file);
+  }
+
+  onUploadDragOver(event: DragEvent): void {
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+  }
+
+  onUploadFileDropped(event: DragEvent): void {
+    event.preventDefault();
+    if (this.uploading) return;
+    const file = event.dataTransfer?.files?.[0];
+    if (file) this.selectUploadFile(file);
+  }
+
+  clearUploadFile(): void {
+    if (this.uploading) return;
+    this.uploadFile = null;
+    this.uploadError = '';
+    this.releaseUploadPreview();
+  }
+
+  submitReceipt(): void {
+    if (this.uploading) return;
+    if (!this.uploadCategory) {
+      this.uploadError = 'Seleccione si corresponde a un gasto operativo o de representación.';
+      return;
+    }
+    if (!this.uploadFile) {
+      this.uploadError = 'Seleccione la imagen del comprobante.';
+      return;
+    }
+
+    this.uploading = true;
+    this.uploadError = '';
+    this.receiptsService.upload(this.uploadFile, this.uploadCategory).subscribe({
+      next: receipt => {
+        this.uploading = false;
+        this.uploadModalOpen = false;
+        this.resetUploadForm();
+        this.success = receipt.processing_status === 'failed'
+          ? 'El comprobante se guardó, pero la digitalización requiere atención.'
+          : 'Comprobante subido y digitalizado correctamente.';
+        this.page = 1;
+        this.loadReceipts();
+      },
+      error: error => {
+        this.uploading = false;
+        const message = error?.error?.message;
+        this.uploadError = Array.isArray(message)
+          ? message.join(' ')
+          : String(message || 'No se pudo subir el comprobante. Intente nuevamente.');
+      },
+    });
+  }
+
   reprocess(receipt: ExpenseReceipt, event?: Event): void {
     event?.stopPropagation();
     if (this.reprocessingId) return;
@@ -226,6 +310,39 @@ export class ComprobantesComponent implements OnInit {
       currency: receipt.currency || 'DOP',
       maximumFractionDigits: 2,
     }).format(receipt.total_amount);
+  }
+
+  private selectUploadFile(file: File): void {
+    const supportedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!supportedTypes.includes(String(file.type || '').toLowerCase())) {
+      this.uploadError = 'Use una imagen JPG, PNG o WEBP.';
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      this.uploadError = 'La imagen no puede superar 12 MB.';
+      return;
+    }
+    if (!file.size) {
+      this.uploadError = 'La imagen seleccionada está vacía.';
+      return;
+    }
+
+    this.uploadError = '';
+    this.releaseUploadPreview();
+    this.uploadFile = file;
+    this.uploadPreviewUrl = URL.createObjectURL(file);
+  }
+
+  private resetUploadForm(): void {
+    this.uploadFile = null;
+    this.uploadCategory = '';
+    this.uploadError = '';
+    this.releaseUploadPreview();
+  }
+
+  private releaseUploadPreview(): void {
+    if (this.uploadPreviewUrl) URL.revokeObjectURL(this.uploadPreviewUrl);
+    this.uploadPreviewUrl = '';
   }
 
   private getDateKey(receipt: ExpenseReceipt): string {

@@ -9,6 +9,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../environments/environment';
 import { CommunicationNotificationService } from './core/services/communication-notification.service';
 import { UserActivityService } from './core/services/user-activity.service';
+import { DialogOverlayCleanupService } from './core/services/dialog-overlay-cleanup.service';
 
 @Component({
   selector: 'app-root',
@@ -29,11 +30,14 @@ export class AppComponent implements OnInit, OnDestroy {
     private http: HttpClient,
     private communicationNotifications: CommunicationNotificationService,
     private userActivityService: UserActivityService,
+    private dialogOverlayCleanup: DialogOverlayCleanupService,
   ) {
     // this.themes.setTheme('light');
   }
 
   ngOnInit() {
+    this.dialogOverlayCleanup.start();
+
     // Monitorear cambios en la autenticación
     this.monitorAuthentication();
     this.communicationNotifications.start();
@@ -52,6 +56,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
 
     this.communicationNotifications.stop();
+    this.dialogOverlayCleanup.cleanupNow();
   }
 
   /**

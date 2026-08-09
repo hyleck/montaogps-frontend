@@ -267,9 +267,10 @@
                             </div>
                         </td>
                         <td>
-                            <button type="button" pButton icon="pi pi-arrow-right"
+                            <button type="button" pButton icon="pi pi-eye"
                                 class="p-button-rounded p-button-text process-detail-button"
-                                (click)="showDetail(process)" aria-label="Ver detalle del proceso">
+                                (click)="showDetail(process)" aria-label="Ver detalles del proceso"
+                                pTooltip="Ver detalles" tooltipPosition="left">
                             </button>
                         </td>
                     </tr>
@@ -300,9 +301,9 @@
 
     <ng-template pTemplate="header">
         <div class="detail-dialog-heading">
-            <div class="detail-dialog-heading__icon"><i class="pi pi-file-edit"></i></div>
+            <div class="detail-dialog-heading__icon"><i class="pi pi-history"></i></div>
             <div>
-                <span>Detalle de auditoría</span>
+                <span>Auditoría de proceso</span>
                 <strong>{{ selectedProcess ? getTypeLabel(selectedProcess.type) : 'Proceso' }}</strong>
             </div>
         </div>
@@ -312,8 +313,7 @@
         <div class="process-detail" *ngIf="selectedProcess">
             <section class="detail-summary">
                 <div class="detail-summary__main">
-                    <span class="section-kicker">Resumen del proceso</span>
-                    <h2>{{ getTypeLabel(selectedProcess.type) }}</h2>
+                    <span class="detail-summary__eyebrow">Registro operativo</span>
                     <p>{{ selectedProcess.description || 'Proceso registrado en el historial operativo.' }}</p>
                     <div class="detail-summary__meta">
                         <span><i class="pi pi-calendar"></i>{{ selectedProcess.createdAt | date:'dd/MM/yyyy · HH:mm:ss' }}</span>
@@ -392,14 +392,22 @@
                     <i class="pi pi-sync"></i>
                     <div><span>Cambios registrados</span><small>Comparación antes y después</small></div>
                 </div>
-                <div class="changes-grid">
-                    <div class="change-block" *ngIf="selectedProcess.before">
-                        <label>Antes</label>
-                        <pre>{{ selectedProcess.before | json }}</pre>
+                <div class="change-comparison" *ngIf="detailChangeRows.length">
+                    <div class="change-comparison__header" aria-hidden="true">
+                        <span>Campo</span>
+                        <span>Antes</span>
+                        <span>Después</span>
                     </div>
-                    <div class="change-block" *ngIf="selectedProcess.after">
-                        <label>Después</label>
-                        <pre>{{ selectedProcess.after | json }}</pre>
+                    <div class="change-comparison__row" *ngFor="let change of detailChangeRows">
+                        <strong>{{ change.label }}</strong>
+                        <span class="change-value change-value--before"
+                            [class.change-value--empty]="change.before === 'Sin dato'">
+                            {{ change.before }}
+                        </span>
+                        <span class="change-value change-value--after"
+                            [class.change-value--empty]="change.after === 'Sin dato'">
+                            {{ change.after }}
+                        </span>
                     </div>
                 </div>
             </section>
@@ -416,7 +424,7 @@
 
     <ng-template pTemplate="footer">
         <button type="button" pButton label="Cerrar detalle" icon="pi pi-times"
-            class="p-button-outlined" (click)="detailDialogVisible = false">
+            class="p-button-outlined process-detail-close" (click)="detailDialogVisible = false">
         </button>
     </ng-template>
 </p-dialog>

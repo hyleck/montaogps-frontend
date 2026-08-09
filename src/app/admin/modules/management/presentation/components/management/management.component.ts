@@ -2,8 +2,8 @@
 import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Subscription, Subject, forkJoin, from, lastValueFrom } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap, map } from 'rxjs/operators';
+import { Observable, Subscription, Subject, forkJoin, from, lastValueFrom, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, switchMap, map } from 'rxjs/operators';
 
 // Third-party imports
 import { MenuItem, ConfirmationService, MessageService } from 'primeng/api';
@@ -732,6 +732,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
   private searchUsersSubject = new Subject<string>();
   private isSearchingUsers = false;
+  private pendingUserSearchTerm = '';
   private searchTargetsSubject = new Subject<string>();
   private isSearchingTargets = false;
 
@@ -3398,20 +3399,30 @@ export class ManagementComponent implements OnInit, OnDestroy {
         debounceTime(300), // Esperar 300ms después de que el usuario deje de escribir
         // distinctUntilChanged() removed to allow re-triggering search with same term after user modifications
         switchMap(searchTerm => {
-          const requestedUserId = this.selectedUser?._id || '';
+          const requestedUserId = String(this.selectedUser?._id || '').trim();
+          const routeUserId = String(this.route.snapshot.paramMap.get('user') || '').trim();
+          const routeIsChanging = this.isValidManagementUserId(routeUserId)
+            && routeUserId !== requestedUserId;
+          if (!this.isValidManagementUserId(requestedUserId) || routeIsChanging) {
+            // La ruta y los query params pueden emitirse antes de que termine de
+            // cargar el usuario. Conservamos la búsqueda y evitamos enviar un
+            // `parent` vacío al backend.
+            this.pendingUserSearchTerm = searchTerm;
+            this.isSearchingUsers = false;
+            return of({ response: null as UsersResponse | null, requestedUserId });
+          }
+
+          this.pendingUserSearchTerm = '';
+          let request$: Observable<UsersResponse>;
           if (searchTerm.trim() === '') {
             // Si no hay término de búsqueda, cargar usuarios normales con paginación
             this.isSearchingUsers = false;
-            if (this.selectedUser) {
-              // Resetear paginación y cargar usuarios con scroll infinito
-              this.currentUsersOffset = 0;
-              this.hasMoreUsers = true;
-              this.users = [];
-              return this.userService
-                .getAllWithPagination(requestedUserId, 0, this.usersPageSize)
-                .pipe(map(response => ({ response, requestedUserId })));
-            }
-            return from([{ response: { users: [], totalCount: 0 }, requestedUserId }]);
+            // Resetear paginación y cargar usuarios con scroll infinito
+            this.currentUsersOffset = 0;
+            this.hasMoreUsers = true;
+            this.users = [];
+            request$ = this.userService
+              .getAllWithPagination(requestedUserId, 0, this.usersPageSize);
           } else {
             // Realizar búsqueda con paginación
             this.isSearchingUsers = true;
@@ -3419,13 +3430,28 @@ export class ManagementComponent implements OnInit, OnDestroy {
             this.currentUsersOffset = 0;
             this.hasMoreUsers = true;
             this.users = [];
-            return this.userService
-              .search(searchTerm, requestedUserId, 0, this.usersPageSize)
-              .pipe(map(response => ({ response, requestedUserId })));
+            request$ = this.userService
+              .search(searchTerm, requestedUserId, 0, this.usersPageSize);
           }
+
+          return request$.pipe(
+            map(response => ({ response, requestedUserId })),
+            catchError(error => {
+              console.error('❌ Error en búsqueda de usuarios:', error);
+              this.messageService.add({
+                severity: 'error',
+                summary: 'Error de búsqueda',
+                detail: getApiErrorMessage(error, 'No se pudieron buscar los usuarios'),
+                life: 3000
+              });
+              // El error de una petición no debe cerrar el stream del buscador.
+              return of({ response: null as UsersResponse | null, requestedUserId });
+            })
+          );
         })
       ).subscribe({
         next: ({ response, requestedUserId }) => {
+          if (!response) return;
           if (this.selectedUser?._id !== requestedUserId) return;
           // Siempre recibimos un objeto con users y totalCount
           this.users = this.sanitizeManagementUsers(response.users);
@@ -3433,15 +3459,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.currentUsersOffset = response.users.length;
           this.hasMoreUsers = this.currentUsersOffset < this.totalUsersCount;
         },
-        error: (error) => {
-          console.error('❌ Error en búsqueda de usuarios:', error);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error de búsqueda',
-            detail: getApiErrorMessage(error, 'No se pudieron buscar los usuarios'),
-            life: 3000
-          });
-        }
+        error: error => console.error('❌ Error inesperado en el buscador de usuarios:', error)
       })
     );
 
@@ -3568,6 +3586,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
 
     return currentUser.id === this.selectedUser._id;
+  }
+
+  get isUserSearchReady(): boolean {
+    const selectedUserId = String(this.selectedUser?._id || '').trim();
+    if (!this.isValidManagementUserId(selectedUserId)) return false;
+    const routeUserId = String(this.route.snapshot.paramMap.get('user') || '').trim();
+    return !this.isValidManagementUserId(routeUserId) || routeUserId === selectedUserId;
   }
 
   private cleanupSubscriptions(): void {
@@ -3764,17 +3789,24 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.selectedTargetForMap = null;
     this.selectedTargetOwnerLocation = null;
 
-    const activeSearch = this.route.snapshot.queryParamMap.get('search') || '';
+    const activeSearch = this.route.snapshot.queryParamMap.get('search')
+      || this.pendingUserSearchTerm
+      || '';
     const activeOp = this.managementService.getOp();
     this.searchUsersTerm = activeOp === 'u' ? activeSearch : '';
     this.searchTargetsTerm = activeOp === 't' ? activeSearch : '';
     this.initialSearchExecuted = false;
     this.pendingInitialSearchTerm = this.searchTargetsTerm;
+    this.pendingUserSearchTerm = '';
 
     this.loadUserPath(user._id);
     this.loadUsersForUser(user._id);
     this.loadTargetsForUser(user._id);
     this.loadUserWarehouse();
+  }
+
+  private isValidManagementUserId(value: unknown): boolean {
+    return /^[a-f\d]{24}$/i.test(String(value || '').trim());
   }
 
   // ====================================
