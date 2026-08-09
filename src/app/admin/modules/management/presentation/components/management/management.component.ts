@@ -3407,7 +3407,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
             // `parent` vacío al backend.
             this.pendingUserSearchTerm = searchTerm;
             this.isSearchingUsers = false;
-            return of({ response: null as UsersResponse | null, requestedUserId });
+            return of({
+              response: null as UsersResponse | null,
+              requestedUserId,
+              settlesPageLoading: false,
+            });
           }
 
           this.pendingUserSearchTerm = '';
@@ -3433,7 +3437,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
           }
 
           return request$.pipe(
-            map(response => ({ response, requestedUserId })),
+            map(response => ({ response, requestedUserId, settlesPageLoading: true })),
             catchError(error => {
               console.error('❌ Error en búsqueda de usuarios:', error);
               this.messageService.add({
@@ -3443,14 +3447,22 @@ export class ManagementComponent implements OnInit, OnDestroy {
                 life: 3000
               });
               // El error de una petición no debe cerrar el stream del buscador.
-              return of({ response: null as UsersResponse | null, requestedUserId });
+              return of({
+                response: null as UsersResponse | null,
+                requestedUserId,
+                settlesPageLoading: true,
+              });
             })
           );
         })
       ).subscribe({
-        next: ({ response, requestedUserId }) => {
-          if (!response) return;
+        next: ({ response, requestedUserId, settlesPageLoading }) => {
           if (this.selectedUser?._id !== requestedUserId) return;
+          if (settlesPageLoading) {
+            this.initialSearchExecuted = true;
+            this.uiService.setLoading(false);
+          }
+          if (!response) return;
           // Siempre recibimos un objeto con users y totalCount
           this.users = this.sanitizeManagementUsers(response.users);
           this.totalUsersCount = response.totalCount;
