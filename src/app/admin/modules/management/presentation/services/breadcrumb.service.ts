@@ -75,11 +75,6 @@ export class BreadcrumbService {
   ): BreadcrumbItem[] {
     if (!viewer) return [...pathData];
 
-    const isSystemAdministrator =
-      viewer.root === true || String(viewer.root).toLowerCase() === 'true' ||
-      viewer.developer === true || String(viewer.developer).toLowerCase() === 'true';
-    if (isSystemAdministrator) return [...pathData];
-
     const viewerId = String(viewer.id || viewer._id || '').trim();
     const viewerIndex = pathData.findIndex((segment) => segment.id === viewerId);
     if (viewerIndex >= 0) return pathData.slice(viewerIndex);

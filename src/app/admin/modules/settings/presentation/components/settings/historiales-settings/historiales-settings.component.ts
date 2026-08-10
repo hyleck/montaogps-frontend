@@ -474,11 +474,12 @@ export class HistorialesSettingsComponent implements OnInit, OnDestroy {
         break;
         
       case 'failed':
+        const failureDetail = this.currentProgress?.currentMessage?.trim();
         this.messageService.add({
           severity: 'error',
           summary: this.translate.instant('settings.historiales.messages.analysis_failed'),
-          detail: this.translate.instant('settings.historiales.messages.analysis_failed_detail'),
-          life: 6000
+          detail: failureDetail || this.translate.instant('settings.historiales.messages.analysis_failed_detail'),
+          life: 10000
         });
         break;
         

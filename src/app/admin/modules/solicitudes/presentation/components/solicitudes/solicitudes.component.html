@@ -438,8 +438,8 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('pendiente')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of pendientes; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
-                draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of pendientes; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
+                [draggable]="!isSolicitudLocked(sol)" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <div class="sol-card-title-block">
                         <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
@@ -459,6 +459,15 @@
                         <span class="sol-reassigned-badge" *ngIf="isSolicitudReassigned(sol)"
                             [pTooltip]="getSolicitudReassignmentTooltip(sol)" tooltipPosition="top">
                             <i class="pi pi-clock"></i> Reasignada
+                        </span>
+                        <span class="sol-request-lock-badge" *ngIf="isSolicitudLocked(sol)"
+                            [pTooltip]="getSolicitudLockTooltip(sol)" tooltipPosition="top">
+                            <i class="pi pi-lock"></i> Bloqueada
+                        </span>
+                        <span class="sol-request-unlocked-badge"
+                            *ngIf="!isSolicitudLocked(sol) && sol.unlocked_by_name"
+                            [pTooltip]="getSolicitudUnlockTooltip(sol)" tooltipPosition="top">
+                            <i class="pi pi-lock-open"></i> Desbloqueada por {{ sol.unlocked_by_name }}
                         </span>
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="isPendingAcceptanceLoading(sol) ? 'pi pi-spin pi-spinner' : getStatusIcon(sol.status)"></i>
@@ -514,13 +523,22 @@
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
                     <div class="sol-kanban-actions">
+                        <button pButton pRipple
+                            [icon]="isSolicitudLocked(sol) ? 'pi pi-lock-open' : 'pi pi-lock'"
+                            class="p-button-rounded p-button-text sol-request-lock-action"
+                            [class.sol-request-lock-action--unlock]="isSolicitudLocked(sol)"
+                            (click)="openSolicitudLockDialog(sol, $event)"
+                            [pTooltip]="isSolicitudLocked(sol) ? 'Desbloquear solicitud' : 'Bloquear solicitud'"
+                            tooltipPosition="top"></button>
                         <button *ngIf="canReassignSolicitud(sol)" pButton pRipple icon="pi pi-clock"
                             class="p-button-rounded p-button-text p-button-info" (click)="openReassignmentDialog(sol, $event)"
                             pTooltip="Reasignar técnico y horario" tooltipPosition="top"></button>
                         <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
+                            [disabled]="isSolicitudLocked(sol)"
                             class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
                             pTooltip="Cancelar" tooltipPosition="top"></button>
                         <button *ngIf="isRootUser" pButton pRipple icon="pi pi-trash"
+                            [disabled]="isSolicitudLocked(sol)"
                             class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
                             pTooltip="Eliminar" tooltipPosition="top"></button>
                     </div>
@@ -535,8 +553,8 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('en_progreso')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of enProgreso; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
-                draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of enProgreso; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
+                [draggable]="!isSolicitudLocked(sol)" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <div class="sol-card-title-block">
                         <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
@@ -556,6 +574,15 @@
                         <span class="sol-reassigned-badge" *ngIf="isSolicitudReassigned(sol)"
                             [pTooltip]="getSolicitudReassignmentTooltip(sol)" tooltipPosition="top">
                             <i class="pi pi-clock"></i> Reasignada
+                        </span>
+                        <span class="sol-request-lock-badge" *ngIf="isSolicitudLocked(sol)"
+                            [pTooltip]="getSolicitudLockTooltip(sol)" tooltipPosition="top">
+                            <i class="pi pi-lock"></i> Bloqueada
+                        </span>
+                        <span class="sol-request-unlocked-badge"
+                            *ngIf="!isSolicitudLocked(sol) && sol.unlocked_by_name"
+                            [pTooltip]="getSolicitudUnlockTooltip(sol)" tooltipPosition="top">
+                            <i class="pi pi-lock-open"></i> Desbloqueada por {{ sol.unlocked_by_name }}
                         </span>
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
@@ -605,13 +632,22 @@
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
                     <div class="sol-kanban-actions">
+                        <button pButton pRipple
+                            [icon]="isSolicitudLocked(sol) ? 'pi pi-lock-open' : 'pi pi-lock'"
+                            class="p-button-rounded p-button-text sol-request-lock-action"
+                            [class.sol-request-lock-action--unlock]="isSolicitudLocked(sol)"
+                            (click)="openSolicitudLockDialog(sol, $event)"
+                            [pTooltip]="isSolicitudLocked(sol) ? 'Desbloquear solicitud' : 'Bloquear solicitud'"
+                            tooltipPosition="top"></button>
                         <button *ngIf="canReassignSolicitud(sol)" pButton pRipple icon="pi pi-clock"
                             class="p-button-rounded p-button-text p-button-info" (click)="openReassignmentDialog(sol, $event)"
                             pTooltip="Reasignar técnico y horario" tooltipPosition="top"></button>
                         <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
+                            [disabled]="isSolicitudLocked(sol)"
                             class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
                             pTooltip="Cancelar" tooltipPosition="top"></button>
                         <button *ngIf="isRootUser" pButton pRipple icon="pi pi-trash"
+                            [disabled]="isSolicitudLocked(sol)"
                             class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
                             pTooltip="Eliminar" tooltipPosition="top"></button>
                     </div>
@@ -626,8 +662,8 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('por_confirmar')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of porConfirmar; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
-                draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of porConfirmar; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
+                [draggable]="!isSolicitudLocked(sol)" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <div class="sol-card-title-block">
                         <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
@@ -646,6 +682,15 @@
                         <span class="sol-reassigned-badge" *ngIf="isSolicitudReassigned(sol)"
                             [pTooltip]="getSolicitudReassignmentTooltip(sol)" tooltipPosition="top">
                             <i class="pi pi-clock"></i> Reasignada
+                        </span>
+                        <span class="sol-request-lock-badge" *ngIf="isSolicitudLocked(sol)"
+                            [pTooltip]="getSolicitudLockTooltip(sol)" tooltipPosition="top">
+                            <i class="pi pi-lock"></i> Bloqueada
+                        </span>
+                        <span class="sol-request-unlocked-badge"
+                            *ngIf="!isSolicitudLocked(sol) && sol.unlocked_by_name"
+                            [pTooltip]="getSolicitudUnlockTooltip(sol)" tooltipPosition="top">
+                            <i class="pi pi-lock-open"></i> Desbloqueada por {{ sol.unlocked_by_name }}
                         </span>
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
@@ -693,10 +738,19 @@
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
                     <div class="sol-kanban-actions">
+                        <button pButton pRipple
+                            [icon]="isSolicitudLocked(sol) ? 'pi pi-lock-open' : 'pi pi-lock'"
+                            class="p-button-rounded p-button-text sol-request-lock-action"
+                            [class.sol-request-lock-action--unlock]="isSolicitudLocked(sol)"
+                            (click)="openSolicitudLockDialog(sol, $event)"
+                            [pTooltip]="isSolicitudLocked(sol) ? 'Desbloquear solicitud' : 'Bloquear solicitud'"
+                            tooltipPosition="top"></button>
                         <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
+                            [disabled]="isSolicitudLocked(sol)"
                             class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
                             pTooltip="Cancelar" tooltipPosition="top"></button>
                         <button *ngIf="isRootUser" pButton pRipple icon="pi pi-trash"
+                            [disabled]="isSolicitudLocked(sol)"
                             class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
                             pTooltip="Eliminar" tooltipPosition="top"></button>
                     </div>
@@ -711,7 +765,7 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('completada')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card sol-kanban-card--closed-summary sol-kanban-card--locked" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" *ngFor="let sol of completadas; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card sol-kanban-card--closed-summary sol-kanban-card--locked" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of completadas; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="false">
                 <div class="sol-closed-head">
                     <div class="sol-card-title-block">
@@ -721,6 +775,13 @@
                         </small>
                     </div>
                     <div class="sol-closed-head__state">
+                        <button pButton pRipple
+                            [icon]="isSolicitudLocked(sol) ? 'pi pi-lock-open' : 'pi pi-lock'"
+                            class="p-button-rounded p-button-text sol-request-lock-action"
+                            [class.sol-request-lock-action--unlock]="isSolicitudLocked(sol)"
+                            (click)="openSolicitudLockDialog(sol, $event)"
+                            [pTooltip]="isSolicitudLocked(sol) ? 'Desbloquear solicitud' : 'Bloquear solicitud'"
+                            tooltipPosition="top"></button>
                         <span class="sol-closed-lock" pTooltip="Solicitud cerrada: no se puede mover ni reabrir" tooltipPosition="top">
                             <i class="pi pi-lock"></i>
                         </span>
@@ -736,6 +797,15 @@
                     <span class="sol-reassigned-badge" *ngIf="isSolicitudReassigned(sol)"
                         [pTooltip]="getSolicitudReassignmentTooltip(sol)" tooltipPosition="top">
                         <i class="pi pi-clock"></i> Reasignada
+                    </span>
+                    <span class="sol-request-lock-badge" *ngIf="isSolicitudLocked(sol)"
+                        [pTooltip]="getSolicitudLockTooltip(sol)" tooltipPosition="top">
+                        <i class="pi pi-lock"></i> Bloqueada
+                    </span>
+                    <span class="sol-request-unlocked-badge"
+                        *ngIf="!isSolicitudLocked(sol) && sol.unlocked_by_name"
+                        [pTooltip]="getSolicitudUnlockTooltip(sol)" tooltipPosition="top">
+                        <i class="pi pi-lock-open"></i> Desbloqueada por {{ sol.unlocked_by_name }}
                     </span>
                     <span *ngIf="sol.installations && sol.installations.length > 1" class="sol-closed-count">
                         {{ sol.installations.length }} procesos
@@ -2029,6 +2099,15 @@
     <ng-template pTemplate="content">
         <div *ngIf="selectedSolicitud" class="sol-form" [class.sol-form--readonly]="isSelectedSolicitudFinalized()">
 
+            <div class="sol-request-lock-inline" *ngIf="isSolicitudLocked(selectedSolicitud)">
+                <i class="pi pi-lock"></i>
+                <div>
+                    <strong>Solicitud bloqueada</strong>
+                    <span>{{ selectedSolicitud.lock_reason }}</span>
+                    <small *ngIf="selectedSolicitud.locked_by_name">Por {{ selectedSolicitud.locked_by_name }}</small>
+                </div>
+            </div>
+
             <section class="sol-request-section-card sol-request-section-card--general">
                 <!-- Required Section -->
                 <div class="sol-form-separator sol-form-separator--required">
@@ -2050,7 +2129,8 @@
                     </div>
                     <div class="sol-form-field">
                         <label>Estado</label>
-                        <select [(ngModel)]="selectedSolicitud.status">
+                        <select [(ngModel)]="selectedSolicitud.status"
+                            [disabled]="isSolicitudLocked(selectedSolicitud)">
                             <option *ngFor="let opt of editableStatusOptions" [value]="opt.value">{{ opt.label }}</option>
                         </select>
                     </div>
@@ -2785,6 +2865,83 @@
             <span>Prueba con otro nombre, correo o número.</span>
         </div>
     </div>
+</p-dialog>
+
+<p-dialog [(visible)]="requestLockDialogVisible"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closable]="!requestLockSaving"
+    [closeOnEscape]="!requestLockSaving"
+    [appendTo]="'body'"
+    [style]="{width: '600px'}"
+    [breakpoints]="{'640px': '94vw'}"
+    styleClass="app-dark-dialog sol-request-lock-dialog"
+    [header]="isSolicitudLocked(requestLockSolicitud) ? 'Desbloquear solicitud' : 'Bloquear solicitud'"
+    (onHide)="resetSolicitudLockDialog()">
+    <div class="sol-request-lock-form" *ngIf="requestLockSolicitud as solicitud">
+        <div class="sol-request-lock-summary">
+            <span class="sol-request-lock-summary__icon"
+                [class.is-locked]="isSolicitudLocked(solicitud)">
+                <i class="pi" [ngClass]="isSolicitudLocked(solicitud) ? 'pi-lock' : 'pi-shield'"></i>
+            </span>
+            <div>
+                <small>{{ typeLabels[solicitud.type] || solicitud.type }}</small>
+                <strong>{{ getClientDisplayName(solicitud) || 'Sin cliente' }}</strong>
+                <span *ngIf="!isSolicitudLocked(solicitud)">
+                    Mientras esté bloqueada no se podrá mover, reasignar, finalizar ni eliminar.
+                </span>
+                <span *ngIf="isSolicitudLocked(solicitud)">
+                    Al desbloquearla volverá a estar disponible para la gestión normal.
+                </span>
+            </div>
+        </div>
+
+        <ng-container *ngIf="!isSolicitudLocked(solicitud); else solicitudLockedDetails">
+            <div class="sol-form-field">
+                <label for="request-lock-reason">Descripción o razón del bloqueo *</label>
+                <textarea id="request-lock-reason" [(ngModel)]="requestLockReason"
+                    rows="5" maxlength="500" [disabled]="requestLockSaving"
+                    placeholder="Ej.: pendiente de validación del cliente antes de continuar"></textarea>
+                <small class="sol-reassignment-counter">{{ requestLockReason.length }}/500</small>
+            </div>
+        </ng-container>
+
+        <ng-template #solicitudLockedDetails>
+            <div class="sol-request-lock-details">
+                <small>Motivo registrado</small>
+                <p>{{ solicitud.lock_reason || 'Sin motivo disponible' }}</p>
+                <div>
+                    <span><i class="pi pi-user"></i> {{ solicitud.locked_by_name || 'Usuario no identificado' }}</span>
+                    <span *ngIf="solicitud.locked_at"><i class="pi pi-calendar"></i> {{ solicitud.locked_at | date: 'dd/MM/yyyy, HH:mm' }}</span>
+                </div>
+            </div>
+        </ng-template>
+
+        <div class="sol-reassignment-error" *ngIf="requestLockError" role="alert">
+            <i class="pi pi-exclamation-triangle"></i>
+            {{ requestLockError }}
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel"
+            [disabled]="requestLockSaving" (click)="closeSolicitudLockDialog()">
+            <i class="pi pi-times"></i> Cerrar
+        </button>
+        <button *ngIf="!isSolicitudLocked(requestLockSolicitud)" type="button"
+            class="sol-btn sol-request-lock-submit" [disabled]="requestLockSaving"
+            (click)="saveSolicitudLock()">
+            <i class="pi" [ngClass]="requestLockSaving ? 'pi-spin pi-spinner' : 'pi-lock'"></i>
+            {{ requestLockSaving ? 'Bloqueando...' : 'Bloquear solicitud' }}
+        </button>
+        <button *ngIf="isSolicitudLocked(requestLockSolicitud)" type="button"
+            class="sol-btn sol-btn-save" [disabled]="requestLockSaving"
+            (click)="unlockSolicitud()">
+            <i class="pi" [ngClass]="requestLockSaving ? 'pi-spin pi-spinner' : 'pi-lock-open'"></i>
+            {{ requestLockSaving ? 'Desbloqueando...' : 'Desbloquear solicitud' }}
+        </button>
+    </ng-template>
 </p-dialog>
 
 <p-dialog [(visible)]="reassignmentDialogVisible"

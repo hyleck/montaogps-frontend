@@ -168,6 +168,13 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     dragSuppressClick = false;
 
     onDragStart(event: DragEvent, sol: Solicitud): void {
+        if (this.isSolicitudLocked(sol)) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.draggedSolicitud = null;
+            this.showSolicitudLockedFeedback(sol);
+            return;
+        }
         if (this.isSolicitudClosed(sol)) {
             event.preventDefault();
             event.stopPropagation();
@@ -241,6 +248,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         const oldStatus = sol.status;
         this.draggedSolicitud = null;
 
+        if (this.isSolicitudLocked(sol)) {
+            this.showSolicitudLockedFeedback(sol);
+            return;
+        }
         if (this.isSolicitudClosed(sol)) {
             this.showClosedSolicitudLockedFeedback();
             return;
@@ -502,6 +513,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     reassignmentReason = '';
     reassignmentSaving = false;
     reassignmentError = '';
+    requestLockDialogVisible = false;
+    requestLockSolicitud: Solicitud | null = null;
+    requestLockReason = '';
+    requestLockSaving = false;
+    requestLockError = '';
     private readonly failedTechnicianPhotos = new Set<string>();
     private requestDialogOverlayCleanupTimer?: ReturnType<typeof setTimeout>;
     verifyingAvailabilityId = '';
@@ -1429,8 +1445,34 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     canReassignSolicitud(solicitud: Solicitud | null | undefined): boolean {
         return Boolean(
             solicitud?._id
+            && !this.isSolicitudLocked(solicitud)
             && ['pendiente', 'aceptada', 'en_progreso'].includes(solicitud.status),
         );
+    }
+
+    isSolicitudLocked(solicitud: Solicitud | null | undefined): boolean {
+        return solicitud?.locked === true;
+    }
+
+    getSolicitudLockTooltip(solicitud: Solicitud | null | undefined): string {
+        const reason = String(solicitud?.lock_reason || '').trim();
+        const actor = String(solicitud?.locked_by_name || '').trim();
+        const date = solicitud?.locked_at
+            ? new Date(solicitud.locked_at).toLocaleString('es-DO')
+            : '';
+        return [reason || 'Solicitud bloqueada', actor ? `Por ${actor}` : '', date]
+            .filter(Boolean)
+            .join(' · ');
+    }
+
+    getSolicitudUnlockTooltip(solicitud: Solicitud | null | undefined): string {
+        const actor = String(solicitud?.unlocked_by_name || '').trim();
+        const date = solicitud?.unlocked_at
+            ? new Date(solicitud.unlocked_at).toLocaleString('es-DO')
+            : '';
+        return [actor ? `Desbloqueada por ${actor}` : 'Solicitud desbloqueada', date]
+            .filter(Boolean)
+            .join(' · ');
     }
 
     isSolicitudReassigned(solicitud: Solicitud | null | undefined): boolean {
@@ -4967,6 +5009,10 @@ async initLocationMap(): Promise<void> {
     }
 
     deleteSolicitud(solicitud: Solicitud): void {
+        if (this.isSolicitudLocked(solicitud)) {
+            this.showSolicitudLockedFeedback(solicitud);
+            return;
+        }
         if (!this.isRootUser) {
             this.messageService.add({
                 severity: 'warn',
@@ -4996,6 +5042,10 @@ async initLocationMap(): Promise<void> {
     }
 
     cancelSolicitud(solicitud: Solicitud): void {
+        if (this.isSolicitudLocked(solicitud)) {
+            this.showSolicitudLockedFeedback(solicitud);
+            return;
+        }
         if (this.isSolicitudClosed(solicitud)) {
             this.showClosedSolicitudLockedFeedback();
             return;
@@ -5081,11 +5131,29 @@ async initLocationMap(): Promise<void> {
         });
     }
 
+    private showSolicitudLockedFeedback(solicitud: Solicitud): void {
+        const actor = String(solicitud.locked_by_name || '').trim();
+        const reason = String(solicitud.lock_reason || '').trim();
+        this.messageService.add({
+            severity: 'warn',
+            summary: 'Solicitud bloqueada',
+            detail: [
+                'Debe desbloquearla antes de moverla, reasignarla, finalizarla o eliminarla.',
+                reason ? `Motivo: ${reason}.` : '',
+                actor ? `Bloqueada por ${actor}.` : '',
+            ].filter(Boolean).join(' '),
+        });
+    }
+
     private confirmSolicitudCompletion(
         solicitud: Solicitud,
         accept: () => void,
         mode: SolicitudCompletionMode = 'status_update',
     ): void {
+        if (this.isSolicitudLocked(solicitud)) {
+            this.showSolicitudLockedFeedback(solicitud);
+            return;
+        }
         if (
             ['desinstalacion', 'mixta'].includes(solicitud.type)
             && !this.hasValidDeinstallationReason(solicitud)
@@ -5630,6 +5698,10 @@ async initLocationMap(): Promise<void> {
 
     openReassignmentDialog(solicitud: Solicitud, event?: Event): void {
         event?.stopPropagation();
+        if (this.isSolicitudLocked(solicitud)) {
+            this.showSolicitudLockedFeedback(solicitud);
+            return;
+        }
         if (!this.canReassignSolicitud(solicitud)) {
             this.messageService.add({
                 severity: 'info',
@@ -5651,6 +5723,90 @@ async initLocationMap(): Promise<void> {
         this.reassignmentReason = '';
         this.reassignmentError = '';
         this.reassignmentDialogVisible = true;
+    }
+
+    openSolicitudLockDialog(solicitud: Solicitud, event?: Event): void {
+        event?.stopPropagation();
+        this.requestLockSolicitud = solicitud;
+        this.requestLockReason = '';
+        this.requestLockError = '';
+        this.requestLockDialogVisible = true;
+    }
+
+    closeSolicitudLockDialog(): void {
+        if (this.requestLockSaving) return;
+        this.requestLockDialogVisible = false;
+    }
+
+    resetSolicitudLockDialog(): void {
+        if (this.requestLockSaving) return;
+        this.requestLockSolicitud = null;
+        this.requestLockReason = '';
+        this.requestLockError = '';
+    }
+
+    async saveSolicitudLock(): Promise<void> {
+        const id = String(this.requestLockSolicitud?._id || '').trim();
+        const reason = String(this.requestLockReason || '').trim();
+        this.requestLockError = '';
+
+        if (!id) {
+            this.requestLockError = 'No se pudo identificar la solicitud.';
+            return;
+        }
+        if (reason.length < 5) {
+            this.requestLockError = 'Describa el motivo del bloqueo con al menos 5 caracteres.';
+            return;
+        }
+
+        this.requestLockSaving = true;
+        try {
+            const updated = await firstValueFrom(this.solicitudesService.lock(id, reason));
+            this.upsertSolicitud(updated);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Solicitud bloqueada',
+                detail: 'Ya no se puede mover, reasignar, finalizar ni eliminar hasta que se desbloquee.',
+            });
+            this.requestLockDialogVisible = false;
+        } catch (error) {
+            this.requestLockError = getApiErrorMessage(
+                error,
+                'No se pudo bloquear la solicitud.',
+            );
+        } finally {
+            this.requestLockSaving = false;
+        }
+    }
+
+    async unlockSolicitud(): Promise<void> {
+        const id = String(this.requestLockSolicitud?._id || '').trim();
+        this.requestLockError = '';
+        if (!id) {
+            this.requestLockError = 'No se pudo identificar la solicitud.';
+            return;
+        }
+
+        this.requestLockSaving = true;
+        try {
+            const updated = await firstValueFrom(this.solicitudesService.unlock(id));
+            this.upsertSolicitud(updated);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Solicitud desbloqueada',
+                detail: updated.unlocked_by_name
+                    ? `Desbloqueada por ${updated.unlocked_by_name}.`
+                    : 'La solicitud se puede gestionar nuevamente.',
+            });
+            this.requestLockDialogVisible = false;
+        } catch (error) {
+            this.requestLockError = getApiErrorMessage(
+                error,
+                'No se pudo desbloquear la solicitud.',
+            );
+        } finally {
+            this.requestLockSaving = false;
+        }
     }
 
     closeReassignmentDialog(): void {

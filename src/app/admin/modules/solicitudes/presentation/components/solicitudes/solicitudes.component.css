@@ -5126,6 +5126,166 @@ html.app-dark .sol-process-activation-disclosure__copy small {
     font-size: 0.68rem;
 }
 
+.sol-request-lock-badge,
+.sol-request-unlocked-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    max-width: 100%;
+    padding: 0.24rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 750;
+    line-height: 1.2;
+}
+
+.sol-request-lock-badge {
+    border: 1px solid rgba(217, 119, 6, 0.34);
+    background: rgba(245, 158, 11, 0.14);
+    color: #b45309;
+}
+
+.sol-request-unlocked-badge {
+    overflow: hidden;
+    border: 1px solid rgba(5, 150, 105, 0.28);
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sol-kanban-card--request-locked {
+    border-color: rgba(245, 158, 11, 0.58) !important;
+    box-shadow: inset 3px 0 0 #f59e0b;
+    cursor: default;
+}
+
+.sol-kanban-card--request-locked::after {
+    pointer-events: none;
+}
+
+.sol-request-lock-action {
+    color: #b45309 !important;
+}
+
+.sol-request-lock-action--unlock {
+    background: rgba(245, 158, 11, 0.13) !important;
+}
+
+.sol-request-lock-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sol-request-lock-summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, #f59e0b 28%, var(--managementFieldsBorder));
+    border-radius: 14px;
+    background: color-mix(in srgb, #f59e0b 8%, var(--managementCardBackground));
+}
+
+.sol-request-lock-summary__icon {
+    display: grid;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: 12px;
+    background: rgba(59, 130, 246, 0.12);
+    color: #2563eb;
+}
+
+.sol-request-lock-summary__icon.is-locked {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+}
+
+.sol-request-lock-summary > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.sol-request-lock-summary small,
+.sol-request-lock-summary span {
+    color: var(--text-color-secondary);
+}
+
+.sol-request-lock-summary strong {
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.sol-request-lock-details {
+    padding: 1rem;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 12px;
+    background: rgba(245, 158, 11, 0.08);
+}
+
+.sol-request-lock-details > small {
+    color: var(--text-color-secondary);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.sol-request-lock-details p {
+    margin: 0.45rem 0 0.8rem;
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+.sol-request-lock-details > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+    color: var(--text-color-secondary);
+    font-size: 0.8rem;
+}
+
+.sol-request-lock-inline {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid rgba(245, 158, 11, 0.34);
+    border-radius: 12px;
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+}
+
+.sol-request-lock-inline > i {
+    margin-top: 0.15rem;
+}
+
+.sol-request-lock-inline > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.sol-request-lock-inline span,
+.sol-request-lock-inline small {
+    color: var(--text-color-secondary);
+}
+
+.sol-request-lock-submit {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    color: #fff;
+}
+
+.sol-request-lock-submit:hover:not(:disabled) {
+    box-shadow: 0 4px 12px rgba(180, 83, 9, 0.3);
+    transform: translateY(-1px);
+}
+
 .sol-reassignment-form {
     display: flex;
     flex-direction: column;
@@ -5188,6 +5348,18 @@ html.app-dark .sol-reassignment-summary {
     border-color: rgba(96, 165, 250, 0.32);
     background: rgba(37, 99, 235, 0.14);
     color: #93c5fd;
+}
+
+html.app-dark .sol-request-lock-badge {
+    border-color: rgba(251, 191, 36, 0.36);
+    background: rgba(245, 158, 11, 0.16);
+    color: #fcd34d;
+}
+
+html.app-dark .sol-request-unlocked-badge {
+    border-color: rgba(52, 211, 153, 0.3);
+    background: rgba(16, 185, 129, 0.14);
+    color: #6ee7b7;
 }
 
 html.app-dark .sol-reassignment-summary > .pi {

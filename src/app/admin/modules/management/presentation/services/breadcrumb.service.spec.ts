@@ -50,6 +50,19 @@ describe('BreadcrumbService', () => {
     expect(managementService.setOp).toHaveBeenCalledOnceWith('u', 'viewer');
   });
 
+  it('does not expose ancestors above an authenticated root account', () => {
+    const items = service.updateFromUserPath([
+      { id: 'owner', fullName: 'Cuenta superior' },
+      { id: 'viewer', fullName: 'Cuenta root autenticada' },
+      { id: 'child', fullName: 'Cliente' },
+    ], undefined, { id: 'viewer', root: true, developer: true });
+
+    expect(items.map((item) => item.label)).toEqual([
+      'Cuenta root autenticada',
+      'Cliente',
+    ]);
+  });
+
   it('starts an employee external route at its shared entry account', () => {
     const items = service.updateFromUserPath([
       { id: 'owner', fullName: 'Cuenta superior' },

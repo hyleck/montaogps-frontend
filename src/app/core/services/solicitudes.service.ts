@@ -79,6 +79,14 @@ export interface SolicitudReassignment {
     reassigned_by_name?: string;
 }
 
+export interface SolicitudLockEvent {
+    action: 'locked' | 'unlocked';
+    reason?: string;
+    actor_id?: string;
+    actor_name?: string;
+    occurred_at: string | Date;
+}
+
 export interface Solicitud {
     _id?: string;
     __v?: number;
@@ -118,6 +126,15 @@ export interface Solicitud {
     reassigned_by_id?: string;
     reassigned_by_name?: string;
     reassignment_history?: SolicitudReassignment[];
+    locked?: boolean;
+    lock_reason?: string;
+    locked_at?: string | Date;
+    locked_by_id?: string;
+    locked_by_name?: string;
+    unlocked_at?: string | Date;
+    unlocked_by_id?: string;
+    unlocked_by_name?: string;
+    lock_history?: SolicitudLockEvent[];
     created_by_id?: string;
     created_by_name?: string;
     user_id?: string;
@@ -343,6 +360,14 @@ export class SolicitudesService {
         input: { mechanic_id: string; scheduled_date: string; reason: string },
     ): Observable<Solicitud> {
         return this.http.post<Solicitud>(`${this.apiUrl}/${id}/reassign`, input);
+    }
+
+    lock(id: string, reason: string): Observable<Solicitud> {
+        return this.http.post<Solicitud>(`${this.apiUrl}/${id}/lock`, { reason });
+    }
+
+    unlock(id: string): Observable<Solicitud> {
+        return this.http.post<Solicitud>(`${this.apiUrl}/${id}/unlock`, {});
     }
 
     verifyAvailability(id: string): Observable<Solicitud> {

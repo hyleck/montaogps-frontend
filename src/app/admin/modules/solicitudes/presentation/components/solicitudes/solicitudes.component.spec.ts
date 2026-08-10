@@ -20,6 +20,21 @@ describe('SolicitudesComponent scheduled date editing', () => {
             create: jasmine.createSpy('create').and.returnValue(of({})),
             update: jasmine.createSpy('update').and.returnValue(of({})),
             reassign: jasmine.createSpy('reassign').and.returnValue(of({})),
+            lock: jasmine.createSpy('lock').and.callFake((id: string, reason: string) => of({
+                _id: id,
+                type: 'instalacion',
+                status: 'pendiente',
+                locked: true,
+                lock_reason: reason,
+                locked_by_name: 'Usuario Root',
+            })),
+            unlock: jasmine.createSpy('unlock').and.callFake((id: string) => of({
+                _id: id,
+                type: 'instalacion',
+                status: 'pendiente',
+                locked: false,
+                unlocked_by_name: 'Usuario Root',
+            })),
             delete: jasmine.createSpy('delete').and.returnValue(of(void 0)),
         };
         const messageService = {
@@ -1907,5 +1922,48 @@ describe('SolicitudesComponent scheduled date editing', () => {
             'pending-later',
             'pending-unscheduled',
         ]);
+    });
+
+    it('requires a reason and blocks the request through the dedicated action', async () => {
+        const { component, solicitudesService } = createComponent();
+        const solicitud: Solicitud = {
+            _id: 'request-to-lock',
+            type: 'instalacion',
+            status: 'pendiente',
+        };
+        component.solicitudes = [solicitud];
+        component.openSolicitudLockDialog(solicitud);
+
+        await component.saveSolicitudLock();
+        expect(solicitudesService.lock).not.toHaveBeenCalled();
+        expect(component.requestLockError).toContain('al menos 5 caracteres');
+
+        component.requestLockReason = 'Pendiente de validación del cliente';
+        await component.saveSolicitudLock();
+
+        expect(solicitudesService.lock).toHaveBeenCalledWith(
+            'request-to-lock',
+            'Pendiente de validación del cliente',
+        );
+        expect(component.solicitudes[0].locked).toBeTrue();
+    });
+
+    it('records the user returned by the unlock operation', async () => {
+        const { component, solicitudesService } = createComponent();
+        const solicitud: Solicitud = {
+            _id: 'request-to-unlock',
+            type: 'instalacion',
+            status: 'pendiente',
+            locked: true,
+            lock_reason: 'Pendiente de validación',
+        };
+        component.solicitudes = [solicitud];
+        component.openSolicitudLockDialog(solicitud);
+
+        await component.unlockSolicitud();
+
+        expect(solicitudesService.unlock).toHaveBeenCalledWith('request-to-unlock');
+        expect(component.solicitudes[0].locked).toBeFalse();
+        expect(component.solicitudes[0].unlocked_by_name).toBe('Usuario Root');
     });
 });
