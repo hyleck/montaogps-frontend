@@ -168,6 +168,35 @@
                     <div class="comm-chat__header-phone">{{ selectedConversation.contact.phone }}</div>
                 </div>
                 <div class="comm-chat__header-actions">
+                    <div class="comm-translation-control">
+                        <button
+                            type="button"
+                            class="comm-language-btn"
+                            [class.comm-language-btn--active]="!!selectedConversation.translation_language"
+                            [disabled]="updatingConversationLanguage"
+                            (click)="toggleTranslationLanguageMenu()"
+                            [title]="selectedConversation.translation_language_name ? 'Idioma del cliente: ' + selectedConversation.translation_language_name : 'Cambiar idioma del cliente'">
+                            <i class="pi" [ngClass]="updatingConversationLanguage ? 'pi-spin pi-spinner' : 'pi-globe'"></i>
+                            <span>{{ getConversationLanguageLabel() }}</span>
+                            <i class="pi pi-chevron-down comm-language-btn__chevron"></i>
+                        </button>
+                        <div *ngIf="showTranslationLanguageMenu" class="comm-language-menu">
+                            <div class="comm-language-menu__heading">
+                                <strong>Idioma del cliente</strong>
+                                <small>Lo recibido se traduce a español y lo enviado a este idioma.</small>
+                            </div>
+                            <button
+                                *ngFor="let option of conversationLanguageOptions"
+                                type="button"
+                                class="comm-language-option"
+                                [class.comm-language-option--selected]="isConversationLanguageSelected(option.code)"
+                                (click)="selectConversationLanguage(option.code)">
+                                <span class="comm-language-option__code">{{ option.shortName }}</span>
+                                <span>{{ option.name }}</span>
+                                <i *ngIf="isConversationLanguageSelected(option.code)" class="pi pi-check"></i>
+                            </button>
+                        </div>
+                    </div>
                     <button *ngIf="isConversationAssignedToMe(selectedConversation)"
                         class="comm-info-btn comm-action-btn" (click)="openTransferModal()" title="Transferir Conversación a otro Agente">
                         <i class="pi pi-sort-alt"></i>
@@ -396,6 +425,13 @@
                             </div>
                             <div class="comm-audio-transcription__text">{{ transcript }}</div>
                         </div>
+                        <div *ngIf="shouldShowMessageTranslation(msg)" class="comm-message__translation">
+                            <div class="comm-message__translation-label">
+                                <i class="pi pi-globe"></i>
+                                <span>{{ msg.translation?.target_language_name || selectedConversation.translation_language_name }}</span>
+                            </div>
+                            <div class="comm-message__translation-text">{{ msg.translation?.text }}</div>
+                        </div>
                         <div *ngIf="msg.safeRealtimeUrl" class="comm-message__realtime-trigger" (click)="openRealtimeModal(msg.safeRealtimeUrl)">
                             <div class="comm-message__rt-icon comm-card-icon--rt">
                                 <i class="pi pi-map"></i>
@@ -556,33 +592,60 @@
             </div>
 
             <!-- Input (Only shown if assigned AND inside 24h window) -->
-            <div class="comm-chat__input" *ngIf="isConversationAssignedToMe(selectedConversation) && !isOutside24hWindow(selectedConversation)">
-                <button class="comm-attach-btn" (click)="attachMenu.toggle($event)" [disabled]="sendingMessage">
-                    <i class="pi pi-paperclip"></i>
-                </button>
-                <button class="comm-voice-btn"
-                    [class.comm-voice-btn--recording]="recordingVoice && recordingVoiceContext === 'chat'"
-                    (click)="toggleVoiceRecording('chat')"
-                    [disabled]="sendingMessage && !(recordingVoice && recordingVoiceContext === 'chat')"
-                    [title]="recordingVoice && recordingVoiceContext === 'chat' ? 'Detener y enviar nota de voz' : 'Grabar nota de voz'">
-                    <i class="pi" [ngClass]="recordingVoice && recordingVoiceContext === 'chat' ? 'pi-stop' : 'pi-microphone'"></i>
-                </button>
-                <div *ngIf="recordingVoice && recordingVoiceContext === 'chat'" class="comm-voice-recording">
-                    <span></span>
-                    {{ getVoiceRecordingTime() }}
-                    <button type="button" (click)="cancelVoiceRecording()" title="Cancelar nota de voz">
-                        <i class="pi pi-times"></i>
+            <div class="comm-chat-composer" *ngIf="isConversationAssignedToMe(selectedConversation) && !isOutside24hWindow(selectedConversation)">
+                <div *ngIf="showChatEmojiPicker" class="comm-chat-emoji-picker" role="dialog" aria-label="Seleccionar emoji">
+                    <div class="comm-chat-emoji-picker__header">
+                        <span>Emojis</span>
+                        <button type="button" (click)="showChatEmojiPicker = false" aria-label="Cerrar emojis">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                    <div class="comm-chat-emoji-picker__grid">
+                        <button *ngFor="let emoji of internalEmojiOptions"
+                            type="button"
+                            (click)="addChatEmoji(emoji)"
+                            [attr.aria-label]="'Agregar ' + emoji">
+                            {{ emoji }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="comm-chat__input">
+                    <button type="button" class="comm-attach-btn" (click)="attachMenu.toggle($event)" [disabled]="sendingMessage" title="Adjuntar archivo">
+                        <i class="pi pi-paperclip"></i>
+                    </button>
+                    <button type="button" class="comm-voice-btn"
+                        [class.comm-voice-btn--recording]="recordingVoice && recordingVoiceContext === 'chat'"
+                        (click)="toggleVoiceRecording('chat')"
+                        [disabled]="sendingMessage && !(recordingVoice && recordingVoiceContext === 'chat')"
+                        [title]="recordingVoice && recordingVoiceContext === 'chat' ? 'Detener y enviar nota de voz' : 'Grabar nota de voz'">
+                        <i class="pi" [ngClass]="recordingVoice && recordingVoiceContext === 'chat' ? 'pi-stop' : 'pi-microphone'"></i>
+                    </button>
+                    <button type="button" class="comm-emoji-btn"
+                        [class.comm-emoji-btn--active]="showChatEmojiPicker"
+                        (click)="toggleChatEmojiPicker()"
+                        [disabled]="sendingMessage"
+                        title="Agregar emoji"
+                        aria-label="Agregar emoji">
+                        <i class="pi pi-face-smile"></i>
+                    </button>
+                    <div *ngIf="recordingVoice && recordingVoiceContext === 'chat'" class="comm-voice-recording">
+                        <span></span>
+                        {{ getVoiceRecordingTime() }}
+                        <button type="button" (click)="cancelVoiceRecording()" title="Cancelar nota de voz">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                    <textarea #messageInput [(ngModel)]="chatInput" placeholder="Escribe un mensaje..."
+                        rows="1"
+                        (ngModelChange)="onChatInputChange($event)"
+                        (keydown.enter)="$event.preventDefault(); sendMessage()"
+                        [disabled]="sendingMessage"></textarea>
+                    <button type="button" class="comm-send-btn" (click)="sendMessage()"
+                        [disabled]="!chatInput.trim() || sendingMessage">
+                        <i class="pi pi-send"></i>
                     </button>
                 </div>
-                <textarea #messageInput [(ngModel)]="chatInput" placeholder="Escribe un mensaje..."
-                    rows="1"
-                    (ngModelChange)="onChatInputChange($event)"
-                    (keydown.enter)="$event.preventDefault(); sendMessage()"
-                    [disabled]="sendingMessage"></textarea>
-                <button class="comm-send-btn" (click)="sendMessage()"
-                    [disabled]="!chatInput.trim() || sendingMessage">
-                    <i class="pi pi-send"></i>
-                </button>
             </div>
 
             <!-- WhatsApp Template Banner (Shown if assigned BUT >24h) -->

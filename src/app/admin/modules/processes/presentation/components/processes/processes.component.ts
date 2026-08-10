@@ -36,7 +36,7 @@ export class ProcessesComponent implements OnInit {
   selectedType: number | null = null;
   selectedCreator: string | null = null;
   selectedMechanic: string | null = null;
-  selectedClient: { label: string; value: string; email?: string; phone?: string } | null = null;
+  selectedClient: { label: string; id: string; email?: string; phone?: string } | null = null;
   selectedVerificationStatus: ProcessVerificationStatus | null = null;
   dateFrom: Date | null = this.getCurrentMonthRange().from;
   dateTo: Date | null = this.getCurrentMonthRange().to;
@@ -68,7 +68,7 @@ export class ProcessesComponent implements OnInit {
   // Employee options for filter
   employeeOptions: { label: string; value: string }[] = [];
   mechanicOptions: { label: string; value: string }[] = [];
-  clientOptions: Array<{ label: string; value: string; email?: string; phone?: string }> = [];
+  clientOptions: Array<{ label: string; id: string; email?: string; phone?: string }> = [];
 
   // Brand/Model/Color name maps
   brandsMap: { [id: string]: string } = {};
@@ -100,7 +100,7 @@ export class ProcessesComponent implements OnInit {
     if (this.selectedType !== null && this.selectedType !== undefined) filters.type = this.selectedType;
     if (this.selectedCreator) filters.creator = this.selectedCreator;
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
-    if (this.selectedClient?.value) filters.client = this.selectedClient.value;
+    if (this.selectedClient?.id) filters.client = this.selectedClient.id;
     if (this.selectedVerificationStatus) filters.verificationStatus = this.selectedVerificationStatus;
     if (this.dateFrom) filters.dateFrom = this.dateFrom.toISOString();
     if (this.dateTo) filters.dateTo = this.dateTo.toISOString();
@@ -162,7 +162,7 @@ export class ProcessesComponent implements OnInit {
     if (this.selectedType !== null && this.selectedType !== undefined) filters.type = this.selectedType;
     if (this.selectedCreator) filters.creator = this.selectedCreator;
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
-    if (this.selectedClient?.value) filters.client = this.selectedClient.value;
+    if (this.selectedClient?.id) filters.client = this.selectedClient.id;
     if (this.selectedVerificationStatus) filters.verificationStatus = this.selectedVerificationStatus;
     if (this.dateFrom) filters.dateFrom = this.dateFrom.toISOString();
     if (this.dateTo) filters.dateTo = this.dateTo.toISOString();
@@ -177,6 +177,7 @@ export class ProcessesComponent implements OnInit {
       'Estado': this.getVerificationStatusLabel(p.verificationStatus),
       'Target': this.getTargetName(p.target),
       'IMEI': this.getTargetImei(p.target),
+      'Cliente': this.getClientName(p),
       'Marca': this.brandsMap[p.target?.['target_brand_id']] || p.target?.['target_brand_id'] || '',
       'Modelo': this.modelsMap[p.target?.['target_model_id']] || p.target?.['target_model_id'] || '',
       'Año': p.target?.['target_year'] || '',
@@ -199,6 +200,7 @@ export class ProcessesComponent implements OnInit {
       { wch: 14 },  // Estado
       { wch: 25 },  // Target
       { wch: 18 },  // IMEI
+      { wch: 24 },  // Cliente
       { wch: 15 },  // Marca
       { wch: 15 },  // Modelo
       { wch: 8 },   // Año
@@ -218,7 +220,7 @@ export class ProcessesComponent implements OnInit {
       font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 11 },
       alignment: { horizontal: 'center' }
     };
-    const colLetters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P'];
+    const colLetters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'];
     colLetters.forEach(col => {
       const cell = ws[`${col}1`];
       if (cell) cell.s = headerStyle;
@@ -349,7 +351,7 @@ export class ProcessesComponent implements OnInit {
       this.selectedType,
       this.selectedCreator,
       this.selectedMechanic,
-      this.selectedClient?.value,
+      this.selectedClient?.id,
       this.selectedVerificationStatus,
     ].filter(value => value !== null && value !== undefined && value !== '').length;
   }
@@ -495,6 +497,19 @@ export class ProcessesComponent implements OnInit {
     return target.device_imei || '-';
   }
 
+  getClientName(process: ProcessItem): string {
+    const client = process?.client;
+    if (!client) return 'Sin cliente asociado';
+    const fullName = `${client.name || ''} ${client.last_name || ''}`.trim();
+    return fullName || client.email || client.phone || 'Sin cliente asociado';
+  }
+
+  getClientContact(process: ProcessItem): string {
+    const client = process?.client;
+    if (!client) return '';
+    return client.email || client.phone || '';
+  }
+
   getTechnicianName(process: ProcessItem): string {
     // Extract from details field: "Técnico asignado: [name]."
     if (process.details) {
@@ -556,15 +571,15 @@ export class ProcessesComponent implements OnInit {
               || client.email
               || client.phone
               || 'Cliente sin nombre';
-            const value = String(client._id || client.email || client.phone || '').trim();
+            const id = String(client._id || client.email || client.phone || '').trim();
             return {
               label,
-              value,
+              id,
               email: client.email,
               phone: client.phone,
             };
           })
-          .filter(client => Boolean(client.value));
+          .filter(client => Boolean(client.id));
       },
       error: () => {
         this.clientOptions = [];

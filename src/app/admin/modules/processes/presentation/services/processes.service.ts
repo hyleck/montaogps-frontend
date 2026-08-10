@@ -19,6 +19,14 @@ export interface ProcessItem {
     [key: string]: any;
   };
   user: { _id: string; name?: string; email?: string; [key: string]: any };
+  client?: {
+    _id?: string;
+    name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+    [key: string]: any;
+  };
   reference: string;
   before: any;
   after: any;

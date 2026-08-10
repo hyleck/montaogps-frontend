@@ -158,7 +158,7 @@
                 <p-autoComplete [(ngModel)]="selectedClient" [suggestions]="clientOptions"
                     (completeMethod)="searchClients($event)" (onSelect)="onClientSelected()"
                     (onClear)="clearClientFilter()" optionLabel="label" [forceSelection]="true"
-                    [dropdown]="true" [minLength]="0" appendTo="body"
+                    dataKey="id" [dropdown]="true" [minLength]="0" appendTo="body"
                     placeholder="Todos los clientes" styleClass="process-client-autocomplete"
                     inputStyleClass="process-client-autocomplete__input">
                     <ng-template let-client pTemplate="item">
@@ -225,6 +225,7 @@
                         <th class="column-date">Fecha</th>
                         <th class="column-process">Proceso</th>
                         <th class="column-target">Objetivo</th>
+                        <th class="column-client">Cliente</th>
                         <th class="column-status">Estado</th>
                         <th class="column-people">Responsables</th>
                         <th class="column-action"><span class="sr-only">Acciones</span></th>
@@ -253,6 +254,15 @@
                                 <div>
                                     <strong>{{ getTargetName(process.target) | titlecase }}</strong>
                                     <span>IMEI {{ getTargetImei(process.target) }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="process-client-cell">
+                                <div class="process-client-cell__icon"><i class="pi pi-user"></i></div>
+                                <div>
+                                    <strong>{{ getClientName(process) }}</strong>
+                                    <span *ngIf="getClientContact(process)">{{ getClientContact(process) }}</span>
                                 </div>
                             </div>
                         </td>
@@ -297,7 +307,7 @@
 
                 <ng-template pTemplate="emptymessage">
                     <tr>
-                        <td colspan="6">
+                        <td colspan="7">
                             <div class="processes-empty-state">
                                 <div class="processes-empty-state__icon"><i class="pi pi-search"></i></div>
                                 <h3>No encontramos procesos</h3>
@@ -391,6 +401,7 @@
                         <div><span>Responsables</span><small>Cuenta y personal</small></div>
                     </div>
                     <dl class="detail-data-list">
+                        <div><dt>Cliente</dt><dd>{{ getClientName(selectedProcess) }}</dd></div>
                         <div><dt>Usuario</dt><dd>{{ selectedProcess.user.name || selectedProcess.user.email || '-' }}</dd></div>
                         <div><dt>Empleado</dt><dd>{{ getCreatorName(selectedProcess.creator) }}</dd></div>
                         <div><dt>Técnico</dt><dd>{{ getTechnicianName(selectedProcess) }}</dd></div>

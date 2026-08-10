@@ -27,6 +27,7 @@ import {
   buildAgentSignatureLabel,
   compactAgentSignatureLabel,
 } from './agent-signature';
+import { resolveConversationMessageTranslationLanguage } from './conversation-translation';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 interface ChatConversation {
@@ -67,6 +68,17 @@ interface ChatConversation {
     description?: string;
   }>;
   campaign_active?: boolean;
+  translation_language?: string;
+  translation_language_name?: string;
+}
+
+interface MessageTranslation {
+  text: string;
+  source_language: string;
+  target_language: string;
+  target_language_name: string;
+  model?: string;
+  translated_at?: string;
 }
 
 interface ChatMessage {
@@ -106,6 +118,8 @@ interface ChatMessage {
   };
   senderName?: string;
   esterFeedback?: EsterMessageFeedback;
+  translations?: Record<string, MessageTranslation>;
+  translation?: MessageTranslation;
 }
 
 interface WhatsAppSharedContact {
@@ -218,6 +232,24 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   esterAutoReplyActive: boolean | null = null;
   showContactInfo: boolean = false;
   gpsUser: any = null;
+  showTranslationLanguageMenu = false;
+  updatingConversationLanguage = false;
+  readonly conversationLanguageOptions = [
+    { code: '', name: 'Sin traducción', shortName: 'Original' },
+    { code: 'es', name: 'Español', shortName: 'ES' },
+    { code: 'en', name: 'Inglés', shortName: 'EN' },
+    { code: 'fr', name: 'Francés', shortName: 'FR' },
+    { code: 'ht', name: 'Criollo haitiano', shortName: 'HT' },
+    { code: 'pt', name: 'Portugués', shortName: 'PT' },
+    { code: 'it', name: 'Italiano', shortName: 'IT' },
+    { code: 'de', name: 'Alemán', shortName: 'DE' },
+    { code: 'nl', name: 'Neerlandés', shortName: 'NL' },
+    { code: 'zh', name: 'Chino mandarín', shortName: 'ZH' },
+    { code: 'ar', name: 'Árabe', shortName: 'AR' },
+  ];
+  private readonly supportTranslationLanguage = 'es';
+  private translatingMessageKeys = new Set<string>();
+  private translationRetryAfter = new Map<string, number>();
 
   // Email (merged from all email inboxes)
   emailConversations: ChatConversation[] = [];
@@ -468,6 +500,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   showActiveEmployeesDialog: boolean = false;
   uploadingInternalAttachment: boolean = false;
   showInternalEmojiPicker: boolean = false;
+  showChatEmojiPicker: boolean = false;
   readonly internalEmojiOptions: string[] = ['😀', '😂', '😊', '😍', '👍', '🙏', '👏', '🔥', '✅', '🚗', '📍', '⚠️', '🛠️', '📞', '❤️', '💪'];
   private internalChatMutedSubscription?: Subscription;
   private loadInternalChatAfterGroups: boolean = false;
@@ -1662,6 +1695,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.sendingConversationReminder = false;
     this.replyingTo = null;
     this.reactionPickerMessageId = null;
+    this.showChatEmojiPicker = false;
+    this.showTranslationLanguageMenu = false;
     this.showContactInfo = false;
     this.gpsUser = null;
     this.startConversationPresenceSession();
@@ -1670,6 +1705,206 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (navigate) {
       this.location.go(`/admin/communication/chat/${conv.id}`);
     }
+  }
+
+  toggleTranslationLanguageMenu(): void {
+    if (this.updatingConversationLanguage) return;
+    this.showTranslationLanguageMenu = !this.showTranslationLanguageMenu;
+    this.showContactInfo = false;
+  }
+
+  getConversationLanguageLabel(
+    conversation: ChatConversation | null = this.selectedConversation,
+  ): string {
+    const language = String(conversation?.translation_language || '').trim();
+    if (!language) return 'Idioma';
+    return this.conversationLanguageOptions.find(option => option.code === language)?.shortName
+      || language.toUpperCase();
+  }
+
+  isConversationLanguageSelected(language: string): boolean {
+    return String(this.selectedConversation?.translation_language || '') === language;
+  }
+
+  selectConversationLanguage(language: string): void {
+    const conversation = this.selectedConversation;
+    if (!conversation || this.updatingConversationLanguage) return;
+
+    const normalizedLanguage = String(language || '').trim().toLowerCase();
+    if (this.isConversationLanguageSelected(normalizedLanguage)) {
+      this.showTranslationLanguageMenu = false;
+      return;
+    }
+
+    const option = this.conversationLanguageOptions.find(
+      item => item.code === normalizedLanguage,
+    );
+    if (!option) return;
+
+    const conversationId = conversation.id;
+    this.updatingConversationLanguage = true;
+    this.whatsappApi
+      .setConversationTranslationLanguage(conversationId, normalizedLanguage)
+      .pipe(finalize(() => {
+        this.updatingConversationLanguage = false;
+      }))
+      .subscribe({
+        next: response => {
+          if (this.selectedConversation?.id !== conversationId) return;
+
+          const languageCode = String(response?.translation_language || '');
+          const languageName = String(response?.translation_language_name || '');
+          this.selectedConversation.translation_language = languageCode;
+          this.selectedConversation.translation_language_name = languageName;
+          const listConversation = this.conversations.find(item => item.id === conversationId);
+          if (listConversation) {
+            listConversation.translation_language = languageCode;
+            listConversation.translation_language_name = languageName;
+          }
+          this.showTranslationLanguageMenu = false;
+          this.applySelectedTranslations(this.messages);
+
+          if (languageCode) {
+            this.translationRetryAfter.delete(`${conversationId}:${languageCode}`);
+            this.translateVisibleMessages(this.messages, true);
+          }
+        },
+        error: error => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'No se cambió el idioma',
+            detail: getApiErrorMessage(
+              error,
+              'No se pudo guardar el idioma de esta conversación',
+            ),
+          });
+        },
+      });
+  }
+
+  private applySelectedTranslations(messages: ChatMessage[]): void {
+    for (const message of messages) {
+      const language = this.getMessageTranslationLanguage(message);
+      message.translation = language
+        ? message.translations?.[language]
+        : undefined;
+    }
+  }
+
+  private getMessageTranslationLanguage(
+    message: ChatMessage,
+    conversation: ChatConversation | null = this.selectedConversation,
+  ): string {
+    return resolveConversationMessageTranslationLanguage(
+      conversation?.translation_language,
+      message.from,
+      this.supportTranslationLanguage,
+    );
+  }
+
+  private translateVisibleMessages(
+    messages: ChatMessage[],
+    force = false,
+  ): void {
+    const conversation = this.selectedConversation;
+    const customerLanguage = String(conversation?.translation_language || '').trim();
+    if (!conversation || !customerLanguage) return;
+
+    const candidatesByLanguage = new Map<string, ChatMessage[]>();
+    for (const message of messages) {
+      const language = this.getMessageTranslationLanguage(message, conversation);
+      if (!language || !message.id) continue;
+      if (message.translations?.[language]?.text) continue;
+      if (!String(message.text || message.transcription || '').trim()) continue;
+      if (this.translatingMessageKeys.has(
+        `${conversation.id}:${language}:${message.id}`,
+      )) continue;
+
+      const retryKey = `${conversation.id}:${language}`;
+      if (!force && Number(this.translationRetryAfter.get(retryKey) || 0) > Date.now()) {
+        continue;
+      }
+      candidatesByLanguage.set(language, [
+        ...(candidatesByLanguage.get(language) || []),
+        message,
+      ]);
+    }
+
+    if (!candidatesByLanguage.size) {
+      this.applySelectedTranslations(messages);
+      return;
+    }
+
+    for (const [language, candidates] of candidatesByLanguage.entries()) {
+      this.translateVisibleMessageGroup(
+        conversation,
+        customerLanguage,
+        language,
+        candidates,
+        force,
+      );
+    }
+  }
+
+  private translateVisibleMessageGroup(
+    conversation: ChatConversation,
+    customerLanguage: string,
+    language: string,
+    candidates: ChatMessage[],
+    force: boolean,
+  ): void {
+    const retryKey = `${conversation.id}:${language}`;
+
+    const messageIds = candidates
+      .map(message => Number(message.id))
+      .filter(id => Number.isFinite(id) && id > 0);
+    for (const messageId of messageIds) {
+      this.translatingMessageKeys.add(
+        `${conversation.id}:${language}:${messageId}`,
+      );
+    }
+
+    this.whatsappApi
+      .translateConversationMessages(conversation.id, language, messageIds)
+      .pipe(finalize(() => {
+        for (const messageId of messageIds) {
+          this.translatingMessageKeys.delete(
+            `${conversation.id}:${language}:${messageId}`,
+          );
+        }
+      }))
+      .subscribe({
+        next: response => {
+          if (
+            this.selectedConversation?.id !== conversation.id
+            || this.selectedConversation?.translation_language !== customerLanguage
+          ) return;
+
+          const translations = response?.translations || {};
+          for (const message of this.messages) {
+            if (!message.id || !translations[String(message.id)]) continue;
+            message.translations = {
+              ...(message.translations || {}),
+              [language]: translations[String(message.id)],
+            };
+          }
+          this.applySelectedTranslations(this.messages);
+          this.translationRetryAfter.delete(retryKey);
+        },
+        error: error => {
+          this.translationRetryAfter.set(retryKey, Date.now() + 30000);
+          if (force) {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'No se pudo traducir',
+              detail: getApiErrorMessage(
+                error,
+                'La IA no pudo traducir los mensajes de esta conversación',
+              ),
+            });
+          }
+        },
+      });
   }
 
   openInternalMessageReference(message: InternalChatMessage): void {
@@ -3328,6 +3563,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         if (res.success && res.messages?.length) {
           this.messages = this.mapApiMessages(res.messages);
           this.preparePlayableAudio(this.messages);
+          this.translateVisibleMessages(this.messages);
           this.lastApiMessageId = res.messages[res.messages.length - 1].id;
           this.hasOlderMessages = res.messages.length >= this.messagesPageSize;
         } else {
@@ -3458,6 +3694,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
           this.messages = [...olderMessages, ...this.messages];
           this.preparePlayableAudio(olderMessages);
+          this.translateVisibleMessages(olderMessages);
 
           setTimeout(() => {
             if (this.selectedConversation?.id !== conversationId) return;
@@ -3511,7 +3748,16 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           : undefined,
         senderName: String(msg.sender || ''),
         esterFeedback: this.esterFeedbackByMessageId.get(Number(msg.id)),
+        translations: msg.translations || {},
       };
+      const activeLanguage = String(
+        this.selectedConversation?.translation_language || '',
+      ).trim();
+      mapped.translation = activeLanguage
+        ? mapped.translations?.[
+            this.getMessageTranslationLanguage(mapped)
+          ]
+        : undefined;
 
       this.enrichWithAppUrls(mapped);
       if (msg.reply_to?.id) {
@@ -3529,6 +3775,18 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
       return mapped;
     });
+  }
+
+  shouldShowMessageTranslation(message: ChatMessage): boolean {
+    const translatedText = String(message.translation?.text || '').trim();
+    if (!translatedText) return false;
+
+    const originalText = String(
+      message.text || message.transcription || '',
+    ).trim();
+    return translatedText.localeCompare(originalText, undefined, {
+      sensitivity: 'accent',
+    }) !== 0;
   }
 
   isEsterMessage(message: ChatMessage): boolean {
@@ -3716,6 +3974,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             .filter(message => !message.id || !existingIds.has(message.id));
           this.messages = [...olderMessages, ...this.messages];
           this.preparePlayableAudio(olderMessages);
+          this.translateVisibleMessages(olderMessages);
           if (!olderMessages.length) {
             this.hasOlderMessages = false;
           }
@@ -3756,6 +4015,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const finalApiText = `${this.getAgentSignature()}\n${text}`;
 
     this.chatInput = '';
+    this.showChatEmojiPicker = false;
     this.stopConversationTyping();
     this.replyingTo = null;
     this.sendingMessage = true;
@@ -3771,7 +4031,17 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.sendingMessage = false;
         if (!res.success) {
-          this.messages.push({ from: 'system', text: '✗ Error al enviar', time: new Date() });
+          this.messages.push({
+            from: 'system',
+            text: `✗ ${getApiErrorMessage(res, 'No se pudo enviar el mensaje')}`,
+            time: new Date(),
+          });
+        } else if (res.translation?.text) {
+          const language = String(res.translation.target_language || '').trim();
+          newMsg.translations = language
+            ? { [language]: res.translation }
+            : {};
+          newMsg.translation = res.translation;
         }
         this.scrollToBottom();
         this.refocusInput();
@@ -3791,6 +4061,28 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.messageInput.nativeElement.focus();
       }
     }, 50);
+  }
+
+  toggleChatEmojiPicker(): void {
+    if (this.sendingMessage) return;
+    this.showChatEmojiPicker = !this.showChatEmojiPicker;
+  }
+
+  addChatEmoji(emoji: string): void {
+    if (!emoji || this.sendingMessage) return;
+
+    const input = this.messageInput?.nativeElement as HTMLTextAreaElement | undefined;
+    const start = input?.selectionStart ?? this.chatInput.length;
+    const end = input?.selectionEnd ?? start;
+    this.chatInput = `${this.chatInput.slice(0, start)}${emoji}${this.chatInput.slice(end)}`;
+    this.onChatInputChange(this.chatInput);
+
+    const caretPosition = start + emoji.length;
+    setTimeout(() => {
+      if (!input) return;
+      input.focus();
+      input.setSelectionRange(caretPosition, caretPosition);
+    });
   }
 
   setReplyTo(msg: ChatMessage): void {
@@ -4895,6 +5187,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
               this.messages = [...retainedMessages, ...newMessages];
               this.preparePlayableAudio(newMessages);
+              this.translateVisibleMessages(newMessages);
               this.lastApiMessageId = newestId;
               if (shouldScrollToBottom) {
                 this.scrollToBottom();

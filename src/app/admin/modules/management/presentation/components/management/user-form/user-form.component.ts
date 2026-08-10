@@ -877,7 +877,14 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.confirmPassword = '';
 
         // Preservar los privilegios personalizados si existen
-        const userPrivileges = user.privileges;
+        // Keep the editable privileges isolated from the @Input object. The
+        // previous reference reused `userInput.privileges`, so checking a box
+        // also mutated the "original" value used by `arePrivilegesEqual`.
+        // Submit then considered the permissions unchanged and removed them
+        // from the PATCH payload.
+        const userPrivileges = Array.isArray(user.privileges)
+            ? JSON.parse(JSON.stringify(user.privileges))
+            : undefined;
 
         // Seleccionar el rol correcto de la lista de roles
         if (user.access_level_id && user.access_level_id._id && this.roles && Array.isArray(this.roles)) {

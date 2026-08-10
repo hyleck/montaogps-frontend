@@ -574,7 +574,7 @@
 }
 
 :host ::ng-deep .processes-data-table .p-datatable-table {
-    min-width: 1080px;
+    min-width: 1260px;
 }
 
 :host ::ng-deep .processes-data-table .p-datatable-thead > tr > th {
@@ -609,6 +609,7 @@
 .column-date { width: 135px; }
 .column-process { width: 235px; }
 .column-target { width: 230px; }
+.column-client { width: 210px; }
 .column-status { width: 190px; }
 .column-people { width: 225px; }
 .column-action { width: 64px; }
@@ -673,6 +674,49 @@
     align-items: center;
     gap: 10px;
     min-width: 0;
+}
+
+.process-client-cell {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+}
+
+.process-client-cell__icon {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.process-client-cell > div:last-child {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.process-client-cell strong,
+.process-client-cell span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.process-client-cell strong {
+    color: var(--process-text);
+    font-size: 0.75rem;
+    font-weight: 750;
+}
+
+.process-client-cell span {
+    color: var(--process-muted);
+    font-size: 0.67rem;
 }
 
 .process-target__icon {
@@ -1352,6 +1396,11 @@
 
 :host-context(.app-dark) ::ng-deep .processes-data-table .p-datatable-tbody > tr:hover > td {
     background: rgba(255, 255, 255, 0.035);
+}
+
+:host-context(.app-dark) .process-client-cell__icon {
+    color: #93c5fd;
+    background: rgba(37, 99, 235, 0.2);
 }
 
 :host-context(.app-dark) ::ng-deep .p-tag.p-tag-success {

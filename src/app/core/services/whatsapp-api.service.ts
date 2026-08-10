@@ -181,6 +181,34 @@ export class WhatsAppApiService {
         return this.http.post(`${this.apiUrl}/conversation-send`, body);
     }
 
+    setConversationTranslationLanguage(
+        conversationId: number,
+        language: string,
+    ): Observable<any> {
+        return this.http.post(
+            `${this.apiUrl}/conversation-translation-language`,
+            {
+                conversation_id: conversationId,
+                language,
+            },
+        );
+    }
+
+    translateConversationMessages(
+        conversationId: number,
+        language: string,
+        messageIds: number[],
+    ): Observable<any> {
+        return this.http.post(
+            `${this.apiUrl}/conversation-translations`,
+            {
+                conversation_id: conversationId,
+                language,
+                message_ids: messageIds,
+            },
+        );
+    }
+
     reactToConversationMessage(conversationId: number, messageId: number, emoji: string): Observable<any> {
         return this.http.post(`${this.apiUrl}/conversation-reaction`, {
             conversation_id: conversationId,
