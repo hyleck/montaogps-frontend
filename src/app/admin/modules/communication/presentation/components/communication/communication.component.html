@@ -586,11 +586,14 @@
             </div>
 
             <!-- WhatsApp Template Banner (Shown if assigned BUT >24h) -->
-            <div *ngIf="isConversationAssignedToMe(selectedConversation) && isOutside24hWindow(selectedConversation)" style="display: flex; justify-content: center; align-items: center; padding: 1.5rem; background: var(--surface-b, #1e293b); border-top: 1px solid var(--surface-border, #334155);">
-                <div style="text-align: center; color: var(--text-color-secondary, #94a3b8); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-                    <div><i class="pi pi-clock" style="font-size: 1.2rem; color: #10b981;"></i></div>
-                    <span style="font-size: 0.95rem;">Han pasado más de 24 horas desde el último mensaje del usuario.</span>
-                    <button pButton label="Iniciar conversación" icon="pi pi-whatsapp" class="p-button-sm p-button-success mt-2" (click)="openTemplateModal()"></button>
+            <div *ngIf="isConversationAssignedToMe(selectedConversation) && isOutside24hWindow(selectedConversation)"
+                class="comm-template-banner">
+                <div class="comm-template-banner__content">
+                    <span class="comm-template-banner__icon"><i class="pi pi-clock"></i></span>
+                    <span class="comm-template-banner__text">Han pasado más de 24 horas desde el último mensaje del usuario.</span>
+                    <button pButton label="Iniciar conversación" icon="pi pi-whatsapp"
+                        class="p-button-sm p-button-success comm-template-banner__action"
+                        (click)="openTemplateModal()"></button>
                 </div>
             </div>
 
