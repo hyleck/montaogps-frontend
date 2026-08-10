@@ -3557,8 +3557,9 @@
 .comm-message__translation-label {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
-    margin-bottom: 0.2rem;
+    justify-content: space-between;
+    gap: 0.55rem;
+    margin-bottom: 0.35rem;
     color: #93c5fd;
     font-size: 0.62rem;
     font-weight: 850;
@@ -3566,13 +3567,36 @@
     text-transform: uppercase;
 }
 
+.comm-message__translation-language {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
 .comm-message__translation-label i {
     font-size: 0.65rem;
 }
 
+.comm-message__translation-agent {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    min-width: 0;
+    padding: 0.18rem 0.42rem;
+    border: 1px solid rgba(147, 197, 253, 0.2);
+    border-radius: 999px;
+    color: rgba(226, 232, 240, 0.68);
+    background: rgba(148, 163, 184, 0.08);
+    font-size: 0.6rem;
+    font-weight: 650;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+}
+
 .comm-message__translation-text {
-    color: rgba(226, 232, 240, 0.72);
-    font-size: 0.76rem;
+    color: rgba(241, 245, 249, 0.82);
+    font-size: 0.8rem;
     line-height: 1.42;
     white-space: pre-wrap;
 }
@@ -5204,6 +5228,11 @@
 :host-context(.app-light) .comm-message__text { color: #000000; }
 :host-context(.app-light) .comm-message__translation { border-top-color: #dbe3ee; }
 :host-context(.app-light) .comm-message__translation-label { color: #1d4ed8; }
+:host-context(.app-light) .comm-message__translation-agent {
+    border-color: #d6e3f5;
+    color: #64748b;
+    background: #f8fafc;
+}
 :host-context(.app-light) .comm-message__translation-text { color: #475569; }
 :host-context(.app-light) .comm-unsupported-message {
     border-color: #fcd34d;

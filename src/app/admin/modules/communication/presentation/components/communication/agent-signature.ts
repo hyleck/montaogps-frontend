@@ -22,6 +22,26 @@ export function compactAgentSignatureLabel(signature: string): string {
   return department ? `${firstName} - ${department}` : firstName;
 }
 
+export interface AgentSignedMessage {
+  signature: string;
+  body: string;
+  signed: boolean;
+}
+
+export function parseAgentSignedMessage(message: string): AgentSignedMessage {
+  const normalized = String(message || '').trim();
+  const match = normalized.match(/^>\s*([^\r\n]+)(?:\r?\n([\s\S]*))?$/);
+  if (!match) {
+    return { signature: '', body: normalized, signed: false };
+  }
+
+  return {
+    signature: compactAgentSignatureLabel(match[1]),
+    body: String(match[2] || '').trim(),
+    signed: true,
+  };
+}
+
 function getAgentFirstName(name: string): string {
   return String(name || '').trim().split(/\s+/)[0] || 'Agente';
 }

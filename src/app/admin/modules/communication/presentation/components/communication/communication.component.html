@@ -427,10 +427,17 @@
                         </div>
                         <div *ngIf="shouldShowMessageTranslation(msg)" class="comm-message__translation">
                             <div class="comm-message__translation-label">
-                                <i class="pi pi-globe"></i>
-                                <span>{{ msg.translation?.target_language_name || selectedConversation.translation_language_name }}</span>
+                                <span class="comm-message__translation-language">
+                                    <i class="pi pi-globe"></i>
+                                    {{ msg.translation?.target_language_name || selectedConversation.translation_language_name }}
+                                </span>
+                                <span *ngIf="getMessageTranslationSignature(msg) as signature"
+                                    class="comm-message__translation-agent">
+                                    <i class="pi pi-user"></i>
+                                    {{ signature }}
+                                </span>
                             </div>
-                            <div class="comm-message__translation-text">{{ msg.translation?.text }}</div>
+                            <div class="comm-message__translation-text">{{ getMessageTranslationText(msg) }}</div>
                         </div>
                         <div *ngIf="msg.safeRealtimeUrl" class="comm-message__realtime-trigger" (click)="openRealtimeModal(msg.safeRealtimeUrl)">
                             <div class="comm-message__rt-icon comm-card-icon--rt">

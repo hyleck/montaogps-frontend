@@ -25,7 +25,7 @@ import { environment } from '../../../../../../../environments/environment';
 import { catchError, finalize, forkJoin, of, Subscription, timeout, timer } from 'rxjs';
 import {
   buildAgentSignatureLabel,
-  compactAgentSignatureLabel,
+  parseAgentSignedMessage,
 } from './agent-signature';
 import { resolveConversationMessageTranslationLanguage } from './conversation-translation';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
@@ -3425,19 +3425,16 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   private parseMessageContent(text: string): string {
     if (!text) return '';
-    
-    // Procesar Markdown de WhatsApp (negrita con asteriscos)
-    let parsedText = text.replace(/\*(.*?)\*/g, '<b>$1</b>');
 
-    // Match signature that might or might not have a body
-    const match = parsedText.match(/^>\s*([^\n]+)(?:\n([\s\S]*))?$/);
-    if (match) {
-        const sig = compactAgentSignatureLabel(match[1]);
-        const body = (match[2] || '').trim().replace(/\n/g, '<br/>');
-        return `<div class="comm-msg-sig"><i class="pi pi-user comm-msg-sig-icon"></i> <span>${sig}</span></div>` +
-               (body ? `<div class="comm-msg-body">${body}</div>` : '');
+    const signedMessage = parseAgentSignedMessage(text);
+    const formattedBody = signedMessage.body
+      .replace(/\*(.*?)\*/g, '<b>$1</b>')
+      .replace(/\n/g, '<br/>');
+    if (signedMessage.signed) {
+        return `<div class="comm-msg-sig"><i class="pi pi-user comm-msg-sig-icon"></i> <span>${signedMessage.signature}</span></div>` +
+               (formattedBody ? `<div class="comm-msg-body">${formattedBody}</div>` : '');
     }
-    return parsedText.trim().replace(/\n/g, '<br/>');
+    return formattedBody;
   }
 
   getCleanPreview(text: string | undefined): string {
@@ -3778,15 +3775,27 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   shouldShowMessageTranslation(message: ChatMessage): boolean {
-    const translatedText = String(message.translation?.text || '').trim();
+    const translatedText = this.getMessageTranslationText(message);
     if (!translatedText) return false;
 
-    const originalText = String(
-      message.text || message.transcription || '',
-    ).trim();
+    const originalText = parseAgentSignedMessage(
+      String(message.text || message.transcription || ''),
+    ).body;
     return translatedText.localeCompare(originalText, undefined, {
       sensitivity: 'accent',
     }) !== 0;
+  }
+
+  getMessageTranslationText(message: ChatMessage): string {
+    return parseAgentSignedMessage(
+      String(message.translation?.text || ''),
+    ).body;
+  }
+
+  getMessageTranslationSignature(message: ChatMessage): string {
+    return parseAgentSignedMessage(
+      String(message.translation?.text || ''),
+    ).signature;
   }
 
   isEsterMessage(message: ChatMessage): boolean {
