@@ -154,6 +154,25 @@
             </div>
 
             <div class="filter-field">
+                <label>Cliente</label>
+                <p-autoComplete [(ngModel)]="selectedClient" [suggestions]="clientOptions"
+                    (completeMethod)="searchClients($event)" (onSelect)="onClientSelected()"
+                    (onClear)="clearClientFilter()" optionLabel="label" [forceSelection]="true"
+                    [dropdown]="true" [minLength]="0" appendTo="body"
+                    placeholder="Todos los clientes" styleClass="process-client-autocomplete"
+                    inputStyleClass="process-client-autocomplete__input">
+                    <ng-template let-client pTemplate="item">
+                        <div class="process-client-option">
+                            <strong>{{ client.label }}</strong>
+                            <small *ngIf="client.email || client.phone">
+                                {{ client.email || client.phone }}
+                            </small>
+                        </div>
+                    </ng-template>
+                </p-autoComplete>
+            </div>
+
+            <div class="filter-field">
                 <label>Desde</label>
                 <p-calendar [(ngModel)]="dateFrom" dateFormat="dd/mm/yy"
                     placeholder="Fecha inicial" [showIcon]="true" [showTime]="true"

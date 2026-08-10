@@ -443,11 +443,15 @@
 
 :host ::ng-deep .filter-field .p-dropdown,
 :host ::ng-deep .filter-field .p-calendar,
+:host ::ng-deep .filter-field .p-autocomplete,
+:host ::ng-deep .filter-field .p-autocomplete .p-inputtext,
 :host ::ng-deep .filter-field .p-calendar .p-inputtext {
     width: 100%;
 }
 
 :host ::ng-deep .filter-field .p-dropdown,
+:host ::ng-deep .filter-field .p-autocomplete .p-inputtext,
+:host ::ng-deep .filter-field .p-autocomplete-dropdown,
 :host ::ng-deep .filter-field .p-calendar .p-inputtext,
 :host ::ng-deep .filter-field .p-datepicker-trigger {
     min-height: 43px;
@@ -457,6 +461,34 @@
 
 :host ::ng-deep .filter-field .p-dropdown {
     border-radius: 11px;
+}
+
+:host ::ng-deep .filter-field .p-autocomplete .p-inputtext {
+    border-radius: 11px 0 0 11px;
+}
+
+:host ::ng-deep .filter-field .p-autocomplete-dropdown {
+    border-radius: 0 11px 11px 0;
+    color: var(--process-muted);
+}
+
+.process-client-option {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.process-client-option strong,
+.process-client-option small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.process-client-option small {
+    color: var(--process-muted);
+    font-size: 0.75rem;
 }
 
 :host ::ng-deep .filter-field .p-calendar .p-inputtext {
@@ -1302,6 +1334,8 @@
 
 :host-context(.app-dark) .process-search input,
 :host-context(.app-dark) ::ng-deep .filter-field .p-dropdown,
+:host-context(.app-dark) ::ng-deep .filter-field .p-autocomplete .p-inputtext,
+:host-context(.app-dark) ::ng-deep .filter-field .p-autocomplete-dropdown,
 :host-context(.app-dark) ::ng-deep .filter-field .p-calendar .p-inputtext,
 :host-context(.app-dark) ::ng-deep .filter-field .p-datepicker-trigger,
 :host-context(.app-dark) ::ng-deep .verification-status-dropdown .p-dropdown {

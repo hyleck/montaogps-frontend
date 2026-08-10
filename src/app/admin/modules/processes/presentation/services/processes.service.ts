@@ -47,6 +47,15 @@ export interface PaginatedProcessResponse {
   lastPage: number;
 }
 
+export interface ProcessClientOption {
+  _id?: string;
+  id?: string;
+  name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+}
+
 export interface CreatorStatsItem {
   _id?: string;
   creatorName?: string;
@@ -112,6 +121,7 @@ export class ProcessesService {
       type?: number;
       creator?: string;
       mechanic?: string;
+      client?: string;
       dateFrom?: string;
       dateTo?: string;
       search?: string;
@@ -122,6 +132,7 @@ export class ProcessesService {
     if (filters?.type !== undefined && filters.type !== null) url += `&type=${filters.type}`;
     if (filters?.creator) url += `&creator=${encodeURIComponent(filters.creator)}`;
     if (filters?.mechanic) url += `&mechanic=${encodeURIComponent(filters.mechanic)}`;
+    if (filters?.client) url += `&client=${encodeURIComponent(filters.client)}`;
     if (filters?.dateFrom) url += `&dateFrom=${encodeURIComponent(filters.dateFrom)}`;
     if (filters?.dateTo) url += `&dateTo=${encodeURIComponent(filters.dateTo)}`;
     if (filters?.search) url += `&search=${encodeURIComponent(filters.search)}`;
@@ -138,6 +149,14 @@ export class ProcessesService {
       status,
       ...(note?.trim() ? { note: note.trim() } : {}),
     });
+  }
+
+  searchClients(search = '', limit = 50): Observable<ProcessClientOption[]> {
+    const params = new URLSearchParams({
+      search: search.trim(),
+      limit: String(limit),
+    });
+    return this.http.get<ProcessClientOption[]>(`${this.apiUrl}/clients?${params.toString()}`);
   }
 
   getStats(): Observable<any> {

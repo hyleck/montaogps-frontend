@@ -36,6 +36,7 @@ export class ProcessesComponent implements OnInit {
   selectedType: number | null = null;
   selectedCreator: string | null = null;
   selectedMechanic: string | null = null;
+  selectedClient: { label: string; value: string; email?: string; phone?: string } | null = null;
   selectedVerificationStatus: ProcessVerificationStatus | null = null;
   dateFrom: Date | null = this.getCurrentMonthRange().from;
   dateTo: Date | null = this.getCurrentMonthRange().to;
@@ -67,6 +68,7 @@ export class ProcessesComponent implements OnInit {
   // Employee options for filter
   employeeOptions: { label: string; value: string }[] = [];
   mechanicOptions: { label: string; value: string }[] = [];
+  clientOptions: Array<{ label: string; value: string; email?: string; phone?: string }> = [];
 
   // Brand/Model/Color name maps
   brandsMap: { [id: string]: string } = {};
@@ -98,6 +100,7 @@ export class ProcessesComponent implements OnInit {
     if (this.selectedType !== null && this.selectedType !== undefined) filters.type = this.selectedType;
     if (this.selectedCreator) filters.creator = this.selectedCreator;
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
+    if (this.selectedClient?.value) filters.client = this.selectedClient.value;
     if (this.selectedVerificationStatus) filters.verificationStatus = this.selectedVerificationStatus;
     if (this.dateFrom) filters.dateFrom = this.dateFrom.toISOString();
     if (this.dateTo) filters.dateTo = this.dateTo.toISOString();
@@ -138,6 +141,8 @@ export class ProcessesComponent implements OnInit {
     this.selectedType = null;
     this.selectedCreator = null;
     this.selectedMechanic = null;
+    this.selectedClient = null;
+    this.clientOptions = [];
     this.selectedVerificationStatus = null;
     const currentMonthRange = this.getCurrentMonthRange();
     this.dateFrom = currentMonthRange.from;
@@ -157,6 +162,7 @@ export class ProcessesComponent implements OnInit {
     if (this.selectedType !== null && this.selectedType !== undefined) filters.type = this.selectedType;
     if (this.selectedCreator) filters.creator = this.selectedCreator;
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
+    if (this.selectedClient?.value) filters.client = this.selectedClient.value;
     if (this.selectedVerificationStatus) filters.verificationStatus = this.selectedVerificationStatus;
     if (this.dateFrom) filters.dateFrom = this.dateFrom.toISOString();
     if (this.dateTo) filters.dateTo = this.dateTo.toISOString();
@@ -343,6 +349,7 @@ export class ProcessesComponent implements OnInit {
       this.selectedType,
       this.selectedCreator,
       this.selectedMechanic,
+      this.selectedClient?.value,
       this.selectedVerificationStatus,
     ].filter(value => value !== null && value !== undefined && value !== '').length;
   }
@@ -537,6 +544,41 @@ export class ProcessesComponent implements OnInit {
       },
       error: () => {}
     });
+  }
+
+  searchClients(event: { query?: string }): void {
+    const query = String(event?.query || '').trim();
+    this.processesService.searchClients(query, 50).subscribe({
+      next: (clients) => {
+        this.clientOptions = (clients || [])
+          .map((client: any) => {
+            const label = `${client.name || ''} ${client.last_name || ''}`.trim()
+              || client.email
+              || client.phone
+              || 'Cliente sin nombre';
+            const value = String(client._id || client.email || client.phone || '').trim();
+            return {
+              label,
+              value,
+              email: client.email,
+              phone: client.phone,
+            };
+          })
+          .filter(client => Boolean(client.value));
+      },
+      error: () => {
+        this.clientOptions = [];
+      },
+    });
+  }
+
+  onClientSelected(): void {
+    this.applyFilters();
+  }
+
+  clearClientFilter(): void {
+    this.selectedClient = null;
+    this.applyFilters();
   }
 
   private async loadBrandsAndModels(): Promise<void> {
