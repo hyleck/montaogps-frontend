@@ -5155,8 +5155,10 @@ html.app-dark .sol-process-activation-disclosure__copy small {
 }
 
 .sol-kanban-card--request-locked {
-    border-color: rgba(245, 158, 11, 0.58) !important;
-    box-shadow: inset 3px 0 0 #f59e0b;
+    border-color: rgba(63, 63, 70, 0.62) !important;
+    background: color-mix(in srgb, var(--managementCardBackground) 88%, #d4d4d8) !important;
+    box-shadow: inset 3px 0 0 #3f3f46;
+    filter: grayscale(1);
     cursor: default;
 }
 
@@ -5169,7 +5171,13 @@ html.app-dark .sol-process-activation-disclosure__copy small {
 }
 
 .sol-request-lock-action--unlock {
-    background: rgba(245, 158, 11, 0.13) !important;
+    background: rgba(63, 63, 70, 0.13) !important;
+}
+
+.sol-kanban-card--request-locked .sol-request-lock-badge {
+    border-color: rgba(63, 63, 70, 0.38);
+    background: rgba(63, 63, 70, 0.12);
+    color: #3f3f46;
 }
 
 .sol-request-lock-form {
@@ -5354,6 +5362,18 @@ html.app-dark .sol-request-lock-badge {
     border-color: rgba(251, 191, 36, 0.36);
     background: rgba(245, 158, 11, 0.16);
     color: #fcd34d;
+}
+
+html.app-dark .sol-kanban-card--request-locked {
+    border-color: rgba(212, 212, 216, 0.42) !important;
+    background: color-mix(in srgb, var(--managementCardBackground) 90%, #09090b) !important;
+    box-shadow: inset 3px 0 0 #a1a1aa;
+}
+
+html.app-dark .sol-kanban-card--request-locked .sol-request-lock-badge {
+    border-color: rgba(212, 212, 216, 0.34);
+    background: rgba(212, 212, 216, 0.1);
+    color: #e4e4e7;
 }
 
 html.app-dark .sol-request-unlocked-badge {
