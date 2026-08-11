@@ -319,11 +319,11 @@ export class TargetsService {
   }
 
   async getTargetsByUserId(userId: string, parentId?: string, offset: number = 0, limit: number = 30, status?: 'online' | 'offline' | 'all', tag?: string, simCompany?: string): Promise<TargetsResponse> {
-    let url = `${this.apiUrl}?user_id=${userId}`;
-
-    if (parentId) {
-      url += `&parent=${parentId}`;
-    }
+    // El backend filtra por `parent`. Antes se enviaba el usuario seleccionado
+    // como `user_id` (parámetro que el endpoint no consume) y se consultaban
+    // accidentalmente los objetivos del usuario autenticado.
+    const ownerId = String(userId || parentId || '');
+    let url = `${this.apiUrl}?parent=${encodeURIComponent(ownerId)}`;
 
     url += `&offset=${offset}&limit=${limit}`;
 

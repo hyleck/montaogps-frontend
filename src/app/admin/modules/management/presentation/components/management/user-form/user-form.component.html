@@ -210,9 +210,9 @@
                                 </section>
 
                                 <div class="user-form__actions">
-                                    <button type="submit">
-                                        <i class="pi pi-save"></i>
-                                        {{ translations.save | translate }}
+                                    <button type="submit" [disabled]="isSaving">
+                                        <i class="pi" [ngClass]="isSaving ? 'pi-spin pi-spinner' : 'pi-save'"></i>
+                                        {{ isSaving ? 'Guardando...' : (translations.save | translate) }}
                                     </button>
                                 </div>
                             </form>
@@ -532,9 +532,9 @@
                                         <i class="pi pi-list"></i>
                                         Sesiones
                                     </button>
-                                    <button type="button" (click)="onSubmit()" class="save-button">
-                                        <i class="pi pi-save"></i>
-                                        {{ translations.save | translate }}
+                                    <button type="button" (click)="onSubmit()" class="save-button" [disabled]="isSaving">
+                                        <i class="pi" [ngClass]="isSaving ? 'pi-spin pi-spinner' : 'pi-save'"></i>
+                                        {{ isSaving ? 'Guardando...' : (translations.save | translate) }}
                                     </button>
                                 </div>
                             </div>
@@ -665,9 +665,10 @@
                                             <input [(ngModel)]="subclienteParentEmail"
                                                 name="subclienteEmail" id="subclienteEmail"
                                                 type="email"
+                                                readonly
                                                 placeholder="Ej: cliente@empresa.com"
                                                 class="settings-dropdown">
-                                            <small class="settings-description">Correo electrónico del cliente principal al que pertenece este subcliente. Se llena automáticamente si existe un usuario padre.</small>
+                                            <small class="settings-description">Cliente principal actual. Para cambiarlo, utilice la opción de transferir cuenta.</small>
                                         </div>
 
                                         <div class="settings-item">
@@ -763,9 +764,9 @@
                                 <i class="pi pi-arrow-left"></i>
                                 {{ 'management.userForm.backToPersonalInfo' | translate }}
                             </button>
-                            <button type="button" (click)="onSubmit()" class="save-button">
-                                <i class="pi pi-save"></i>
-                                {{ translations.save | translate }}
+                            <button type="button" (click)="onSubmit()" class="save-button" [disabled]="isSaving">
+                                <i class="pi" [ngClass]="isSaving ? 'pi-spin pi-spinner' : 'pi-save'"></i>
+                                {{ isSaving ? 'Guardando...' : (translations.save | translate) }}
                             </button>
                         </div>
                     </p-tabPanel>

@@ -184,6 +184,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     staticLongitudeInput: number | null = null;
     loadingStaticLocation: boolean = false;
     savingStaticLocation: boolean = false;
+    isSaving: boolean = false;
     resolvingStaticLocationLink: boolean = false;
     showStaticLocationMapModal: boolean = false;
     staticLocationPreviewMap: any;
@@ -204,6 +205,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     // Control programático para precargar municipio al cambiar provincia desde backend
     private pendingMunicipality: string = '';
     private isProgrammaticProvinceSetting: boolean = false;
+    private municipalitiesRequestId: number = 0;
+    private sectorsRequestId: number = 0;
 
     confirmPassword: string = '';
 
@@ -745,6 +748,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     private resetForm() {
+        this.isSaving = false;
         this.user = this.getEmptyUser();
         this.selectedTheme = 'light';
         this.selectedLanguage = 'es';
@@ -836,20 +840,28 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
         // Cargar provincia y municipio para todos los usuarios
         this.selectedProvince = backendProvince;
+        this.selectedMunicipality = backendMunicipality;
         this.pendingMunicipality = backendMunicipality;
         
         // Execute cascading load directly without fragile setTimeout delays
         if (this.selectedProvince) {
             this.isProgrammaticProvinceSetting = true;
+            const municipalitiesRequestId = ++this.municipalitiesRequestId;
             const paramProv = isNaN(Number(this.selectedProvince)) ? this.selectedProvince : this.selectedProvince;
             this.brandsService.getMunicipalities(paramProv).then((municipalities: any) => {
+                if (municipalitiesRequestId !== this.municipalitiesRequestId || this.selectedProvince !== backendProvince) return;
                 this.availableMunicipalities = municipalities.map((m: any) => ({ label: m.name, value: String(m.code) }));
                 
                 if (this.pendingMunicipality) {
                     this.selectedMunicipality = this.pendingMunicipality;
                     const paramMun = isNaN(Number(this.selectedMunicipality)) ? this.selectedMunicipality : this.selectedMunicipality;
-                    
+                    const sectorsRequestId = ++this.sectorsRequestId;
                     this.brandsService.getSectors(paramMun, paramProv).then((sectors: any) => {
+                        if (
+                            sectorsRequestId !== this.sectorsRequestId ||
+                            this.selectedProvince !== backendProvince ||
+                            this.selectedMunicipality !== backendMunicipality
+                        ) return;
                         this.availableSectors = sectors.map((s: any) => ({ label: s.name, value: String(s.name) }));
                         this.user.sector = (user as any).sector || '';
                         this.isProgrammaticProvinceSetting = false;
@@ -1295,6 +1307,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     onSubmit() {
+        if (this.isSaving) return;
+
         // Validar privilegios antes de proceder
         if (this.userInput && !this.canUpdateUsers()) {
             this.messageService.add({
@@ -1391,7 +1405,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             company_type_id: this.selectedCompanyType,
             // Enviar también en nivel raíz por si el backend lo espera ahí
             profile_type: this.selectedProfileType,
-            department_id: this.user.department_id || this.userInput?.department_id || undefined,
+            department_id: this.user.department_id || undefined,
             parent_id: parentId,
             // Campos de ubicación para todos y servicios para técnicos
             province: this.selectedProvince || undefined,
@@ -1401,9 +1415,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             static_location_address: this.user.static_location_address || undefined,
             static_latitude: this.toOptionalNumber(this.user.static_latitude),
             static_longitude: this.toOptionalNumber(this.user.static_longitude),
-            services: this.selectedAffiliationType?.startsWith('tecnico') ? (this.technicianServices || []) : [],
-            // Correo del cliente principal para subclientes
-            subclient_parent_email: this.selectedAffiliationType === 'subcliente' ? (this.subclienteParentEmail || undefined) : undefined
+            services: this.selectedAffiliationType?.startsWith('tecnico') ? (this.technicianServices || []) : []
         };
         delete (userToSubmit as any).latitude;
         delete (userToSubmit as any).longitude;
@@ -1425,7 +1437,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             // Actualizar usuario existente
             const updateUserDto: any = {
                 ...normalizedUserPayload,
-                password: normalizedUserPayload.password || undefined
+                password: normalizedUserPayload.password || undefined,
+                clear_fields: this.getExplicitlyClearedFields()
             };
 
             // Las cuentas antiguas pueden tener identificadores internos como
@@ -1441,6 +1454,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             if (!updateUserDto.password) {
                 delete updateUserDto.password;
             }
+            if (!updateUserDto.clear_fields.length) {
+                delete updateUserDto.clear_fields;
+            }
 
             const originalRoleId = String(this.userInput.access_level_id?._id || '');
             const selectedRoleId = String(this.user.role?._id || '');
@@ -1454,6 +1470,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 delete updateUserDto.privileges;
             }
 
+            this.isSaving = true;
             this.userService.update(this.userInput._id, updateUserDto)
                 .pipe(takeUntil(this.destroy$))
                 .subscribe({
@@ -1468,6 +1485,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                         this.resetForm();
                     },
                     error: (error) => {
+                        this.isSaving = false;
                         this.messageService.add({
                             severity: 'error',
                             summary: this.translate.instant('management.userForm.error'),
@@ -1486,6 +1504,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 ...normalizedUserPayload,
                 password: normalizedUserPayload.password || ''
             };
+            this.isSaving = true;
             this.userService.create(createUserDto)
                 .pipe(takeUntil(this.destroy$))
                 .subscribe({
@@ -1500,6 +1519,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                         this.resetForm();
                     },
                     error: (error) => {
+                        this.isSaving = false;
                         this.messageService.add({
                             severity: 'error',
                             summary: this.translate.instant('management.userForm.error'),
@@ -1673,6 +1693,27 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             .sort((left: any, right: any) => left.module.localeCompare(right.module));
 
         return JSON.stringify(normalize(current)) === JSON.stringify(normalize(original));
+    }
+
+    private getExplicitlyClearedFields(): string[] {
+        if (!this.userInput) return [];
+
+        const original: any = this.userInput;
+        const values: Record<string, { current: any; previous: any }> = {
+            address: { current: this.user.address, previous: original.address },
+            birth: { current: this.user.birth, previous: original.birth },
+            photo: { current: this.user.photo, previous: original.photo },
+            phone2: { current: this.user.phone2, previous: original.phone2 },
+            province: { current: this.selectedProvince, previous: original.province },
+            municipality: { current: this.selectedMunicipality, previous: original.municipality },
+            sector: { current: this.user.sector, previous: original.sector },
+            department_id: { current: this.user.department_id, previous: original.department_id },
+            company_type_id: { current: this.selectedCompanyType, previous: original.company_type_id }
+        };
+
+        return Object.entries(values)
+            .filter(([, value]) => this.sanitizeString(value.previous) !== '' && this.sanitizeString(value.current) === '')
+            .map(([field]) => field);
     }
 
     private normalizeUserPayload(payload: any): any {
@@ -2087,6 +2128,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     onProvinceChange() {
+        const requestId = ++this.municipalitiesRequestId;
+        ++this.sectorsRequestId;
         if (!this.selectedProvince) {
             this.availableMunicipalities = [];
             this.availableSectors = [];
@@ -2096,7 +2139,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
 
         const paramProv = isNaN(Number(this.selectedProvince)) ? this.selectedProvince : this.selectedProvince;
+        const selectedProvince = this.selectedProvince;
         this.brandsService.getMunicipalities(paramProv).then((data: any) => {
+            if (requestId !== this.municipalitiesRequestId || this.selectedProvince !== selectedProvince) return;
             this.availableMunicipalities = data.map((m: any) => ({ label: m.name, value: String(m.code) }));
             if (!this.isProgrammaticProvinceSetting) {
                 this.selectedMunicipality = '';
@@ -2109,6 +2154,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     onMunicipalityChange() {
+        const requestId = ++this.sectorsRequestId;
         if (!this.selectedMunicipality) {
             this.availableSectors = [];
             this.user.sector = '';
@@ -2117,8 +2163,14 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
         const paramProv = isNaN(Number(this.selectedProvince)) ? this.selectedProvince : this.selectedProvince;
         const paramMun = isNaN(Number(this.selectedMunicipality)) ? this.selectedMunicipality : this.selectedMunicipality;
-        
+        const selectedProvince = this.selectedProvince;
+        const selectedMunicipality = this.selectedMunicipality;
         this.brandsService.getSectors(paramMun, paramProv).then((data: any) => {
+            if (
+                requestId !== this.sectorsRequestId ||
+                this.selectedProvince !== selectedProvince ||
+                this.selectedMunicipality !== selectedMunicipality
+            ) return;
             this.availableSectors = data.map((s: any) => ({ label: s.name, value: String(s.name) }));
             if (!this.isProgrammaticProvinceSetting) {
                 this.focusMapOnSelection('municipality');
