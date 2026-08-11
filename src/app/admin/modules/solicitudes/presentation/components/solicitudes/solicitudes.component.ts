@@ -3934,6 +3934,11 @@ async initLocationMap(): Promise<void> {
     getInstallationFinalDeviceStatusLabel(installation?: InstallationDetail | null): string {
         const state = this.getInstallationFinalDeviceState(installation);
         if (state === 'omitted') return 'Omitido';
+        if (this.isMtagInstallation(installation)) {
+            if (state === 'online') return 'Localizado al finalizar';
+            if (state === 'offline') return 'No localizado al finalizar';
+            return '';
+        }
         if (state === 'online') return 'En línea al finalizar';
         if (state === 'offline') {
             const rawStatus = String(installation?.final_device_status || '').trim().toLowerCase();
@@ -3951,9 +3956,18 @@ async initLocationMap(): Promise<void> {
     getInstallationFinalDeviceStatusIcon(installation?: InstallationDetail | null): string {
         const state = this.getInstallationFinalDeviceState(installation);
         if (state === 'omitted') return 'pi pi-minus-circle';
+        if (this.isMtagInstallation(installation)) return 'pi pi-map-marker';
         if (state === 'online') return 'pi pi-wifi';
         if (state === 'offline') return 'pi pi-ban';
         return 'pi pi-question-circle';
+    }
+
+    private isMtagInstallation(installation?: InstallationDetail | null): boolean {
+        const deviceType = String(installation?.device_type || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[-\s]/g, '_');
+        return deviceType === 'mtag_a' || deviceType === 'mtag_p';
     }
 
     getTechnicianResponseLabel(value?: string): string {

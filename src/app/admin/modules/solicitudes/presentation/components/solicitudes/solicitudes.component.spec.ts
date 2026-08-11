@@ -518,6 +518,18 @@ describe('SolicitudesComponent scheduled date editing', () => {
             final_device_status_at: checkedAt,
         })).toBe('No localizado al finalizar');
         expect(component.getInstallationFinalDeviceStatusLabel({
+            device_type: 'mtag_p',
+            final_device_status: 'Localizado',
+            final_device_online: true,
+            final_device_status_at: checkedAt,
+        })).toBe('Localizado al finalizar');
+        expect(component.getInstallationFinalDeviceStatusLabel({
+            device_type: 'mtag_a',
+            final_device_status: 'offline',
+            final_device_online: false,
+            final_device_status_at: checkedAt,
+        })).toBe('No localizado al finalizar');
+        expect(component.getInstallationFinalDeviceStatusLabel({
             final_device_online: false,
             final_device_status_at: checkedAt,
         })).toBe('');
