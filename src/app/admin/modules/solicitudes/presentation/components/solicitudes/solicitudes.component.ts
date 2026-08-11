@@ -7901,6 +7901,58 @@ async initLocationMap(): Promise<void> {
         return `${formattedDate} a las ${formattedTime}`;
     }
 
+    getSolicitudCreatedAtDisplay(
+        value?: string | Date,
+        now: Date = new Date(),
+    ): string {
+        if (!value) return '';
+
+        const createdAt = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+        if (Number.isNaN(createdAt.getTime())) return '';
+
+        const pad = (part: number) => String(part).padStart(2, '0');
+        const time = this.formatTimeToTwelveHours(
+            `${pad(createdAt.getHours())}:${pad(createdAt.getMinutes())}`,
+        );
+        const diffMs = now.getTime() - createdAt.getTime();
+        const diffMinutes = Math.floor(diffMs / 60000);
+
+        if (diffMinutes >= 0 && diffMinutes < 1) {
+            return `ahora · ${time}`;
+        }
+        if (diffMinutes === 1) {
+            return `hace 1 minuto · ${time}`;
+        }
+        if (diffMinutes > 1 && diffMinutes < 60) {
+            return `hace ${diffMinutes} minutos · ${time}`;
+        }
+
+        const isSameDay = createdAt.getFullYear() === now.getFullYear()
+            && createdAt.getMonth() === now.getMonth()
+            && createdAt.getDate() === now.getDate();
+        if (isSameDay) {
+            return `hoy a las ${time}`;
+        }
+
+        const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        const isYesterday = createdAt.getFullYear() === yesterday.getFullYear()
+            && createdAt.getMonth() === yesterday.getMonth()
+            && createdAt.getDate() === yesterday.getDate();
+        if (isYesterday) {
+            return `ayer a las ${time}`;
+        }
+
+        const months = [
+            'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+            'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+        ];
+        const year = createdAt.getFullYear() === now.getFullYear()
+            ? ''
+            : ` de ${createdAt.getFullYear()}`;
+
+        return `el ${createdAt.getDate()} de ${months[createdAt.getMonth()]}${year} a las ${time}`;
+    }
+
     getScheduledDateDisplay(sol: Solicitud): string {
         const rawDate = sol.scheduled_date || sol.installations?.[0]?.scheduled_date;
         if (!rawDate) return '';

@@ -2997,6 +2997,21 @@ html.app-dark .sol-technician-schedule-status--error {
     margin-top: 0.15rem;
 }
 
+.sol-created-at {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 0;
+    color: var(--text-color-secondary);
+    font-size: 0.75rem;
+    line-height: 1.25;
+}
+
+.sol-created-at i {
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+}
+
 .sol-tech-row {
     display: flex;
     width: 100%;

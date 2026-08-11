@@ -995,6 +995,32 @@ describe('SolicitudesComponent scheduled date editing', () => {
             .toBe('30/07/2026 a las 9:10 a. m.');
     });
 
+    it('describes the request creation time in natural language with the exact hour', () => {
+        const { component } = createComponent();
+        const now = new Date(2026, 7, 11, 14, 35);
+
+        expect(component.getSolicitudCreatedAtDisplay(
+            new Date(2026, 7, 11, 14, 15),
+            now,
+        )).toBe('hace 20 minutos · 2:15 p. m.');
+        expect(component.getSolicitudCreatedAtDisplay(
+            new Date(2026, 7, 11, 9, 5),
+            now,
+        )).toBe('hoy a las 9:05 a. m.');
+        expect(component.getSolicitudCreatedAtDisplay(
+            new Date(2026, 7, 10, 23, 40),
+            now,
+        )).toBe('ayer a las 11:40 p. m.');
+        expect(component.getSolicitudCreatedAtDisplay(
+            new Date(2026, 7, 8, 7, 5),
+            now,
+        )).toBe('el 8 de agosto a las 7:05 a. m.');
+        expect(component.getSolicitudCreatedAtDisplay(
+            new Date(2025, 11, 31, 23, 59),
+            now,
+        )).toBe('el 31 de diciembre de 2025 a las 11:59 p. m.');
+    });
+
     it('shows the scheduled time in twelve-hour format on request cards', () => {
         const { component } = createComponent();
 

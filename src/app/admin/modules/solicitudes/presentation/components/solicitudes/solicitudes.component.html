@@ -535,7 +535,10 @@
                     </button>
                 </div>
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
-                    <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
+                    <span *ngIf="sol.createdAt" class="sol-created-at">
+                        <i class="pi pi-clock"></i>
+                        Creada {{ getSolicitudCreatedAtDisplay(sol.createdAt) }}
+                    </span>
                     <div class="sol-kanban-actions">
                         <button pButton pRipple
                             [icon]="isSolicitudLocked(sol) ? 'pi pi-lock-open' : 'pi pi-lock'"
@@ -658,7 +661,10 @@
                     </button>
                 </div>
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
-                    <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
+                    <span *ngIf="sol.createdAt" class="sol-created-at">
+                        <i class="pi pi-clock"></i>
+                        Creada {{ getSolicitudCreatedAtDisplay(sol.createdAt) }}
+                    </span>
                     <div class="sol-kanban-actions">
                         <button pButton pRipple
                             [icon]="isSolicitudLocked(sol) ? 'pi pi-lock-open' : 'pi pi-lock'"
@@ -772,7 +778,10 @@
                     </button>
                 </div>
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
-                    <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
+                    <span *ngIf="sol.createdAt" class="sol-created-at">
+                        <i class="pi pi-clock"></i>
+                        Creada {{ getSolicitudCreatedAtDisplay(sol.createdAt) }}
+                    </span>
                     <div class="sol-kanban-actions">
                         <button pButton pRipple
                             [icon]="isSolicitudLocked(sol) ? 'pi pi-lock-open' : 'pi pi-lock'"
@@ -1369,7 +1378,7 @@
                             </div>
                             <div *ngIf="sol.createdAt">
                                 <dt>Creada</dt>
-                                <dd>{{ sol.createdAt | date: 'dd/MM/yyyy, h:mm a' }}</dd>
+                                <dd>{{ getSolicitudCreatedAtDisplay(sol.createdAt) }}</dd>
                             </div>
                             <div *ngIf="getSolicitudCreatorName(sol)">
                                 <dt>Creada por</dt>
@@ -1896,7 +1905,7 @@
                         </div>
                         <div *ngIf="sol.createdAt">
                             <dt>Creada</dt>
-                            <dd>{{ sol.createdAt | date: 'dd/MM/yyyy, h:mm a' }}</dd>
+                            <dd>{{ getSolicitudCreatedAtDisplay(sol.createdAt) }}</dd>
                         </div>
                         <div *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date">
                             <dt>Programada</dt>
