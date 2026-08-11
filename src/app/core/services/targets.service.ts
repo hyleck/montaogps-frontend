@@ -62,6 +62,15 @@ export interface VehicleDataCompletenessMetrics {
   incompletePercent: number;
 }
 
+export interface IncosisClientBillingProfile {
+  ownerId: string;
+  ownerName: string;
+  found: boolean;
+  active: boolean;
+  commercialType: string;
+  isConsignment: boolean;
+}
+
 export interface VehicleRegistrationFinalizeResponse {
   ok: boolean;
   deviceId?: string;
@@ -136,6 +145,13 @@ export class TargetsService {
 
   async getTargetById(id: string): Promise<Target> {
     const observable = this.http.get<Target>(`${this.apiUrl}/${id}`);
+    return await lastValueFrom(observable);
+  }
+
+  async getIncosisBillingProfile(id: string): Promise<IncosisClientBillingProfile> {
+    const observable = this.http.get<IncosisClientBillingProfile>(
+      `${this.apiUrl}/${encodeURIComponent(id)}/incosis-billing-profile`
+    );
     return await lastValueFrom(observable);
   }
 

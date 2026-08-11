@@ -247,6 +247,7 @@ export class ProcessesComponent implements OnInit {
       17: '2E7D32',  // Activación Automática
       18: '1565C0',  // Reinstalación
       19: 'B71C1C',  // Desinstalación
+      20: '2E7D32',  // Pre-renovación
     };
 
     // Apply type colors to column B (Tipo)
@@ -300,6 +301,7 @@ export class ProcessesComponent implements OnInit {
       17: 'success',  // Activación Automática
       18: 'info',     // Reinstalación
       19: 'danger',   // Desinstalación
+      20: 'success',  // Pre-renovación
     };
     return severities[type] || 'info';
   }

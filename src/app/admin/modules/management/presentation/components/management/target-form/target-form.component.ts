@@ -186,6 +186,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         { value: 'bicycle', label: 'Bicicleta o movilidad' },
     ];
     renewalYearOptions: number[] = Array.from({ length: 10 }, (_, i) => i + 1);
+    isCheckingIncosisClientProfile = false;
+    isConsignmentClient = false;
+    private incosisProfileRequestId = 0;
 
     // Bandera para evitar recálculo automático de fecha de expiración
     skipExpirationDateRecalculation: boolean = false;
@@ -242,6 +245,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         'installation': 2, // Modificación de fecha de instalación
         'expiration': 3, // Modificación de fecha de expiración
         'renewal': 4, // Renovación de servicio
+        'cash_renewal': 20, // Pre-renovación para clientes a consignación
         'technician_change': 8, // Modificar técnico
         'gps_change': 9, // Cambio de GPS
         'installation_details_change': 10, // Modificar detalles de instalación
@@ -1939,6 +1943,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         // Cargar lista de procesos del target actual
         this.loadProcessesList(false);
+        void this.loadIncosisClientProfile();
 
         // Check SIM usage
         if (this.target.sim_card_number) {
@@ -2207,6 +2212,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.target = this.getEmptyTarget();
         this.activeTabIndex = 0;
         this.displayColorName = '';
+        this.incosisProfileRequestId++;
+        this.isCheckingIncosisClientProfile = false;
+        this.isConsignmentClient = false;
         // No modificamos showColorOptions ya que queremos que siempre esté visible
     }
 
@@ -3876,7 +3884,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
 
             // Validaciones específicas para renovación de servicio
-            if (this.processForm.type === 'renewal') {
+            if (this.isRenewalProcessType()) {
                 if (!this.processForm.newRenewalDate) {
                     this.messageService.add({
                         severity: 'warn',
@@ -4037,12 +4045,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 autoDetails = `El usuario ${userName} ha cambiado la fecha de expiración del dispositivo ${targetName} de ${currentExpirationDate} a ${newExpirationDate}${reason}.`;
             }
 
-            if (this.processForm.type === 'renewal') {
+            if (this.isRenewalProcessType()) {
                 const currentExpirationDate = this.target.expiration_date || 'no definida';
                 const newRenewalDate = this.processForm.newRenewalDate;
                 const renewalYears = this.processForm.renewalYears || 0;
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
-                autoDetails = `El usuario ${userName} ha renovado el servicio del dispositivo ${targetName} cambiando la fecha de expiración de ${currentExpirationDate} a ${newRenewalDate} (${renewalYears} ${renewalYears === 1 ? 'año' : 'años'})${reason}.`;
+                autoDetails = this.processForm.type === 'cash_renewal'
+                    ? `El usuario ${userName} ha registrado una pre-renovación del dispositivo ${targetName}. La fecha ${newRenewalDate} (${renewalYears} ${renewalYears === 1 ? 'año' : 'años'}) queda pendiente y sustituirá la expiración actual ${currentExpirationDate} cuando Incosis facture el proceso${reason}.`
+                    : `El usuario ${userName} ha renovado el servicio del dispositivo ${targetName} cambiando la fecha de expiración de ${currentExpirationDate} a ${newRenewalDate} (${renewalYears} ${renewalYears === 1 ? 'año' : 'años'})${reason}.`;
             }
 
             if (this.processForm.type === 'technician_change') {
@@ -4135,12 +4145,20 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 reference: this.target._id, // Referencia usando el ID del target
                 before: {
                     status: "pending",
-                    lastProcess: null
+                    lastProcess: null,
+                    expiration_date: this.target.expiration_date || null
                 },
                 after: {
-                    status: "completed",
-                    processType: this.processForm.type,
-                    processDate: this.processForm.registrationDate
+                    status: this.processForm.type === 'cash_renewal' ? "pending_invoice" : "completed",
+                    processType: this.processForm.type === 'cash_renewal' ? "pre_renewal" : this.processForm.type,
+                    processDate: this.processForm.registrationDate,
+                    ...(this.isRenewalProcessType() ? {
+                        expiration_date: this.parseLocalDate(this.processForm.newRenewalDate),
+                        pendingRenewalDate: this.processForm.type === 'cash_renewal'
+                            ? this.parseLocalDate(this.processForm.newRenewalDate)
+                            : undefined,
+                        renewalYears: this.processForm.renewalYears
+                    } : {})
                 },
                 creator: this.authService.getCurrentUser()?.id || "creator_ejemplo_id"
             };
@@ -4293,7 +4311,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 }
             }
 
-            // Si es una renovación de servicio, actualizar el target
+            if (this.processForm.type === 'cash_renewal') {
+                this.target.pending_renewal_date = this.formatDateToInput(this.processForm.newRenewalDate);
+                this.target.pending_renewal_process_id = response?._id;
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Pre-renovación registrada',
+                    detail: 'La fecha quedó pendiente y se aplicará automáticamente cuando Incosis emita la factura.'
+                });
+            }
+
+            // Las renovaciones normales sí actualizan la expiración inmediatamente.
             if (this.processForm.type === 'renewal') {
                 try {
 
@@ -4940,7 +4968,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.processForm.newExpirationDate = '';
         }
 
-        if (this.processForm.type !== 'renewal') {
+        if (!this.isRenewalProcessType()) {
             this.processForm.newRenewalDate = '';
             this.processForm.renewalYears = null;
         }
@@ -4981,7 +5009,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }
 
         // Reset de años de renovación salvo cuando es renovación
-        if (this.processForm.type !== 'renewal') {
+        if (!this.isRenewalProcessType()) {
             this.processForm.renewalYears = null;
         }
 
@@ -5000,7 +5028,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
         }
 
-        if (this.processForm.type === 'renewal') {
+        if (this.isRenewalProcessType()) {
             // Pre-llenar con la fecha de expiración actual (para renovación)
             if (this.target.expiration_date) {
                 this.processForm.newRenewalDate = this.target.expiration_date;
@@ -5085,6 +5113,36 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         baseDate.setFullYear(baseDate.getFullYear() + years);
 
         this.processForm.newRenewalDate = this.formatDateToInput(baseDate.toISOString());
+    }
+
+    isRenewalProcessType(type: string = this.processForm.type): boolean {
+        return type === 'renewal' || type === 'cash_renewal';
+    }
+
+    private async loadIncosisClientProfile(): Promise<void> {
+        const targetId = this.getCurrentTargetId();
+        const requestId = ++this.incosisProfileRequestId;
+        this.isConsignmentClient = false;
+        if (!targetId) {
+            this.isCheckingIncosisClientProfile = false;
+            return;
+        }
+
+        this.isCheckingIncosisClientProfile = true;
+        try {
+            const profile = await this.targetsService.getIncosisBillingProfile(targetId);
+            if (requestId !== this.incosisProfileRequestId) return;
+            this.isConsignmentClient = profile.found && profile.active && profile.isConsignment;
+        } catch (error) {
+            if (requestId !== this.incosisProfileRequestId) return;
+            this.isConsignmentClient = false;
+            console.error('No se pudo verificar el tipo comercial del cliente en Incosis:', error);
+        } finally {
+            if (requestId === this.incosisProfileRequestId) {
+                this.isCheckingIncosisClientProfile = false;
+                this.cdr.detectChanges();
+            }
+        }
     }
 
     // Método para cargar la lista de procesos del target actual
@@ -5394,7 +5452,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             16: 'Restauración',
             17: 'Activación automática',
             18: 'Reinstalación',
-            19: 'Desinstalación'
+            19: 'Desinstalación',
+            20: 'Pre-renovación'
         };
         return typeNames[type] || `Proceso desconocido`;
     }
@@ -5516,7 +5575,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             16: 'pi pi-undo',         // Restauración
             17: 'pi pi-bolt',         // Activación automática
             18: 'pi pi-refresh',      // Reinstalación
-            19: 'pi pi-times-circle'  // Desinstalación
+            19: 'pi pi-times-circle', // Desinstalación
+            20: 'pi pi-wallet'        // Pre-renovación
         };
         return iconMap[type] || 'pi pi-circle';
     }
@@ -5542,7 +5602,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             16: 'status-restoration', // Restauración
             17: 'status-automatic-activation', // Activación automática
             18: 'status-reinstallation', // Reinstalación
-            19: 'status-uninstallation' // Desinstalación
+            19: 'status-uninstallation', // Desinstalación
+            20: 'status-service-renewal' // Pre-renovación
         };
         return statusMap[type] || 'status-default';
     }
@@ -5568,7 +5629,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             16: 'RESTAURADO',
             17: 'ACTIVADO',
             18: 'REINSTALADO',
-            19: 'DESINSTALADO'
+            19: 'DESINSTALADO',
+            20: 'PENDIENTE DE FACTURA'
         };
         return statusMap[type] || 'COMPLETADO';
     }

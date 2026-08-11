@@ -949,6 +949,9 @@
                                                     <option value="renewal">{{
                                                         translate('management.targetForm.processTypeServiceRenewal') }}
                                                     </option>
+                                                    <option value="cash_renewal" *ngIf="isConsignmentClient">{{
+                                                        translate('management.targetForm.processTypeCashRenewal') }}
+                                                    </option>
                                                 </select>
                                             </div>
 
@@ -978,7 +981,7 @@
                                             </div>
 
                                             <!-- Campo específico para renovación de servicio -->
-                                            <div class="target-form__field" *ngIf="processForm.type === 'renewal'">
+                                            <div class="target-form__field" *ngIf="isRenewalProcessType()">
                                                 <label for="new_renewal_date">{{
                                                     translate('management.targetForm.newExpirationDate') }} <span
                                                         class="required-label">(Requerido)</span></label>

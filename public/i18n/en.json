@@ -1339,6 +1339,7 @@
       "processTypeInstallationDateChange": "Modify installation date",
       "processTypeExpirationDateChange": "Modify expiration date",
       "processTypeServiceRenewal": "Service renewal",
+      "processTypeCashRenewal": "Pre-renewal",
       "processTypeTechnicianChange": "Modify technician",
       "processTypeGpsChange": "GPS Change",
       "processTypeInstallationDetailsChange": "Modify installation details",

@@ -43,6 +43,9 @@ export interface Target {
   chassis?: string;
   installation_date?: string;
   expiration_date?: string;
+  pending_renewal_date?: string;
+  pending_renewal_process_id?: string;
+  pending_renewal_requested_at?: string;
   gps_model?: string | null;
   ignition_sensor?: string | null;
   shutdown_control?: string | null;
@@ -188,6 +191,9 @@ export interface TargetDevice {
   creator_id: string;
   activation_date: string;
   expiration_date: string;
+  pending_renewal_date?: string;
+  pending_renewal_process_id?: string;
+  pending_renewal_requested_at?: string;
   last_change_date: string;
   status: boolean | 'active' | 'inactive';
   canceled: boolean;

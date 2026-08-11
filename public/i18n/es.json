@@ -1431,6 +1431,7 @@
       "processTypeInstallationDateChange": "Modificar fecha de instalación",
       "processTypeExpirationDateChange": "Modificar fecha de expiración",
       "processTypeServiceRenewal": "Renovación de servicio",
+      "processTypeCashRenewal": "Pre-renovación",
       "processTypeTechnicianChange": "Modificar el técnico",
       "processTypeGpsChange": "Cambio de GPS",
       "processTypeInstallationDetailsChange": "Modificar detalles de instalación",
