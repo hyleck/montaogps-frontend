@@ -6,6 +6,8 @@ import { environment } from '../../../environments/environment';
 export interface InstallationDetail {
     process_type?: string;
     device_type?: 'gps' | 'mtag_a' | 'mtag_p';
+    target_name?: string;
+    target_category?: string;
     deinstallation_reason?: string;
     brand?: string;
     model?: string;
@@ -66,6 +68,9 @@ export interface InstallationDetail {
     notes?: string;
     completed?: boolean;
     cancelled?: boolean;
+    omitted?: boolean;
+    omitted_at?: string | Date;
+    omitted_reason?: string;
 }
 
 export interface SolicitudReassignment {
@@ -193,6 +198,32 @@ export interface SolicitudesRealtimeState {
     latestUpdatedAt: string | null;
 }
 
+export interface TechnicianAssistancePresence {
+    mechanic_id: string;
+    technician_name: string;
+    installation_index: number;
+    action_id: string;
+    action_label: string;
+    last_seen_at: string | Date;
+}
+
+export interface TechnicianAssistancePresenceState {
+    online: boolean;
+    presence: TechnicianAssistancePresence | null;
+    refresh_pending: boolean;
+    logout_pending?: boolean;
+    refresh_requested_at?: string | Date | null;
+    refresh_delivered_at?: string | Date | null;
+}
+
+export interface TechnicianDataRefreshResponse {
+    queued: boolean;
+    action?: 'refresh' | 'logout';
+    command_id: string;
+    href: string;
+    technician_online: boolean;
+}
+
 export interface TechnicianScheduleConflict {
     solicitud_id: string;
     type: string;
@@ -282,12 +313,89 @@ export class SolicitudesService {
         return this.http.get<Solicitud>(`${this.apiUrl}/${id}`);
     }
 
+    getTechnicianAssistancePresence(
+        id: string,
+    ): Observable<TechnicianAssistancePresenceState> {
+        return this.http.get<TechnicianAssistancePresenceState>(
+            `${this.apiUrl}/${encodeURIComponent(id)}/technician-presence`,
+        );
+    }
+
+    requestTechnicianDataRefresh(
+        id: string,
+    ): Observable<TechnicianDataRefreshResponse> {
+        return this.http.post<TechnicianDataRefreshResponse>(
+            `${this.apiUrl}/${encodeURIComponent(id)}/refresh-technician-data`,
+            {},
+        );
+    }
+
+    requestTechnicianLogout(
+        id: string,
+    ): Observable<TechnicianDataRefreshResponse> {
+        return this.http.post<TechnicianDataRefreshResponse>(
+            `${this.apiUrl}/${encodeURIComponent(id)}/logout-technician`,
+            {},
+        );
+    }
+
     getInstallationDeviceDetails(
         solicitudId: string,
         installationIndex: number,
     ): Observable<SolicitudInstallationDeviceDetails> {
         return this.http.get<SolicitudInstallationDeviceDetails>(
             `${this.apiUrl}/${encodeURIComponent(solicitudId)}/installations/${installationIndex}/device-details`,
+        );
+    }
+
+    configureInstallationDevice(
+        solicitudId: string,
+        installationIndex: number,
+        payload: {
+            existing_device_id?: string;
+            device: Record<string, any>;
+            installation?: Record<string, any>;
+        },
+    ): Observable<{ solicitud: Solicitud; installation: InstallationDetail; device: any }> {
+        return this.http.post<{ solicitud: Solicitud; installation: InstallationDetail; device: any }>(
+            `${this.apiUrl}/${encodeURIComponent(solicitudId)}/installations/${installationIndex}/configure-device`,
+            payload,
+        );
+    }
+
+    replaceInstallationDevice(
+        solicitudId: string,
+        installationIndex: number,
+        payload: { new_imei: string; expected_current_imei: string; reason: string },
+    ): Observable<{ solicitud: Solicitud; installation: InstallationDetail; device: any }> {
+        return this.http.post<{ solicitud: Solicitud; installation: InstallationDetail; device: any }>(
+            `${this.apiUrl}/${encodeURIComponent(solicitudId)}/installations/${installationIndex}/replace-device`,
+            payload,
+        );
+    }
+
+    updateInstallationProgress(
+        solicitudId: string,
+        installationIndex: number,
+        changes: Record<string, any>,
+        status?: string,
+        expectedVersion?: number,
+    ): Observable<{
+        solicitud: Solicitud;
+        installation: InstallationDetail;
+        operation_warnings?: string[];
+    }> {
+        return this.http.patch<{
+            solicitud: Solicitud;
+            installation: InstallationDetail;
+            operation_warnings?: string[];
+        }>(
+            `${this.apiUrl}/${encodeURIComponent(solicitudId)}/installations/${installationIndex}/progress`,
+            {
+                changes,
+                ...(status ? { status } : {}),
+                ...(expectedVersion !== undefined ? { expected_version: expectedVersion } : {}),
+            },
         );
     }
 

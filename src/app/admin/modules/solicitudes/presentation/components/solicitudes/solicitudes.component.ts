@@ -79,7 +79,7 @@ interface SolicitudCalendarDay {
 interface SolicitudCalendarWorkItem {
     label: string;
     detail: string;
-    state: 'pending' | 'completed' | 'cancelled';
+    state: 'pending' | 'completed' | 'cancelled' | 'omitted';
 }
 
 interface ProcessDeviceEvidence {
@@ -270,18 +270,29 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
         // Determine drop position
         let dropIndex = -1;
-        const targetCard = (event.target as HTMLElement).closest('.sol-kanban-card');
+        const targetCard = (event.target as HTMLElement).closest('.sol-kanban-card') as HTMLElement | null;
         if (targetCard && column) {
-            const cards = Array.from(column.querySelectorAll('.sol-kanban-card'));
+            const cards = Array.from(column.querySelectorAll<HTMLElement>('.sol-kanban-card'));
             const cardIdx = cards.indexOf(targetCard);
             const rect = targetCard.getBoundingClientRect();
             const midY = rect.top + rect.height / 2;
-            dropIndex = event.clientY < midY ? cardIdx : cardIdx + 1;
+            const insertionBoundary = event.clientY < midY ? cardIdx : cardIdx + 1;
+            dropIndex = cards
+                .slice(0, insertionBoundary)
+                .filter(card =>
+                    !card.classList.contains('sol-kanban-card--request-locked')
+                    && !card.classList.contains('sol-dragging')
+                )
+                .length;
         }
 
-        // Get current column items (excluding the dragged card)
+        // Locked requests stay fixed and must never be included in a reorder payload.
         const columnItems = this.solicitudes
-            .filter(s => s.status === newStatus && s._id !== sol._id)
+            .filter(s =>
+                s.status === newStatus
+                && s._id !== sol._id
+                && !this.isSolicitudLocked(s)
+            )
             .sort((a, b) => (a.order || 0) - (b.order || 0));
 
         // If same column and no valid drop target, skip
@@ -314,7 +325,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         const sourceItems = oldStatus === newStatus
             ? []
             : this.solicitudes
-                .filter(item => item.status === oldStatus && item._id !== solicitud._id)
+                .filter(item =>
+                    item.status === oldStatus
+                    && item._id !== solicitud._id
+                    && !this.isSolicitudLocked(item)
+                )
                 .sort((a, b) => (a.order || 0) - (b.order || 0));
         const affected = [...new Map(
             [...targetItems, ...sourceItems, solicitud]
@@ -396,6 +411,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         installationScheduledDates: Array<string | Date | undefined>;
     } | null = null;
     dialogVisible = false;
+    assistanceDialogVisible = false;
+    assistanceSolicitud: Solicitud | null = null;
     closedInfoDialogVisible = false;
     closedSolicitud: Solicitud | null = null;
     closedSolicitudLocation = '';
@@ -1432,6 +1449,14 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         return this.isSolicitudClosed(currentSolicitud);
     }
 
+    isSelectedSolicitudLocked(): boolean {
+        const selectedId = this.selectedSolicitud?._id;
+        const currentSolicitud = selectedId
+            ? this.solicitudes.find(solicitud => solicitud._id === selectedId)
+            : null;
+        return this.isSolicitudLocked(currentSolicitud || this.selectedSolicitud);
+    }
+
     isSelectedSolicitudAssignmentLocked(): boolean {
         return this.selectedSolicitudAssignmentSnapshot?.accepted === true;
     }
@@ -1540,6 +1565,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     openInstallationModal(index: number, showModal: boolean = true): void {
+        if (this.isSelectedSolicitudLocked() && this.selectedSolicitud) {
+            this.showSolicitudLockedFeedback(this.selectedSolicitud);
+            return;
+        }
+
         this.editingInstallationIndex = index;
         this.showVehicleData = false;
         this.showLocationData = false;
@@ -3548,6 +3578,11 @@ async initLocationMap(): Promise<void> {
     }
 
     async editSolicitud(solicitud: Solicitud): Promise<void> {
+        if (this.isSolicitudLocked(solicitud)) {
+            this.showSolicitudLockedFeedback(solicitud);
+            return;
+        }
+
         if (this.initialDataPromise) await this.initialDataPromise;
 
         if (this.isSolicitudClosed(solicitud)) {
@@ -3644,6 +3679,10 @@ async initLocationMap(): Promise<void> {
     ): void {
         event?.stopPropagation();
         event?.preventDefault();
+        if (this.isSolicitudLocked(solicitud)) {
+            this.showSolicitudLockedFeedback(solicitud);
+            return;
+        }
         this.processDetailsSolicitud = solicitud;
         this.processDetailsInstallation = installation;
         this.processDetailsIndex = index;
@@ -3867,8 +3906,9 @@ async initLocationMap(): Promise<void> {
         );
     }
 
-    getInstallationFinalDeviceState(installation?: InstallationDetail | null): 'online' | 'offline' | 'unknown' {
+    getInstallationFinalDeviceState(installation?: InstallationDetail | null): 'online' | 'offline' | 'omitted' | 'unknown' {
         const rawStatus = String(installation?.final_device_status || '').trim().toLowerCase();
+        if (installation?.omitted === true || rawStatus === 'omitido') return 'omitted';
         const checkedAt = installation?.final_device_status_at
             ? new Date(installation.final_device_status_at)
             : null;
@@ -3893,6 +3933,7 @@ async initLocationMap(): Promise<void> {
 
     getInstallationFinalDeviceStatusLabel(installation?: InstallationDetail | null): string {
         const state = this.getInstallationFinalDeviceState(installation);
+        if (state === 'omitted') return 'Omitido';
         if (state === 'online') return 'En línea al finalizar';
         if (state === 'offline') {
             const rawStatus = String(installation?.final_device_status || '').trim().toLowerCase();
@@ -3909,6 +3950,7 @@ async initLocationMap(): Promise<void> {
 
     getInstallationFinalDeviceStatusIcon(installation?: InstallationDetail | null): string {
         const state = this.getInstallationFinalDeviceState(installation);
+        if (state === 'omitted') return 'pi pi-minus-circle';
         if (state === 'online') return 'pi pi-wifi';
         if (state === 'offline') return 'pi pi-ban';
         return 'pi pi-question-circle';
@@ -4163,21 +4205,25 @@ async initLocationMap(): Promise<void> {
             || solicitud.status === 'cancelada'
             || solicitud.status === 'rechazada'
             ? 'danger'
-            : (installation.completed ? 'success' : 'warning');
+            : (installation.omitted ? 'info' : (installation.completed ? 'success' : 'warning'));
         add({
             title: installation.cancelled
                 ? 'Canceló este proceso'
-                : (installation.completed ? 'Finalizó este proceso' : 'El proceso permanece pendiente'),
+                : (installation.omitted
+                    ? 'Este proceso fue omitido automáticamente'
+                    : (installation.completed ? 'Finalizó este proceso' : 'El proceso permanece pendiente')),
             description: installation.cancelled
                 ? 'El técnico marcó este proceso como cancelado.'
-                : (installation.completed ? 'El técnico marcó el trabajo como realizado.' : 'Todavía no existe un cierre técnico registrado.'),
-            icon: installation.cancelled ? 'pi-times-circle' : (installation.completed ? 'pi-flag-fill' : 'pi-clock'),
+                : (installation.omitted
+                    ? (installation.omitted_reason || 'La solicitud finalizó antes de completar este proceso.')
+                    : (installation.completed ? 'El técnico marcó el trabajo como realizado.' : 'Todavía no existe un cierre técnico registrado.')),
+            icon: installation.cancelled ? 'pi-times-circle' : (installation.omitted ? 'pi-minus-circle' : (installation.completed ? 'pi-flag-fill' : 'pi-clock')),
             state: finalState,
-            timestamp: installation.completed || installation.cancelled ? solicitud.completed_date : undefined,
+            timestamp: installation.omitted_at || (installation.completed || installation.cancelled ? solicitud.completed_date : undefined),
             details: details(
-                ['Estado del proceso', installation.cancelled ? 'Cancelado' : (installation.completed ? 'Realizado' : 'Pendiente')],
+                ['Estado del proceso', installation.cancelled ? 'Cancelado' : (installation.omitted ? 'Omitido' : (installation.completed ? 'Realizado' : 'Pendiente'))],
                 ['Estado de la solicitud', this.statusLabels[solicitud.status] || solicitud.status],
-                ['Estado del GPS al finalizar', (installation.completed || installation.cancelled)
+                ['Estado del GPS al finalizar', (installation.completed || installation.cancelled || installation.omitted)
                     && this.hasInstallationFinalDeviceStatus(installation)
                     ? this.getInstallationFinalDeviceStatusLabel(installation)
                     : ''],
@@ -4454,6 +4500,10 @@ async initLocationMap(): Promise<void> {
 
     async saveSolicitud(): Promise<void> {
         if (!this.selectedSolicitud) return;
+        if (this.isSelectedSolicitudLocked()) {
+            this.showSolicitudLockedFeedback(this.selectedSolicitud);
+            return;
+        }
         if (this.isSelectedSolicitudFinalized()) {
             this.messageService.add({
                 severity: 'info',
@@ -6001,6 +6051,11 @@ async initLocationMap(): Promise<void> {
 
     openTechnicianAvailabilityDialog(solicitud: Solicitud, event?: Event): void {
         event?.stopPropagation();
+        event?.preventDefault();
+        if (this.isSolicitudLocked(solicitud)) {
+            this.showSolicitudLockedFeedback(solicitud);
+            return;
+        }
         this.selectedTechnicianSolicitud = solicitud;
         this.technicianDialogVisible = true;
     }
@@ -6483,6 +6538,22 @@ async initLocationMap(): Promise<void> {
         return !!solicitud?._id && (this.verifyingAvailabilityId === solicitud._id || this.isTechnicianVerifying(solicitud));
     }
 
+    openSolicitudAssistance(solicitud: Solicitud, event?: Event): void {
+        event?.preventDefault();
+        event?.stopPropagation();
+        if (this.isSolicitudLocked(solicitud)) {
+            this.showSolicitudLockedFeedback(solicitud);
+            return;
+        }
+        if (solicitud.status !== 'en_progreso') return;
+        this.assistanceSolicitud = solicitud;
+        this.assistanceDialogVisible = true;
+    }
+
+    onAssistanceSolicitudUpdated(updated: Solicitud): void {
+        this.upsertSolicitud(updated);
+    }
+
     private upsertSolicitud(updated: Solicitud): void {
         const index = this.solicitudes.findIndex(sol => sol._id === updated._id);
         if (index >= 0) {
@@ -6496,6 +6567,9 @@ async initLocationMap(): Promise<void> {
 
     private sortSolicitudesForDisplay(items: Solicitud[]): Solicitud[] {
         return [...items].sort((a, b) => {
+            const lockDifference = this.compareSolicitudLockPriority(a, b);
+            if (lockDifference) return lockDifference;
+
             const priorityDifference = this.getSolicitudDisplayPriority(a.status)
                 - this.getSolicitudDisplayPriority(b.status);
             if (priorityDifference) return priorityDifference;
@@ -6508,6 +6582,10 @@ async initLocationMap(): Promise<void> {
 
             return (a.order || 0) - (b.order || 0);
         });
+    }
+
+    private compareSolicitudLockPriority(a: Solicitud, b: Solicitud): number {
+        return Number(this.isSolicitudLocked(a)) - Number(this.isSolicitudLocked(b));
     }
 
     private getSolicitudDisplayPriority(status?: string): number {
@@ -6776,10 +6854,13 @@ async initLocationMap(): Promise<void> {
         }
 
         for (const daySolicitudes of scheduledByDay.values()) {
-            daySolicitudes.sort((first, second) =>
-                (this.getSolicitudScheduledDateTime(first)?.getTime() || 0)
-                - (this.getSolicitudScheduledDateTime(second)?.getTime() || 0)
-            );
+            daySolicitudes.sort((first, second) => {
+                const lockDifference = this.compareSolicitudLockPriority(first, second);
+                if (lockDifference) return lockDifference;
+
+                return (this.getSolicitudScheduledDateTime(first)?.getTime() || 0)
+                    - (this.getSolicitudScheduledDateTime(second)?.getTime() || 0);
+            });
         }
 
         this.calendarDays = Array.from({ length: 42 }, (_, index) => {
@@ -6936,7 +7017,9 @@ async initLocationMap(): Promise<void> {
             const state: SolicitudCalendarWorkItem['state'] =
                 installation.cancelled
                     ? 'cancelled'
-                    : installation.completed
+                    : installation.omitted
+                        ? 'omitted'
+                        : installation.completed
                         ? 'completed'
                         : defaultState;
             return {

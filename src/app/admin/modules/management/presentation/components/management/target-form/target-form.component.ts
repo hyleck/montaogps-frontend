@@ -95,6 +95,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     displayInstallationEvidenceDialog = false;
     isUploadingInstallationEvidence = false;
     pendingInstallationEvidence: Partial<Record<InstallationEvidenceKey, PendingInstallationEvidence>> = {};
+    isScanningInstallationChassis = false;
+    installationChassisScanError = '';
+    installationChassisScanResult: Record<string, any> | null = null;
+    private installationVehicleBeforeChassisScan: Partial<TargetDevice> | null = null;
 
     @Input() targetInput: TargetDevice | null = null;
     @Output() targetCreated = new EventEmitter<TargetDevice>();
@@ -253,6 +257,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Lista de procesos del target actual
     processList: ProcessResponse[] = [];
     isLoadingProcesses: boolean = false;
+    displayInstallationRegistrationDialog: boolean = false;
+    installationRegistrationStep: number = 1;
+    isRegisteringInstallation: boolean = false;
+    installationRegistrationForm = this.getEmptyInstallationRegistrationForm();
     displayProcessesDialog: boolean = false;
     expandedProcessIndex: number | null = null;
     selectedProtocol: Protocol | null = null;
@@ -480,10 +488,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return !!this.pendingInstallationEvidence[key];
     }
 
-    onInstallationEvidenceFileSelected(
+    async onInstallationEvidenceFileSelected(
         event: Event,
         key: InstallationEvidenceKey
-    ): void {
+    ): Promise<void> {
         const input = event.target as HTMLInputElement;
         const file = input.files?.[0];
         input.value = '';
@@ -512,6 +520,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             file,
             previewUrl: URL.createObjectURL(file)
         };
+
+        if (this.displayInstallationRegistrationDialog && key === 'chasis_img') {
+            await this.scanInstallationChassisImage(file);
+        }
     }
 
     removePendingInstallationEvidence(
@@ -524,6 +536,170 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         URL.revokeObjectURL(pending.previewUrl);
         delete this.pendingInstallationEvidence[key];
+        if (key === 'chasis_img' && this.displayInstallationRegistrationDialog) {
+            this.resetInstallationChassisScan(true);
+        }
+    }
+
+    isInstallationChassisVerified(): boolean {
+        return this.installationChassisScanResult?.['es_foto_chasis'] === true
+            && !!String(this.installationChassisScanResult?.['chasis'] || '').trim();
+    }
+
+    getInstallationChassisScanEntries(): Array<{ label: string; value: string }> {
+        if (!this.installationChassisScanResult) return [];
+        const fields: Array<[string, string]> = [
+            ['chasis', 'Chasis/VIN'],
+            ['marca', 'Marca'],
+            ['modelo', 'Modelo'],
+            ['ano', 'Año'],
+            ['color', 'Color'],
+            ['placa', 'Placa'],
+        ];
+        return fields.flatMap(([key, label]) => {
+            const value = String(this.installationChassisScanResult?.[key] || '').trim();
+            return value ? [{ label, value }] : [];
+        });
+    }
+
+    private async scanInstallationChassisImage(file: File): Promise<void> {
+        const targetId = this.getCurrentTargetId();
+        if (!targetId || this.isScanningInstallationChassis) return;
+
+        this.installationVehicleBeforeChassisScan = this.getInstallationVehicleSnapshot();
+        this.installationChassisScanError = '';
+        this.installationChassisScanResult = null;
+        this.isScanningInstallationChassis = true;
+        try {
+            const response = await this.targetsService.scanChassisImage(targetId, file);
+            const metadata = response?.data || {};
+            this.installationChassisScanResult = metadata;
+            if (
+                metadata?.['es_foto_chasis'] !== true
+                || !String(metadata?.['chasis'] || '').trim()
+            ) {
+                this.installationChassisScanError = String(
+                    metadata?.['mensaje_usuario']
+                    || 'No se pudo leer la numeración. Sube una foto enfocada y completa del chasis.'
+                );
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Chasis no verificado',
+                    detail: this.installationChassisScanError
+                });
+                return;
+            }
+
+            await this.applyInstallationChassisScanData(metadata);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Vehículo verificado',
+                detail: 'La numeración del chasis fue validada y los datos visibles se completaron.'
+            });
+        } catch (error) {
+            console.error('Error verificando la foto del chasis:', error);
+            this.installationChassisScanError = getApiErrorMessage(
+                error,
+                'No se pudo analizar la foto del chasis.'
+            );
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo verificar el chasis',
+                detail: this.installationChassisScanError
+            });
+        } finally {
+            this.isScanningInstallationChassis = false;
+        }
+    }
+
+    private async applyInstallationChassisScanData(metadata: Record<string, any>): Promise<void> {
+        const value = (key: string) => String(metadata?.[key] || '').trim();
+        const chassis = value('chasis');
+        const year = value('ano') || value('anio') || value('año');
+        const plate = value('placa');
+        if (chassis) this.target.target_chassis_number = chassis;
+        if (year) this.target.target_year = year;
+        if (plate) this.target.target_plate_number = plate;
+
+        await this.brandsLoaded;
+        const brandName = value('marca');
+        const modelName = value('modelo');
+        const brand = this.findInstallationCatalogMatch(this.availableBrands, brandName);
+        if (brand?.value) {
+            this.target.target_brand_id = brand.value;
+            try {
+                const models = await this.vehicleBrandsService.getAllModelsByBrand(brand.value);
+                this.availableModels = (Array.isArray(models) ? models : []).map((model: any) => ({
+                    label: model.nombre,
+                    value: model._id
+                })).sort((a: SelectOption, b: SelectOption) => a.label.localeCompare(b.label));
+                const model = this.findInstallationCatalogMatch(this.availableModels, modelName);
+                if (model?.value) this.target.target_model_id = model.value;
+            } catch (error) {
+                console.error('No se pudieron cargar los modelos detectados por chasis:', error);
+            }
+        }
+
+        const color = this.findInstallationCatalogMatch(this.availableColors, value('color'));
+        if (color?.value) {
+            this.target.target_color = color.value;
+            this.displayColorName = color.label;
+        }
+
+        const generatedName = [
+            this.availableBrands.find(item => item.value === this.target.target_brand_id)?.label,
+            this.availableModels.find(item => item.value === this.target.target_model_id)?.label,
+            this.target.target_year,
+            this.availableColors.find(item => item.value === this.target.target_color)?.label,
+        ].filter(Boolean).join(' ');
+        if (generatedName && /^EN_ESPERA(?:-|$)/i.test(String(this.target.name || ''))) {
+            this.target.name = generatedName;
+        }
+        this.target['verificado'] = true;
+    }
+
+    private findInstallationCatalogMatch(
+        items: SelectOption[],
+        searchedValue: string
+    ): SelectOption | undefined {
+        const normalize = (value: string) => String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/gi, ' ')
+            .trim()
+            .toLowerCase();
+        const searched = normalize(searchedValue);
+        if (!searched) return undefined;
+        return items.find(item => normalize(item.label) === searched)
+            || items.find(item => {
+                const label = normalize(item.label);
+                return label.includes(searched) || searched.includes(label);
+            });
+    }
+
+    private getInstallationVehicleSnapshot(): Partial<TargetDevice> {
+        return {
+            name: this.target.name,
+            target_brand_id: this.target.target_brand_id,
+            target_model_id: this.target.target_model_id,
+            target_year: this.target.target_year,
+            target_color: this.target.target_color,
+            target_plate_number: this.target.target_plate_number,
+            target_chassis_number: this.target.target_chassis_number,
+            verificado: this.target['verificado'],
+        };
+    }
+
+    private resetInstallationChassisScan(restoreVehicle: boolean): void {
+        if (restoreVehicle && this.installationVehicleBeforeChassisScan) {
+            this.target = { ...this.target, ...this.installationVehicleBeforeChassisScan };
+            const color = this.availableColors.find(item => item.value === this.target.target_color);
+            this.displayColorName = color?.label || '';
+        }
+        this.isScanningInstallationChassis = false;
+        this.installationChassisScanError = '';
+        this.installationChassisScanResult = null;
+        this.installationVehicleBeforeChassisScan = null;
     }
 
     async uploadPendingInstallationEvidence(): Promise<void> {
@@ -3600,6 +3776,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Método para crear automáticamente un proceso de instalación
     private async createInstallationProcess(target: TargetDevice): Promise<void> {
         try {
+            const mechanicId = String(target.mechanic_id || '').trim();
+            if (!mechanicId) {
+                console.log('Proceso de instalación omitido: el objetivo no tiene técnico asignado');
+                return;
+            }
             const currentUser = this.authService.getCurrentUser();
             const currentDate = new Date().toISOString().substring(0, 10);
 
@@ -3612,7 +3793,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     _id: target._id,
                     name: target.name,
                     device_imei: target.device_imei,
-                    sim_card_number: target.sim_card_number
+                    sim_card_number: target.sim_card_number,
+                    mechanic_id: mechanicId
                 },
                 user: {
                     _id: currentUser?.id || "sistema",
@@ -3641,7 +3823,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     // Método auxiliar para obtener el nombre del técnico
-    private getTechnicianName(mechanicId: string): string {
+    getTechnicianName(mechanicId: string): string {
         if (!mechanicId) return 'No asignado';
         const technician = this.availableTechnicians.find(tech => tech.value === mechanicId);
         return technician ? technician.label : 'Técnico no encontrado';
@@ -4915,8 +5097,20 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         try {
             this.isLoadingProcesses = true;
-            const processes = await this.targetsService.getProcessesByReference(targetId);
-            this.processList = Array.isArray(processes) ? processes : [];
+            const references = Array.from(new Set([
+                targetId,
+                String(this.target?.device_imei || '').trim()
+            ].filter(Boolean)));
+            const processGroups = await Promise.all(
+                references.map(reference => this.targetsService.getProcessesByReference(reference))
+            );
+            const uniqueProcesses = new Map<string, ProcessResponse>();
+            processGroups.flat().forEach((process, index) => {
+                const key = String((process as any)?._id || '')
+                    || `${process.reference || ''}:${process.type}:${process.registrationDate || index}`;
+                uniqueProcesses.set(key, process);
+            });
+            this.processList = Array.from(uniqueProcesses.values());
 
             // Ordenar procesos por fecha de registro (más recientes primero)
             this.processList.sort((a, b) =>
@@ -4947,6 +5141,229 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private getCurrentTargetId(): string {
         const rawTarget = (this.target as any)?.originalTarget || this.target || {};
         return String(rawTarget?._id || this.target?._id || '').trim();
+    }
+
+    hasRegisteredInstallationProcess(): boolean {
+        return this.processList.some(process =>
+            [1, 18].includes(Number(process.type))
+            && !!String(process.target?.['mechanic_id'] || '').trim()
+        );
+    }
+
+    shouldShowInstallationRegistration(): boolean {
+        return this.isEditMode
+            && this.currentUserAffiliationTypeId === 'empleado'
+            && !this.isLoadingProcesses
+            && !this.hasRegisteredInstallationProcess();
+    }
+
+    openInstallationRegistrationDialog(): void {
+        if (this.currentUserAffiliationTypeId !== 'empleado') return;
+        this.clearPendingInstallationEvidence();
+        this.resetInstallationChassisScan(false);
+        this.installationRegistrationForm = {
+            installationDate: this.formatDateToInput(
+                this.target.installation_date || this.target.activation_date || new Date().toISOString()
+            ),
+            mechanicId: this.target.mechanic_id || '',
+            installationLocation: this.target.installation_location || '',
+            installationDetails: this.target.installation_details || '',
+            engineShutdown: this.target.engine_shutdown || 'No',
+            ignitionSensor: this.target.ignition_sensor || 'No'
+        };
+        this.installationRegistrationStep = 1;
+        this.displayInstallationRegistrationDialog = true;
+    }
+
+    closeInstallationRegistrationDialog(): void {
+        if (this.isRegisteringInstallation) return;
+        this.displayInstallationRegistrationDialog = false;
+        this.installationRegistrationStep = 1;
+        this.clearPendingInstallationEvidence();
+        this.resetInstallationChassisScan(true);
+    }
+
+    previousInstallationRegistrationStep(): void {
+        if (this.installationRegistrationStep > 1 && !this.isRegisteringInstallation) {
+            this.installationRegistrationStep--;
+        }
+    }
+
+    nextInstallationRegistrationStep(): void {
+        if (this.installationRegistrationStep === 2 && this.isScanningInstallationChassis) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Verificando chasis',
+                detail: 'Espera a que termine el análisis de la imagen.'
+            });
+            return;
+        }
+        if (
+            this.installationRegistrationStep === 2
+            && this.pendingInstallationEvidence['chasis_img']
+            && !this.isInstallationChassisVerified()
+        ) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Chasis pendiente de verificar',
+                detail: this.installationChassisScanError
+                    || 'Reemplaza la foto por una imagen clara de la numeración del chasis.'
+            });
+            return;
+        }
+        if (this.installationRegistrationStep === 1 && !this.installationRegistrationForm.installationDate) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Fecha requerida',
+                detail: 'Selecciona la fecha en que se realizó la instalación.'
+            });
+            return;
+        }
+        if (this.installationRegistrationStep === 1 && !this.installationRegistrationForm.mechanicId) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Técnico requerido',
+                detail: 'Selecciona el técnico que realizó la instalación.'
+            });
+            return;
+        }
+        if (this.installationRegistrationStep < 4) {
+            this.installationRegistrationStep++;
+        }
+    }
+
+    async registerInstallationProcess(): Promise<void> {
+        if (
+            this.currentUserAffiliationTypeId !== 'empleado'
+            || this.isRegisteringInstallation
+            || this.hasRegisteredInstallationProcess()
+        ) return;
+        const targetId = this.getCurrentTargetId();
+        const currentUser = this.authService.getCurrentUser();
+        if (!targetId || !currentUser?.id) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo registrar',
+                detail: 'No fue posible identificar el objetivo o el usuario actual.'
+            });
+            return;
+        }
+
+        this.isRegisteringInstallation = true;
+        const form = this.installationRegistrationForm;
+        const technicianName = this.getTechnicianName(form.mechanicId);
+        try {
+            const updateData: UpdateTargetDto = {
+                name: this.target.name,
+                mechanic_id: form.mechanicId || '',
+                installation_date: form.installationDate,
+                activation_date: form.installationDate,
+                installation_location: form.installationLocation.trim(),
+                installation_details: form.installationDetails.trim(),
+                engine_shutdown: form.engineShutdown,
+                ignition_sensor: form.ignitionSensor,
+                target_brand_id: this.target.target_brand_id,
+                target_model_id: this.target.target_model_id,
+                target_year: this.target.target_year,
+                target_color: this.target.target_color,
+                target_plate_number: this.target.target_plate_number,
+                target_chassis_number: this.target.target_chassis_number,
+                ...(this.isInstallationChassisVerified() ? { verificado: true } : {})
+            };
+            let updatedTarget = await this.targetsService.updateTarget(targetId, updateData);
+
+            const evidenceEntries = Object.entries(this.pendingInstallationEvidence) as [
+                InstallationEvidenceKey,
+                PendingInstallationEvidence
+            ][];
+            if (evidenceEntries.length) {
+                const evidenceFiles = evidenceEntries.reduce<Record<string, File>>(
+                    (result, [key, pending]) => {
+                        result[key] = pending.file;
+                        return result;
+                    },
+                    {}
+                );
+                const evidenceResponse = await this.targetsService.uploadInstallationEvidence(
+                    targetId,
+                    evidenceFiles
+                );
+                updatedTarget = (evidenceResponse.device || updatedTarget) as any;
+            }
+
+            const processData: CreateProcessDto = {
+                type: 1,
+                registrationDate: form.installationDate,
+                description: 'Instalación inicial registrada desde Management',
+                details: [
+                    `Instalación registrada para ${this.target.name || this.target.device_imei}.`,
+                    `Técnico: ${technicianName}.`,
+                    form.installationLocation.trim() ? `Lugar: ${form.installationLocation.trim()}.` : '',
+                    form.installationDetails.trim() ? `Detalles: ${form.installationDetails.trim()}` : ''
+                ].filter(Boolean).join(' '),
+                target: {
+                    _id: targetId,
+                    name: this.target.name,
+                    device_imei: this.target.device_imei,
+                    sim_card_number: this.target.sim_card_number,
+                    mechanic_id: form.mechanicId || '',
+                    installation_location: form.installationLocation.trim(),
+                    installation_details: form.installationDetails.trim(),
+                    engine_shutdown: form.engineShutdown,
+                    ignition_sensor: form.ignitionSensor
+                },
+                user: {
+                    _id: currentUser.id,
+                    name: currentUser.name || 'Usuario',
+                    email: currentUser.email || ''
+                },
+                reference: targetId,
+                before: { status: 'pending', lastProcess: null },
+                after: {
+                    status: 'completed',
+                    processType: 'installation',
+                    processDate: form.installationDate
+                },
+                creator: currentUser.id
+            };
+            await this.targetsService.createProcess(processData);
+
+            this.target = { ...this.target, ...(updatedTarget as any) };
+            await this.loadProcessesList(false);
+            const vehicleWasVerified = this.isInstallationChassisVerified();
+            this.clearPendingInstallationEvidence();
+            this.resetInstallationChassisScan(false);
+            this.displayInstallationRegistrationDialog = false;
+            this.installationRegistrationStep = 1;
+            this.targetUpdatedWithoutClose.emit(this.target);
+            if (vehicleWasVerified) this.vehicleVerified.emit(this.target);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Instalación registrada',
+                detail: 'El proceso de instalación quedó guardado en el historial del objetivo.'
+            });
+        } catch (error) {
+            console.error('Error al registrar la instalación inicial:', error);
+            await this.loadProcessesList(false);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo registrar la instalación',
+                detail: getApiErrorMessage(error, 'Revisa los datos e intenta nuevamente.')
+            });
+        } finally {
+            this.isRegisteringInstallation = false;
+        }
+    }
+
+    private getEmptyInstallationRegistrationForm() {
+        return {
+            installationDate: this.getTodayInputDate(),
+            mechanicId: '',
+            installationLocation: '',
+            installationDetails: '',
+            engineShutdown: 'No',
+            ignitionSensor: 'No'
+        };
     }
 
     // Abrir modal de historial de procesos

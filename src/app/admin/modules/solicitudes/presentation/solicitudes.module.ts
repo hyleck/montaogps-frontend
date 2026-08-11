@@ -5,9 +5,10 @@ import { TranslateModule } from '@ngx-translate/core';
 import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.module';
 import { SolicitudesRoutingModule } from './solicitudes-routing.module';
 import { SolicitudesComponent } from './components/solicitudes/solicitudes.component';
+import { SolicitudAssistanceComponent } from './components/solicitud-assistance/solicitud-assistance.component';
 
 @NgModule({
-    declarations: [SolicitudesComponent],
+    declarations: [SolicitudesComponent, SolicitudAssistanceComponent],
     imports: [CommonModule, FormsModule, TranslateModule, PrimengModule, SolicitudesRoutingModule],
 })
 export class SolicitudesModule { }

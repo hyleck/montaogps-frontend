@@ -19,6 +19,18 @@ describe('SolicitudesComponent scheduled date editing', () => {
                 })),
             create: jasmine.createSpy('create').and.returnValue(of({})),
             update: jasmine.createSpy('update').and.returnValue(of({})),
+            reorder: jasmine.createSpy('reorder').and.callFake((items: Array<{
+                id: string;
+                status: string;
+                order: number;
+                expected_version?: number;
+            }>) => of(items.map(item => ({
+                _id: item.id,
+                type: 'instalacion',
+                status: item.status,
+                order: item.order,
+                __v: (item.expected_version || 0) + 1,
+            })))),
             reassign: jasmine.createSpy('reassign').and.returnValue(of({})),
             lock: jasmine.createSpy('lock').and.callFake((id: string, reason: string) => of({
                 _id: id,
@@ -1924,6 +1936,105 @@ describe('SolicitudesComponent scheduled date editing', () => {
         ]);
     });
 
+    it('always places locked requests after unlocked requests in every Kanban column', () => {
+        const { component } = createComponent();
+        component.solicitudes = [
+            { _id: 'locked-first-hour', type: 'instalacion', status: 'pendiente', locked: true, scheduled_date: '2026-08-06T08:00' },
+            { _id: 'unlocked-later-hour', type: 'instalacion', status: 'pendiente', scheduled_date: '2026-08-06T15:00' },
+            { _id: 'locked-second-hour', type: 'instalacion', status: 'pendiente', locked: true, scheduled_date: '2026-08-06T10:00' },
+            { _id: 'unlocked-first-hour', type: 'instalacion', status: 'pendiente', scheduled_date: '2026-08-06T09:00' },
+        ];
+
+        expect(component.pendientes.map(item => item._id)).toEqual([
+            'unlocked-first-hour',
+            'unlocked-later-hour',
+            'locked-first-hour',
+            'locked-second-hour',
+        ]);
+    });
+
+    it('does not include locked cards when moving another request', async () => {
+        const { component, solicitudesService } = createComponent();
+        const moved: Solicitud = {
+            _id: 'request-being-moved',
+            type: 'instalacion',
+            status: 'pendiente',
+            order: 0,
+            __v: 2,
+        };
+        const unlockedTarget: Solicitud = {
+            _id: 'unlocked-target',
+            type: 'instalacion',
+            status: 'en_progreso',
+            order: 0,
+            __v: 4,
+        };
+        const lockedTarget: Solicitud = {
+            _id: 'locked-target',
+            type: 'instalacion',
+            status: 'en_progreso',
+            order: 1,
+            __v: 7,
+            locked: true,
+            locked_by_name: 'Ericka Tatis Reyes',
+        };
+        component.solicitudes = [moved, unlockedTarget, lockedTarget];
+        component.draggedSolicitud = moved;
+        const column = document.createElement('section');
+        column.classList.add('sol-kanban-column');
+
+        component.onDrop({
+            preventDefault: jasmine.createSpy('preventDefault'),
+            target: column,
+            clientY: 0,
+        } as unknown as DragEvent, 'en_progreso');
+        await Promise.resolve();
+
+        const payload = solicitudesService.reorder.calls.mostRecent().args[0] as Array<{
+            id: string;
+            status: string;
+            order: number;
+            expected_version?: number;
+        }>;
+        expect(payload.map(item => item.id)).toEqual([
+            'unlocked-target',
+            'request-being-moved',
+        ]);
+        expect(payload.some(item => item.id === 'locked-target')).toBeFalse();
+        expect(lockedTarget.order).toBe(1);
+        expect(lockedTarget.status).toBe('en_progreso');
+    });
+
+    it('places locked requests at the end of each calendar day', () => {
+        const { component } = createComponent();
+        component.solicitudes = [
+            {
+                _id: 'locked-morning',
+                type: 'instalacion',
+                status: 'pendiente',
+                mechanic_id: 'tech-1',
+                locked: true,
+                scheduled_date: '2026-08-06T08:00',
+            },
+            {
+                _id: 'unlocked-afternoon',
+                type: 'chequeo',
+                status: 'pendiente',
+                mechanic_id: 'tech-1',
+                scheduled_date: '2026-08-06T15:00',
+            },
+        ];
+        component.calendarCurrentMonth = new Date(2026, 7, 1);
+
+        component.refreshSolicitudCalendar();
+
+        const calendarDay = component.calendarDays.find(day => day.dateKey === '2026-08-06');
+        expect(calendarDay?.solicitudes.map(item => item._id)).toEqual([
+            'unlocked-afternoon',
+            'locked-morning',
+        ]);
+    });
+
     it('requires a reason and blocks the request through the dedicated action', async () => {
         const { component, solicitudesService } = createComponent();
         const solicitud: Solicitud = {
@@ -1965,5 +2076,59 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(solicitudesService.unlock).toHaveBeenCalledWith('request-to-unlock');
         expect(component.solicitudes[0].locked).toBeFalse();
         expect(component.solicitudes[0].unlocked_by_name).toBe('Usuario Root');
+    });
+
+    it('keeps a locked request inert until it is unlocked', async () => {
+        const { component, solicitudesService, messageService } = createComponent();
+        const installation = { device_imei: '868720064472750' };
+        const locked: Solicitud = {
+            _id: 'locked-request',
+            type: 'instalacion',
+            status: 'en_progreso',
+            mechanic_id: 'technician-1',
+            locked: true,
+            lock_reason: 'Pendiente de revisión administrativa',
+            installations: [installation],
+        };
+        component.solicitudes = [locked];
+
+        await component.editSolicitud(locked);
+        component.openKanbanProcessDetails(locked, installation, 0);
+        component.openTechnicianAvailabilityDialog(locked);
+        component.openSolicitudAssistance(locked);
+        component.selectedSolicitud = { ...locked };
+        await component.saveSolicitud();
+
+        expect(component.dialogVisible).toBeFalse();
+        expect(component.processDetailsDialogVisible).toBeFalse();
+        expect(component.technicianDialogVisible).toBeFalse();
+        expect(component.assistanceDialogVisible).toBeFalse();
+        expect(solicitudesService.update).not.toHaveBeenCalled();
+        expect(messageService.add).toHaveBeenCalledWith(
+            jasmine.objectContaining({ summary: 'Solicitud bloqueada' }),
+        );
+    });
+
+    it('opens assistance only for requests that are in progress', () => {
+        const { component } = createComponent();
+        const inProgress: Solicitud = {
+            _id: 'request-in-progress',
+            type: 'instalacion',
+            status: 'en_progreso',
+            installations: [{}],
+        };
+        const pending: Solicitud = {
+            _id: 'request-pending',
+            type: 'instalacion',
+            status: 'pendiente',
+            installations: [{}],
+        };
+
+        component.openSolicitudAssistance(pending);
+        expect(component.assistanceDialogVisible).toBeFalse();
+
+        component.openSolicitudAssistance(inProgress);
+        expect(component.assistanceDialogVisible).toBeTrue();
+        expect(component.assistanceSolicitud).toBe(inProgress);
     });
 });

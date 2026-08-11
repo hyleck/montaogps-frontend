@@ -1,0 +1,396 @@
+<p-dialog
+  [(visible)]="visible"
+  (visibleChange)="visibleChange.emit($event)"
+  (onHide)="close()"
+  [modal]="true"
+  [dismissableMask]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [appendTo]="'body'"
+  [blockScroll]="true"
+  styleClass="sol-assistance-dialog"
+  [style]="{ width: 'min(1120px, 96vw)' }">
+
+  <ng-template pTemplate="header">
+    <div class="sol-assistance-heading">
+      <small>ASISTENCIA</small>
+      <strong>{{ workingSolicitud?.client_name || 'Solicitud en progreso' }}</strong>
+    </div>
+  </ng-template>
+
+  <div class="sol-assistance-shell" [class.is-single-process]="!hasMultipleProcesses" *ngIf="workingSolicitud as request">
+    <aside class="sol-assistance-processes" *ngIf="hasMultipleProcesses">
+      <div class="sol-assistance-request">
+        <strong>Procesos</strong>
+        <small>{{ request.installations?.length || 0 }} disponibles</small>
+      </div>
+
+      <button
+        type="button"
+        class="sol-assistance-process"
+        *ngFor="let item of request.installations; let index = index"
+        [ngClass]="processTabClass(index)"
+        (click)="selectProcess(index)">
+        <span class="sol-assistance-process__number">{{ index + 1 }}</span>
+        <div>
+          <strong>{{ getProcessLabel(request.type === 'mixta' ? (item.process_type || 'instalacion') : request.type) }}</strong>
+          <small>{{ item.new_device_imei || item.device_imei || 'Sin dispositivo' }}</small>
+          <em [attr.data-state]="getProcessStatus(item).state">{{ getProcessStatus(item).label }}</em>
+        </div>
+        <i class="pi pi-angle-right"></i>
+      </button>
+    </aside>
+
+    <main class="sol-assistance-main" #assistanceMain>
+      <div class="sol-assistance-toolbar">
+        <div>
+          <small *ngIf="hasMultipleProcesses">PROCESO {{ selectedIndex + 1 | number:'2.0-0' }}</small>
+          <h3>{{ processLabel }}</h3>
+          <span class="sol-assistance-device-type" [attr.data-type]="deviceType">{{ deviceTypeLabel }}</span>
+        </div>
+        <div class="sol-assistance-toolbar__actions">
+          <button type="button" class="sol-assistance-technician-refresh" (click)="requestTechnicianDataRefresh()"
+            [disabled]="technicianRefreshLoading || technicianLogoutLoading || technicianPresenceState?.refresh_pending || technicianPresenceState?.logout_pending || !request.mechanic_id">
+            <i class="pi" [ngClass]="technicianRefreshLoading ? 'pi-spin pi-spinner' : 'pi-mobile'"></i>
+            {{ technicianPresenceState?.refresh_pending ? 'Actualización pendiente' : 'Actualizar datos del técnico' }}
+          </button>
+          <button type="button" class="sol-assistance-technician-logout" (click)="requestTechnicianLogout()"
+            [disabled]="technicianLogoutLoading || technicianRefreshLoading || technicianPresenceState?.refresh_pending || technicianPresenceState?.logout_pending || !request.mechanic_id">
+            <i class="pi" [ngClass]="technicianLogoutLoading ? 'pi-spin pi-spinner' : 'pi-sign-out'"></i>
+            {{ technicianPresenceState?.logout_pending ? 'Cierre pendiente' : 'Cerrar sesión del técnico' }}
+          </button>
+          <button type="button" class="sol-assistance-refresh" (click)="refreshSolicitud()" [disabled]="refreshing">
+            <i class="pi" [ngClass]="refreshing ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
+            Actualizar
+          </button>
+        </div>
+      </div>
+
+      <ng-container *ngIf="!activeActionId">
+        <section class="sol-assistance-overview" *ngIf="installation as process">
+          <div class="sol-assistance-overview__copy">
+            <small>ESTADO</small>
+            <strong>{{ getProcessStatus(process).label }}</strong>
+          </div>
+          <div class="sol-assistance-progress">
+            <div><span>Avance</span><strong>{{ progressPercent }}%</strong></div>
+            <div class="sol-assistance-progress__track"><span [style.width.%]="progressPercent"></span></div>
+            <small>{{ completedActionCount }} de {{ measurableActionCount }} pasos</small>
+          </div>
+          <div class="sol-assistance-device-state" [class.is-online]="currentDeviceOnline">
+            <i class="pi" [ngClass]="deviceLoading ? 'pi-spin pi-spinner' : isLocationOnly ? 'pi-map-marker' : 'pi-wifi'"></i>
+            <span>
+              <small>{{ activeImei || 'SIN DISPOSITIVO' }}</small>
+              <strong>{{ deviceLoading ? 'Consultando…' : currentDeviceStatus }}</strong>
+            </span>
+          </div>
+        </section>
+
+        <p class="sol-assistance-error" *ngIf="deviceError">
+          <i class="pi pi-exclamation-triangle"></i>{{ deviceError }}
+        </p>
+
+        <section class="sol-assistance-actions" *ngIf="installation">
+          <header>
+            <h4>Acciones de {{ processLabel | lowercase }}</h4>
+            <span>Selecciona una para continuar</span>
+          </header>
+
+          <div class="sol-assistance-action-grid">
+            <button
+              *ngFor="let action of actions; let actionIndex = index; trackBy: trackAction"
+              type="button"
+              class="sol-assistance-action"
+              [attr.data-state]="action.state"
+              (click)="openAction(action, $event, assistanceMain)">
+              <span class="sol-assistance-action__order">{{ actionIndex + 1 | number:'2.0-0' }}</span>
+              <span class="sol-assistance-action__icon"><i class="pi" [ngClass]="action.icon"></i></span>
+              <span class="sol-assistance-action__copy">
+                <strong>{{ action.title }}</strong>
+                <small class="sol-assistance-technician-here" *ngIf="isTechnicianHere(action.id)">
+                  <i aria-hidden="true"></i>{{ technicianHereName }} está aquí
+                </small>
+              </span>
+              <span class="sol-assistance-action__state">
+                <i class="pi" [ngClass]="actionStateIcon(action.state)"></i>
+                {{ actionStateLabel(action.state) }}
+              </span>
+              <i class="pi pi-arrow-right sol-assistance-action__chevron"></i>
+            </button>
+          </div>
+        </section>
+      </ng-container>
+
+      <section class="sol-assistance-action-screen" *ngIf="activeAction as action">
+        <header class="sol-assistance-action-screen__header" [attr.data-state]="action.state">
+          <button type="button" class="sol-assistance-action-screen__back" (click)="backToActions(assistanceMain)">
+            <i class="pi pi-arrow-left"></i>
+            Acciones
+          </button>
+          <span class="sol-assistance-action-screen__icon"><i class="pi" [ngClass]="action.icon"></i></span>
+          <div>
+            <small>ACCIÓN</small>
+            <h4>{{ action.title }}</h4>
+            <p>{{ action.description }}</p>
+            <span class="sol-assistance-technician-here" *ngIf="isTechnicianHere(action.id)">
+              <i aria-hidden="true"></i>{{ technicianHereName }} está aquí
+            </span>
+          </div>
+          <span class="sol-assistance-action__state">
+            <i class="pi" [ngClass]="actionStateIcon(action.state)"></i>
+            {{ actionStateLabel(action.state) }}
+          </span>
+        </header>
+
+        <p class="sol-assistance-error" *ngIf="deviceError">
+          <i class="pi pi-exclamation-triangle"></i>{{ deviceError }}
+        </p>
+
+        <div class="sol-assistance-action__details" *ngIf="action.details?.length">
+          <div *ngFor="let detail of action.details; trackBy: trackActionDetail" [attr.data-state]="detail.state">
+            <i class="pi" [ngClass]="actionStateIcon(detail.state)"></i>
+            <span>{{ detail.label }}</span>
+            <small>{{ actionStateLabel(detail.state) }}</small>
+          </div>
+        </div>
+
+        <div class="sol-assistance-workspace">
+          <p class="sol-assistance-workspace__error" *ngIf="actionError">
+            <i class="pi pi-exclamation-triangle"></i>{{ actionError }}
+          </p>
+
+            <ng-container *ngIf="action.id === 'device' || action.id === 'gps'">
+              <div class="sol-assistance-inventory-controls" [class.has-action]="selectedInventoryDevice && !activeImei">
+                <div class="sol-assistance-workspace__heading">
+                  <div><strong>{{ activeImei ? 'Reemplazar dispositivo' : 'Seleccionar dispositivo' }}</strong><small>{{ inventoryTotal }} disponible(s)</small></div>
+                </div>
+                <div class="sol-assistance-searchbar">
+                  <span class="p-input-icon-left"><i class="pi pi-search"></i><input pInputText [(ngModel)]="inventoryQuery" (keyup.enter)="searchInventory()" placeholder="IMEI, SIM o ID SIM" /></span>
+                  <button pButton type="button" class="p-button-outlined" icon="pi pi-search" label="Buscar" (click)="searchInventory()" [loading]="inventoryLoading"></button>
+                </div>
+                <button
+                  *ngIf="selectedInventoryDevice && !activeImei"
+                  pButton
+                  type="button"
+                  class="sol-assistance-configure"
+                  icon="pi pi-link"
+                  label="Configurar"
+                  (click)="applySelectedDevice()"
+                  [loading]="working"
+                  [disabled]="!canEditProcess">
+                </button>
+              </div>
+              <div class="sol-assistance-inventory">
+                <button type="button" *ngFor="let device of inventoryDevices" [class.selected]="selectedInventoryDevice?._id === device._id" (click)="selectInventoryDevice(device)">
+                  <span class="sol-assistance-radio"><i class="pi pi-check"></i></span>
+                  <span><strong>{{ inventoryIdentifier(device) }}</strong><small>{{ inventoryProtocol(device) }} · SIM {{ device.SIM || device.sim || 'N/A' }}</small></span>
+                </button>
+                <p *ngIf="!inventoryLoading && !inventoryDevices.length"><i class="pi pi-inbox"></i> No hay dispositivos disponibles con este filtro.</p>
+              </div>
+              <label class="sol-assistance-field is-wide" *ngIf="selectedInventoryDevice && activeImei">
+                <span>Motivo del reemplazo</span>
+                <textarea pInputTextarea rows="2" [(ngModel)]="replacementReason" placeholder="Describe por qué se cambiará el GPS (mínimo 10 caracteres)"></textarea>
+              </label>
+              <div class="sol-assistance-workspace__actions" *ngIf="selectedInventoryDevice && activeImei">
+                <button pButton type="button" icon="pi pi-link" label="Reemplazar dispositivo" (click)="applySelectedDevice()" [loading]="working" [disabled]="!canEditProcess"></button>
+              </div>
+            </ng-container>
+
+            <ng-container *ngIf="action.id === 'details'">
+              <div class="sol-assistance-form-grid">
+                <label class="sol-assistance-field"><span>Nombre del objetivo <em>Requerido</em></span><input pInputText [(ngModel)]="detailsForm['target_name']" placeholder="Ej: Toyota Corolla 2024" /></label>
+                <label class="sol-assistance-field"><span>Categoría</span><p-dropdown [options]="targetCategories" [(ngModel)]="detailsForm['target_category']" optionLabel="label" optionValue="value" placeholder="Selecciona la categoría" appendTo="body"></p-dropdown></label>
+                <ng-container *ngIf="deviceType !== 'mtag_p'">
+                  <label class="sol-assistance-field is-brand-field">
+                    <span>Marca <em>Requerido</em></span>
+                    <p-dropdown
+                      [options]="vehicleBrands"
+                      [(ngModel)]="detailsForm['brand']"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Selecciona la marca"
+                      [filter]="true"
+                      filterBy="label"
+                      [showClear]="true"
+                      [loading]="vehicleCatalogLoading"
+                      appendTo="body"
+                      (onChange)="onVehicleBrandChange($event.value)">
+                    </p-dropdown>
+                  </label>
+                  <label class="sol-assistance-field is-model-field">
+                    <span>Modelo <em>Requerido</em></span>
+                    <p-dropdown
+                      [options]="vehicleModels"
+                      [(ngModel)]="detailsForm['model']"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Selecciona el modelo"
+                      [filter]="true"
+                      filterBy="label"
+                      [showClear]="true"
+                      [loading]="vehicleModelsLoading"
+                      [disabled]="!detailsForm['brand'] || vehicleModelsLoading"
+                      appendTo="body">
+                    </p-dropdown>
+                  </label>
+                  <label class="sol-assistance-field">
+                    <span>Año</span>
+                    <p-dropdown [options]="vehicleYears" [(ngModel)]="detailsForm['year']" optionLabel="label" optionValue="value" placeholder="Selecciona el año" [showClear]="true" appendTo="body"></p-dropdown>
+                  </label>
+                  <label class="sol-assistance-field">
+                    <span>Color</span>
+                    <p-dropdown
+                      [options]="vehicleColors"
+                      [(ngModel)]="detailsForm['color']"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Selecciona el color"
+                      [filter]="true"
+                      filterBy="label"
+                      [showClear]="true"
+                      [loading]="vehicleCatalogLoading"
+                      appendTo="body">
+                      <ng-template pTemplate="selectedItem" let-color>
+                        <span class="sol-assistance-color-option" *ngIf="color"><i [style.background-color]="color.value"></i>{{ color.label }}</span>
+                      </ng-template>
+                      <ng-template pTemplate="item" let-color>
+                        <span class="sol-assistance-color-option"><i [style.background-color]="color.value"></i>{{ color.label }}</span>
+                      </ng-template>
+                    </p-dropdown>
+                  </label>
+                  <label class="sol-assistance-field"><span>Placa <em>Requerido</em></span><input pInputText [(ngModel)]="detailsForm['plate']" placeholder="Ej: AA12345" /></label>
+                  <label class="sol-assistance-field"><span>Chasis</span><input pInputText [(ngModel)]="detailsForm['chassis']" placeholder="Ej: 1HGCM82633A123456" /></label>
+                </ng-container>
+                <ng-container *ngIf="deviceType === 'gps'">
+                  <label class="sol-assistance-field"><span>Número SIM</span><input pInputText [(ngModel)]="detailsForm['sim_card_number']" placeholder="Ej: 8951800000000000000" /></label>
+                  <label class="sol-assistance-field"><span>Compañía SIM</span><p-dropdown [options]="simCompanyOptions" [(ngModel)]="detailsForm['sim_company']" optionLabel="label" optionValue="value" placeholder="Selecciona la compañía" [showClear]="true" appendTo="body"></p-dropdown></label>
+                  <label class="sol-assistance-field"><span>Apagado</span><p-dropdown [options]="yesNoOptions" [(ngModel)]="detailsForm['engine_shutdown']" optionLabel="label" optionValue="value" placeholder="Selecciona una opción" appendTo="body"></p-dropdown></label>
+                  <label class="sol-assistance-field"><span>Sensor de ignición</span><p-dropdown [options]="yesNoOptions" [(ngModel)]="detailsForm['ignition_sensor']" optionLabel="label" optionValue="value" placeholder="Selecciona una opción" appendTo="body"></p-dropdown></label>
+                </ng-container>
+                <label class="sol-assistance-field is-wide"><span>Detalles técnicos</span><textarea pInputTextarea rows="3" [(ngModel)]="detailsForm['installation_details']" placeholder="Describe la ubicación, conexión y cualquier detalle importante de la instalación"></textarea></label>
+              </div>
+              <div class="sol-assistance-workspace__actions"><button pButton type="button" icon="pi pi-save" label="Guardar datos" (click)="saveDetails()" [loading]="working" [disabled]="!canEditProcess"></button></div>
+            </ng-container>
+
+            <ng-container *ngIf="action.id === 'before-evidence' || action.id === 'after-evidence'">
+              <div class="sol-assistance-evidence-grid" *ngIf="action.state !== 'not_applicable'">
+                <label *ngFor="let field of (action.id === 'before-evidence' ? visibleBeforeEvidenceFields : afterEvidenceFields)" [class.has-file]="evidenceFiles[field.key]" [class.is-saved]="hasEvidence(field.key)">
+                  <input type="file" accept="image/*" (change)="onEvidenceSelected(field.key, $event)" [disabled]="!canEditProcess" />
+                  <i class="pi" [ngClass]="evidenceFiles[field.key] || hasEvidence(field.key) ? 'pi-check-circle' : 'pi-camera'"></i>
+                  <strong>{{ field.label }}</strong>
+                  <small>{{ evidenceFiles[field.key]?.name || (hasEvidence(field.key) ? 'Ya guardada · reemplazar' : 'Seleccionar imagen') }}</small>
+                </label>
+              </div>
+              <div class="sol-assistance-workspace__actions" *ngIf="action.state !== 'not_applicable'">
+                <button pButton type="button" icon="pi pi-upload" label="Subir imágenes seleccionadas" (click)="uploadEvidence(action.id)" [loading]="working" [disabled]="!canEditProcess || !currentDeviceId"></button>
+              </div>
+            </ng-container>
+
+            <ng-container *ngIf="action.id === 'activation'">
+              <div class="sol-assistance-live-status" [class.is-online]="currentDeviceOnline">
+                <i class="pi" [ngClass]="isLocationOnly ? 'pi-map-marker' : 'pi-wifi'"></i>
+                <span><small>ESTADO ACTUAL</small><strong>{{ currentDeviceStatus }}</strong><em>{{ activeImei || 'Sin dispositivo' }}</em></span>
+                <button type="button" (click)="loadCurrentDevice()" [disabled]="deviceLoading"><i class="pi" [ngClass]="deviceLoading ? 'pi-spin pi-spinner' : 'pi-refresh'"></i> Consultar</button>
+              </div>
+              <div class="sol-assistance-workspace__actions" *ngIf="!isLocationOnly">
+                <button pButton type="button" icon="pi pi-bolt" label="Iniciar activación" (click)="activateDevice()" [loading]="working" [disabled]="!canEditProcess || !currentDeviceId"></button>
+              </div>
+            </ng-container>
+
+            <ng-container *ngIf="action.id === 'shutdown'">
+              <div class="sol-assistance-command-warning"><i class="pi pi-exclamation-triangle"></i><span>Confirma que el vehículo está en una condición segura antes de enviar el comando.</span></div>
+              <div class="sol-assistance-workspace__actions sol-assistance-command-actions">
+                <button pButton type="button" class="p-button-outlined p-button-danger" icon="pi pi-power-off" label="Probar apagado" (click)="sendVehicleCommand('shutdown')" [loading]="working && pendingVehicleCommand === 'shutdown'" [disabled]="working || !canEditProcess || !currentDeviceId || action.state === 'not_applicable'"></button>
+                <button pButton type="button" class="p-button-outlined p-button-success" icon="pi pi-key" label="Permitir encendido" (click)="sendVehicleCommand('enable')" [loading]="working && pendingVehicleCommand === 'enable'" [disabled]="working || !canEditProcess || !currentDeviceId || action.state === 'not_applicable'"></button>
+              </div>
+            </ng-container>
+
+            <ng-container *ngIf="action.id === 'location' && action.state !== 'not_applicable'">
+              <label class="sol-assistance-field is-wide"><span>Lugar de instalación</span><p-dropdown [options]="installationLocations" [(ngModel)]="detailsForm['installation_location']" optionLabel="label" optionValue="value" appendTo="body" placeholder="Selecciona el lugar"></p-dropdown></label>
+              <div class="sol-assistance-workspace__actions"><button pButton type="button" icon="pi pi-save" label="Guardar lugar" (click)="saveLocation()" [loading]="working" [disabled]="!canEditProcess"></button></div>
+            </ng-container>
+
+            <ng-container *ngIf="action.id === 'connection'">
+              <div class="sol-assistance-check-grid">
+                <label><input type="checkbox" [(ngModel)]="recoveryForm['connection_checked']" /><span><strong>Conexión revisada</strong><small>Cableado, terminales y conexiones físicas.</small></span></label>
+                <label><input type="checkbox" [(ngModel)]="recoveryForm['connection_corrected']" /><span><strong>Conexión corregida</strong><small>Se ajustó la conexión durante la asistencia.</small></span></label>
+              </div>
+              <label class="sol-assistance-field is-wide"><span>Estado de conexión</span><p-dropdown [options]="connectionStatusOptions" [(ngModel)]="recoveryForm['connection_status']" optionLabel="label" optionValue="value" appendTo="body"></p-dropdown></label>
+              <div class="sol-assistance-workspace__actions"><button pButton type="button" icon="pi pi-save" label="Guardar revisión" (click)="saveRecoveryStep('connection')" [loading]="working" [disabled]="!canEditProcess"></button></div>
+            </ng-container>
+
+            <ng-container *ngIf="action.id === 'power'">
+              <div class="sol-assistance-check-grid">
+                <label><input type="checkbox" [(ngModel)]="recoveryForm['power_checked']" /><span><strong>Alimentación revisada</strong><small>Se comprobó voltaje estable.</small></span></label>
+                <label><input type="checkbox" [(ngModel)]="recoveryForm['power_corrected']" /><span><strong>Alimentación corregida</strong><small>Se reparó el suministro eléctrico.</small></span></label>
+              </div>
+              <div class="sol-assistance-workspace__actions"><button pButton type="button" icon="pi pi-save" label="Guardar revisión" (click)="saveRecoveryStep('power')" [loading]="working" [disabled]="!canEditProcess"></button></div>
+            </ng-container>
+
+            <ng-container *ngIf="action.id === 'sim'">
+              <div class="sol-assistance-inventory-controls">
+                <div class="sol-assistance-workspace__heading"><div><strong>SIM cards</strong><small>{{ simTotal }} disponible(s)</small></div></div>
+                <div class="sol-assistance-searchbar">
+                  <span class="p-input-icon-left"><i class="pi pi-search"></i><input pInputText [(ngModel)]="simQuery" (keyup.enter)="searchSimcards()" placeholder="Número, ID SIM o compañía" /></span>
+                  <button pButton type="button" class="p-button-outlined" icon="pi pi-search" label="Buscar" (click)="searchSimcards()" [loading]="simLoading"></button>
+                </div>
+              </div>
+              <div class="sol-assistance-inventory is-simcards">
+                <button type="button" *ngFor="let simcard of simcards" [class.selected]="selectedSimcard?._id === simcard._id" (click)="selectSimcard(simcard)">
+                  <span class="sol-assistance-radio"><i class="pi pi-check"></i></span>
+                  <span><strong>{{ simcard.iccid }}</strong><small>{{ simcard.idsim || 'Sin ID SIM' }} · {{ simcard.sim_company || 'Sin compañía' }}</small></span>
+                </button>
+              </div>
+              <div class="sol-assistance-workspace__actions" *ngIf="selectedSimcard"><button pButton type="button" icon="pi pi-sync" label="Reemplazar SIM" (click)="applySelectedSimcard()" [loading]="working" [disabled]="!canEditProcess || !currentDeviceId"></button></div>
+            </ng-container>
+
+            <ng-container *ngIf="action.id === 'online'">
+              <div class="sol-assistance-live-status" [class.is-online]="currentDeviceOnline">
+                <i class="pi pi-wifi"></i><span><small>ESTADO ACTUAL</small><strong>{{ currentDeviceStatus }}</strong><em>{{ activeImei }}</em></span>
+              </div>
+              <div class="sol-assistance-workspace__actions"><button pButton type="button" icon="pi pi-refresh" label="Consultar y confirmar en línea" (click)="confirmOnlineStatus()" [loading]="working || deviceLoading" [disabled]="!canEditProcess || !currentDeviceId"></button></div>
+            </ng-container>
+
+            <ng-container *ngIf="action.id === 'diagnosis'">
+              <div class="sol-assistance-form-grid">
+                <label class="sol-assistance-field"><span>Resolución</span><p-dropdown [options]="resolutionOptions" [(ngModel)]="recoveryForm['resolution_type']" optionLabel="label" optionValue="value" appendTo="body"></p-dropdown></label>
+                <label class="sol-assistance-field"><span>Estado de conexión</span><p-dropdown [options]="connectionStatusOptions" [(ngModel)]="recoveryForm['connection_status']" optionLabel="label" optionValue="value" appendTo="body"></p-dropdown></label>
+                <label class="sol-assistance-field is-wide"><span>Diagnóstico</span><textarea pInputTextarea rows="4" [(ngModel)]="recoveryForm['diagnosis']" placeholder="Describe las pruebas realizadas y el resultado"></textarea></label>
+              </div>
+              <div class="sol-assistance-workspace__actions"><button pButton type="button" icon="pi pi-save" label="Guardar diagnóstico" (click)="saveDiagnosis()" [loading]="working" [disabled]="!canEditProcess"></button></div>
+            </ng-container>
+
+            <ng-container *ngIf="action.id === 'finish'">
+              <div class="sol-assistance-final-box"><i class="pi" [ngClass]="isLocationOnly ? 'pi-map-marker' : 'pi-wifi'"></i><span><small>ESTADO QUE SE REGISTRARÁ</small><strong>{{ currentDeviceOnline ? currentDeviceStatus : (isLocationOnly ? 'No localizado' : 'Fuera de línea') }}</strong></span></div>
+              <div class="sol-assistance-workspace__actions" *ngIf="!cancellationMode">
+                <button pButton type="button" class="p-button-outlined p-button-danger" icon="pi pi-times" label="Cancelar proceso" (click)="beginCancellation()" [disabled]="working || !canEditProcess"></button>
+                <button pButton type="button" icon="pi pi-check" label="Finalizar proceso" (click)="finishProcess()" [loading]="working" [disabled]="!canEditProcess"></button>
+              </div>
+              <div class="sol-assistance-cancel-panel" *ngIf="cancellationMode">
+                <div class="sol-assistance-cancel-panel__heading">
+                  <i class="pi pi-exclamation-triangle"></i>
+                  <span><strong>¿Cancelar este proceso?</strong><small>Confirma esta decisión antes de guardar la cancelación.</small></span>
+                </div>
+                <label class="sol-assistance-cancel-confirm"><input type="checkbox" [(ngModel)]="confirmCancellation" /><span>Confirmo que deseo cancelar este proceso.</span></label>
+                <div class="sol-assistance-workspace__actions">
+                  <button pButton type="button" class="p-button-outlined p-button-secondary" icon="pi pi-arrow-left" label="Volver" (click)="dismissCancellation()" [disabled]="working"></button>
+                  <button pButton type="button" class="p-button-danger" icon="pi pi-times" label="Confirmar cancelación" (click)="cancelProcess()" [loading]="working" [disabled]="!confirmCancellation || !canEditProcess"></button>
+                </div>
+              </div>
+            </ng-container>
+
+            <div class="sol-assistance-locked-note" *ngIf="action.id === 'start-change'">
+              <i class="pi pi-lock"></i><span><strong>Esta acción se habilita después de cerrar el chequeo.</strong><small>GPS Mobile crea entonces la solicitud de cambio vinculada al chequeo original.</small></span>
+            </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div class="sol-assistance-footer">
+      <span><i class="pi pi-mobile"></i> Sincronizado con GPS Mobile</span>
+      <button pButton type="button" class="p-button-outlined" icon="pi pi-times" label="Cerrar" (click)="close()"></button>
+    </div>
+  </ng-template>
+</p-dialog>

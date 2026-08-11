@@ -184,6 +184,17 @@ export class InventoryService {
     return this.http.get<{ data: InventoryItem[]; total: number; page: number; lastPage: number }>(url);
   }
 
+  searchInstallationDevices(
+    query = '',
+    deviceType: 'all' | 'gps' | 'mtag_p' | 'mtag_a' = 'all',
+    status: 'available' | 'all' = 'available',
+    page = 1,
+    limit = 50,
+  ): Observable<{ data: InventoryItem[]; total: number; page: number; lastPage: number }> {
+    const url = `${this.apiUrl}/installation/devices?q=${encodeURIComponent(query)}&device_type=${deviceType}&status=${status}&page=${page}&limit=${limit}`;
+    return this.http.get<{ data: InventoryItem[]; total: number; page: number; lastPage: number }>(url);
+  }
+
   searchDevicesByPackage(packageId: string, query: string, storageId?: string, page = 1, limit = 20, status?: string): Observable<{ data: InventoryItem[]; total: number; page: number; lastPage: number }> {
     let url = `${this.packagesUrl}/${packageId}/devices/search/${encodeURIComponent(query)}?page=${page}&limit=${limit}`;
     if (storageId) {
@@ -260,6 +271,15 @@ export class InventoryService {
     if (simCompany) {
       url += `&sim_company=${encodeURIComponent(simCompany)}`;
     }
+    return this.http.get<{ data: SimcardItem[]; total: number; page: number; lastPage: number }>(url);
+  }
+
+  searchInstallationSimcards(
+    query = '',
+    page = 1,
+    limit = 100,
+  ): Observable<{ data: SimcardItem[]; total: number; page: number; lastPage: number }> {
+    const url = `${this.apiUrl}/installation/simcards?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`;
     return this.http.get<{ data: SimcardItem[]; total: number; page: number; lastPage: number }>(url);
   }
 

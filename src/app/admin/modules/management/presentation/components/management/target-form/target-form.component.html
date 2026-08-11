@@ -446,7 +446,7 @@
                                     <!-- Columna Izquierda -->
                                     <div class="target-form__column">
                                         <!-- Select de Técnico -->
-                                        <div class="target-form__field" *ngIf="!getAdditionalInstallations().length">
+                                        <div class="target-form__field" *ngIf="!getAdditionalInstallations().length && !shouldShowInstallationRegistration()">
                                             <label for="technician">{{ translate('management.targetForm.technician') }}</label>
                                             <select [(ngModel)]="target.mechanic_id" name="mechanic_id" id="technician"
                                                 [disabled]="isEditMode">
@@ -456,6 +456,22 @@
                                                     {{tech.label}}
                                                 </option>
                                             </select>
+                                        </div>
+
+                                        <div class="target-form__field installation-registration-launch"
+                                            *ngIf="!getAdditionalInstallations().length && shouldShowInstallationRegistration()">
+                                            <label>Instalación</label>
+                                            <button type="button" class="installation-registration-launch__button"
+                                                (click)="openInstallationRegistrationDialog()">
+                                                <span class="installation-registration-launch__icon">
+                                                    <i class="pi pi-wrench"></i>
+                                                </span>
+                                                <span>
+                                                    <strong>Registrar instalación</strong>
+                                                    <small>Completar el proceso paso a paso</small>
+                                                </span>
+                                                <i class="pi pi-chevron-right"></i>
+                                            </button>
                                         </div>
 
                                         <div class="target-form__field">
@@ -2310,6 +2326,207 @@
             </p-dialog>
         </div>
     </div>
+
+    <p-dialog [(visible)]="displayInstallationRegistrationDialog" [modal]="true" appendTo="body"
+        [closable]="!isRegisteringInstallation" [closeOnEscape]="!isRegisteringInstallation"
+        [draggable]="false" [resizable]="false" styleClass="installation-registration-dialog"
+        [style]="{width: 'min(94vw, 680px)'}" (onHide)="closeInstallationRegistrationDialog()">
+        <ng-template pTemplate="header">
+            <div class="installation-registration-dialog__header">
+                <span><i class="pi pi-wrench"></i></span>
+                <div>
+                    <strong>Registrar instalación</strong>
+                    <small>{{ target.name || target.device_imei }} · Paso {{ installationRegistrationStep }} de 4</small>
+                </div>
+            </div>
+        </ng-template>
+
+        <div class="installation-registration-steps" aria-label="Progreso del registro">
+            <span *ngFor="let step of [1, 2, 3, 4]" [class.is-active]="installationRegistrationStep >= step">
+                {{ step }}
+            </span>
+        </div>
+
+        <section class="installation-registration-content" *ngIf="installationRegistrationStep === 1">
+            <div class="installation-registration-intro">
+                <i class="pi pi-map-marker"></i>
+                <div><strong>Datos de la instalación</strong><small>Indica cuándo, dónde y quién realizó el trabajo.</small></div>
+            </div>
+            <div class="installation-registration-grid">
+                <div class="target-form__field">
+                    <label for="registration_installation_date">Fecha de instalación <span class="required-label">(Requerido)</span></label>
+                    <input id="registration_installation_date" type="date"
+                        [(ngModel)]="installationRegistrationForm.installationDate">
+                </div>
+                <div class="target-form__field">
+                    <label for="registration_technician">Técnico</label>
+                    <select id="registration_technician" [(ngModel)]="installationRegistrationForm.mechanicId">
+                        <option value="">Seleccionar técnico</option>
+                        <option *ngFor="let tech of availableTechnicians" [value]="tech.value">{{ tech.label }}</option>
+                    </select>
+                </div>
+                <div class="target-form__field installation-registration-grid__wide">
+                    <label for="registration_location">Lugar de instalación</label>
+                    <select id="registration_location" [(ngModel)]="installationRegistrationForm.installationLocation">
+                        <option value="">Seleccionar</option>
+                        <option *ngFor="let location of availableLocations" [value]="location.value">{{ location.label }}</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section class="installation-registration-content installation-registration-evidence"
+            *ngIf="installationRegistrationStep === 2">
+            <div class="installation-registration-intro">
+                <i class="pi pi-images"></i>
+                <div>
+                    <strong>Fotos de la instalación</strong>
+                    <small>La foto del chasis se analiza para verificar el vehículo y completar sus datos.</small>
+                </div>
+            </div>
+
+            <div class="installation-chassis-scan installation-chassis-scan--loading"
+                *ngIf="isScanningInstallationChassis">
+                <i class="pi pi-spin pi-spinner"></i>
+                <div><strong>Verificando el chasis...</strong><small>Estamos leyendo la numeración y los datos visibles del vehículo.</small></div>
+            </div>
+            <div class="installation-chassis-scan installation-chassis-scan--error"
+                *ngIf="!isScanningInstallationChassis && installationChassisScanError">
+                <i class="pi pi-exclamation-triangle"></i>
+                <div><strong>No pudimos verificar esta foto</strong><small>{{ installationChassisScanError }}</small></div>
+            </div>
+            <div class="installation-chassis-scan installation-chassis-scan--success"
+                *ngIf="!isScanningInstallationChassis && isInstallationChassisVerified()">
+                <i class="pi pi-verified"></i>
+                <div>
+                    <strong>Vehículo verificado</strong>
+                    <small>Los datos encontrados se aplicarán al objetivo al registrar la instalación.</small>
+                    <span class="installation-chassis-scan__fields">
+                        <em *ngFor="let entry of getInstallationChassisScanEntries()">
+                            <b>{{ entry.label }}:</b> {{ entry.value }}
+                        </em>
+                    </span>
+                </div>
+            </div>
+
+            <section class="installation-evidence-section"
+                *ngFor="let evidenceSection of [
+                    { key: 'before', title: 'Antes de la instalación', subtitle: 'Documentos, vehículo y lugar antes de comenzar', icon: 'pi-camera' },
+                    { key: 'equipment', title: 'Equipo instalado', subtitle: 'Numeración del GPS y de la SIM', icon: 'pi-wifi' },
+                    { key: 'after', title: 'Después de la instalación', subtitle: 'Lugar, exterior e interior al finalizar', icon: 'pi-check-circle' }
+                ]">
+                <div class="installation-evidence-section__title">
+                    <span><i class="pi" [ngClass]="evidenceSection.icon"></i> {{ evidenceSection.title }}</span>
+                    <small>{{ evidenceSection.subtitle }}</small>
+                </div>
+                <div class="installation-evidence-grid installation-registration-evidence__grid">
+                    <article class="installation-evidence-card"
+                        *ngFor="let item of getInstallationEvidenceBySection($any(evidenceSection.key))"
+                        [class.installation-evidence-card--pending]="hasPendingInstallationEvidence(item.key)">
+                        <div class="installation-evidence-card__preview">
+                            <img *ngIf="getInstallationEvidenceUrl(item.key) as imageUrl"
+                                [src]="imageUrl" [alt]="item.label">
+                            <div *ngIf="!getInstallationEvidenceUrl(item.key)" class="installation-evidence-card__empty">
+                                <i class="pi" [ngClass]="item.icon"></i><span>Imagen pendiente</span>
+                            </div>
+                            <span class="installation-evidence-card__status"
+                                *ngIf="getInstallationEvidenceUrl(item.key)">
+                                <i class="pi" [ngClass]="hasPendingInstallationEvidence(item.key) ? 'pi-clock' : 'pi-check'"></i>
+                                {{ hasPendingInstallationEvidence(item.key) ? 'Lista' : 'Registrada' }}
+                            </span>
+                        </div>
+                        <div class="installation-evidence-card__body">
+                            <strong>{{ item.label }}</strong>
+                            <small *ngIf="getInstallationEvidenceOriginalName(item.key)">
+                                {{ getInstallationEvidenceOriginalName(item.key) }}
+                            </small>
+                            <div class="installation-evidence-card__actions">
+                                <label [attr.for]="'registration-evidence-' + item.key">
+                                    <i class="pi pi-upload"></i>
+                                    {{ getInstallationEvidenceUrl(item.key) ? 'Reemplazar' : 'Subir' }}
+                                </label>
+                                <button type="button" *ngIf="hasPendingInstallationEvidence(item.key)"
+                                    (click)="removePendingInstallationEvidence(item.key, $event)" title="Descartar imagen">
+                                    <i class="pi pi-times"></i>
+                                </button>
+                                <input [id]="'registration-evidence-' + item.key" type="file"
+                                    accept="image/*" hidden
+                                    (change)="onInstallationEvidenceFileSelected($event, item.key)">
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </section>
+        </section>
+
+        <section class="installation-registration-content" *ngIf="installationRegistrationStep === 3">
+            <div class="installation-registration-intro">
+                <i class="pi pi-cog"></i>
+                <div><strong>Configuración realizada</strong><small>Registra los accesorios y anotaciones técnicas.</small></div>
+            </div>
+            <div class="installation-registration-grid">
+                <div class="target-form__field">
+                    <label for="registration_shutdown">Apagado de motor</label>
+                    <select id="registration_shutdown" [(ngModel)]="installationRegistrationForm.engineShutdown">
+                        <option value="No">No</option><option value="Si">Sí</option>
+                    </select>
+                </div>
+                <div class="target-form__field">
+                    <label for="registration_ignition">Sensor de ignición</label>
+                    <select id="registration_ignition" [(ngModel)]="installationRegistrationForm.ignitionSensor">
+                        <option value="No">No</option><option value="Si">Sí</option>
+                    </select>
+                </div>
+                <div class="target-form__field installation-registration-grid__wide">
+                    <label for="registration_details">Detalles de instalación</label>
+                    <textarea id="registration_details" rows="4"
+                        [(ngModel)]="installationRegistrationForm.installationDetails"
+                        placeholder="Anotaciones sobre el lugar, conexión o trabajo realizado"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <section class="installation-registration-content" *ngIf="installationRegistrationStep === 4">
+            <div class="installation-registration-intro installation-registration-intro--success">
+                <i class="pi pi-check-circle"></i>
+                <div><strong>Confirma el registro</strong><small>Se actualizará el objetivo y se agregará la instalación inicial a Procesos.</small></div>
+            </div>
+            <dl class="installation-registration-summary">
+                <div><dt>Objetivo</dt><dd>{{ target.name || 'Sin nombre' }}</dd></div>
+                <div><dt>IMEI</dt><dd>{{ target.device_imei }}</dd></div>
+                <div><dt>Fecha</dt><dd>{{ installationRegistrationForm.installationDate }}</dd></div>
+                <div><dt>Técnico</dt><dd>{{ getTechnicianName(installationRegistrationForm.mechanicId) }}</dd></div>
+                <div><dt>Lugar</dt><dd>{{ installationRegistrationForm.installationLocation || 'No especificado' }}</dd></div>
+                <div><dt>Imágenes</dt><dd>{{ getPendingInstallationEvidenceCount() }} seleccionadas</dd></div>
+                <div><dt>Chasis</dt><dd>{{ target.target_chassis_number || 'No especificado' }}</dd></div>
+                <div><dt>Vehículo</dt><dd>{{ isInstallationChassisVerified() ? 'Verificado por imagen' : 'Sin verificación nueva' }}</dd></div>
+            </dl>
+        </section>
+
+        <ng-template pTemplate="footer">
+            <div class="installation-registration-footer">
+                <button type="button" class="installation-registration-secondary"
+                    (click)="installationRegistrationStep === 1 ? closeInstallationRegistrationDialog() : previousInstallationRegistrationStep()"
+                    [disabled]="isRegisteringInstallation">
+                    <i class="pi" [ngClass]="installationRegistrationStep === 1 ? 'pi-times' : 'pi-arrow-left'"></i>
+                    {{ installationRegistrationStep === 1 ? 'Cancelar' : 'Anterior' }}
+                </button>
+                <button *ngIf="installationRegistrationStep < 4" type="button"
+                    class="installation-registration-primary" (click)="nextInstallationRegistrationStep()"
+                    [disabled]="installationRegistrationStep === 2 && isScanningInstallationChassis">
+                    <i *ngIf="installationRegistrationStep === 2 && isScanningInstallationChassis" class="pi pi-spin pi-spinner"></i>
+                    {{ installationRegistrationStep === 2 && isScanningInstallationChassis ? 'Verificando...' : 'Siguiente' }}
+                    <i *ngIf="!(installationRegistrationStep === 2 && isScanningInstallationChassis)" class="pi pi-arrow-right"></i>
+                </button>
+                <button *ngIf="installationRegistrationStep === 4" type="button"
+                    class="installation-registration-primary installation-registration-primary--success"
+                    (click)="registerInstallationProcess()" [disabled]="isRegisteringInstallation">
+                    <i class="pi" [ngClass]="isRegisteringInstallation ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+                    {{ isRegisteringInstallation ? 'Guardando...' : 'Registrar instalación' }}
+                </button>
+            </div>
+        </ng-template>
+    </p-dialog>
 
     <!-- Diálogo Formulario Personalizado -->
     <p-dialog [header]="'Formularios de ' + (getTagName(target['tag']) | titlecase)"

@@ -376,7 +376,8 @@
                                     [ngClass]="{
                                         'pi-clock': work.state === 'pending',
                                         'pi-check-circle': work.state === 'completed',
-                                        'pi-times-circle': work.state === 'cancelled'
+                                        'pi-times-circle': work.state === 'cancelled',
+                                        'pi-minus-circle': work.state === 'omitted'
                                     }"
                                     aria-hidden="true"></i>
                                 <div>
@@ -434,8 +435,17 @@
         <!-- Pendiente Column -->
         <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'pendiente')" (dragleave)="onDragLeave($event)">
             <div class="sol-kanban-header">
-                <div>Pendientes <span style="font-size: 0.8rem; opacity: 0.7;">({{ pendientes.length }})</span></div>
-                <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('pendiente')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
+                <div class="sol-kanban-header__node">
+                    <span class="sol-kanban-header__icon" aria-hidden="true"><i class="pi pi-inbox"></i></span>
+                    <span class="sol-kanban-header__label">
+                        <small>Etapa 01</small>
+                        <strong>Pendientes</strong>
+                    </span>
+                    <span class="sol-kanban-header__count">{{ pendientes.length }}</span>
+                    <button pButton pRipple icon="pi pi-plus"
+                        class="p-button-rounded p-button-text p-button-sm sol-kanban-header__add"
+                        (click)="openNew('pendiente')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
+                </div>
             </div>
             
             <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of pendientes; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
@@ -481,15 +491,18 @@
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
                         <button type="button" *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation"
-                            class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled"
-                            [class.cancelled]="inst.cancelled" (click)="openKanbanProcessDetails(sol, inst, i, $event)"
+                            class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled && !inst.omitted"
+                            [class.cancelled]="inst.cancelled" [class.omitted]="inst.omitted"
+                            [disabled]="isSolicitudLocked(sol)"
+                            (click)="openKanbanProcessDetails(sol, inst, i, $event)"
                             style="width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer;"
                             [attr.aria-label]="'Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)">
-                            <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
+                            <i *ngIf="inst.completed && !inst.cancelled && !inst.omitted" class="pi pi-check-circle"></i>
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
-                            <i *ngIf="!inst.completed && !inst.cancelled && sol.status === 'en_progreso'"
+                            <i *ngIf="inst.omitted" class="pi pi-minus-circle"></i>
+                            <i *ngIf="!inst.completed && !inst.cancelled && !inst.omitted && sol.status === 'en_progreso'"
                                 class="pi pi-spin pi-spinner sol-process-loading"></i>
-                            <i *ngIf="!inst.completed && !inst.cancelled && sol.status !== 'en_progreso'"
+                            <i *ngIf="!inst.completed && !inst.cancelled && !inst.omitted && sol.status !== 'en_progreso'"
                                 class="pi pi-circle"></i>
                             <span class="sol-process-summary">
                                 <span class="sol-process-name">
@@ -498,7 +511,7 @@
                                     <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
                                     <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
                                 </span>
-                                <small *ngIf="(inst.completed || inst.cancelled) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
+                                <small *ngIf="(inst.completed || inst.cancelled || inst.omitted) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
                                     [attr.data-state]="getInstallationFinalDeviceState(inst)">
                                     <i [class]="getInstallationFinalDeviceStatusIcon(inst)"></i>
                                     {{ getInstallationFinalDeviceStatusLabel(inst) }}
@@ -510,6 +523,7 @@
                 </div>
                 <div class="sol-tech-row" *ngIf="sol.mechanic_id" (click)="$event.stopPropagation()">
                     <button type="button" class="sol-tech-button"
+                        [disabled]="isSolicitudLocked(sol)"
                         [class.is-loading]="isAvailabilityLoading(sol)" (click)="openTechnicianAvailabilityDialog(sol, $event)">
                         <img *ngIf="getAcceptedTechnicianPhoto(sol) as technicianPhoto"
                             class="sol-tech-photo" [src]="technicianPhoto"
@@ -533,12 +547,10 @@
                         <button *ngIf="canReassignSolicitud(sol)" pButton pRipple icon="pi pi-clock"
                             class="p-button-rounded p-button-text p-button-info" (click)="openReassignmentDialog(sol, $event)"
                             pTooltip="Reasignar técnico y horario" tooltipPosition="top"></button>
-                        <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
-                            [disabled]="isSolicitudLocked(sol)"
+                        <button *ngIf="!isSolicitudLocked(sol) && sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
                             class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
                             pTooltip="Cancelar" tooltipPosition="top"></button>
-                        <button *ngIf="isRootUser" pButton pRipple icon="pi pi-trash"
-                            [disabled]="isSolicitudLocked(sol)"
+                        <button *ngIf="isRootUser && !isSolicitudLocked(sol)" pButton pRipple icon="pi pi-trash"
                             class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
                             pTooltip="Eliminar" tooltipPosition="top"></button>
                     </div>
@@ -548,9 +560,15 @@
 
         <!-- En Progreso Column -->
         <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'en_progreso')" (dragleave)="onDragLeave($event)">
-            <div class="sol-kanban-header" style="border-bottom-color: var(--yellow-500);">
-                <div>En Progreso <span style="font-size: 0.8rem; opacity: 0.7;">({{ enProgreso.length }})</span></div>
-                <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('en_progreso')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
+            <div class="sol-kanban-header">
+                <div class="sol-kanban-header__node">
+                    <span class="sol-kanban-header__icon" aria-hidden="true"><i class="pi pi-play"></i></span>
+                    <span class="sol-kanban-header__label">
+                        <small>Etapa 02</small>
+                        <strong>En progreso</strong>
+                    </span>
+                    <span class="sol-kanban-header__count">{{ enProgreso.length }}</span>
+                </div>
             </div>
             
             <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of enProgreso; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
@@ -562,6 +580,12 @@
                             <i class="pi pi-user"></i> Creada por {{ creator }}
                         </small>
                     </div>
+                    <button *ngIf="!isSolicitudLocked(sol)" type="button" class="sol-card-assistance-action"
+                        (click)="openSolicitudAssistance(sol, $event)"
+                        aria-label="Abrir asistencia"
+                        pTooltip="Ver acciones y avance del proceso" tooltipPosition="top">
+                        <i class="pi pi-wrench" aria-hidden="true"></i>
+                    </button>
                 </div>
                 <div class="sol-kanban-content">
                     <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
@@ -593,13 +617,16 @@
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
                         <button type="button" *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation"
-                            class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled"
-                            [class.cancelled]="inst.cancelled" (click)="openKanbanProcessDetails(sol, inst, i, $event)"
+                            class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled && !inst.omitted"
+                            [class.cancelled]="inst.cancelled" [class.omitted]="inst.omitted"
+                            [disabled]="isSolicitudLocked(sol)"
+                            (click)="openKanbanProcessDetails(sol, inst, i, $event)"
                             style="width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer;"
                             [attr.aria-label]="'Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)">
-                            <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
+                            <i *ngIf="inst.completed && !inst.cancelled && !inst.omitted" class="pi pi-check-circle"></i>
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
-                            <i *ngIf="!inst.completed && !inst.cancelled"
+                            <i *ngIf="inst.omitted" class="pi pi-minus-circle"></i>
+                            <i *ngIf="!inst.completed && !inst.cancelled && !inst.omitted"
                                 class="pi pi-spin pi-spinner sol-process-loading"></i>
                             <span class="sol-process-summary">
                                 <span class="sol-process-name">
@@ -607,7 +634,7 @@
                                     <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
                                     <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
                                 </span>
-                                <small *ngIf="(inst.completed || inst.cancelled) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
+                                <small *ngIf="(inst.completed || inst.cancelled || inst.omitted) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
                                     [attr.data-state]="getInstallationFinalDeviceState(inst)">
                                     <i [class]="getInstallationFinalDeviceStatusIcon(inst)"></i>
                                     {{ getInstallationFinalDeviceStatusLabel(inst) }}
@@ -619,6 +646,7 @@
                 </div>
                 <div class="sol-tech-row" *ngIf="sol.mechanic_id" (click)="$event.stopPropagation()">
                     <button type="button" class="sol-tech-button"
+                        [disabled]="isSolicitudLocked(sol)"
                         [class.is-loading]="isAvailabilityLoading(sol)" (click)="openTechnicianAvailabilityDialog(sol, $event)">
                         <img *ngIf="getAcceptedTechnicianPhoto(sol) as technicianPhoto"
                             class="sol-tech-photo" [src]="technicianPhoto"
@@ -642,12 +670,10 @@
                         <button *ngIf="canReassignSolicitud(sol)" pButton pRipple icon="pi pi-clock"
                             class="p-button-rounded p-button-text p-button-info" (click)="openReassignmentDialog(sol, $event)"
                             pTooltip="Reasignar técnico y horario" tooltipPosition="top"></button>
-                        <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
-                            [disabled]="isSolicitudLocked(sol)"
+                        <button *ngIf="!isSolicitudLocked(sol) && sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
                             class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
                             pTooltip="Cancelar" tooltipPosition="top"></button>
-                        <button *ngIf="isRootUser" pButton pRipple icon="pi pi-trash"
-                            [disabled]="isSolicitudLocked(sol)"
+                        <button *ngIf="isRootUser && !isSolicitudLocked(sol)" pButton pRipple icon="pi pi-trash"
                             class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
                             pTooltip="Eliminar" tooltipPosition="top"></button>
                     </div>
@@ -658,8 +684,14 @@
         <!-- Por Confirmar Column -->
         <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'por_confirmar')" (dragleave)="onDragLeave($event)">
             <div class="sol-kanban-header">
-                <div>Por Confirmar <span style="font-size: 0.8rem; opacity: 0.7;">({{ porConfirmar.length }})</span></div>
-                <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('por_confirmar')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
+                <div class="sol-kanban-header__node">
+                    <span class="sol-kanban-header__icon" aria-hidden="true"><i class="pi pi-question-circle"></i></span>
+                    <span class="sol-kanban-header__label">
+                        <small>Etapa 03</small>
+                        <strong>Por confirmar</strong>
+                    </span>
+                    <span class="sol-kanban-header__count">{{ porConfirmar.length }}</span>
+                </div>
             </div>
             
             <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of porConfirmar; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
@@ -700,20 +732,23 @@
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
                         <button type="button" *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation"
-                            class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled"
-                            [class.cancelled]="inst.cancelled" (click)="openKanbanProcessDetails(sol, inst, i, $event)"
+                            class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled && !inst.omitted"
+                            [class.cancelled]="inst.cancelled" [class.omitted]="inst.omitted"
+                            [disabled]="isSolicitudLocked(sol)"
+                            (click)="openKanbanProcessDetails(sol, inst, i, $event)"
                             style="width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer;"
                             [attr.aria-label]="'Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)">
-                            <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
+                            <i *ngIf="inst.completed && !inst.cancelled && !inst.omitted" class="pi pi-check-circle"></i>
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
-                            <i *ngIf="!inst.completed && !inst.cancelled" class="pi pi-circle"></i>
+                            <i *ngIf="inst.omitted" class="pi pi-minus-circle"></i>
+                            <i *ngIf="!inst.completed && !inst.cancelled && !inst.omitted" class="pi pi-circle"></i>
                             <span class="sol-process-summary">
                                 <span class="sol-process-name">
                                     {{ getKanbanProcessLabel(sol, inst, i) }}
                                     <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
                                     <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
                                 </span>
-                                <small *ngIf="(inst.completed || inst.cancelled) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
+                                <small *ngIf="(inst.completed || inst.cancelled || inst.omitted) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
                                     [attr.data-state]="getInstallationFinalDeviceState(inst)">
                                     <i [class]="getInstallationFinalDeviceStatusIcon(inst)"></i>
                                     {{ getInstallationFinalDeviceStatusLabel(inst) }}
@@ -725,6 +760,7 @@
                 </div>
                 <div class="sol-tech-row" *ngIf="sol.mechanic_id" (click)="$event.stopPropagation()">
                     <button type="button" class="sol-tech-button"
+                        [disabled]="isSolicitudLocked(sol)"
                         [class.is-loading]="isAvailabilityLoading(sol)" (click)="openTechnicianAvailabilityDialog(sol, $event)">
                         <img *ngIf="getAcceptedTechnicianPhoto(sol) as technicianPhoto"
                             class="sol-tech-photo" [src]="technicianPhoto"
@@ -745,12 +781,10 @@
                             (click)="openSolicitudLockDialog(sol, $event)"
                             [pTooltip]="isSolicitudLocked(sol) ? 'Desbloquear solicitud' : 'Bloquear solicitud'"
                             tooltipPosition="top"></button>
-                        <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
-                            [disabled]="isSolicitudLocked(sol)"
+                        <button *ngIf="!isSolicitudLocked(sol) && sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
                             class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
                             pTooltip="Cancelar" tooltipPosition="top"></button>
-                        <button *ngIf="isRootUser" pButton pRipple icon="pi pi-trash"
-                            [disabled]="isSolicitudLocked(sol)"
+                        <button *ngIf="isRootUser && !isSolicitudLocked(sol)" pButton pRipple icon="pi pi-trash"
                             class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
                             pTooltip="Eliminar" tooltipPosition="top"></button>
                     </div>
@@ -761,19 +795,20 @@
         <!-- Cerradas Column -->
         <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'completada')" (dragleave)="onDragLeave($event)">
             <div class="sol-kanban-header">
-                <div>Cerradas <span style="font-size: 0.8rem; opacity: 0.7;">({{ completadas.length }})</span></div>
-                <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('completada')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
+                <div class="sol-kanban-header__node">
+                    <span class="sol-kanban-header__icon" aria-hidden="true"><i class="pi pi-check-circle"></i></span>
+                    <span class="sol-kanban-header__label">
+                        <small>Etapa 04</small>
+                        <strong>Cerradas</strong>
+                    </span>
+                    <span class="sol-kanban-header__count">{{ completadas.length }}</span>
+                </div>
             </div>
             
             <div class="sol-kanban-card sol-kanban-card--closed-summary sol-kanban-card--locked" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of completadas; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="false">
                 <div class="sol-closed-head">
-                    <div class="sol-card-title-block">
-                        <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
-                        <small *ngIf="getSolicitudCreatorName(sol) as creator" class="sol-request-creator">
-                            <i class="pi pi-user"></i> Creada por {{ creator }}
-                        </small>
-                    </div>
+                    <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
                     <div class="sol-closed-head__state">
                         <button pButton pRipple
                             [icon]="isSolicitudLocked(sol) ? 'pi pi-lock-open' : 'pi pi-lock'"
@@ -790,6 +825,11 @@
                             {{ statusLabels[sol.status] || sol.status }}
                         </span>
                     </div>
+                    <small *ngIf="getSolicitudCreatorName(sol) as creator" class="sol-request-creator"
+                        [pTooltip]="'Creada por ' + creator" tooltipPosition="top">
+                        <i class="pi pi-user"></i>
+                        <span>Creada por {{ creator }}</span>
+                    </small>
                 </div>
 
                 <div class="sol-closed-process">
@@ -815,13 +855,14 @@
                 <div *ngIf="sol.installations && sol.installations.length > 0" style="display: flex; flex-direction: column; gap: 0.35rem;">
                     <button type="button" class="sol-closed-device"
                         *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation"
+                        [disabled]="isSolicitudLocked(sol)"
                         (click)="openKanbanProcessDetails(sol, inst, i, $event)"
                         style="width: 100%; font: inherit; text-align: left; cursor: pointer;"
                         [attr.aria-label]="'Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)">
-                        <i class="pi" [ngClass]="inst.cancelled ? 'pi-times-circle' : (inst.completed ? 'pi-check-circle' : 'pi-circle')"></i>
+                        <i class="pi" [ngClass]="inst.cancelled ? 'pi-times-circle' : (inst.omitted ? 'pi-minus-circle' : (inst.completed ? 'pi-check-circle' : 'pi-circle'))"></i>
                         <span class="sol-process-summary">
                             <span class="sol-process-name">{{ getKanbanProcessLabel(sol, inst, i) }}</span>
-                            <small *ngIf="(inst.completed || inst.cancelled) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
+                            <small *ngIf="(inst.completed || inst.cancelled || inst.omitted) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
                                 [attr.data-state]="getInstallationFinalDeviceState(inst)">
                                 <i [class]="getInstallationFinalDeviceStatusIcon(inst)"></i>
                                 {{ getInstallationFinalDeviceStatusLabel(inst) }}
@@ -833,6 +874,7 @@
 
                 <div class="sol-closed-footer" (click)="$event.stopPropagation()">
                     <button *ngIf="sol.mechanic_id" type="button" class="sol-closed-technician"
+                        [disabled]="isSolicitudLocked(sol)"
                         [class.is-loading]="isAvailabilityLoading(sol)" (click)="openTechnicianAvailabilityDialog(sol, $event)">
                         <img *ngIf="getAcceptedTechnicianPhoto(sol) as technicianPhoto"
                             class="sol-tech-photo sol-tech-photo--closed" [src]="technicianPhoto"
@@ -861,6 +903,12 @@
         </div>
     </div>
 </div>
+
+<app-solicitud-assistance
+    [(visible)]="assistanceDialogVisible"
+    [solicitud]="assistanceSolicitud"
+    (solicitudUpdated)="onAssistanceSolicitudUpdated($event)">
+</app-solicitud-assistance>
 
 <p-dialog [(visible)]="technicianDialogVisible" [style]="{width: '460px'}" header="Técnico asignado"
     [modal]="true" styleClass="app-dark-dialog sol-technician-dialog" [draggable]="false" [resizable]="false">
@@ -1276,16 +1324,16 @@
             <ng-container *ngIf="processDetailsInstallation as installation">
                 <header class="sol-closed-info__hero">
                     <div class="sol-closed-info__hero-icon">
-                        <i class="pi" [ngClass]="installation.cancelled ? 'pi-times' : (installation.completed ? 'pi-check' : 'pi-cog')"></i>
+                        <i class="pi" [ngClass]="installation.cancelled ? 'pi-times' : (installation.omitted ? 'pi-minus' : (installation.completed ? 'pi-check' : 'pi-cog'))"></i>
                     </div>
                     <div class="sol-closed-info__hero-copy">
                         <span class="sol-closed-info__eyebrow">{{ typeLabels[getProcessTypeForSolicitud(sol, installation)] || getProcessTypeForSolicitud(sol, installation) }}</span>
                         <h2>{{ getClientDisplayName(sol) || 'Cliente sin nombre' }}</h2>
                         <p>{{ installation.plate || installation.device_imei || 'Proceso sin vehículo o dispositivo identificado' }}</p>
                     </div>
-                    <span class="sol-closed-info__status" [attr.data-status]="installation.cancelled ? 'cancelada' : 'completada'">
-                        <i class="pi" [ngClass]="installation.cancelled ? 'pi-times-circle' : (installation.completed ? 'pi-check-circle' : 'pi-clock')"></i>
-                        {{ installation.cancelled ? 'Cancelado' : (installation.completed ? 'Realizado' : 'Pendiente') }}
+                    <span class="sol-closed-info__status" [attr.data-status]="installation.cancelled ? 'cancelada' : (installation.omitted ? 'omitida' : 'completada')">
+                        <i class="pi" [ngClass]="installation.cancelled ? 'pi-times-circle' : (installation.omitted ? 'pi-minus-circle' : (installation.completed ? 'pi-check-circle' : 'pi-clock'))"></i>
+                        {{ installation.cancelled ? 'Cancelado' : (installation.omitted ? 'Omitido' : (installation.completed ? 'Realizado' : 'Pendiente')) }}
                     </span>
                 </header>
 
@@ -1944,9 +1992,9 @@
                         </div>
                         <span class="sol-vehicle-card__state"
                             [class.is-cancelled]="installation.cancelled"
-                            [class.is-completed]="installation.completed && !installation.cancelled">
-                            <i class="pi" [ngClass]="installation.cancelled ? 'pi-times-circle' : (installation.completed ? 'pi-check-circle' : 'pi-circle')"></i>
-                            {{ installation.cancelled ? 'Cancelado' : (installation.completed ? 'Realizado' : 'Sin finalizar') }}
+                            [class.is-completed]="installation.completed && !installation.cancelled && !installation.omitted">
+                            <i class="pi" [ngClass]="installation.cancelled ? 'pi-times-circle' : (installation.omitted ? 'pi-minus-circle' : (installation.completed ? 'pi-check-circle' : 'pi-circle'))"></i>
+                            {{ installation.cancelled ? 'Cancelado' : (installation.omitted ? 'Omitido' : (installation.completed ? 'Realizado' : 'Sin finalizar')) }}
                         </span>
                     </header>
 
@@ -2406,8 +2454,8 @@
                                 <div class="sol-install-card-title-row">
                                     <h4>{{ getInstallationEntityName(install) }} #{{i + 1}}</h4>
                                     <span class="sol-install-status-badge"
-                                        [ngClass]="{'status-completed': install.completed && !install.cancelled, 'status-cancelled': install.cancelled, 'status-pending': !install.completed && !install.cancelled}">
-                                        {{ install.cancelled ? 'Cancelada' : (install.completed ? 'Realizada' : 'Pendiente') }}
+                                        [ngClass]="{'status-completed': install.completed && !install.cancelled && !install.omitted, 'status-cancelled': install.cancelled, 'status-omitted': install.omitted, 'status-pending': !install.completed && !install.cancelled && !install.omitted}">
+                                        {{ install.cancelled ? 'Cancelada' : (install.omitted ? 'Omitida' : (install.completed ? 'Realizada' : 'Pendiente')) }}
                                     </span>
                                 </div>
                                 <div class="sol-process-device-fields" (click)="$event.stopPropagation()">

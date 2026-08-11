@@ -4913,6 +4913,57 @@ textarea[readonly]:focus {
     padding: 0.55rem 0.8rem;
 }
 
+.installation-registration-launch__button {
+    width: 100%; min-height: 76px; padding: 0.8rem; border: 1px solid rgba(197, 48, 54, 0.24);
+    border-radius: 12px; background: rgba(197, 48, 54, 0.06); color: var(--managementColorTextUser);
+    display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.75rem;
+    text-align: left; cursor: pointer; font-family: inherit;
+}
+.installation-registration-launch__button:hover { border-color: var(--globalColorPrimaryInmutable); transform: translateY(-1px); }
+.installation-registration-launch__button > span:nth-child(2) { display: flex; flex-direction: column; gap: 0.18rem; }
+.installation-registration-launch__button strong { font-size: 0.9rem; }
+.installation-registration-launch__button small { color: var(--globalColorTextMuted); font-size: 0.72rem; }
+.installation-registration-launch__icon { width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center; background: var(--globalColorPrimaryInmutable); color: white; }
+::ng-deep .installation-registration-dialog .p-dialog-content { padding-top: 0.75rem; }
+.installation-registration-dialog__header { display: flex; align-items: center; gap: 0.75rem; }
+.installation-registration-dialog__header > span { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: white; background: var(--globalColorPrimaryInmutable); }
+.installation-registration-dialog__header > div { display: flex; flex-direction: column; gap: 0.15rem; }
+.installation-registration-dialog__header strong { color: var(--managementColorTextUser); }
+.installation-registration-dialog__header small { color: var(--globalColorTextMuted); font-weight: 600; }
+.installation-registration-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1rem; }
+.installation-registration-steps span { height: 5px; overflow: hidden; color: transparent; border-radius: 999px; background: var(--surface-border); }
+.installation-registration-steps span.is-active { background: var(--globalColorPrimaryInmutable); }
+.installation-registration-content { min-height: 300px; }
+.installation-registration-evidence { max-height: min(62vh, 650px); padding-right: 0.25rem; overflow-y: auto; }
+.installation-registration-evidence .installation-evidence-section { margin-bottom: 1rem; }
+.installation-registration-evidence__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.installation-chassis-scan { display: flex; align-items: flex-start; gap: 0.75rem; margin: 0 0 1rem; padding: 0.8rem; border: 1px solid transparent; border-radius: 11px; }
+.installation-chassis-scan > i { margin-top: 0.1rem; font-size: 1.2rem; }
+.installation-chassis-scan > div { display: flex; flex: 1; flex-direction: column; gap: 0.18rem; min-width: 0; }
+.installation-chassis-scan small { color: var(--globalColorTextMuted); }
+.installation-chassis-scan--loading { border-color: rgba(59, 130, 246, 0.22); background: rgba(59, 130, 246, 0.08); color: #2563eb; }
+.installation-chassis-scan--error { border-color: rgba(239, 68, 68, 0.22); background: rgba(239, 68, 68, 0.08); color: #dc2626; }
+.installation-chassis-scan--success { border-color: rgba(34, 197, 94, 0.24); background: rgba(34, 197, 94, 0.09); color: #15803d; }
+.installation-chassis-scan__fields { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.35rem; }
+.installation-chassis-scan__fields em { padding: 0.25rem 0.45rem; border-radius: 7px; background: rgba(21, 128, 61, 0.1); color: var(--managementColorTextUser); font-size: 0.67rem; font-style: normal; }
+.installation-registration-intro { display: flex; gap: 0.75rem; align-items: center; padding: 0.9rem; margin-bottom: 1rem; border-radius: 12px; background: rgba(59, 130, 246, 0.08); color: #2563eb; }
+.installation-registration-intro--success { background: rgba(34, 197, 94, 0.09); color: #15803d; }
+.installation-registration-intro > i { font-size: 1.4rem; }
+.installation-registration-intro > div { display: flex; flex-direction: column; gap: 0.15rem; }
+.installation-registration-intro small { color: var(--globalColorTextMuted); }
+.installation-registration-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.installation-registration-grid__wide { grid-column: 1 / -1; }
+.installation-registration-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 0; }
+.installation-registration-summary > div { padding: 0.8rem; border: 1px solid var(--surface-border); border-radius: 10px; background: var(--surface-ground); }
+.installation-registration-summary dt { color: var(--globalColorTextMuted); font-size: 0.68rem; font-weight: 800; text-transform: uppercase; }
+.installation-registration-summary dd { margin: 0.25rem 0 0; color: var(--managementColorTextUser); font-weight: 700; overflow-wrap: anywhere; }
+.installation-registration-footer { width: 100%; display: flex; justify-content: space-between; gap: 0.75rem; }
+.installation-registration-footer button { min-height: 40px; padding: 0.65rem 1rem; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; font-family: inherit; font-weight: 800; cursor: pointer; }
+.installation-registration-secondary { border: 1px solid var(--surface-border); background: transparent; color: var(--managementColorTextUser); }
+.installation-registration-primary { border: 0; background: var(--globalColorPrimaryInmutable); color: white; }
+.installation-registration-primary--success { background: #15803d; }
+.installation-registration-footer button:disabled { opacity: 0.6; cursor: wait; }
+
 @media (max-width: 768px) {
     .main {
         width: 100%;
@@ -4947,4 +4998,7 @@ textarea[readonly]:focus {
     .vehicle-verification__link-card {
         grid-template-columns: 1fr;
     }
+    .installation-registration-grid, .installation-registration-summary { grid-template-columns: 1fr; }
+    .installation-registration-grid__wide { grid-column: auto; }
+    .installation-registration-footer button { flex: 1; }
 }

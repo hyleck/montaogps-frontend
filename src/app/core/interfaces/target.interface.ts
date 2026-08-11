@@ -154,6 +154,7 @@ export interface UpdateTargetDto {
   customs?: any;
   connection_priority?: string;
   activation_status?: any;
+  verificado?: boolean;
 }
 
 // Interface para el formulario de target (más completa que Target básica)

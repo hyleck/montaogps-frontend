@@ -29,6 +29,14 @@ export interface VehicleRegistrationScanResponse {
   rawText?: string;
 }
 
+export interface ChassisImageScanResponse {
+  ok: boolean;
+  deviceId?: string;
+  data: Record<string, any>;
+  voiceAudio?: { mimeType: string; base64: string };
+  rawText?: string;
+}
+
 export interface SmsCommandQuotaResponse {
   limit: number | null;
   used: number;
@@ -193,6 +201,16 @@ export class TargetsService {
     const formData = new FormData();
     formData.append('matricula', file);
     const observable = this.http.post<VehicleRegistrationScanResponse>(`${this.apiUrl}/${id}/scan-registration`, formData);
+    return await lastValueFrom(observable);
+  }
+
+  async scanChassisImage(id: string, file: File): Promise<ChassisImageScanResponse> {
+    const formData = new FormData();
+    formData.append('chasis', file);
+    const observable = this.http.post<ChassisImageScanResponse>(
+      `${this.apiUrl}/${id}/scan-chassis-image`,
+      formData
+    );
     return await lastValueFrom(observable);
   }
 
