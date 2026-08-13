@@ -155,6 +155,14 @@
               <i class="pi pi-star-fill"></i>
               Prioritario
             </span>
+            <span class="knowledge-card__scope">
+              <i class="pi pi-desktop"></i>
+              {{ knowledgePlatformLabel(entry) }}
+            </span>
+            <span class="knowledge-card__scope">
+              <i class="pi pi-users"></i>
+              {{ knowledgeAudienceLabel(entry) }}
+            </span>
           </div>
           <span class="knowledge-card__status" [class.knowledge-card__status--inactive]="!entry.active">
             <i class="pi" [class.pi-check-circle]="entry.active" [class.pi-pause-circle]="!entry.active"></i>
@@ -731,6 +739,55 @@
       </datalist>
       <small>Las etiquetas existentes se autocompletan mientras escribes.</small>
     </label>
+
+    <section class="ester-editor__context-grid">
+      <label>
+        <span>Palabras clave</span>
+        <input
+          pInputText
+          name="tags"
+          [(ngModel)]="form.tags"
+          maxlength="600"
+          placeholder="historial, recorrido, rutas"
+        />
+        <small>Separadas por comas. Sirven para recuperar sólo el conocimiento relacionado.</small>
+      </label>
+
+      <label>
+        <span>Plataforma</span>
+        <select name="platform" [(ngModel)]="form.platform">
+          <option value="all">Todas</option>
+          <option value="mobile">App móvil</option>
+          <option value="desktop">Escritorio</option>
+        </select>
+        <small>Ester descartará esta entrada cuando no corresponda a la plataforma activa.</small>
+      </label>
+
+      <label>
+        <span>Disponible para</span>
+        <select name="audience" [(ngModel)]="form.audience">
+          <option value="all">Todos</option>
+          <option value="registered_user">Usuarios registrados</option>
+          <option value="client">Clientes</option>
+          <option value="employee">Empleados</option>
+          <option value="technician">Técnicos</option>
+          <option value="root">Usuarios root</option>
+        </select>
+        <small>Evita mostrar procedimientos a perfiles que no pueden realizarlos.</small>
+      </label>
+
+      <label>
+        <span>Permisos requeridos</span>
+        <input
+          pInputText
+          name="requiredPermissions"
+          [(ngModel)]="form.requiredPermissions"
+          maxlength="1000"
+          placeholder="devices.read, devices.update"
+        />
+        <small>Opcional. Usa el formato módulo.acción y separa varios permisos por comas.</small>
+      </label>
+    </section>
 
     <label>
       <span>Contenido <b>*</b></span>

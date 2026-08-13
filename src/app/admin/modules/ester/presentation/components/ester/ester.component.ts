@@ -12,6 +12,8 @@ import {
   EsterKnowledgeEntry,
   EsterKnowledgeMediaUpload,
   EsterKnowledgePayload,
+  EsterKnowledgeAudience,
+  EsterKnowledgePlatform,
   EsterService,
   EsterSelfLearningRule,
   EsterSkill,
@@ -28,6 +30,10 @@ interface EsterKnowledgeForm {
   content: string;
   active: boolean;
   priority: boolean;
+  tags: string;
+  platform: EsterKnowledgePlatform;
+  audience: EsterKnowledgeAudience;
+  requiredPermissions: string;
   mediaType: 'image' | 'video' | null;
   mediaUrl: string | null;
   mediaName: string | null;
@@ -136,9 +142,32 @@ export class EsterComponent implements OnInit, OnDestroy {
     if (!term) return this.entries;
     return this.entries.filter(entry =>
       [entry.title, entry.category, entry.content]
+        .concat(entry.tags || [])
+        .concat(entry.platforms || [])
+        .concat(entry.audiences || [])
         .concat(entry.media_name || '')
         .some(value => String(value || '').toLowerCase().includes(term)),
     );
+  }
+
+  knowledgePlatformLabel(entry: EsterKnowledgeEntry): string {
+    const platforms = entry.platforms || ['all'];
+    if (platforms.includes('all')) return 'Todas';
+    return platforms
+      .map(platform => platform === 'mobile' ? 'App móvil' : 'Escritorio')
+      .join(' y ');
+  }
+
+  knowledgeAudienceLabel(entry: EsterKnowledgeEntry): string {
+    const audience = entry.audiences?.[0] || 'all';
+    return {
+      all: 'Todos',
+      registered_user: 'Registrados',
+      client: 'Clientes',
+      employee: 'Empleados',
+      technician: 'Técnicos',
+      root: 'Root',
+    }[audience];
   }
 
   get selectedWorkflowRun(): EsterWorkflowRun | undefined {
@@ -443,6 +472,15 @@ export class EsterComponent implements OnInit, OnDestroy {
       content: entry.content,
       active: entry.active,
       priority: Boolean(entry.priority),
+      tags: (entry.tags || []).join(', '),
+      platform: entry.platforms?.includes('all')
+        ? 'all'
+        : entry.platforms?.[0] || 'all',
+      audience: entry.audiences?.includes('all')
+        ? 'all'
+        : entry.audiences?.[0] || 'all',
+      requiredPermissions:
+        (entry.required_permissions || []).join(', '),
       mediaType: entry.media_type || null,
       mediaUrl: entry.media_url || null,
       mediaName: entry.media_name || null,
@@ -521,6 +559,12 @@ export class EsterComponent implements OnInit, OnDestroy {
       content: this.form.content.trim(),
       active: this.form.active,
       priority: this.form.priority,
+      tags: this.parseMetadataList(this.form.tags),
+      platforms: [this.form.platform],
+      audiences: [this.form.audience],
+      required_permissions: this.parseMetadataList(
+        this.form.requiredPermissions,
+      ),
       media_type: this.form.mediaType,
       media_url: this.form.mediaUrl,
       media_name: this.form.mediaName,
@@ -752,12 +796,25 @@ export class EsterComponent implements OnInit, OnDestroy {
       content: '',
       active: true,
       priority: false,
+      tags: '',
+      platform: 'all',
+      audience: 'all',
+      requiredPermissions: '',
       mediaType: null,
       mediaUrl: null,
       mediaName: null,
       mediaMimeType: null,
       mediaSize: null,
     };
+  }
+
+  private parseMetadataList(value: string): string[] {
+    return Array.from(new Set(
+      String(value || '')
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean),
+    ));
   }
 
   private resetMediaSelection(): void {

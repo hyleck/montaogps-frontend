@@ -3,6 +3,15 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+export type EsterKnowledgePlatform = 'all' | 'mobile' | 'desktop';
+export type EsterKnowledgeAudience =
+  | 'all'
+  | 'registered_user'
+  | 'client'
+  | 'employee'
+  | 'technician'
+  | 'root';
+
 export interface EsterKnowledgeEntry {
   _id: string;
   title: string;
@@ -10,6 +19,10 @@ export interface EsterKnowledgeEntry {
   content: string;
   active: boolean;
   priority: boolean;
+  tags?: string[];
+  platforms?: EsterKnowledgePlatform[];
+  audiences?: EsterKnowledgeAudience[];
+  required_permissions?: string[];
   media_type?: 'image' | 'video' | null;
   media_url?: string | null;
   media_name?: string | null;
@@ -25,6 +38,10 @@ export interface EsterKnowledgePayload {
   content: string;
   active?: boolean;
   priority?: boolean;
+  tags?: string[];
+  platforms?: EsterKnowledgePlatform[];
+  audiences?: EsterKnowledgeAudience[];
+  required_permissions?: string[];
   media_type?: 'image' | 'video' | null;
   media_url?: string | null;
   media_name?: string | null;

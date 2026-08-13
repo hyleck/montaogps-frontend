@@ -507,12 +507,24 @@
 
 .knowledge-card__category,
 .knowledge-card__status,
-.knowledge-card__priority {
+.knowledge-card__priority,
+.knowledge-card__scope {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 0.75rem;
   font-weight: 750;
+}
+
+.knowledge-card__scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: var(--globalColorTextLight, #6b7280);
+  background: rgba(107, 114, 128, 0.1);
 }
 
 .knowledge-card__category {
@@ -1014,6 +1026,26 @@
 .ester-editor__media-preview {
   display: flex;
   align-items: center;
+}
+
+.ester-editor__context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.ester-editor__context-grid label {
+  min-width: 0;
+}
+
+.ester-editor__context-grid select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--globalColorBorderDark, rgba(128, 128, 128, 0.28));
+  border-radius: 9px;
+  color: var(--globalColorText, #f3f4f6);
+  background: var(--globalColorBackground, #202127);
 }
 
 .ester-editor__media-heading {
@@ -1997,6 +2029,10 @@
   }
 
   .ester__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ester-editor__context-grid {
     grid-template-columns: 1fr;
   }
 
