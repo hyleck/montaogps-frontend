@@ -262,6 +262,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     installationRegistrationStep: number = 1;
     isRegisteringInstallation: boolean = false;
     isUpdatingOfficeReview: boolean = false;
+    displayOfficeReviewDialog: boolean = false;
+    officeReviewReason: string = '';
+    officeReviewReasonTouched: boolean = false;
     installationRegistrationForm = this.getEmptyInstallationRegistrationForm();
     displayProcessesDialog: boolean = false;
     expandedProcessIndex: number | null = null;
@@ -1953,7 +1956,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.openInstallationRegistrationDialog();
         }
         if (shouldOpenOfficeReview && !this.hasActiveOfficeReviewProcess()) {
-            await this.registerOfficeReviewProcess();
+            this.openOfficeReviewDialog();
         }
         void this.loadIncosisClientProfile();
 
@@ -4920,7 +4923,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     canStartOfficeReviewProcess(): boolean {
-        return this.getNormalizedDeviceStatus() === 'offline';
+        return this.isEditMode && !!this.getCurrentTargetId();
     }
 
     private hasOfficeActionAuthorization(): boolean {
@@ -4939,23 +4942,57 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return false;
     }
 
+    openOfficeReviewDialog(): void {
+        if (
+            this.isUpdatingOfficeReview
+            || this.hasActiveOfficeReviewProcess()
+            || !this.canStartOfficeReviewProcess()
+        ) return;
+        this.officeReviewReason = '';
+        this.officeReviewReasonTouched = false;
+        this.displayOfficeReviewDialog = true;
+    }
+
+    closeOfficeReviewDialog(): void {
+        if (this.isUpdatingOfficeReview) return;
+        this.displayOfficeReviewDialog = false;
+        this.officeReviewReason = '';
+        this.officeReviewReasonTouched = false;
+    }
+
+    isOfficeReviewReasonValid(): boolean {
+        const reason = String(this.officeReviewReason || '').trim();
+        return reason.length > 0 && reason.length <= 500;
+    }
+
+    isOfficeReviewDeviceOnline(): boolean {
+        return this.getNormalizedDeviceStatus() === 'online';
+    }
+
+    getOfficeReviewDeviceStatusLabel(): string {
+        const status = this.getNormalizedDeviceStatus();
+        if (status === 'online') return 'En línea';
+        if (status === 'offline') return 'Fuera de línea';
+        return 'Estado desconocido';
+    }
+
     async registerOfficeReviewProcess(): Promise<void> {
         if (this.isUpdatingOfficeReview || this.hasActiveOfficeReviewProcess()) return;
-        if (!this.canStartOfficeReviewProcess()) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Revisión no disponible',
-                detail: 'La revisión de oficina solo puede iniciarse cuando el GPS está fuera de línea.'
-            });
-            return;
-        }
+        this.officeReviewReasonTouched = true;
+        if (!this.isOfficeReviewReasonValid()) return;
         const targetId = this.getCurrentTargetId();
         if (!targetId) return;
 
         this.isUpdatingOfficeReview = true;
         try {
-            await this.targetsService.registerOfficeReview(targetId);
+            await this.targetsService.registerOfficeReview(
+                targetId,
+                this.officeReviewReason.trim()
+            );
             await this.loadProcessesList(false);
+            this.displayOfficeReviewDialog = false;
+            this.officeReviewReason = '';
+            this.officeReviewReasonTouched = false;
             this.messageService.add({
                 severity: 'success',
                 summary: 'Revisión iniciada',

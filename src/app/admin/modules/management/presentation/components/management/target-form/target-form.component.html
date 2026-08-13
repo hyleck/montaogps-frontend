@@ -471,7 +471,7 @@
                                             <button *ngIf="!hasActiveOfficeReviewProcess() && canStartOfficeReviewProcess()" type="button"
                                                 class="installation-registration-launch__button installation-registration-launch__button--review"
                                                 [disabled]="isUpdatingOfficeReview"
-                                                (click)="registerOfficeReviewProcess()">
+                                                (click)="openOfficeReviewDialog()">
                                                 <span class="installation-registration-launch__icon">
                                                     <i class="pi pi-search"></i>
                                                 </span>
@@ -2544,6 +2544,63 @@
                     (click)="registerInstallationProcess()" [disabled]="isRegisteringInstallation">
                     <i class="pi" [ngClass]="isRegisteringInstallation ? 'pi-spin pi-spinner' : 'pi-check'"></i>
                     {{ isRegisteringInstallation ? 'Guardando...' : 'Registrar instalación' }}
+                </button>
+            </div>
+        </ng-template>
+    </p-dialog>
+
+    <p-dialog [(visible)]="displayOfficeReviewDialog" [modal]="true" appendTo="body"
+        [draggable]="false" [resizable]="false" [closable]="!isUpdatingOfficeReview"
+        [closeOnEscape]="!isUpdatingOfficeReview" styleClass="office-review-dialog"
+        [style]="{width: 'min(92vw, 540px)'}" (onHide)="closeOfficeReviewDialog()">
+        <ng-template pTemplate="header">
+            <div class="office-review-dialog__header">
+                <span><i class="pi pi-search"></i></span>
+                <div>
+                    <strong>Registrar revisión</strong>
+                    <small>Indica por qué este GPS necesita ser probado desde la oficina.</small>
+                </div>
+            </div>
+        </ng-template>
+
+        <div class="office-review-dialog__body">
+            <div class="office-review-dialog__device">
+                <i class="pi pi-map-marker"></i>
+                <div>
+                    <span>{{ target.name || 'Objetivo sin nombre' }}</span>
+                    <small>IMEI {{ target.device_imei || 'no definido' }}</small>
+                </div>
+                <span class="office-review-dialog__status"
+                    [class.office-review-dialog__status--online]="isOfficeReviewDeviceOnline()">
+                    {{ getOfficeReviewDeviceStatusLabel() }}
+                </span>
+            </div>
+
+            <label for="office_review_reason">Motivo de la revisión <span>(Requerido)</span></label>
+            <textarea id="office_review_reason" rows="5" maxlength="500"
+                [(ngModel)]="officeReviewReason" name="office_review_reason"
+                (blur)="officeReviewReasonTouched = true"
+                [disabled]="isUpdatingOfficeReview"
+                placeholder="Ej: El cliente reporta una ubicación diferente a la real."></textarea>
+            <div class="office-review-dialog__field-meta">
+                <small *ngIf="officeReviewReasonTouched && !isOfficeReviewReasonValid()" class="office-review-dialog__error">
+                    Escribe el motivo antes de iniciar la revisión.
+                </small>
+                <small>{{ officeReviewReason.length }}/500</small>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <div class="office-review-dialog__footer">
+                <button type="button" class="office-review-dialog__cancel"
+                    [disabled]="isUpdatingOfficeReview" (click)="closeOfficeReviewDialog()">
+                    Cancelar
+                </button>
+                <button type="button" class="office-review-dialog__submit"
+                    [disabled]="isUpdatingOfficeReview || !isOfficeReviewReasonValid()"
+                    (click)="registerOfficeReviewProcess()">
+                    <i [class]="isUpdatingOfficeReview ? 'pi pi-spin pi-spinner' : 'pi pi-search'"></i>
+                    {{ isUpdatingOfficeReview ? 'Iniciando...' : 'Iniciar revisión' }}
                 </button>
             </div>
         </ng-template>

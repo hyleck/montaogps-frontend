@@ -1,146 +1,8 @@
 import { Component, OnInit, OnDestroy, Input, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
+import { SystemService, SystemSettings } from '../../../core/services/system.service';
 import { RouteHistoryResponse } from '../../../core/interfaces';
-import * as maplibregl from 'maplibre-gl';
 
 import { MapUtils } from '../../helpers/map.helper';
-
-type ReportsMapPosition = { lat: number; lng: number };
-
-class ReportsMapMarker {
-  private readonly element = document.createElement('div');
-  private readonly marker: maplibregl.Marker;
-  private clickListeners: EventListener[] = [];
-  private map: maplibregl.Map | null = null;
-
-  constructor(options: {
-    position: ReportsMapPosition;
-    map: maplibregl.Map;
-    title?: string;
-    icon?: any;
-    zIndex?: number;
-  }) {
-    this.element.className = 'reports-map-marker';
-    this.element.style.zIndex = String(options.zIndex || 1);
-    this.marker = new maplibregl.Marker({ element: this.element, anchor: 'center' })
-      .setLngLat([options.position.lng, options.position.lat]);
-    this.setTitle(options.title || '');
-    this.setIcon(options.icon || { fillColor: '#3b82f6', scale: 6 });
-    this.setMap(options.map);
-  }
-
-  setMap(map: maplibregl.Map | null): void {
-    this.marker.remove();
-    this.map = map;
-    if (map) this.marker.addTo(map);
-  }
-
-  setPosition(position: ReportsMapPosition): void {
-    this.marker.setLngLat([position.lng, position.lat]);
-  }
-
-  getPosition(): ReportsMapPosition {
-    const position = this.marker.getLngLat();
-    return { lat: position.lat, lng: position.lng };
-  }
-
-  setIcon(icon: any): void {
-    this.element.replaceChildren();
-    this.element.className = 'reports-map-marker';
-    this.element.style.width = '';
-    this.element.style.height = '';
-    this.element.style.borderRadius = '';
-    this.element.style.background = '';
-    this.element.style.opacity = '';
-    this.element.style.border = '';
-    this.element.style.boxSizing = '';
-    this.element.style.boxShadow = '';
-    if (icon?.url) {
-      const image = document.createElement('img');
-      image.src = icon.url;
-      image.alt = '';
-      image.draggable = false;
-      image.style.display = 'block';
-      image.style.width = `${Number(icon?.scaledSize?.width || 48)}px`;
-      image.style.height = `${Number(icon?.scaledSize?.height || 68)}px`;
-      image.style.objectFit = 'contain';
-      this.element.appendChild(image);
-      return;
-    }
-
-    const scale = Number(icon?.scale || 6);
-    const size = Math.max(8, scale * 2);
-    this.element.style.width = `${size}px`;
-    this.element.style.height = `${size}px`;
-    this.element.style.borderRadius = '50%';
-    this.element.style.background = icon?.fillColor || '#3b82f6';
-    this.element.style.opacity = String(icon?.fillOpacity ?? 1);
-    this.element.style.border = `${Number(icon?.strokeWeight || 2)}px solid ${icon?.strokeColor || '#ffffff'}`;
-    this.element.style.boxSizing = 'border-box';
-    this.element.style.boxShadow = '0 3px 8px rgba(15, 23, 42, 0.28)';
-  }
-
-  setOpacity(opacity: number): void {
-    this.element.style.opacity = String(opacity);
-  }
-
-  setTitle(title: string): void {
-    this.element.title = title;
-    this.element.setAttribute('aria-label', title);
-  }
-
-  addListener(eventName: string, listener: EventListener): void {
-    if (eventName !== 'click') return;
-    this.clickListeners.push(listener);
-    this.element.addEventListener('click', listener);
-  }
-
-  clearListeners(eventName: string): void {
-    if (eventName !== 'click') return;
-    this.clickListeners.forEach(listener => this.element.removeEventListener('click', listener));
-    this.clickListeners = [];
-  }
-}
-
-class ReportsMapInfoWindow {
-  private readonly popup = new maplibregl.Popup({ closeButton: false, maxWidth: '320px' });
-  private map: maplibregl.Map | null = null;
-  private content = '';
-
-  constructor() {
-    this.popup.on('close', () => {
-      this.map = null;
-    });
-  }
-
-  setContent(content: string): void {
-    this.content = content;
-    this.popup.setHTML(content);
-  }
-
-  open(map: maplibregl.Map, marker: ReportsMapMarker): void {
-    const position = marker.getPosition();
-    this.map = map;
-    this.popup
-      .setLngLat([position.lng, position.lat])
-      .setHTML(this.content)
-      .addTo(map);
-  }
-
-  close(): void {
-    this.popup.remove();
-    this.map = null;
-  }
-
-  getMap(): maplibregl.Map | null {
-    return this.map;
-  }
-
-  addListener(eventName: string, listener: () => void): void {
-    if (eventName === 'closeclick') this.popup.on('close', listener);
-  }
-}
-
-let reportsMapLayerSequence = 0;
 
 export interface ReportsMapInfoPanelItem {
   label: string;
@@ -173,19 +35,13 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   @Output() calculatedStopsChange = new EventEmitter<any[]>();
 
   map: any;
-  provider: 'osm' = 'osm';
+  apiKey: string = '';
+  apiUrl: string = '';
+  provider: 'google' = 'google';
   
   // Elementos del mapa
   routePolyline: any = null;
-  private readonly replayRouteId = reportsMapLayerSequence++;
-  private readonly replayRouteSourceId = `reports-replay-route-source-${this.replayRouteId}`;
-  private readonly replayRouteLayerId = `reports-replay-route-layer-${this.replayRouteId}`;
-  private replayRouteSegments: Array<{
-    from: ReportsMapPosition;
-    to: ReportsMapPosition;
-    color: string;
-  }> = [];
-  private replayRouteLoadPending = false;
+  dynamicPolylines: any[] = [];
   startMarker: any = null;
   endMarker: any = null;
   routeMarkers: any[] = [];
@@ -212,7 +68,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   replayPositions: any[] = [];
   isReplayPopupOpen: boolean = false; // Trackear si el popup abierto es del marcador de reproducción
 
-  constructor() {}
+  constructor(private systemService: SystemService) {}
 
   ngOnInit(): void {
     this.initializeMap();
@@ -319,10 +175,26 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private initializeMap(): void {
-    this.createMapLibreMap();
+    this.systemService.getAll().subscribe({
+      next: (systems: SystemSettings[]) => {
+        const config = MapUtils.getApiConfig(systems, this.provider);
+        if (!config) {
+          console.error('❌ No Google Maps config found');
+          return;
+        }
+
+        this.apiKey = config.key;
+        this.apiUrl = config.url;
+
+        MapUtils.loadMapScript(this.provider, this.apiKey, this.apiUrl)
+          .then(() => this.createGoogleMap())
+          .catch(error => console.error('❌ Error loading Google Maps script:', error));
+      },
+      error: error => console.error('❌ Error loading system settings:', error),
+    });
   }
 
-  private createMapLibreMap(): void {
+  private createGoogleMap(): void {
     const mapElement = document.getElementById('reports-map') as HTMLElement;
     if (!mapElement) {
       console.error('❌ Reports map element not found!');
@@ -343,17 +215,29 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
    
 
-    this.map = MapUtils.createMap(
-      'osm',
-      mapElement,
-      '',
-      'light',
-      centerLat,
-      centerLng,
-      zoomLevel,
-    );
+    const google = (window as any).google;
 
-    this.infoWindow = new ReportsMapInfoWindow();
+    this.map = new google.maps.Map(mapElement, {
+      center: { lat: centerLat, lng: centerLng },
+      zoom: zoomLevel,
+      mapTypeId: google.maps.MapTypeId.ROADMAP,
+      styles: [
+        {
+          featureType: 'poi',
+          elementType: 'labels',
+          stylers: [{ visibility: 'off' }],
+        },
+      ],
+      disableDefaultUI: false,
+      zoomControl: true,
+      streetViewControl: false,
+      fullscreenControl: true,
+      mapTypeControl: true,
+      gestureHandling: 'greedy',
+      scrollwheel: true,
+    });
+
+    this.infoWindow = new google.maps.InfoWindow();
 
     // Listener para cuando se cierre el InfoWindow
     this.infoWindow.addListener('closeclick', () => {
@@ -378,6 +262,8 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   
     // Limpiar elementos existentes
     this.clearMapElements();
+
+    const google = (window as any).google;
 
     // Filtrar posiciones con velocidad 0 para mostrar solo el recorrido real
     const movingPositions = this.routeHistory.positions.filter(pos => pos.speed > 0);
@@ -420,11 +306,12 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       
       for (let i = step; i < movingPositions.length - 1; i += step) {
         const pos = movingPositions[i];
-        const marker = new ReportsMapMarker({
+        const marker = new google.maps.Marker({
           position: { lat: pos.latitude, lng: pos.longitude },
           map: this.map,
           title: 'Punto del recorrido',
           icon: {
+            path: google.maps.SymbolPath.CIRCLE,
             scale: 4,
             fillColor: '#3b82f6',
             fillOpacity: 0.7,
@@ -545,13 +432,20 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   private fitMapToRoute(routePath: any[]): void {
     if (!this.map || !routePath.length) return;
 
-    const bounds = new maplibregl.LngLatBounds();
+    const google = (window as any).google;
+    const bounds = new google.maps.LatLngBounds();
     
     routePath.forEach(point => {
-      bounds.extend([point.lng, point.lat]);
+      bounds.extend(point);
     });
 
-    this.map.fitBounds(bounds, { padding: 48, maxZoom: 16 });
+    this.map.fitBounds(bounds);
+
+    google.maps.event.addListenerOnce(this.map, 'bounds_changed', () => {
+      if (this.map.getZoom() > 16) {
+        this.map.setZoom(16);
+      }
+    });
   }
 
   private clearMapElements(): void {
@@ -580,7 +474,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       this.routePolyline = null;
     }
 
-    // Limpiar la ruta progresiva cuando se carga un reporte distinto.
+    // Limpiar polilíneas dinámicas cuando se carga un reporte distinto.
     this.clearReplayRoute();
 
     // Limpiar marcadores
@@ -629,7 +523,6 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       this.infoWindow = null;
     }
     
-    this.map?.remove?.();
     this.map = null;
     
     // Limpiar contenedor del mapa
@@ -867,6 +760,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   private async setReplayMarkerAsFinal(): Promise<void> {
     if (!this.replayMarker) return;
 
+    const google = (window as any).google;
     const markerType = MapUtils.getMapMarkerType();
     
     // Obtener el course de la última posición para mantener la orientación del carro
@@ -877,24 +771,28 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       const spriteIconUrl = await MapUtils.getCarSpriteIconUrl(course, 48);
       this.replayMarker.setIcon({
         url: spriteIconUrl,
-        scaledSize: { width: 48, height: 68 }
+        scaledSize: new google.maps.Size(48, 68),
+        anchor: new google.maps.Point(24, 50),
       });
     } else {
       this.replayMarker.setIcon({
+        path: google.maps.SymbolPath.CIRCLE,
         scale: 10,
         fillColor: '#28a745',
         fillOpacity: 1,
         strokeColor: '#ffffff',
-        strokeWeight: 2
+        strokeWeight: 2,
+        anchor: new google.maps.Point(0, 0),
       });
     }
+    this.replayMarker.setLabel(null);
     this.replayMarker.setOpacity(0.7);
     
     // Actualizar el título
     this.replayMarker.setTitle('Posición final del recorrido');
     
     // Limpiar listeners anteriores y agregar nuevo listener para mostrar contenido de posición final
-    this.replayMarker.clearListeners('click');
+    google.maps.event.clearListeners(this.replayMarker, 'click');
     this.replayMarker.addListener('click', () => {
       const currentPos = this.replayPositions[this.replayPositions.length - 1];
       if (currentPos) {
@@ -913,6 +811,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   private async setReplayMarkerAsStopped(): Promise<void> {
     if (!this.replayMarker) return;
 
+    const google = (window as any).google;
     const markerType = MapUtils.getMapMarkerType();
     
     // Obtener el course de la posición actual para mantener la orientación del carro
@@ -924,24 +823,28 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       const spriteIconUrl = await MapUtils.getCarSpriteIconUrl(course, 48);
       this.replayMarker.setIcon({
         url: spriteIconUrl,
-        scaledSize: { width: 48, height: 68 }
+        scaledSize: new google.maps.Size(48, 68),
+        anchor: new google.maps.Point(24, 50),
       });
     } else {
       this.replayMarker.setIcon({
+        path: google.maps.SymbolPath.CIRCLE,
         scale: 10,
         fillColor: '#dc3545',
         fillOpacity: 1,
         strokeColor: '#ffffff',
-        strokeWeight: 2
+        strokeWeight: 2,
+        anchor: new google.maps.Point(0, 0),
       });
     }
+    this.replayMarker.setLabel(null);
     this.replayMarker.setOpacity(0.6);
     
     // Actualizar el título
     this.replayMarker.setTitle('Posición donde se detuvo la reproducción');
     
     // Limpiar listeners anteriores y agregar nuevo listener para mostrar contenido de posición detenida
-    this.replayMarker.clearListeners('click');
+    google.maps.event.clearListeners(this.replayMarker, 'click');
     this.replayMarker.addListener('click', () => {
       const actualIdx = Math.max(0, this.currentPositionIndex - 1);
       const pos = this.replayPositions[actualIdx];
@@ -1094,6 +997,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       this.replayMarker = null;
     }
 
+    const google = (window as any).google;
     const firstPosition = this.replayPositions[0];
     const course = firstPosition.course || 0;
     const markerType = MapUtils.getMapMarkerType();
@@ -1103,19 +1007,22 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       const spriteIconUrl = await MapUtils.getCarSpriteIconUrl(course, 48);
       iconConfig = {
         url: spriteIconUrl,
-        scaledSize: { width: 48, height: 68 }
+        scaledSize: new google.maps.Size(48, 68),
+        anchor: new google.maps.Point(24, 50),
       };
     } else {
       iconConfig = {
+        path: google.maps.SymbolPath.CIRCLE,
         scale: 10,
         fillColor: '#3b82f6',
         fillOpacity: 1,
         strokeColor: '#ffffff',
-        strokeWeight: 2
+        strokeWeight: 2,
+        anchor: new google.maps.Point(0, 0),
       };
     }
 
-    this.replayMarker = new ReportsMapMarker({
+    this.replayMarker = new google.maps.Marker({
       position: { lat: firstPosition.latitude, lng: firstPosition.longitude },
       map: this.map,
       title: 'Reproducción del recorrido',
@@ -1217,13 +1124,16 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   private centerIfMarkerOutOfView(position: { lat: number; lng: number }): void {
     if (!this.map) return;
 
+    const google = (window as any).google;
     const bounds = this.map.getBounds();
     
     if (!bounds) return;
 
+    const markerLatLng = new google.maps.LatLng(position.lat, position.lng);
+
     // Verificar si el marcador está fuera de los límites visibles
-    if (!bounds.contains([position.lng, position.lat])) {
-      this.map.panTo([position.lng, position.lat]);
+    if (!bounds.contains(markerLatLng)) {
+      this.map.panTo(position);
     }
   }
 
@@ -1325,15 +1235,20 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   private async updateReplayMarkerStyle(position: any): Promise<void> {
     if (!this.replayMarker) return;
 
+    const google = (window as any).google;
+
     if (position.type === 'stop') {
       // Estilo para paradas: púrpura para distinguir
       this.replayMarker.setIcon({
+        path: google.maps.SymbolPath.CIRCLE,
         scale: 14,
         fillColor: position.isStopStart ? '#8b5cf6' : '#6d28d9', // Púrpura más oscuro para fin de parada
         fillOpacity: 1,
         strokeColor: '#ffffff',
-        strokeWeight: 3
+        strokeWeight: 3,
+        anchor: new google.maps.Point(0, 0),
       });
+      this.replayMarker.setLabel(this.getStopMarkerLabel());
       this.replayMarker.setOpacity(1);
       
       this.replayMarker.setTitle(position.isStopStart ? 
@@ -1341,6 +1256,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
         `Fin de parada - ${position.stopData.durationText}`
       );
     } else {
+      this.replayMarker.setLabel(null);
       // Actualizar marcador basado en la preferencia del usuario
       const course = position.course || 0;
       const markerType = MapUtils.getMapMarkerType();
@@ -1349,15 +1265,18 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
         const spriteIconUrl = await MapUtils.getCarSpriteIconUrl(course, 48);
         this.replayMarker.setIcon({
           url: spriteIconUrl,
-          scaledSize: { width: 48, height: 68 }
+          scaledSize: new google.maps.Size(48, 68),
+          anchor: new google.maps.Point(24, 50),
         });
       } else {
         this.replayMarker.setIcon({
+          path: google.maps.SymbolPath.CIRCLE,
           scale: 10,
           fillColor: '#3b82f6',
           fillOpacity: 1,
           strokeColor: '#ffffff',
-          strokeWeight: 2
+          strokeWeight: 2,
+          anchor: new google.maps.Point(0, 0),
         });
       }
       this.replayMarker.setOpacity(1);
@@ -1378,73 +1297,26 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private appendReplayRouteSegment(
-    from: ReportsMapPosition,
-    to: ReportsMapPosition,
+    from: { lat: number; lng: number },
+    to: { lat: number; lng: number },
     color: string,
   ): void {
-    this.replayRouteSegments.push({ from, to, color });
-    this.syncReplayRoute();
-  }
-
-  private syncReplayRoute(): void {
-    const map = this.map as maplibregl.Map | null;
-    if (!map || !this.replayRouteSegments.length) return;
-    if (!map.isStyleLoaded()) {
-      if (!this.replayRouteLoadPending) {
-        this.replayRouteLoadPending = true;
-        map.once('load', () => {
-          this.replayRouteLoadPending = false;
-          if (this.map === map) this.syncReplayRoute();
-        });
-      }
-      return;
-    }
-
-    const data: GeoJSON.FeatureCollection<GeoJSON.LineString> = {
-      type: 'FeatureCollection',
-      features: this.replayRouteSegments.map(segment => ({
-        type: 'Feature',
-        properties: { color: segment.color },
-        geometry: {
-          type: 'LineString',
-          coordinates: [
-            [segment.from.lng, segment.from.lat],
-            [segment.to.lng, segment.to.lat],
-          ],
-        },
-      })),
-    };
-
-    const source = map.getSource(this.replayRouteSourceId) as maplibregl.GeoJSONSource | undefined;
-    if (source) {
-      source.setData(data);
-      return;
-    }
-
-    map.addSource(this.replayRouteSourceId, { type: 'geojson', data });
-    map.addLayer({
-      id: this.replayRouteLayerId,
-      type: 'line',
-      source: this.replayRouteSourceId,
-      paint: {
-        'line-color': ['get', 'color'],
-        'line-opacity': 1,
-        'line-width': 4,
-      },
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round',
-      },
+    const google = (window as any).google;
+    const segmentPolyline = new google.maps.Polyline({
+      path: [from, to],
+      geodesic: true,
+      strokeColor: color,
+      strokeOpacity: 1,
+      strokeWeight: 4,
     });
+
+    segmentPolyline.setMap(this.map);
+    this.dynamicPolylines.push(segmentPolyline);
   }
 
   private clearReplayRoute(): void {
-    this.replayRouteSegments = [];
-    this.replayRouteLoadPending = false;
-    const map = this.map as maplibregl.Map | null;
-    if (!map || !map.isStyleLoaded()) return;
-    if (map.getLayer(this.replayRouteLayerId)) map.removeLayer(this.replayRouteLayerId);
-    if (map.getSource(this.replayRouteSourceId)) map.removeSource(this.replayRouteSourceId);
+    this.dynamicPolylines.forEach(polyline => polyline.setMap(null));
+    this.dynamicPolylines = [];
   }
 
   private createReplayPopupContent(position: any, positionNumber: number): string {
@@ -2068,17 +1940,21 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
    * Crear un marcador para una parada específica
    */
   private createStopMarker(stop: any, index: number): any {
-    const stopMarker = new ReportsMapMarker({
+    const google = (window as any).google;
+
+    const stopMarker = new google.maps.Marker({
       position: { lat: stop.latitude, lng: stop.longitude },
       map: this.map,
       title: `Parada Detectada ${stop.stopNumber} - ${stop.durationText}`,
       icon: {
+        path: google.maps.SymbolPath.CIRCLE,
         scale: 8,
         fillColor: '#8b5cf6',
         fillOpacity: 0.9,
         strokeColor: '#ffffff',
         strokeWeight: 2
       },
+      label: this.getStopMarkerLabel(),
       zIndex: 900 + index
     });
 
@@ -2098,6 +1974,15 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     });
 
     return stopMarker;
+  }
+
+  private getStopMarkerLabel(): any {
+    return {
+      text: 'P',
+      color: '#ffffff',
+      fontSize: '12px',
+      fontWeight: '700',
+    };
   }
 
   /**

@@ -540,9 +540,9 @@ export class TargetsService {
     );
   }
 
-  async registerOfficeReview(deviceId: string, reason?: string): Promise<ProcessResponse> {
+  async registerOfficeReview(deviceId: string, reason: string): Promise<ProcessResponse> {
     const url = `${environment.apiUrl}/process/office-review/${encodeURIComponent(deviceId)}`;
-    return await lastValueFrom(this.http.post<ProcessResponse>(url, { reason: reason || '' }));
+    return await lastValueFrom(this.http.post<ProcessResponse>(url, { reason: reason.trim() }));
   }
 
   async completeOfficeReview(deviceId: string): Promise<{ ok: true }> {

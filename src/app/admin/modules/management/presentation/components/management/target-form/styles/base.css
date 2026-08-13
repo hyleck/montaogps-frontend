@@ -4972,6 +4972,32 @@ textarea[readonly]:focus {
 .installation-registration-primary--success { background: #15803d; }
 .installation-registration-footer button:disabled { opacity: 0.6; cursor: wait; }
 
+::ng-deep .office-review-dialog .p-dialog-content { padding-top: 0.75rem; }
+.office-review-dialog__header { display: flex; align-items: center; gap: 0.75rem; }
+.office-review-dialog__header > span { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: #2563eb; }
+.office-review-dialog__header > div { display: flex; min-width: 0; flex-direction: column; gap: 0.15rem; }
+.office-review-dialog__header strong { color: var(--managementColorTextUser); font-size: 0.95rem; }
+.office-review-dialog__header small { color: var(--globalColorTextMuted); font-weight: 600; line-height: 1.35; }
+.office-review-dialog__body { display: flex; flex-direction: column; gap: 0.65rem; }
+.office-review-dialog__device { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.7rem; padding: 0.8rem; border: 1px solid var(--surface-border); border-radius: 11px; background: var(--surface-ground); }
+.office-review-dialog__device > i { color: #2563eb; }
+.office-review-dialog__device > div { display: flex; min-width: 0; flex-direction: column; gap: 0.15rem; }
+.office-review-dialog__device span { color: var(--managementColorTextUser); font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.office-review-dialog__device small { color: var(--globalColorTextMuted); }
+.office-review-dialog__status { padding: 0.28rem 0.5rem; border-radius: 999px; color: #b45309 !important; background: rgba(245, 158, 11, 0.12); font-size: 0.68rem; }
+.office-review-dialog__status--online { color: #15803d !important; background: rgba(34, 197, 94, 0.11); }
+.office-review-dialog__body > label { margin-top: 0.35rem; color: var(--managementColorTextUser); font-size: 0.8rem; font-weight: 800; }
+.office-review-dialog__body > label span { color: #ef4444; font-size: 0.68rem; }
+.office-review-dialog__body textarea { width: 100%; min-height: 120px; resize: vertical; padding: 0.8rem; border: 1px solid var(--surface-border); border-radius: 10px; outline: 0; color: var(--managementColorTextUser); background: var(--surface-card); font: inherit; line-height: 1.45; }
+.office-review-dialog__body textarea:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+.office-review-dialog__field-meta { display: flex; min-height: 18px; justify-content: flex-end; color: var(--globalColorTextMuted); }
+.office-review-dialog__field-meta .office-review-dialog__error { margin-right: auto; color: #dc2626; }
+.office-review-dialog__footer { width: 100%; display: flex; justify-content: flex-end; gap: 0.65rem; }
+.office-review-dialog__footer button { min-height: 40px; padding: 0.65rem 1rem; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; font-family: inherit; font-weight: 800; cursor: pointer; }
+.office-review-dialog__cancel { border: 1px solid var(--surface-border); color: var(--managementColorTextUser); background: transparent; }
+.office-review-dialog__submit { border: 0; color: #fff; background: #2563eb; }
+.office-review-dialog__footer button:disabled { opacity: 0.55; cursor: not-allowed; }
+
 @media (max-width: 768px) {
     .main {
         width: 100%;
