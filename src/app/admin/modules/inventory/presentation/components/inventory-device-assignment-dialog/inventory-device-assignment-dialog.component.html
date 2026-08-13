@@ -1,0 +1,111 @@
+<p-dialog
+  header="Asignar dispositivo"
+  [(visible)]="visible"
+  [modal]="true"
+  [closable]="!submitting"
+  [closeOnEscape]="!submitting"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: 'min(94vw, 720px)' }"
+  styleClass="inventory-assignment-dialog"
+  (onHide)="close()">
+  <div class="assignment-device">
+    <span><i class="pi pi-box"></i></span>
+    <div>
+      <small>DISPOSITIVO DE INVENTARIO</small>
+      <strong>{{ imei }}</strong>
+      <em>{{ protocolName }} · SIM {{ device?.SIM || device?.sim || 'No aplica' }}</em>
+    </div>
+  </div>
+
+  <section class="assignment-section">
+    <header>
+      <strong>¿Qué deseas hacer?</strong>
+      <small>Reservar no registra una instalación ni asigna un técnico.</small>
+    </header>
+    <div class="assignment-intents">
+      <button type="button" [class.is-selected]="intent === 'reserve'" (click)="intent = 'reserve'">
+        <i class="pi pi-bookmark"></i>
+        <span><strong>Asignar al cliente</strong><small>Crear el objetivo y dejarlo reservado.</small></span>
+      </button>
+      <button type="button" [class.is-selected]="intent === 'install'" (click)="intent = 'install'">
+        <i class="pi pi-wrench"></i>
+        <span><strong>Registrar instalación</strong><small>Continuar con técnico, fotos y verificación.</small></span>
+      </button>
+      <button type="button" [class.is-selected]="intent === 'review'" (click)="intent = 'review'">
+        <i class="pi pi-search"></i>
+        <span><strong>Iniciar revisión</strong><small>Probar el GPS sin registrarlo como instalado.</small></span>
+      </button>
+    </div>
+  </section>
+
+  <section class="assignment-section" *ngIf="intent === 'review'">
+    <header>
+      <strong>Cuenta para revisión</strong>
+      <small>Las revisiones son procesos internos y no se asignan a un cliente.</small>
+    </header>
+    <div class="assignment-review-owner">
+      <span><i class="pi pi-building"></i></span>
+      <div>
+        <strong>{{ mainAccount?.name }} {{ mainAccount?.last_name }}</strong>
+        <small>{{ mainAccount?.email || 'Cuenta principal configurada' }}</small>
+      </div>
+      <i class="pi" [ngClass]="mainAccount ? 'pi-check-circle' : 'pi-exclamation-circle'"></i>
+    </div>
+  </section>
+
+  <section class="assignment-section" *ngIf="requiresClientSelection">
+    <header>
+      <strong>Cliente</strong>
+      <small>Busca por nombre, correo, teléfono o identificación.</small>
+    </header>
+    <div class="assignment-search">
+      <i class="pi pi-search"></i>
+      <input
+        type="search"
+        [(ngModel)]="clientQuery"
+        (input)="onClientQueryChange()"
+        placeholder="Buscar cliente"
+        autocomplete="off">
+      <i *ngIf="searchingClients" class="pi pi-spin pi-spinner"></i>
+    </div>
+    <div class="assignment-clients" *ngIf="!selectedClient">
+      <button type="button" *ngFor="let client of clients" (click)="selectClient(client)">
+        <span class="assignment-client-avatar"><i class="pi pi-user"></i></span>
+        <span>
+          <strong>{{ client.name }} {{ client.last_name }}</strong>
+          <small>{{ client.email }}<ng-container *ngIf="client.phone"> · {{ client.phone }}</ng-container></small>
+        </span>
+        <i class="pi pi-chevron-right"></i>
+      </button>
+      <p *ngIf="!searchingClients && clients.length === 0">No se encontraron clientes.</p>
+    </div>
+    <div class="assignment-selected-client" *ngIf="selectedClient">
+      <span><i class="pi pi-check"></i></span>
+      <div><strong>{{ selectedClient.name }} {{ selectedClient.last_name }}</strong><small>{{ selectedClient.email }}</small></div>
+      <button type="button" (click)="clearSelectedClient()">Cambiar</button>
+    </div>
+  </section>
+
+  <section class="assignment-section assignment-fields">
+    <label>
+      <span>Fecha de vencimiento <b>*</b></span>
+      <input type="date" [(ngModel)]="expirationDate">
+    </label>
+    <label>
+      <span>Nombre inicial del objetivo</span>
+      <input type="text" [(ngModel)]="targetName" [placeholder]="protocolName + ' ' + imei" maxlength="120">
+    </label>
+  </section>
+
+  <ng-template pTemplate="footer">
+    <div class="assignment-footer">
+      <button type="button" class="assignment-cancel" (click)="close()" [disabled]="submitting">Cancelar</button>
+      <button type="button" class="assignment-submit" (click)="submit()"
+        [disabled]="submitting || (requiresClientSelection && !selectedClient) || !expirationDate">
+        <i class="pi" [ngClass]="submitting ? 'pi-spin pi-spinner' : (intent === 'install' ? 'pi-wrench' : (intent === 'review' ? 'pi-search' : 'pi-check'))"></i>
+        {{ submitting ? 'Reservando...' : (intent === 'install' ? 'Continuar instalación' : (intent === 'review' ? 'Iniciar revisión' : 'Asignar y reservar')) }}
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>

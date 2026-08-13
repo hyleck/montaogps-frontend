@@ -19,6 +19,10 @@ export class RevisionComponent implements OnInit {
   page = 1;
   readonly limit = 25;
   lastPage = 1;
+  releaseCandidate: InventoryItem | null = null;
+  releasingId = '';
+  actionError = '';
+  success = '';
 
   constructor(private readonly inventoryService: InventoryService) {}
 
@@ -29,6 +33,7 @@ export class RevisionComponent implements OnInit {
   loadDevices(): void {
     this.loading = true;
     this.error = '';
+    this.actionError = '';
     this.inventoryService
       .getInspectionRequired(this.search, this.page, this.limit)
       .subscribe({
@@ -64,6 +69,44 @@ export class RevisionComponent implements OnInit {
     if (nextPage < 1 || nextPage > this.lastPage || nextPage === this.page) return;
     this.page = nextPage;
     this.loadDevices();
+  }
+
+  requestRelease(device: InventoryItem): void {
+    if (this.releasingId) return;
+    this.actionError = '';
+    this.success = '';
+    this.releaseCandidate = device;
+  }
+
+  cancelRelease(): void {
+    if (this.releasingId) return;
+    this.releaseCandidate = null;
+  }
+
+  confirmRelease(): void {
+    const candidate = this.releaseCandidate;
+    const id = String(candidate?._id || '').trim();
+    if (!id || this.releasingId) return;
+
+    const imei = String(candidate?.IMEI || candidate?.imei || '').trim();
+    this.releasingId = id;
+    this.actionError = '';
+    this.inventoryService.releaseInspection(id).subscribe({
+      next: () => {
+        this.releasingId = '';
+        this.releaseCandidate = null;
+        this.success = `El GPS ${imei || 'seleccionado'} salió de revisión correctamente.`;
+        if (this.devices.length === 1 && this.page > 1) this.page -= 1;
+        this.loadDevices();
+        this.inventoryService.checkInspectionRequired();
+      },
+      error: error => {
+        this.releasingId = '';
+        this.releaseCandidate = null;
+        this.actionError = error?.error?.message
+          || 'No se pudo sacar el dispositivo de revisión.';
+      },
+    });
   }
 
   protocolName(device: InventoryItem): string {

@@ -41,6 +41,18 @@
     <button type="button" (click)="loadDevices()">Reintentar</button>
   </div>
 
+  <div *ngIf="success" class="revision-message revision-message--success">
+    <i class="pi pi-check-circle"></i>
+    <span>{{ success }}</span>
+    <button type="button" (click)="success = ''" aria-label="Cerrar mensaje"><i class="pi pi-times"></i></button>
+  </div>
+
+  <div *ngIf="actionError" class="revision-message revision-message--error">
+    <i class="pi pi-exclamation-triangle"></i>
+    <span>{{ actionError }}</span>
+    <button type="button" (click)="actionError = ''" aria-label="Cerrar mensaje"><i class="pi pi-times"></i></button>
+  </div>
+
   <div *ngIf="loading" class="revision-loading" aria-live="polite">
     <i class="pi pi-spin pi-spinner"></i>
     <span>Cargando dispositivos para revisión...</span>
@@ -62,6 +74,7 @@
           <th>Almacén</th>
           <th>Motivo de revisión</th>
           <th>Marcado</th>
+          <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -88,6 +101,12 @@
           <td data-label="Marcado">
             <span class="date-value">{{ formatDate(device.inspection_requested_at) }}</span>
           </td>
+          <td data-label="Acciones">
+            <button type="button" class="revision-release-button" (click)="requestRelease(device)" [disabled]="!!releasingId">
+              <i class="pi pi-sign-out"></i>
+              <span>Sacar de revisión</span>
+            </button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -103,5 +122,26 @@
         </button>
       </div>
     </footer>
+  </div>
+
+  <div *ngIf="releaseCandidate" class="revision-confirm-backdrop" (click)="cancelRelease()">
+    <section class="revision-confirm" role="dialog" aria-modal="true" aria-labelledby="release-review-title" (click)="$event.stopPropagation()">
+      <span class="revision-confirm__icon"><i class="pi pi-sign-out"></i></span>
+      <div>
+        <span class="revision-kicker">Confirmar salida</span>
+        <h2 id="release-review-title">Sacar dispositivo de revisión</h2>
+        <p>
+          Se cerrará cualquier revisión de oficina activa y se recalculará el estado real del GPS
+          <strong>{{ releaseCandidate.IMEI || releaseCandidate.imei }}</strong> en Inventario.
+        </p>
+      </div>
+      <footer>
+        <button type="button" class="revision-button" (click)="cancelRelease()" [disabled]="!!releasingId">Cancelar</button>
+        <button type="button" class="revision-button revision-button--release" (click)="confirmRelease()" [disabled]="!!releasingId">
+          <i class="pi" [ngClass]="releasingId ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+          {{ releasingId ? 'Procesando...' : 'Sí, sacar de revisión' }}
+        </button>
+      </footer>
+    </section>
   </div>
 </section>

@@ -516,6 +516,40 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
+  async registerOfficeInstallation(
+    deviceId: string,
+    data: {
+      installationDate: string;
+      mechanicId: string;
+      installationLocation?: string;
+      installationDetails?: string;
+      engineShutdown?: string;
+      ignitionSensor?: string;
+      targetBrandId?: string;
+      targetModelId?: string;
+      targetYear?: string;
+      targetColor?: string;
+      targetPlateNumber?: string;
+      targetChassisNumber?: string;
+      verified?: boolean;
+    }
+  ): Promise<{ device: Target; process: ProcessResponse }> {
+    const url = `${environment.apiUrl}/process/office-installation/${encodeURIComponent(deviceId)}`;
+    return await lastValueFrom(
+      this.http.post<{ device: Target; process: ProcessResponse }>(url, data)
+    );
+  }
+
+  async registerOfficeReview(deviceId: string, reason?: string): Promise<ProcessResponse> {
+    const url = `${environment.apiUrl}/process/office-review/${encodeURIComponent(deviceId)}`;
+    return await lastValueFrom(this.http.post<ProcessResponse>(url, { reason: reason || '' }));
+  }
+
+  async completeOfficeReview(deviceId: string): Promise<{ ok: true }> {
+    const url = `${environment.apiUrl}/process/office-review/${encodeURIComponent(deviceId)}/complete`;
+    return await lastValueFrom(this.http.patch<{ ok: true }>(url, {}));
+  }
+
   async getProcessesByReference(reference: string): Promise<ProcessResponse[]> {
     const url = `${environment.apiUrl}/process/by-reference/${encodeURIComponent(reference)}`;
     const observable = this.http.get<ProcessResponse[]>(url);

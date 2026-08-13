@@ -71,7 +71,7 @@
         <label class="package-filter-field">
           <span>Estado</span>
           <p-dropdown
-            [options]="[{label: 'Todos', value: ''}, {label: 'Instalados', value: 'installed'}, {label: 'Disponibles', value: 'available'}, {label: 'En revisión / Averiados', value: 'inspection'}]"
+            [options]="[{label: 'Todos', value: ''}, {label: 'Instalados', value: 'installed'}, {label: 'Reservados / en instalación', value: 'reserved'}, {label: 'Disponibles', value: 'available'}, {label: 'En revisión / Averiados', value: 'inspection'}]"
             [(ngModel)]="packageSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
             placeholder="Todos" appendTo="body" [disabled]="isSearchingPackage"
             (onChange)="searchPackageDevices()" styleClass="package-filter-dropdown">
@@ -146,8 +146,14 @@
                   </span>
                   <span class="package-device-status package-device-status--activation"
                     *ngIf="isDeviceInActivation(device) && !isDeviceInspectionRequired(device)">
-                    <i class="pi pi-sync pi-spin"></i> En instalación
+                    <i [class]="isDeviceClientReservation(device) ? 'pi pi-bookmark-fill' : 'pi pi-sync pi-spin'"></i>
+                    {{ isDeviceClientReservation(device) ? 'Reservado' : 'En instalación' }}
                   </span>
+                  <small class="package-device-reservation-owner"
+                    *ngIf="isDeviceClientReservation(device) && device.reservation_client_name"
+                    [title]="device.reservation_client_name">
+                    Para {{ device.reservation_client_name }}
+                  </small>
                   <span class="package-device-status package-device-status--available"
                     *ngIf="!isDeviceInstalled(device) && !isDeviceInActivation(device) && !isDeviceInspectionRequired(device)">
                     <i class="pi pi-circle-fill"></i> Disponible
@@ -182,8 +188,10 @@
                     <i class="pi pi-pencil"></i>
                   </button>
                   <button type="button" class="package-row-action package-row-action--install"
-                    (click)="installDevice(device)" pTooltip="Instalar" aria-label="Instalar dispositivo"
-                    *ngIf="canUpdateInventory() && !isDeviceInstalled(device) && !isDeviceInspectionRequired(device)">
+                    (click)="installDevice(device)"
+                    [pTooltip]="isDeviceInActivation(device) ? 'Continuar asignación' : 'Asignar o instalar'"
+                    [attr.aria-label]="isDeviceInActivation(device) ? 'Continuar asignación' : 'Asignar o instalar dispositivo'"
+                    *ngIf="canAssignInventoryDevice() && !isDeviceInstalled(device) && !isDeviceInspectionRequired(device)">
                     <i class="pi pi-send"></i>
                   </button>
                   <button type="button" class="package-row-action package-row-action--delete"
@@ -284,52 +292,12 @@
   </ng-template>
 </p-dialog>
 
-<p-dialog header="Instalar Dispositivo" [(visible)]="installDialogVisible" [modal]="true" [closable]="true"
-  [style]="{ width: '450px' }" (onHide)="cancelInstallation()">
-  <div class="install-dialog-content">
-    <div class="device-info" *ngIf="deviceToInstall">
-      <h4>Dispositivo a instalar:</h4>
-      <p><strong>IMEI:</strong> {{ deviceToInstall.IMEI || deviceToInstall.imei || 'N/A' }}</p>
-      <p *ngIf="!isDeviceAirtag(deviceToInstall)"><strong>SIM:</strong> {{ deviceToInstall.SIM || deviceToInstall.sim || 'N/A' }}</p>
-      <p *ngIf="!isDeviceAirtag(deviceToInstall)"><strong>ID SIM:</strong> {{ deviceToInstall.IDSIM || deviceToInstall.idsim || 'N/A' }}</p>
-      <p>
-        <strong>Protocolo:</strong>
-        {{ getProtocolLabel(deviceToInstall.Protocol || deviceToInstall.protocol) }}
-      </p>
-    </div>
-
-    <div class="field">
-      <label for="installationEmail" class="block font-bold mb-2">
-        <strong>Correo electrónico del cliente: *</strong>
-      </label>
-      <input id="installationEmail" type="email" pInputText [(ngModel)]="installationEmail"
-        placeholder="Ingrese el email del cliente" class="w-full" [class.ng-invalid]="!installationEmail"
-        autocomplete="email" style="width: 100%" />
-    </div>
-
-    <div class="field" style="margin-top: 1rem;" *ngIf="deviceToInstall && !isDeviceAirtag(deviceToInstall)">
-      <label for="installationSimType" class="block font-bold mb-2">
-        <strong>Tipo de SIM Card: (Opcional)</strong>
-      </label>
-      <select id="installationSimType" [(ngModel)]="installationSimType" class="form-input" style="width: 100%">
-        <option value="">Seleccionar tipo</option>
-        <option *ngFor="let type of availableSimCardTypes" [value]="type.value">
-          {{ type.label }}
-        </option>
-      </select>
-    </div>
-
-
-
-  </div>
-
-  <ng-template pTemplate="footer">
-    <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
-      (click)="cancelInstallation()"></button>
-    <button pButton pRipple label="Confirmar Instalación" icon="pi pi-check" class="p-button-primary"
-      (click)="confirmInstallation()" [disabled]="!installationEmail || !installationEmail.trim()"></button>
-  </ng-template>
-</p-dialog>
+<app-inventory-device-assignment-dialog
+  [visible]="installDialogVisible"
+  [device]="deviceToInstall"
+  (visibleChange)="!$event && cancelInstallation()"
+  (assigned)="onInventoryDeviceAssigned()">
+</app-inventory-device-assignment-dialog>
 
 <p-confirmDialog></p-confirmDialog>
 <p-toast></p-toast>

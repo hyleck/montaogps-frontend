@@ -9,13 +9,7 @@
                             <span class="tab-text">{{ isTagTarget() ? 'Información del objetivo' : translate(translations.vehicleInfo) }}</span>
                         </ng-template>
                         <div style="position: relative;">
-                            <!-- Loading overlay for auto-submit -->
-                            <div class="loading-overlay" *ngIf="isAutoSubmitting"
-                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(2px);">
-                                <p-progressSpinner></p-progressSpinner>
-                            </div>
-
-                            <div class="target-form__base" [style.opacity]="isAutoSubmitting ? '0' : '1'">
+                            <div class="target-form__base">
                                 <!-- Mensaje informativo eliminado -->
 
                                 <form class="target-form__form" (ngSubmit)="onSubmit()" ngNativeValidate>
@@ -460,8 +454,10 @@
 
                                         <div class="target-form__field installation-registration-launch"
                                             *ngIf="!getAdditionalInstallations().length && shouldShowInstallationRegistration()">
-                                            <label>Instalación</label>
-                                            <button type="button" class="installation-registration-launch__button"
+                                            <label>{{ hasActiveOfficeReviewProcess() || canStartOfficeReviewProcess()
+                                                ? 'Instalación o revisión' : 'Instalación' }}</label>
+                                            <button *ngIf="currentUserAffiliationTypeId === 'empleado' && !hasRegisteredInstallationProcess()"
+                                                type="button" class="installation-registration-launch__button"
                                                 (click)="openInstallationRegistrationDialog()">
                                                 <span class="installation-registration-launch__icon">
                                                     <i class="pi pi-wrench"></i>
@@ -471,6 +467,32 @@
                                                     <small>Completar el proceso paso a paso</small>
                                                 </span>
                                                 <i class="pi pi-chevron-right"></i>
+                                            </button>
+                                            <button *ngIf="!hasActiveOfficeReviewProcess() && canStartOfficeReviewProcess()" type="button"
+                                                class="installation-registration-launch__button installation-registration-launch__button--review"
+                                                [disabled]="isUpdatingOfficeReview"
+                                                (click)="registerOfficeReviewProcess()">
+                                                <span class="installation-registration-launch__icon">
+                                                    <i class="pi pi-search"></i>
+                                                </span>
+                                                <span>
+                                                    <strong>Iniciar revisión de oficina</strong>
+                                                    <small>Probar este GPS sin registrarlo como instalado</small>
+                                                </span>
+                                                <i class="pi" [ngClass]="isUpdatingOfficeReview ? 'pi-spin pi-spinner' : 'pi-chevron-right'"></i>
+                                            </button>
+                                            <button *ngIf="hasActiveOfficeReviewProcess()" type="button"
+                                                class="installation-registration-launch__button installation-registration-launch__button--review-active"
+                                                [disabled]="isUpdatingOfficeReview"
+                                                (click)="completeOfficeReviewProcess()">
+                                                <span class="installation-registration-launch__icon">
+                                                    <i class="pi pi-check-circle"></i>
+                                                </span>
+                                                <span>
+                                                    <strong>Finalizar revisión de oficina</strong>
+                                                    <small>Terminar las pruebas y devolver el GPS a disponible</small>
+                                                </span>
+                                                <i class="pi" [ngClass]="isUpdatingOfficeReview ? 'pi-spin pi-spinner' : 'pi-chevron-right'"></i>
                                             </button>
                                         </div>
 
@@ -1867,11 +1889,11 @@
                                             </div>
                                             <div class="process-info">
                                                 <div class="process-type">
-                                                    <span class="type-name">{{ getProcessTypeName(process.type)
+                                                    <span class="type-name">{{ getProcessTypeName(process.type, process)
                                                         }}</span>
                                                     <span class="process-status"
                                                         [class]="getProcessStatusClass(process.type)">
-                                                        {{ getProcessStatusText(process.type) }}
+                                                        {{ getProcessStatusText(process.type, process) }}
                                                     </span>
                                                 </div>
                                                 <div class="process-meta">

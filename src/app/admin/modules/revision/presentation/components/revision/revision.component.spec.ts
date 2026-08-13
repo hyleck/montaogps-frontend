@@ -34,4 +34,29 @@ describe('RevisionComponent', () => {
     expect(component.error).toBe('Inventario no disponible');
     expect(component.loading).toBeFalse();
   });
+
+  it('releases a selected device and refreshes the review counter', () => {
+    const inventoryService = {
+      getInspectionRequired: jasmine.createSpy('getInspectionRequired').and.returnValue(of({
+        data: [], total: 0, page: 1, lastPage: 1,
+      })),
+      releaseInspection: jasmine.createSpy('releaseInspection').and.returnValue(of({
+        _id: 'inventory-id', IMEI: '868720063779593',
+      })),
+      checkInspectionRequired: jasmine.createSpy('checkInspectionRequired'),
+    };
+    const component = new RevisionComponent(inventoryService as any);
+    component.releaseCandidate = {
+      _id: 'inventory-id',
+      IMEI: '868720063779593',
+    } as any;
+
+    component.confirmRelease();
+
+    expect(inventoryService.releaseInspection).toHaveBeenCalledWith('inventory-id');
+    expect(inventoryService.getInspectionRequired).toHaveBeenCalled();
+    expect(inventoryService.checkInspectionRequired).toHaveBeenCalled();
+    expect(component.releaseCandidate).toBeNull();
+    expect(component.success).toContain('868720063779593');
+  });
 });

@@ -407,6 +407,120 @@
   grid-template-rows: 60px auto auto auto auto auto;
 }
 
+.management__user-card--main-account {
+  border-color: rgba(212, 175, 55, 0.82);
+  background:
+    radial-gradient(circle at 88% 4%, rgba(251, 191, 36, 0.2), transparent 34%),
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--managementColorCardBackground) 94%, #fff8db),
+      color-mix(in srgb, var(--managementColorCardBackground) 88%, #c99523));
+  box-shadow:
+    0 14px 32px rgba(120, 82, 14, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+  isolation: isolate;
+}
+
+.management__user-card--main-account:hover {
+  border-color: #e7bd42;
+  box-shadow:
+    0 18px 38px rgba(120, 82, 14, 0.23),
+    0 0 0 2px rgba(231, 189, 66, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  transform: translateY(-2px);
+}
+
+.management__main-account-badge {
+  position: absolute;
+  z-index: 4;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 27px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 214, 102, 0.72);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #111827, #334155);
+  color: #f9d66b;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.24);
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.management__main-account-badge i {
+  color: #ffd966;
+  font-size: 0.68rem;
+}
+
+.management__user-card--main-account .management__user-card-verified {
+  top: 42px;
+}
+
+.management__user-card--main-account .management__user-card-icon {
+  border: 2px solid rgba(212, 175, 55, 0.76);
+  background: linear-gradient(145deg, #fff7d6, #e5bd55);
+  box-shadow: 0 7px 18px rgba(151, 105, 20, 0.2);
+}
+
+.management__user-card--main-account .management__user-card-icon i {
+  color: #6f4c08;
+}
+
+.management__user-card--main-account .management__user-card-title strong {
+  color: color-mix(in srgb, var(--managementColorTextUser) 76%, #8a5b00);
+  font-weight: 900;
+}
+
+.management__user-card--main-account .management__user-card-controls .button {
+  border-color: rgba(212, 175, 55, 0.3);
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.management__user-card--main-account.management__user-card--maps {
+  padding-top: 42px;
+}
+
+.management__card-user--main-account {
+  position: relative;
+  margin: 4px 8px 14px;
+  width: calc(100% - 16px);
+  padding: 45px 12px 14px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.72);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 84% 6%, rgba(251, 191, 36, 0.24), transparent 35%),
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--managementColorBackgroundUser) 94%, #fff8db),
+      color-mix(in srgb, var(--managementColorBackgroundUser) 88%, #c99523));
+  box-shadow: 0 14px 34px rgba(120, 82, 14, 0.17);
+}
+
+.management__main-account-badge--selected {
+  right: 12px;
+  top: 11px;
+}
+
+.management__card-user--main-account .card-user-photo {
+  border: 3px solid rgba(212, 175, 55, 0.78);
+  box-shadow: 0 8px 22px rgba(120, 82, 14, 0.22);
+}
+
+.management__card-user--main-account .management__card-user-img i {
+  color: #b37b0b;
+}
+
+.management__card-user--main-account .management__user-title strong {
+  color: color-mix(in srgb, var(--managementColorTitleUser) 72%, #a06c05);
+  font-weight: 900;
+}
+
 /* Las cuentas que renunciaron a la asistencia se distinguen sin cambiar sus datos ni acciones. */
 .management__user-card--no-assistance {
   filter: grayscale(1);

@@ -22,7 +22,7 @@ import {
 import { EsterMessageFeedback, EsterService } from '@core/services/ester.service';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { environment } from '../../../../../../../environments/environment';
-import { catchError, finalize, forkJoin, of, Subscription, timeout, timer } from 'rxjs';
+import { catchError, finalize, firstValueFrom, forkJoin, of, Subscription, timeout, timer } from 'rxjs';
 import {
   buildAgentSignatureLabel,
   parseAgentSignedMessage,
@@ -2495,11 +2495,14 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   async loadGlobalTargetsBox() {
     this.loadingGlobalTargets = true;
     try {
+      const mainAccount = await firstValueFrom(this.userService.getMainAccount());
+      const mainAccountId = String(mainAccount?.account?._id || '').trim();
+      if (!mainAccountId) throw new Error('No hay una cuenta principal configurada.');
       let res;
       if (this.globalTargetsSearchTerm.trim()) {
-        res = await this.targetsService.searchTargets(this.globalTargetsSearchTerm.trim(), '68a9ccf19bb280482272477f', this.globalTargetsOffset, this.globalTargetsLimit);
+        res = await this.targetsService.searchTargets(this.globalTargetsSearchTerm.trim(), mainAccountId, this.globalTargetsOffset, this.globalTargetsLimit);
       } else {
-        res = await this.targetsService.getTargetsWithPagination('68a9ccf19bb280482272477f', this.globalTargetsOffset, this.globalTargetsLimit);
+        res = await this.targetsService.getTargetsWithPagination(mainAccountId, this.globalTargetsOffset, this.globalTargetsLimit);
       }
       this.globalTargetsItems = res.devices || [];
       this.globalTargetsTotal = res.totalCount || 0;

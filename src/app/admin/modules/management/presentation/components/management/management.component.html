@@ -169,7 +169,11 @@
                                 </div>
                                 <div *ngFor="let user of users"
                                     class="management__user-card management__user-card--maps"
-                                    [ngClass]="{'management__user-card--shared': isSharedUser(user), 'management__user-card--no-assistance': shouldShowNoAssistanceState(user)}">
+                                    [ngClass]="{'management__user-card--shared': isSharedUser(user), 'management__user-card--no-assistance': shouldShowNoAssistanceState(user), 'management__user-card--main-account': isMainAccount(user)}">
+                                    <span *ngIf="isMainAccount(user)" class="management__main-account-badge">
+                                        <i class="pi pi-star-fill"></i>
+                                        Principal
+                                    </span>
                                     <button (click)="openTransferUserBranch(user)" class="management__user-card-transfer"
                                         title="Transferir usuario y su rama" *ngIf="canUpdateUsers() && currentUserAffiliationTypeId === 'empleado' && !isSharedUser(user)">
                                         <i class="pi pi-arrows-h"></i>
@@ -203,10 +207,10 @@
                                             <i class="pi pi-key"></i>
                                         </button>
                                         <button (click)="editUser(user)" class="button button--primary-flat"
-                                            title="Editar usuario" *ngIf="canUpdateUsers()"> <i
+                                            title="Editar usuario" *ngIf="canUpdateUsers() && (!isMainAccount(user) || isCurrentUserRoot)"> <i
                                                 class="pi pi-pencil"></i> </button>
                                         <button class="button button--primary-flat" title="Eliminar usuario"
-                                            (click)="confirmDeleteUser(user)" *ngIf="canDeleteUsers()"> <i
+                                            (click)="confirmDeleteUser(user)" *ngIf="canDeleteUsers() && !isMainAccount(user)"> <i
                                                 class="pi pi-trash"></i> </button>
                                     </div>
                                 </div>
@@ -620,7 +624,12 @@
         <div class="management__user">
 
             <div class="management__card-user"
-                [class.management__card-user--no-assistance]="shouldShowNoAssistanceState(selectedUser)">
+                [class.management__card-user--no-assistance]="shouldShowNoAssistanceState(selectedUser)"
+                [class.management__card-user--main-account]="isMainAccount(selectedUser)">
+                <span *ngIf="isMainAccount(selectedUser)" class="management__main-account-badge management__main-account-badge--selected">
+                    <i class="pi pi-star-fill"></i>
+                    Cuenta principal
+                </span>
                 <div class="management__card-user-img">
                     <img *ngIf="selectedUser?.photo" [src]="selectedUser?.photo" [alt]="selectedUser?.name"
                         class="card-user-photo">
@@ -647,7 +656,7 @@
                 </div>
                 <div class="management__user-actions"
                     *ngIf="!loading && selectedUser && currentUserAffiliationTypeId === 'empleado' && !isSelectedUserCurrentUser">
-                    <button *ngIf="canUpdateUsers()" (click)="editUser(selectedUser!)" class="button button--primary-flat"
+                    <button *ngIf="canUpdateUsers() && (!isMainAccount(selectedUser) || isCurrentUserRoot)" (click)="editUser(selectedUser!)" class="button button--primary-flat"
                         title="Editar usuario">
                         <i class="pi pi-pencil"></i>
                         <span>Modificar</span>
@@ -735,7 +744,11 @@
                             </div>
                         </div>
                         <div *ngFor="let user of users" class="management__user-card"
-                            [ngClass]="{'management__user-card--shared': isSharedUser(user), 'management__user-card--no-assistance': shouldShowNoAssistanceState(user)}">
+                            [ngClass]="{'management__user-card--shared': isSharedUser(user), 'management__user-card--no-assistance': shouldShowNoAssistanceState(user), 'management__user-card--main-account': isMainAccount(user)}">
+                            <span *ngIf="isMainAccount(user)" class="management__main-account-badge">
+                                <i class="pi pi-star-fill"></i>
+                                Principal
+                            </span>
                             <button (click)="openTransferUserBranch(user)" class="management__user-card-transfer"
                                 title="Transferir usuario y su rama" *ngIf="canUpdateUsers() && currentUserAffiliationTypeId === 'empleado' && !isSharedUser(user)">
                                 <i class="pi pi-arrows-h"></i>
@@ -772,10 +785,10 @@
                                     <i class="pi pi-key"></i>
                                 </button>
                                 <button (click)="editUser(user)" class="button button--primary-flat"
-                                    title="Editar usuario" *ngIf="canUpdateUsers()"> <i class="pi pi-pencil"></i>
+                                    title="Editar usuario" *ngIf="canUpdateUsers() && (!isMainAccount(user) || isCurrentUserRoot)"> <i class="pi pi-pencil"></i>
                                 </button>
                                 <button class="button button--primary-flat" title="Eliminar usuario"
-                                    (click)="confirmDeleteUser(user)" *ngIf="canDeleteUsers()"> <i
+                                    (click)="confirmDeleteUser(user)" *ngIf="canDeleteUsers() && !isMainAccount(user)"> <i
                                         class="pi pi-trash"></i> </button>
                             </div>
                         </div>
@@ -1418,7 +1431,7 @@
 
     <p-dialog header="Formulario de usuario" [modal]="true" [visible]="userFormDisplay" (onHide)="onHideUserForm()"
         (visibleChange)="!$event && onHideUserForm()">
-        <app-user-form [userInput]="userToEdit" [showWhatsappButton]="hasUserInbox" (userCreated)="onUserCreated($event)" (openChatEvent)="openChat($event)"></app-user-form>
+        <app-user-form [userInput]="userToEdit" [showWhatsappButton]="hasUserInbox" (userCreated)="onUserCreated($event)" (mainAccountChanged)="onMainAccountChanged($event)" (openChatEvent)="openChat($event)"></app-user-form>
     </p-dialog>
 
     <p-dialog [(visible)]="createAccountTransferMethodDialogVisible" [modal]="true" [resizable]="false"

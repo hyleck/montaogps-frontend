@@ -1942,6 +1942,19 @@ textarea.form-input {
   color: #d97706;
 }
 
+.inventory-result-reservation-owner,
+.package-device-reservation-owner {
+  display: block;
+  max-width: 160px;
+  margin-top: 0.3rem;
+  overflow: hidden;
+  color: var(--inventory-muted-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .inventory-result-status--inspection {
   border: 1px solid rgba(239, 68, 68, 0.22);
   background: rgba(239, 68, 68, 0.12);

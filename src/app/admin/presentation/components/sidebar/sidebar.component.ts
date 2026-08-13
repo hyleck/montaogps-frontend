@@ -28,6 +28,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private hasInbox: boolean = false;
   private communicationBadgeSubscription?: Subscription;
   private communicationAttentionSubscription?: Subscription;
+  private inventoryCountSubscription?: Subscription;
   private inspectionCountSubscription?: Subscription;
 
   sidaberOptions = {
@@ -87,11 +88,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
       // Check inventory stock
       if (this.authService.hasPrivilege('inventory', 'read') || this.isRootUser) {
         this.inventoryService.checkLowStock();
-        this.inventoryService.lowStockCount$.subscribe((count: number) => {
-          const inventoryItem = this.sidaberOptions.principalItems.find(i => i.path === '/admin/inventory');
-          if (inventoryItem) {
-            inventoryItem.badge = count;
-          }
+        this.inventoryCountSubscription = this.inventoryService.lowStockCount$.subscribe((count: number) => {
+          this.updatePrincipalBadge('/admin/inventory', count);
+          this.updatePrincipalAttention('/admin/inventory', count > 0);
+          this.cdr.detectChanges();
         });
         this.inventoryService.checkInspectionRequired();
         this.inspectionCountSubscription = this.inventoryService.inspectionRequiredCount$.subscribe((count: number) => {
@@ -123,6 +123,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.communicationBadgeSubscription?.unsubscribe();
     this.communicationAttentionSubscription?.unsubscribe();
+    this.inventoryCountSubscription?.unsubscribe();
     this.inspectionCountSubscription?.unsubscribe();
   }
 

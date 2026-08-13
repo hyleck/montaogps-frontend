@@ -102,6 +102,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   userLocationActivities: UserActivity[] = [];
   userLocationGroupedActivities: Array<UserActivity & { groupCount?: number }> = [];
   private readonly targetMapViewRecordedAt = new Map<string, number>();
+  mainAccountId: string = '';
   selectedLocationUser: User | null = null;
   userLocationMapInstance: any = null;
   userLocationMarker: any = null;
@@ -129,7 +130,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
   } | null = null;
   selectedTargetStopTime: string | undefined = undefined;
   targetIdFromUrl: string | null = null;
-  private readonly registrationLinkSearchRootId = '68a9ccf19bb280482272477f';
   private targetOwnerLocationCache = new Map<string, {
     userId: string;
     name: string;
@@ -266,7 +266,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // PROPIEDADES PÚBLICAS - BÚSQUEDA
   // ====================================
   // Flag to track if we are installing a device from inventory
-  private isInstallingFromInventory: boolean = false;
+  private pendingInventoryTargetId = '';
+  private pendingInventoryAction: 'reserve' | 'install' | 'review' | '' = '';
+  private openingInventoryTarget = false;
   // Flag to track if we have already executed the initial search from URL params
   private initialSearchExecuted: boolean = false;
   // Store pending search term to execute after data load
@@ -898,6 +900,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
     // Verificar permisos de root del usuario actual
     this.checkCurrentUserRootStatus();
+    this.loadMainAccount();
 
     this.checkMobileView();
     this.setupInitialState();
@@ -909,7 +912,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
     // Verificar si hay datos de instalación de dispositivo en sessionStorage
     // Verificar si hay datos de instalación de dispositivo en sessionStorage
-    this.checkDeviceInstallationData();
 
     // Cargar etiquetas disponibles para el filtro
     this.loadAvailableTags();
@@ -987,98 +989,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ====================================
-  // DEVICE INSTALLATION FROM INVENTORY
-  // ====================================
-
-  private checkDeviceInstallationData(): void {
-    try {
-      const deviceInstallationDataStr = sessionStorage.getItem('deviceInstallationData');
-
-      if (deviceInstallationDataStr) {
-        const deviceInstallationData = JSON.parse(deviceInstallationDataStr);
-        console.log('📦 Datos de instalación encontrados en sessionStorage:', deviceInstallationData);
-
-        // Verificar que los datos no sean muy antiguos (máximo 1 hora)
-        const timestamp = new Date(deviceInstallationData.timestamp);
-        const now = new Date();
-        const diffInHours = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
-
-        if (diffInHours > 1) {
-          console.log('⏰ Datos de instalación expirados (más de 1 hora), limpiando sessionStorage');
-          sessionStorage.removeItem('deviceInstallationData');
-          return;
-        }
-
-        // Verificar que estamos en el usuario correcto
-        const currentUserId = this.getCurrentUserId();
-        if (currentUserId && currentUserId === deviceInstallationData.userId) {
-          console.log('✅ Usuario coincide, abriendo formulario de target automáticamente');
-
-          // Esperar un poco para que se carguen los datos del usuario
-          setTimeout(() => {
-            this.openTargetFormWithDeviceData(deviceInstallationData);
-          }, 1000);
-        } else {
-          console.log('❌ Usuario no coincide o no está definido, manteniendo datos en sessionStorage');
-          console.log('Current User ID:', currentUserId);
-          console.log('Expected User ID:', deviceInstallationData.userId);
-        }
-      }
-    } catch (error: any) {
-      console.error('❌ Error al verificar datos de instalación:', error);
-      sessionStorage.removeItem('deviceInstallationData');
-    }
-  }
-
-  private openTargetFormWithDeviceData(deviceData: any): void {
-    // Cambiar a vista de targets
-    this.setOp('t');
-
-    // Esperar un poco para que se complete el cambio de vista y se carguen los datos
-    setTimeout(() => {
-      this.openTargetFormWithData(deviceData);
-    }, 1000);
-  }
-
-  private openTargetFormWithData(deviceData: any): void {
-    // Preparar datos pre-cargados para el formulario
-    const preloadedTargetData = {
-      device_imei: deviceData.imei,
-      sim_card_number: deviceData.sim,
-      type: deviceData.protocol._id, // Usar solo el _id del protocolo
-      status: 'active',
-      name: deviceData.name || '',
-      target_brand_id: deviceData.brand || '',
-      target_model_id: deviceData.model || '',
-      expiration_date: deviceData.expiration_date || '',
-      mechanic_id: deviceData.technician_id || '',
-      installation_details: deviceData.installation_details || '',
-      target_plate_number: deviceData.plate_number || '',
-      sim_company: deviceData.sim_company || '',
-      autoSubmit: true,
-      // Otros campos pueden ser pre-cargados según sea necesario
-    };
-
-    console.log('🎯 Datos pre-cargados para el formulario de target:', preloadedTargetData);
-    console.log('📋 Datos del dispositivo a instalar:', {
-      imei: deviceData.imei,
-      sim: deviceData.sim,
-      protocol: deviceData.protocol,
-      protocolId: deviceData.protocol._id
-    });
-
-    // Flag that we are installing from inventory so onTargetCreated knows to trigger search
-    this.isInstallingFromInventory = true;
-
-    // Mostrar el formulario de target con datos pre-cargados
-    this.showTargetForm(preloadedTargetData);
-
-    // Limpiar sessionStorage después de usar los datos
-    sessionStorage.removeItem('deviceInstallationData');
-    console.log('🧹 Datos de instalación limpiados de sessionStorage');
-  }
-
   hideMobileMapFullscreen(): void {
     this.showMobileMapFullscreen = false;
 
@@ -1147,7 +1057,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return this.isCurrentUserRoot
       && !this.authService.isSupportImpersonating()
       && !!user?._id
-      && user._id !== currentUser?.id;
+      && user._id !== currentUser?.id
+      && !this.isMainAccount(user);
   }
 
   openSupportAccess(user: User): void {
@@ -1551,9 +1462,21 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.userService.search(query, this.registrationLinkSearchRootId, 0, 10).subscribe({
-      next: (response) => {
-        this.registrationLinkParentSuggestions = response?.users || [];
+    this.userService.getMainAccount().subscribe({
+      next: (mainAccount) => {
+        const mainAccountId = String(mainAccount?.account?._id || '').trim();
+        if (!mainAccountId) {
+          this.registrationLinkParentSuggestions = [];
+          return;
+        }
+        this.userService.search(query, mainAccountId, 0, 10).subscribe({
+          next: (response) => {
+            this.registrationLinkParentSuggestions = response?.users || [];
+          },
+          error: () => {
+            this.registrationLinkParentSuggestions = [];
+          }
+        });
       },
       error: () => {
         this.registrationLinkParentSuggestions = [];
@@ -1757,6 +1680,27 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (this.selectedUser) {
       this.loadUsersForUser(this.selectedUser._id);
     }
+  }
+
+  isMainAccount(user: User | any | null | undefined): boolean {
+    const userId = String(user?._id || user?.id || '').trim();
+    return !!userId && userId === this.mainAccountId;
+  }
+
+  onMainAccountChanged(accountId: string): void {
+    this.mainAccountId = String(accountId || '').trim();
+  }
+
+  private loadMainAccount(): void {
+    this.userService.getMainAccount().subscribe({
+      next: (response) => {
+        this.mainAccountId = String(response?.account?._id || '').trim();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.mainAccountId = '';
+      },
+    });
   }
 
   private async transferPendingTargetsToCreatedUser(createdUser: any, pendingTargets: any[] = this.pendingCreateUserTransferTargets): Promise<void> {
@@ -2268,26 +2212,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.uiService.hideTargetForm();
     this.targetToEdit = null;
 
-    // Check if this creation came from inventory installation
-    if (this.isInstallingFromInventory && target && target.device_imei) {
-      console.log('📦 Instalación desde inventario detectada, ejecutando búsqueda automática...');
-
-      // 1. Update URL to include search param
-      this.router.navigate([], {
-        relativeTo: this.route,
-        queryParams: { search: target.device_imei },
-        queryParamsHandling: 'merge'
-      });
-
-      // 2. Set search term and execute search
-      this.searchTargetsTerm = target.device_imei;
-      this.searchTargets();
-
-      // Reset flag
-      this.isInstallingFromInventory = false;
-    }
-
-
     if (this.selectedUser) {
       this.loadTargetsForUser(this.selectedUser._id);
     }
@@ -2617,8 +2541,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     try {
       this.prepareOnlineActivationSound(target._id);
-      // Clear any previous activation status
-      await this.targetsService.updateTarget(target._id, { activation_status: null } as any);
       // Start the activation in the backend
       await this.targetsService.startActivation(target._id);
       // Track it in the activating set for live badge updates
@@ -2628,6 +2550,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.pollActivationStatus(target._id);
     } catch (e: any) {
       console.error('Error starting activation from list:', e);
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'No se pudo iniciar la activación',
+        detail: getApiErrorMessage(e, 'Registra la instalación o inicia una revisión de oficina.')
+      });
     }
   }
 
@@ -3538,6 +3465,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.hasMoreTargets = this.targets.length < this.totalTargetsCount;
           this.currentOffset = this.targets.length;
           this.showNoTargetMessage = this.targetsList.length === 0;
+          this.tryOpenInventoryAssignedTarget();
 
 
           // Actualizar estado de polling después de búsqueda/carga
@@ -3658,6 +3586,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private handleQueryParams(queryParams: any): void {
+    const inventoryTargetId = String(queryParams['inventoryTargetId'] || '').trim();
+    const inventoryAction = String(queryParams['inventoryAction'] || '').trim();
+    if (inventoryTargetId && ['reserve', 'install', 'review'].includes(inventoryAction)) {
+      this.pendingInventoryTargetId = inventoryTargetId;
+      this.pendingInventoryAction = inventoryAction as 'reserve' | 'install' | 'review';
+    }
+
     if (this.managementService.getOp() === 'u') {
       this.searchUsersTerm = queryParams['search'] || '';
       // Always sync with service state (even if empty to clear)
@@ -3702,6 +3637,36 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.stopPolling();
       this.enforceDefaultMapWhenNoTarget();
     }
+  }
+
+  private tryOpenInventoryAssignedTarget(): void {
+    if (!this.pendingInventoryTargetId || this.openingInventoryTarget) return;
+    const listedTarget = this.targets.find(
+      (target: any) => String(target?._id || '') === this.pendingInventoryTargetId,
+    ) || this.targetsList.find(
+      (target: any) => String(target?._id || target?.originalTarget?._id || '') === this.pendingInventoryTargetId,
+    );
+    if (!listedTarget) return;
+
+    const rawTarget = (listedTarget as any).originalTarget || listedTarget;
+    const action = this.pendingInventoryAction;
+    this.openingInventoryTarget = true;
+    this.pendingInventoryTargetId = '';
+    this.pendingInventoryAction = '';
+
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { inventoryTargetId: null, inventoryAction: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+    void this.showTargetForm({
+      ...rawTarget,
+      _openInstallationRegistration: action === 'install',
+      _openOfficeReview: action === 'review',
+    }).finally(() => {
+      this.openingInventoryTarget = false;
+    });
   }
 
   private selectTargetFromUrl(targetId: string): void {
@@ -4681,6 +4646,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
       if (this.targetIdFromUrl) {
         this.findAndSelectTarget(this.targetIdFromUrl);
       }
+
+      this.tryOpenInventoryAssignedTarget();
 
       // Check for pending initial search
       if (this.pendingInitialSearchTerm && !this.initialSearchExecuted) {

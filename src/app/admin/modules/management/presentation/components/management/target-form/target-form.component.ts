@@ -201,7 +201,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     isLoadingSmsMessages: boolean = false;
     hasLoadedSmsMessages: boolean = false;
     isSendingSms: boolean = false;
-    isAutoSubmitting: boolean = false;
     showSmsSection: boolean = false;
     isScanningRegistration: boolean = false;
     isFinalizingRegistration: boolean = false;
@@ -264,6 +263,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     displayInstallationRegistrationDialog: boolean = false;
     installationRegistrationStep: number = 1;
     isRegisteringInstallation: boolean = false;
+    isUpdatingOfficeReview: boolean = false;
     installationRegistrationForm = this.getEmptyInstallationRegistrationForm();
     displayProcessesDialog: boolean = false;
     expandedProcessIndex: number | null = null;
@@ -280,6 +280,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Propiedad para el tipo de afiliación del usuario actual
     currentUserAffiliationTypeId: string = '';
     currentUserIsRoot: boolean = false;
+    currentUserIsDeveloper: boolean = false;
 
     // Propiedad para controlar la visibilidad del modal de gestión de comandos
     displayCommandManagementModal: boolean = false;
@@ -843,6 +844,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     startActivation(): void {
+        if (!this.hasOfficeActionAuthorization()) return;
         this.activationStarted = true;
         this.activationStep = 0;
         this.activationError = '';
@@ -1345,7 +1347,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
 
         } catch (error: any) {
-            this.activationError = error.message || 'Error al iniciar la activación';
+            this.activationError = getApiErrorMessage(error, 'Error al iniciar la activación');
             this.addLog(`❌ Error: ${this.activationError}`, 'error');
             this.activationRunning = false;
         }
@@ -1559,6 +1561,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         const currentUser = this.authService.getCurrentUser();
         this.currentUserAffiliationTypeId = currentUser?.affiliation_type_id || '';
         this.currentUserIsRoot = currentUser?.root === true;
+        this.currentUserIsDeveloper = currentUser?.developer === true;
     }
 
     private async loadInitialData() {
@@ -1672,6 +1675,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     private async setupEditTarget(target: TargetDevice) {
         try {
+        const shouldOpenInstallationRegistration = Boolean(
+            (target as any)?._openInstallationRegistration
+        );
+        const shouldOpenOfficeReview = Boolean(
+            (target as any)?._openOfficeReview
+        );
         if (this.activationPollingInterval) {
             clearInterval(this.activationPollingInterval);
             this.activationPollingInterval = null;
@@ -1683,6 +1692,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         if ((target as any)['originalTarget']) {
             targetData = (target as any)['originalTarget'];
         }
+        targetData = { ...(targetData as any) } as TargetDevice;
+        delete (targetData as any)._openInstallationRegistration;
+        delete (targetData as any)._openOfficeReview;
         this.isPreparingVehicleForm = !!targetData?._id;
 
         if (targetData?._id) {
@@ -1907,9 +1919,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         await plansPromise;
 
-        // Verificar si se debe auto-enviar el formulario
-        this.checkAndAutoSubmit();
-
         // Asignar el GPS model después de que los protocolos se hayan cargado
         // Si ya están cargados, asignar inmediatamente, si no, se asignará en el callback de protocolos
         if (selectedGpsModel && this.availableGpsModels.length > 0) {
@@ -1942,7 +1951,13 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
 
         // Cargar lista de procesos del target actual
-        this.loadProcessesList(false);
+        await this.loadProcessesList(false);
+        if (shouldOpenInstallationRegistration && !this.hasRegisteredInstallationProcess()) {
+            this.openInstallationRegistrationDialog();
+        }
+        if (shouldOpenOfficeReview && !this.hasActiveOfficeReviewProcess()) {
+            await this.registerOfficeReviewProcess();
+        }
         void this.loadIncosisClientProfile();
 
         // Check SIM usage
@@ -2423,7 +2438,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             });
         } finally {
             this.isLoading = false;
-            this.isAutoSubmitting = false;
         }
     }
 
@@ -2449,18 +2463,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             ignition_sensor: '', // Valor por defecto para sensor de encendido
             engine_shutdown: '' // Valor por defecto para control de apagado
         };
-    }
-
-    private checkAndAutoSubmit() {
-        if ((this.target as any).autoSubmit) {
-            this.isAutoSubmitting = true;
-            // Pequeño timeout para asegurar que la UI se haya actualizado si es necesario
-            setTimeout(() => {
-                console.log('🚀 Auto-submitting target form...');
-                delete (this.target as any).autoSubmit; // Limpiar flag para evitar dobles envíos
-                this.onSubmit();
-            }, 500);
-        }
     }
 
     private prepareTargetData(): CreateTargetDto | UpdateTargetDto {
@@ -2805,6 +2807,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     private async sendSmsMessage(message: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2'): Promise<void> {
+        if (!this.hasOfficeActionAuthorization()) return;
         // Validación específica para global-m2: Requiere IMSI ID cargado
         if (this.target.sim_company?.toLowerCase() === 'global-m2') {
             if (!this.simUsage || !this.simUsage.imsi_id) {
@@ -5208,11 +5211,111 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         );
     }
 
+    hasActiveInstallationAuthorization(): boolean {
+        return !!String(this.target?.mechanic_id || '').trim()
+            && this.hasRegisteredInstallationProcess();
+    }
+
+    hasActiveOfficeReviewProcess(): boolean {
+        return this.processList.some(process => {
+            const after = (process.after || {}) as Record<string, any>;
+            return Number(process.type) === 10
+                && String(after['origin'] || '').trim() === 'office_management'
+                && String(after['status'] || '').trim() === 'in_progress';
+        });
+    }
+
+    canStartOfficeReviewProcess(): boolean {
+        return this.getNormalizedDeviceStatus() === 'offline';
+    }
+
+    private hasOfficeActionAuthorization(): boolean {
+        const isOfficeUser = ['empleado', 'admin'].includes(
+            String(this.currentUserAffiliationTypeId || '').trim().toLowerCase()
+        ) || this.currentUserIsRoot || this.currentUserIsDeveloper;
+        if (!isOfficeUser) return true;
+        if (this.hasActiveInstallationAuthorization() || this.hasActiveOfficeReviewProcess()) return true;
+
+        this.messageService.add({
+            severity: 'warn',
+            summary: 'Proceso requerido',
+            detail: 'Registra la instalación o inicia una revisión de oficina antes de activar el GPS o enviarle comandos.',
+            life: 6000
+        });
+        return false;
+    }
+
+    async registerOfficeReviewProcess(): Promise<void> {
+        if (this.isUpdatingOfficeReview || this.hasActiveOfficeReviewProcess()) return;
+        if (!this.canStartOfficeReviewProcess()) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Revisión no disponible',
+                detail: 'La revisión de oficina solo puede iniciarse cuando el GPS está fuera de línea.'
+            });
+            return;
+        }
+        const targetId = this.getCurrentTargetId();
+        if (!targetId) return;
+
+        this.isUpdatingOfficeReview = true;
+        try {
+            await this.targetsService.registerOfficeReview(targetId);
+            await this.loadProcessesList(false);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Revisión iniciada',
+                detail: 'Ya puedes activar el GPS y enviarle comandos mientras la revisión esté en curso.'
+            });
+        } catch (error) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo iniciar la revisión',
+                detail: getApiErrorMessage(error, 'Intenta nuevamente.')
+            });
+        } finally {
+            this.isUpdatingOfficeReview = false;
+        }
+    }
+
+    async completeOfficeReviewProcess(): Promise<void> {
+        if (this.isUpdatingOfficeReview || !this.hasActiveOfficeReviewProcess()) return;
+        const targetId = this.getCurrentTargetId();
+        if (!targetId) return;
+
+        this.isUpdatingOfficeReview = true;
+        try {
+            await this.targetsService.completeOfficeReview(targetId);
+            await this.loadProcessesList(false);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Revisión finalizada',
+                detail: 'El GPS ya no admite acciones de oficina sin una instalación o una nueva revisión.'
+            });
+        } catch (error) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo finalizar la revisión',
+                detail: getApiErrorMessage(error, 'Intenta nuevamente.')
+            });
+        } finally {
+            this.isUpdatingOfficeReview = false;
+        }
+    }
+
     shouldShowInstallationRegistration(): boolean {
-        return this.isEditMode
-            && this.currentUserAffiliationTypeId === 'empleado'
-            && !this.isLoadingProcesses
+        const isOfficeUser = ['empleado', 'admin'].includes(
+            String(this.currentUserAffiliationTypeId || '').trim().toLowerCase()
+        ) || this.currentUserIsRoot || this.currentUserIsDeveloper;
+        const canRegisterInstallation = this.currentUserAffiliationTypeId === 'empleado'
             && !this.hasRegisteredInstallationProcess();
+        const canManageReview = this.hasActiveOfficeReviewProcess()
+            || this.canStartOfficeReviewProcess();
+        return this.isEditMode
+            && isOfficeUser
+            && !this.isLoadingProcesses
+            && !this.hasActiveInstallationAuthorization()
+            && (canRegisterInstallation || canManageReview);
     }
 
     openInstallationRegistrationDialog(): void {
@@ -5297,8 +5400,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             || this.hasRegisteredInstallationProcess()
         ) return;
         const targetId = this.getCurrentTargetId();
-        const currentUser = this.authService.getCurrentUser();
-        if (!targetId || !currentUser?.id) {
+        if (!targetId) {
             this.messageService.add({
                 severity: 'error',
                 summary: 'No se pudo registrar',
@@ -5309,26 +5411,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         this.isRegisteringInstallation = true;
         const form = this.installationRegistrationForm;
-        const technicianName = this.getTechnicianName(form.mechanicId);
         try {
-            const updateData: UpdateTargetDto = {
-                name: this.target.name,
-                mechanic_id: form.mechanicId || '',
-                installation_date: form.installationDate,
-                activation_date: form.installationDate,
-                installation_location: form.installationLocation.trim(),
-                installation_details: form.installationDetails.trim(),
-                engine_shutdown: form.engineShutdown,
-                ignition_sensor: form.ignitionSensor,
-                target_brand_id: this.target.target_brand_id,
-                target_model_id: this.target.target_model_id,
-                target_year: this.target.target_year,
-                target_color: this.target.target_color,
-                target_plate_number: this.target.target_plate_number,
-                target_chassis_number: this.target.target_chassis_number,
-                ...(this.isInstallationChassisVerified() ? { verificado: true } : {})
-            };
-            let updatedTarget = await this.targetsService.updateTarget(targetId, updateData);
+            let updatedTarget: any = this.target;
 
             const evidenceEntries = Object.entries(this.pendingInstallationEvidence) as [
                 InstallationEvidenceKey,
@@ -5349,42 +5433,25 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 updatedTarget = (evidenceResponse.device || updatedTarget) as any;
             }
 
-            const processData: CreateProcessDto = {
-                type: 1,
-                registrationDate: form.installationDate,
-                description: 'Instalación inicial registrada desde Management',
-                details: [
-                    `Instalación registrada para ${this.target.name || this.target.device_imei}.`,
-                    `Técnico: ${technicianName}.`,
-                    form.installationLocation.trim() ? `Lugar: ${form.installationLocation.trim()}.` : '',
-                    form.installationDetails.trim() ? `Detalles: ${form.installationDetails.trim()}` : ''
-                ].filter(Boolean).join(' '),
-                target: {
-                    _id: targetId,
-                    name: this.target.name,
-                    device_imei: this.target.device_imei,
-                    sim_card_number: this.target.sim_card_number,
-                    mechanic_id: form.mechanicId || '',
-                    installation_location: form.installationLocation.trim(),
-                    installation_details: form.installationDetails.trim(),
-                    engine_shutdown: form.engineShutdown,
-                    ignition_sensor: form.ignitionSensor
-                },
-                user: {
-                    _id: currentUser.id,
-                    name: currentUser.name || 'Usuario',
-                    email: currentUser.email || ''
-                },
-                reference: targetId,
-                before: { status: 'pending', lastProcess: null },
-                after: {
-                    status: 'completed',
-                    processType: 'installation',
-                    processDate: form.installationDate
-                },
-                creator: currentUser.id
-            };
-            await this.targetsService.createProcess(processData);
+            const officeRegistration = await this.targetsService.registerOfficeInstallation(
+                targetId,
+                {
+                    installationDate: form.installationDate,
+                    mechanicId: form.mechanicId,
+                    installationLocation: form.installationLocation.trim(),
+                    installationDetails: form.installationDetails.trim(),
+                    engineShutdown: form.engineShutdown,
+                    ignitionSensor: form.ignitionSensor,
+                    targetBrandId: this.target.target_brand_id,
+                    targetModelId: this.target.target_model_id,
+                    targetYear: this.target.target_year,
+                    targetColor: this.target.target_color,
+                    targetPlateNumber: this.target.target_plate_number,
+                    targetChassisNumber: this.target.target_chassis_number,
+                    verified: this.isInstallationChassisVerified()
+                }
+            );
+            updatedTarget = { ...updatedTarget, ...(officeRegistration.device || {}) };
 
             this.target = { ...this.target, ...(updatedTarget as any) };
             await this.loadProcessesList(false);
@@ -5432,7 +5499,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     // Método para obtener el nombre del tipo de proceso
-    getProcessTypeName(type: number): string {
+    getProcessTypeName(type: number, process?: ProcessResponse): string {
+        const after = (process?.after || {}) as Record<string, any>;
+        if (Number(type) === 10 && String(after['origin'] || '') === 'office_management') {
+            return 'Revisión de oficina';
+        }
         const typeNames: { [key: number]: string } = {
             1: 'Instalación inicial',
             2: 'Fecha de instalación',
@@ -5443,7 +5514,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             7: 'Cambio de plan', // Compatibilidad con tipos anteriores
             8: 'Cambio de técnico',
             9: 'Cambio de GPS',
-            10: 'Detalles de instalación',
+            10: 'Chequeo',
             11: 'Modelo de GPS',
             12: 'IMEI / GPS ID',
             13: 'SIM card',
@@ -5609,7 +5680,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     // Método para obtener el texto de estado del proceso
-    getProcessStatusText(type: number): string {
+    getProcessStatusText(type: number, process?: ProcessResponse): string {
+        const after = (process?.after || {}) as Record<string, any>;
+        if (Number(type) === 10 && String(after['origin'] || '') === 'office_management') {
+            return String(after['status'] || '') === 'in_progress' ? 'EN CURSO' : 'FINALIZADA';
+        }
         const statusMap: { [key: number]: string } = {
             1: 'CONFIGURACIÓN INICIAL',
             2: 'MODIFICADA',
@@ -5702,6 +5777,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Método para crear un comando
     async createCommand(): Promise<void> {
+        if (!this.hasOfficeActionAuthorization()) return;
         if (!this.newCommand.name || !this.newCommand.observation) {
             this.messageService.add({
                 severity: 'error',
@@ -5795,6 +5871,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Método para confirmar y enviar el comando
     async confirmSendCommand(): Promise<void> {
+        if (!this.hasOfficeActionAuthorization()) return;
         if (!this.target._id) {
             this.messageService.add({
                 severity: 'error',

@@ -6,7 +6,7 @@ import { TranslateService } from '@ngx-translate/core';
 
 import { UserRolesService } from '@core/services/user-roles.service';
 import { MessageService } from 'primeng/api';
-import { PersonalizedCallHistory, UserService } from '@core/services/user.service';
+import { MainAccountResponse, PersonalizedCallHistory, UserService } from '@core/services/user.service';
 import { AuthService } from '@core/services/auth.service';
 import { PrivilegeService } from './services/privilege.service';
 import { debounceTime, Subject, takeUntil } from 'rxjs';
@@ -71,6 +71,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     @Input() userInput: ExtendedUser | null = null;
     @Input() showWhatsappButton: boolean = false;
     @Output() userCreated = new EventEmitter<any>();
+    @Output() mainAccountChanged = new EventEmitter<string>();
     @Output() openChatEvent = new EventEmitter<any>();
 
     // Claves de traducción
@@ -105,6 +106,20 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     get isCurrentUserEmployee(): boolean {
         const currentUser = this.authService.getCurrentUser();
         return currentUser?.affiliation_type_id === 'empleado';
+    }
+
+    get isCurrentUserRoot(): boolean {
+        const currentUser = this.authService.getCurrentUser();
+        return currentUser?.root === true
+            || String(currentUser?.root).trim().toLowerCase() === 'true';
+    }
+
+    mainAccount: MainAccountResponse['account'] | null = null;
+    changingMainAccount = false;
+
+    get isEditedUserMainAccount(): boolean {
+        return !!this.userInput?._id
+            && String(this.userInput._id) === String(this.mainAccount?._id || '');
     }
 
     // Getter para obtener los roles filtrados según el tipo de usuario
@@ -727,6 +742,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.confirmPassword = '';
         this.user.password = '';
         this.activeTabIndex = 0;
+        this.loadMainAccount();
 
         // Usa el ID real del empleado para asignar la conversación.
         const currentUser = this.authService.getCurrentUser();
@@ -795,6 +811,53 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 this.resetForm();
             }
         }
+    }
+
+    setAsMainAccount(): void {
+        const accountId = String(this.userInput?._id || '').trim();
+        if (!this.isCurrentUserRoot || !accountId || this.isEditedUserMainAccount) return;
+
+        this.changingMainAccount = true;
+        this.userService.setMainAccount(accountId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (response) => {
+                    this.mainAccount = response.account;
+                    this.changingMainAccount = false;
+                    this.mainAccountChanged.emit(String(response.account._id));
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Cuenta principal actualizada',
+                        detail: `${this.getUserFullName() || this.user.email} es ahora la cuenta principal del sistema.`,
+                        life: 3500
+                    });
+                    this.cdr.detectChanges();
+                },
+                error: (error) => {
+                    this.changingMainAccount = false;
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'No se pudo cambiar la cuenta principal',
+                        detail: getApiErrorMessage(error, 'Intenta nuevamente.'),
+                        life: 3500
+                    });
+                }
+            });
+    }
+
+    private loadMainAccount(): void {
+        if (!this.isCurrentUserRoot) return;
+        this.userService.getMainAccount()
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (response) => {
+                    this.mainAccount = response.account;
+                    this.cdr.detectChanges();
+                },
+                error: () => {
+                    this.mainAccount = null;
+                }
+            });
     }
 
     // Propiedad para mostrar la foto actual

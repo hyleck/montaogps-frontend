@@ -13,6 +13,17 @@ export interface UsersResponse {
   totalCount: number;
 }
 
+export interface MainAccountResponse {
+  account: {
+    _id: string;
+    name?: string;
+    last_name?: string;
+    email?: string;
+    affiliation_type_id?: string;
+  };
+  updated_at?: string | Date;
+}
+
 export interface RegistrationLinkResponse {
   token?: string;
   short_code?: string;
@@ -187,6 +198,17 @@ export class UserService {
 
   getById(id: string): Observable<User> {
     return this.http.get<User>(`${this.apiUrl}/${id}`);
+  }
+
+  getMainAccount(): Observable<MainAccountResponse> {
+    return this.http.get<MainAccountResponse>(`${environment.apiUrl}/main-account`);
+  }
+
+  setMainAccount(accountId: string): Observable<MainAccountResponse> {
+    return this.http.put<MainAccountResponse>(
+      `${environment.apiUrl}/main-account/${encodeURIComponent(accountId)}`,
+      {},
+    );
   }
 
   getUserPath(id: string): Observable<any> {

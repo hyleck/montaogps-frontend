@@ -6,10 +6,14 @@ import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.mod
 import { InventoryRoutingModule } from './inventory-routing.module';
 import { InventoryComponent } from './components/inventory/inventory.component';
 import { InventoryPackageDevicesComponent } from './components/inventory-package-devices/inventory-package-devices.component';
+import { InventoryDeviceAssignmentDialogComponent } from './components/inventory-device-assignment-dialog/inventory-device-assignment-dialog.component';
 
 @NgModule({
-  declarations: [InventoryComponent, InventoryPackageDevicesComponent],
+  declarations: [
+    InventoryComponent,
+    InventoryPackageDevicesComponent,
+    InventoryDeviceAssignmentDialogComponent,
+  ],
   imports: [CommonModule, FormsModule, TranslateModule, PrimengModule, InventoryRoutingModule],
 })
 export class InventoryModule {}
-

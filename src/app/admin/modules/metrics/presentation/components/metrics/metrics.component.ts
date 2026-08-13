@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { forkJoin, Observable, of } from 'rxjs';
-import { catchError, finalize, map } from 'rxjs/operators';
+import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 import {
   ProcessesService,
   ProcessItem,
@@ -395,9 +395,21 @@ export class MetricsComponent implements OnInit {
 
   private getDeviceConnectionMetricsFromFullmap(): Observable<DeviceConnectionMetrics> {
     const currentUser = this.authService.getCurrentUser();
-    const fullmapUserId = currentUser?.affiliation_type_id === 'empleado'
-      ? '68a9ccf19bb280482272477f'
-      : currentUser?.id;
+    const usesMainAccount = currentUser?.affiliation_type_id === 'empleado';
+    if (usesMainAccount) {
+      return this.userService.getMainAccount().pipe(
+        switchMap(response => {
+          const mainAccountId = String(response?.account?._id || '').trim();
+          if (!mainAccountId) return of(this.emptyDeviceConnection());
+          return this.monitoringService.getLatestFullmap(mainAccountId).pipe(
+            map(fullmap => this.buildConnectionMetricsFromFullmap(fullmap?.data || [])),
+          );
+        }),
+        catchError(() => of(this.emptyDeviceConnection())),
+      );
+    }
+
+    const fullmapUserId = currentUser?.id;
 
     if (!fullmapUserId) {
       return of(this.emptyDeviceConnection());

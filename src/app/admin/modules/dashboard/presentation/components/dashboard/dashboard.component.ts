@@ -63,12 +63,20 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.isRoot = this.currentUser?.root === true;
         this.canSeeTechnicians = this.currentUser?.affiliation_type_id === 'empleado';
         this.isEmployee = this.canSeeTechnicians || this.isRoot;
-        this.fullmapUserId = this.isEmployee
-            ? '68a9ccf19bb280482272477f'
-            : String(this.currentUser?.id || '').trim();
-
-        this.restoreCachedFullmap();
-        this.requestLatestFullmap();
+        if (this.isEmployee) {
+            this.userService.getMainAccount().subscribe({
+                next: (response) => {
+                    this.fullmapUserId = String(response?.account?._id || '').trim() || null;
+                    this.restoreCachedFullmap();
+                    this.requestLatestFullmap();
+                },
+                error: (error) => console.error('[Dashboard] No se pudo resolver la cuenta principal:', error),
+            });
+        } else {
+            this.fullmapUserId = String(this.currentUser?.id || '').trim() || null;
+            this.restoreCachedFullmap();
+            this.requestLatestFullmap();
+        }
     }
 
     ngAfterViewInit() {

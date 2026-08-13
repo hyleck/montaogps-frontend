@@ -25,11 +25,32 @@ export interface InventoryItem {
   updatedAt?: string;
   installed?: boolean;
   activation_mode?: boolean;
+  inventory_status?: 'available' | 'reserved' | 'installed' | 'inspection';
+  status_source?: 'none' | 'client_reservation' | 'active_installation' | 'incomplete_installation' | 'completed_installation' | 'office_installation' | 'legacy_device_assignment' | 'inspection';
+  status_synced_at?: string;
+  installed_at?: string;
+  installation_process_id?: string;
+  device_id?: string;
+  mechanic_id?: string;
+  device_parent_id?: string;
   inspection_required?: boolean;
   inspection_reason?: string;
   inspection_requested_at?: string;
   inspection_requested_by?: string;
   inspection_solicitud_id?: string;
+  inspection_released_at?: string;
+  inspection_released_by?: string;
+  reservation_client_id?: string;
+  reservation_client_name?: string;
+  reservation_by?: string;
+  reservation_at?: string;
+  reservation_intent?: 'reserve' | 'install' | 'review';
+}
+
+export interface InventoryDeviceAssignmentResponse {
+  device: any;
+  inventory: InventoryItem;
+  reused: boolean;
 }
 
 export interface InspectionRequiredResponse {
@@ -128,6 +149,13 @@ export class InventoryService {
     );
   }
 
+  releaseInspection(id: string): Observable<InventoryItem> {
+    return this.http.patch<InventoryItem>(
+      `${this.apiUrl}/inspection/${encodeURIComponent(id)}/release`,
+      {},
+    );
+  }
+
   checkInspectionRequired(): void {
     this.getInspectionRequired('', 1, 1).subscribe({
       error: () => this.inspectionRequiredCount$.next(0),
@@ -140,6 +168,21 @@ export class InventoryService {
 
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  assignDeviceToClient(
+    inventoryId: string,
+    data: {
+      clientId?: string;
+      intent: 'reserve' | 'install' | 'review';
+      expirationDate: string;
+      targetName?: string;
+    },
+  ): Observable<InventoryDeviceAssignmentResponse> {
+    return this.http.post<InventoryDeviceAssignmentResponse>(
+      `${this.apiUrl}/${encodeURIComponent(inventoryId)}/assign`,
+      data,
+    );
   }
 
   // Package methods

@@ -16,9 +16,6 @@ import {
   InventoryService,
 } from 'src/app/core/services/inventory.service';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
-import { UserService } from 'src/app/core/services/user.service';
-import { StatusService } from 'src/app/shareds/services/status.service';
-import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
@@ -57,10 +54,6 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
 
   installDialogVisible = false;
   deviceToInstall: InventoryItem | null = null;
-  installationEmail = '';
-  defaultInstallationEmail = '';
-  installationSimType = '';
-  availableSimCardTypes = SIM_CARD_TYPES;
 
   private routeSub?: Subscription;
   private scrollListener: any;
@@ -72,10 +65,8 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     private confirmationService: ConfirmationService,
     private translate: TranslateService,
     private authService: AuthService,
-    private userService: UserService,
     private router: Router,
     private route: ActivatedRoute,
-    private statusService: StatusService,
   ) { }
 
   ngOnInit(): void {
@@ -91,8 +82,6 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
 
     this.loadProtocols();
     this.loadWarehouses();
-    this.loadDefaultInstallationEmail();
-
     this.routeSub = this.route.paramMap.subscribe((params) => {
       const packageId = params.get('packageId');
       if (!packageId) {
@@ -553,111 +542,46 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // If device is in activation mode (registered without mechanic), navigate to management
-    if ((device as any).activation_mode && (device as any).device_parent_id) {
+    // A reserved device already has a real target. Resume that exact flow in Management.
+    if (this.isDeviceInActivation(device) && device.device_parent_id) {
       const imei = device.IMEI || device.imei || '';
-      const parentId = (device as any).device_parent_id;
+      const parentId = device.device_parent_id;
       this.messageService.add({
         severity: 'info',
-        summary: 'Modo activación',
-        detail: 'Navegando al dispositivo en management...',
+        summary: 'Continuar asignación',
+        detail: 'Abriendo el objetivo asignado en Management...',
         life: 2000,
       });
       this.router.navigate(['/admin/management/t', parentId], {
-        queryParams: { search: imei }
+        queryParams: {
+          search: imei,
+          inventoryTargetId: device.device_id,
+          inventoryAction: device.reservation_intent || 'reserve',
+        },
       });
       return;
     }
 
     this.deviceToInstall = device;
-    this.installationEmail = this.defaultInstallationEmail || '';
-    this.installationSimType = '';
     this.installDialogVisible = true;
   }
 
-  confirmInstallation(): void {
-    if (!this.installationEmail?.trim()) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Email requerido',
-        detail: 'Por favor ingrese una dirección de correo electrónico',
-      });
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(this.installationEmail)) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Email inválido',
-        detail: 'Por favor ingrese una dirección de correo electrónico válida',
-      });
-      return;
-    }
-
-    if (!this.deviceToInstall) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Dispositivo no seleccionado',
-        detail: 'La instalación no puede iniciar porque no hay un dispositivo seleccionado en el formulario.',
-      });
-      return;
-    }
-
-    if (!this.deviceToInstall._id) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Dispositivo inválido',
-        detail: 'El dispositivo seleccionado no tiene _id y no puede enviarse al backend para instalarlo.',
-      });
-      return;
-    }
-
-    const targetEmail = this.installationEmail.trim();
-    this.userService.getByEmail(targetEmail).subscribe({
-      next: (foundUser) => {
-        const deviceInstallationData = {
-          imei: this.deviceToInstall!.IMEI || this.deviceToInstall!.imei || '',
-          sim: this.deviceToInstall!.SIM || this.deviceToInstall!.sim || '',
-          protocol: this.deviceToInstall!.Protocol || this.deviceToInstall!.protocol || '',
-          userId: foundUser._id,
-          timestamp: new Date().toISOString(),
-          name: `EN_ESPERA-${this.deviceToInstall!.IMEI || this.deviceToInstall!.imei || ''}`,
-          brand: '6945e94df8034f4089c27394',
-          model: '6945e987f8034f4089c2739e',
-          expiration_date: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString(),
-          technician_id: '',
-          installation_details: 'EN_ESPERA',
-          plate_number: `EN_ESPERA-${this.deviceToInstall!.IMEI || this.deviceToInstall!.imei || ''}`,
-          sim_company: this.installationSimType || '',
-        };
-
-        sessionStorage.setItem('deviceInstallationData', JSON.stringify(deviceInstallationData));
-
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Usuario encontrado',
-          detail: `Navegando a management del usuario: ${foundUser.name} ${foundUser.last_name}`,
-        });
-
-        this.cancelInstallation();
-        this.router.navigate(['/admin/management/t', foundUser._id]);
-      },
-      error: () => {
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Usuario no encontrado',
-          detail: `No se encontró un usuario con el email ${targetEmail}. Verifique el correo o cree el usuario primero.`,
-        });
-      },
-    });
+  canAssignInventoryDevice(): boolean {
+    const user = this.authService.getCurrentUser();
+    return this.canUpdateInventory()
+      && this.authService.hasPrivilege('devices', 'create')
+      && String(user?.affiliation_type_id || '').trim().toLowerCase() === 'empleado';
   }
 
   cancelInstallation(): void {
     this.installDialogVisible = false;
     this.deviceToInstall = null;
-    this.installationEmail = '';
-    this.installationSimType = '';
+  }
+
+  onInventoryDeviceAssigned(): void {
+    if (this.currentPackageId) {
+      this.loadPackageDevices(this.currentPackageId);
+    }
   }
 
   goBackToPackages(): void {
@@ -675,34 +599,26 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     return 'Sin protocolo';
   }
 
-  private loadDefaultInstallationEmail(): void {
-    const managementState = this.statusService.getState<any>('management');
-    const route = managementState?.url_route;
-    const userId = Array.isArray(route) && route.length >= 3 ? route[2] : null;
-    if (!userId) {
-      return;
-    }
-
-    this.userService.getById(userId).subscribe({
-      next: (user) => {
-        this.defaultInstallationEmail = user?.email || '';
-      },
-      error: () => {
-        this.defaultInstallationEmail = '';
-      },
-    });
-  }
-
   isDeviceInstalled(device: InventoryItem): boolean {
-    return !!device?.installed;
+    return device?.inventory_status
+      ? device.inventory_status === 'installed'
+      : !!device?.installed;
   }
 
   isDeviceInspectionRequired(device: InventoryItem): boolean {
-    return device?.inspection_required === true;
+    return device?.inventory_status
+      ? device.inventory_status === 'inspection'
+      : device?.inspection_required === true;
   }
 
   isDeviceInActivation(device: InventoryItem): boolean {
-    return !!(device as any)?.activation_mode;
+    return device?.inventory_status
+      ? device.inventory_status === 'reserved'
+      : !!device?.activation_mode;
+  }
+
+  isDeviceClientReservation(device: InventoryItem): boolean {
+    return device?.status_source === 'client_reservation';
   }
 
   isDeviceAirtag(device: InventoryItem): boolean {

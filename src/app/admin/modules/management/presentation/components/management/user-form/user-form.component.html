@@ -209,6 +209,29 @@
                                     </article>
                                 </section>
 
+                                <section *ngIf="userInput && isCurrentUserRoot"
+                                    class="main-account-setting"
+                                    [class.main-account-setting--active]="isEditedUserMainAccount">
+                                    <span class="main-account-setting__icon">
+                                        <i class="pi" [ngClass]="isEditedUserMainAccount ? 'pi-star-fill' : 'pi-star'"></i>
+                                    </span>
+                                    <div class="main-account-setting__content">
+                                        <strong>{{ isEditedUserMainAccount ? 'Cuenta principal del sistema' : 'Establecer como cuenta principal' }}</strong>
+                                        <small *ngIf="isEditedUserMainAccount">
+                                            Monitoreo, solicitudes, revisiones de oficina y búsquedas globales usan esta cuenta.
+                                        </small>
+                                        <small *ngIf="!isEditedUserMainAccount">
+                                            Al seleccionarla reemplazará automáticamente a la cuenta principal anterior.
+                                        </small>
+                                    </div>
+                                    <button type="button"
+                                        (click)="setAsMainAccount()"
+                                        [disabled]="changingMainAccount || isEditedUserMainAccount">
+                                        <i class="pi" [ngClass]="changingMainAccount ? 'pi-spin pi-spinner' : (isEditedUserMainAccount ? 'pi-check' : 'pi-arrow-right-arrow-left')"></i>
+                                        {{ changingMainAccount ? 'Actualizando...' : (isEditedUserMainAccount ? 'Seleccionada' : 'Seleccionar') }}
+                                    </button>
+                                </section>
+
                                 <div class="user-form__actions">
                                     <button type="submit" [disabled]="isSaving">
                                         <i class="pi" [ngClass]="isSaving ? 'pi-spin pi-spinner' : 'pi-save'"></i>
