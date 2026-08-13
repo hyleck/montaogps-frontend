@@ -42,7 +42,7 @@ describe('NavbarComponent realtime links', () => {
       { getCurrentUser: () => null } as any,
       {} as any,
       {} as any,
-      {} as any,
+      { getLanguages: () => [] } as any,
       { instant: (key: string) => key } as any,
       selectionService as any,
       targetsService as any,
@@ -79,6 +79,20 @@ describe('NavbarComponent realtime links', () => {
     expect(component.realtimeLinkDialogVisible).toBeTrue();
     expect(component.targetsToShare.length).toBe(2);
     expect(messageService.add).not.toHaveBeenCalled();
+  });
+
+  it('shows Instructivos in the user dropdown before closing the session', () => {
+    const { component } = createComponent();
+
+    (component as any).initializeMenus();
+
+    const labels = component.userMenuItems
+      .filter(item => !item.separator)
+      .map(item => item.label);
+    expect(labels).toContain('Instructivos');
+    expect(labels.indexOf('Instructivos')).toBeLessThan(
+      labels.indexOf('navbar.logout'),
+    );
   });
 
   it('generates one independent realtime link per selected target', async () => {

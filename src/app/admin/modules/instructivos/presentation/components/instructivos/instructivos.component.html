@@ -1,0 +1,179 @@
+<section class="instructions-page">
+  <header class="instructions-hero">
+    <div class="instructions-hero__icon" aria-hidden="true">
+      <i class="pi pi-book"></i>
+    </div>
+    <div class="instructions-hero__copy">
+      <span class="instructions-eyebrow">Centro de ayuda</span>
+      <h1>Instructivos</h1>
+      <p>Aprende a realizar cada proceso disponible para tu perfil, tanto en la app como en el escritorio.</p>
+    </div>
+    <div class="instructions-hero__profile" *ngIf="!loading && userType">
+      <span>Documentación para</span>
+      <strong>{{ userType }}</strong>
+      <small>{{ guides.length }} instructivos disponibles</small>
+    </div>
+  </header>
+
+  <div class="instructions-loading" *ngIf="loading" aria-live="polite">
+    <i class="pi pi-spin pi-spinner"></i>
+    <div>
+      <strong>Preparando tu documentación</strong>
+      <span>Estamos mostrando únicamente los procesos permitidos para tu cuenta.</span>
+    </div>
+  </div>
+
+  <div class="instructions-error" *ngIf="!loading && error">
+    <i class="pi pi-exclamation-circle"></i>
+    <div>
+      <strong>No pudimos abrir los instructivos</strong>
+      <span>{{ error }}</span>
+    </div>
+    <button type="button" (click)="loadGuides()">
+      <i class="pi pi-refresh"></i>
+      Reintentar
+    </button>
+  </div>
+
+  <ng-container *ngIf="!loading && !error">
+    <section class="instructions-toolbar">
+      <label class="instructions-search">
+        <i class="pi pi-search"></i>
+        <input
+          type="search"
+          [(ngModel)]="search"
+          (ngModelChange)="onSearchChange()"
+          placeholder="Buscar un proceso, botón o acción..."
+          aria-label="Buscar instructivos"
+        />
+        <button *ngIf="search" type="button" (click)="clearSearch()" aria-label="Limpiar búsqueda">
+          <i class="pi pi-times"></i>
+        </button>
+      </label>
+
+      <div class="instructions-platforms" role="group" aria-label="Filtrar por plataforma">
+        <button
+          *ngFor="let option of platforms"
+          type="button"
+          [class.active]="platform === option.value"
+          (click)="selectPlatform(option.value)"
+        >
+          <i [class]="option.icon"></i>
+          <span>{{ option.label }}</span>
+          <small>{{ countByPlatform(option.value) }}</small>
+        </button>
+      </div>
+    </section>
+
+    <div class="instructions-workspace" *ngIf="guides.length; else noGuides">
+      <aside class="instructions-categories" aria-label="Categorías">
+        <span class="instructions-pane-title">Categorías</span>
+        <button
+          type="button"
+          [class.active]="category === 'all'"
+          (click)="selectCategory('all')"
+        >
+          <i class="pi pi-th-large"></i>
+          <span>Todos los temas</span>
+          <small>{{ guides.length }}</small>
+        </button>
+        <button
+          *ngFor="let item of categories"
+          type="button"
+          [class.active]="category === item"
+          (click)="selectCategory(item)"
+        >
+          <i class="pi pi-folder"></i>
+          <span>{{ item }}</span>
+          <small>{{ countByCategory(item) }}</small>
+        </button>
+        <div class="instructions-security-note">
+          <i class="pi pi-shield"></i>
+          <p>Los instructivos se adaptan automáticamente a tu tipo de usuario y permisos.</p>
+        </div>
+      </aside>
+
+      <section class="instructions-list" aria-label="Listado de instructivos">
+        <div class="instructions-list__header">
+          <span class="instructions-pane-title">Instructivos</span>
+          <strong>{{ filteredGuides.length }} resultado{{ filteredGuides.length === 1 ? '' : 's' }}</strong>
+        </div>
+
+        <button
+          *ngFor="let guide of filteredGuides; trackBy: trackGuide"
+          type="button"
+          class="instruction-card"
+          [class.active]="selectedGuide?.id === guide.id"
+          (click)="selectGuide(guide)"
+        >
+          <span class="instruction-card__platform" [class.mobile]="guide.platform === 'mobile'">
+            <i [class]="platformIcon(guide.platform)"></i>
+          </span>
+          <span class="instruction-card__copy">
+            <small>{{ guide.category }}</small>
+            <strong>{{ guide.title }}</strong>
+            <span>{{ guide.steps.length }} pasos · {{ platformLabel(guide.platform) }}</span>
+          </span>
+          <i class="pi pi-chevron-right instruction-card__arrow"></i>
+        </button>
+
+        <div class="instructions-empty" *ngIf="!filteredGuides.length">
+          <i class="pi pi-search"></i>
+          <strong>No encontramos ese instructivo</strong>
+          <span>Prueba con otra palabra o limpia los filtros.</span>
+          <button type="button" (click)="clearSearch(); selectCategory('all'); selectPlatform('all')">
+            Limpiar filtros
+          </button>
+        </div>
+      </section>
+
+      <article class="instruction-detail" *ngIf="selectedGuide as guide">
+        <header class="instruction-detail__header">
+          <div>
+            <span class="instruction-detail__category">{{ guide.category }}</span>
+            <h2>{{ guide.title }}</h2>
+            <span class="instruction-detail__platform">
+              <i [class]="platformIcon(guide.platform)"></i>
+              {{ platformLabel(guide.platform) }}
+            </span>
+          </div>
+          <button type="button" class="instruction-copy" (click)="copyGuide(guide)">
+            <i [class]="copiedGuideId === guide.id ? 'pi pi-check' : 'pi pi-copy'"></i>
+            {{ copiedGuideId === guide.id ? 'Copiado' : 'Copiar pasos' }}
+          </button>
+        </header>
+
+        <div class="instruction-detail__intro">
+          <i class="pi pi-route"></i>
+          <div>
+            <strong>Sigue este flujo en orden</strong>
+            <span>Los nombres corresponden a las opciones disponibles actualmente en Montao GPS.</span>
+          </div>
+        </div>
+
+        <ol class="instruction-steps">
+          <li *ngFor="let step of guide.steps; let index = index">
+            <span class="instruction-step__number">{{ index + 1 }}</span>
+            <p>{{ step }}</p>
+          </li>
+        </ol>
+
+        <section class="instruction-notes" *ngIf="guide.notes.length">
+          <div class="instruction-notes__title">
+            <i class="pi pi-info-circle"></i>
+            <strong>Antes de continuar</strong>
+          </div>
+          <p *ngFor="let note of guide.notes">{{ note }}</p>
+        </section>
+      </article>
+    </div>
+  </ng-container>
+</section>
+
+<ng-template #noGuides>
+  <div class="instructions-empty instructions-empty--page">
+    <i class="pi pi-lock"></i>
+    <strong>No hay instructivos disponibles</strong>
+    <span>Tu perfil todavía no tiene procesos documentados habilitados.</span>
+  </div>
+</ng-template>
