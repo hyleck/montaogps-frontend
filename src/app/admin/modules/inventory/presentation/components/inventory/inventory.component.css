@@ -3260,7 +3260,7 @@ textarea.form-input {
 
 .package-filter-form {
   display: grid;
-  grid-template-columns: minmax(210px, 0.9fr) minmax(160px, 0.65fr) minmax(280px, 1.4fr) auto;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(190px, 0.9fr) minmax(150px, 0.6fr) minmax(250px, 1.3fr) auto;
   gap: 0.65rem;
   align-items: end;
 }
@@ -3443,7 +3443,7 @@ textarea.form-input {
 
 .package-devices-table {
   width: 100%;
-  min-width: 1220px;
+  min-width: 1120px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -3470,7 +3470,7 @@ textarea.form-input {
 }
 
 .package-devices-table th:first-child {
-  width: 190px;
+  width: 210px;
 }
 
 .package-devices-table th:nth-child(2) {
@@ -3482,18 +3482,14 @@ textarea.form-input {
 }
 
 .package-devices-table th:nth-child(4) {
-  width: 100px;
-}
-
-.package-devices-table th:nth-child(5) {
   width: 225px;
 }
 
-.package-devices-table th:nth-child(6) {
+.package-devices-table th:nth-child(5) {
   width: 115px;
 }
 
-.package-devices-table th:nth-child(7) {
+.package-devices-table th:nth-child(6) {
   width: 190px;
 }
 
@@ -3543,6 +3539,13 @@ textarea.form-input {
 
 .package-device-identity strong {
   color: var(--managementColorTitleUser);
+}
+
+.package-device-protocol-subtext {
+  color: var(--inventory-muted-text);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .package-device-status {

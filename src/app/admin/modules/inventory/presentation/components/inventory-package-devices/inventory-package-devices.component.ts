@@ -49,6 +49,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   loadedProtocols: any[] = [];
   packageSearchQuery = '';
   packageSearchStatus: string = '';
+  selectedProtocolFilter = '';
   isSearchingPackage = false;
   packageFiltersVisible = false;
 
@@ -120,7 +121,12 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   }
 
   get activePackageFiltersCount(): number {
-    return [this.packageSearchQuery, this.selectedWarehouseFilter, this.packageSearchStatus]
+    return [
+      this.packageSearchQuery,
+      this.selectedWarehouseFilter,
+      this.selectedProtocolFilter,
+      this.packageSearchStatus,
+    ]
       .filter(Boolean).length;
   }
 
@@ -444,7 +450,12 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!this.packageSearchQuery.trim() && !this.selectedWarehouseFilter && !this.packageSearchStatus) {
+    if (
+      !this.packageSearchQuery.trim()
+      && !this.selectedWarehouseFilter
+      && !this.selectedProtocolFilter
+      && !this.packageSearchStatus
+    ) {
       this.clearPackageSearch();
       return;
     }
@@ -466,7 +477,8 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
         this.selectedWarehouseFilter,
         this.currentPage,
         this.itemsPerPage,
-        this.packageSearchStatus || undefined
+        this.packageSearchStatus || undefined,
+        this.selectedProtocolFilter || undefined,
       )
       .subscribe({
         next: (response) => {
@@ -509,7 +521,12 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   loadMoreDevices(): void {
     if (!this.isLoadingMore && !this.loading && this.packageDevices.length < this.totalItems) {
       this.currentPage++;
-      if (this.packageSearchQuery.trim() || this.selectedWarehouseFilter || this.packageSearchStatus) {
+      if (
+        this.packageSearchQuery.trim()
+        || this.selectedWarehouseFilter
+        || this.selectedProtocolFilter
+        || this.packageSearchStatus
+      ) {
         this.searchPackageDevices(false);
       } else {
         this.loadPackageDevices(this.currentPackageId!, false);
@@ -520,6 +537,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   clearPackageSearch(): void {
     this.packageSearchQuery = '';
     this.selectedWarehouseFilter = '';
+    this.selectedProtocolFilter = '';
     this.packageSearchStatus = '';
     this.isSearchingPackage = false;
     this.currentPage = 1;

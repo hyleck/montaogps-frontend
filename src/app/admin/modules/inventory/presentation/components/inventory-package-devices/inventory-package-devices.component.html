@@ -55,7 +55,7 @@
         <span class="package-filter-panel__icon"><i class="pi pi-filter"></i></span>
         <div>
           <strong>Filtrar dispositivos</strong>
-          <small>Busca por IMEI, SIM, almacén o estado.</small>
+          <small>Busca por IMEI, SIM, protocolo o modelo, almacén o estado.</small>
         </div>
       </div>
 
@@ -65,6 +65,15 @@
           <p-dropdown [options]="warehouses" [(ngModel)]="selectedWarehouseFilter" name="warehouseFilter"
             optionLabel="name" optionValue="_id" placeholder="Todos los almacenes" [showClear]="true"
             [disabled]="isSearchingPackage" (onChange)="searchPackageDevices()" appendTo="body"
+            styleClass="package-filter-dropdown"></p-dropdown>
+        </label>
+
+        <label class="package-filter-field">
+          <span>Protocolo o modelo</span>
+          <p-dropdown [options]="protocols" [(ngModel)]="selectedProtocolFilter" name="protocolFilter"
+            optionLabel="label" optionValue="value" placeholder="Todos los protocolos" [showClear]="true"
+            [filter]="true" filterBy="label" [disabled]="isSearchingPackage"
+            (onChange)="searchPackageDevices()" appendTo="body"
             styleClass="package-filter-dropdown"></p-dropdown>
         </label>
 
@@ -94,7 +103,7 @@
             <span>{{ isSearchingPackage ? 'Buscando' : 'Buscar' }}</span>
           </button>
           <button type="button" class="package-clear-button" (click)="clearPackageSearch()"
-            *ngIf="packageSearchQuery || selectedWarehouseFilter || packageSearchStatus">
+            *ngIf="packageSearchQuery || selectedWarehouseFilter || selectedProtocolFilter || packageSearchStatus">
             <i class="pi pi-times"></i>
             <span>Limpiar</span>
           </button>
@@ -108,7 +117,7 @@
           <h2>Listado del paquete</h2>
           <span>{{ packageDevices.length }} de {{ totalItems }} cargados</span>
         </div>
-        <span *ngIf="packageSearchQuery || selectedWarehouseFilter || packageSearchStatus"
+        <span *ngIf="packageSearchQuery || selectedWarehouseFilter || selectedProtocolFilter || packageSearchStatus"
           class="package-device-list__filtered">
           <i class="pi pi-filter-fill"></i>
           Filtros activos
@@ -122,7 +131,6 @@
               <th>IMEI y estado</th>
               <th>SIM</th>
               <th>ID SIM</th>
-              <th>Protocolo</th>
               <th>Almacén</th>
               <th>Fecha de ingreso</th>
               <th>Trazabilidad</th>
@@ -136,6 +144,9 @@
               <td>
                 <div class="package-device-identity">
                   <strong>{{ device.IMEI || device.imei || 'N/A' }}</strong>
+                  <small class="package-device-protocol-subtext">
+                    Protocolo: {{ getProtocolLabel(device.Protocol || device.protocol) }}
+                  </small>
                   <span class="package-device-status package-device-status--inspection"
                     *ngIf="isDeviceInspectionRequired(device)"
                     [pTooltip]="device.inspection_reason || 'El dispositivo fue marcado para revisión técnica.'">
@@ -168,7 +179,6 @@
               </td>
               <td><span class="package-device-code">{{ isDeviceAirtag(device) ? '—' : (device.SIM || device.sim || 'N/A') }}</span></td>
               <td><span class="package-device-code">{{ isDeviceAirtag(device) ? '—' : (device.IDSIM || device.idsim || 'N/A') }}</span></td>
-              <td><span class="package-protocol-badge">{{ getProtocolLabel(device.Protocol || device.protocol) }}</span></td>
               <td class="package-device-warehouse">
                 <p-dropdown [options]="warehouses" [(ngModel)]="device.storage_id" optionLabel="name" optionValue="_id"
                   placeholder="Sin almacén" [showClear]="true" appendTo="body"
@@ -220,7 +230,7 @@
               </td>
             </tr>
             <tr *ngIf="!loading && packageDevices.length === 0">
-              <td colspan="8">
+              <td colspan="7">
                 <div class="package-devices-empty">
                   <span><i class="pi pi-box"></i></span>
                   <strong>No hay dispositivos en este paquete</strong>

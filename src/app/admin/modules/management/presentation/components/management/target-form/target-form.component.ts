@@ -2502,6 +2502,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             ? targetData.gps_adicional.trim()
             : '';
 
+        // En edición este campo es informativo y puede venir vacío en registros
+        // antiguos. Omitirlo evita convertir una modificación parcial en una
+        // validación de instalación nueva.
+        if (
+            this.target._id
+            && !String(targetData.installation_details || '').trim()
+        ) {
+            delete targetData.installation_details;
+        }
+
         // sim_company y sim_card_number ya tienen los nombres correctos, no necesitan mapeo
 
         // Obtener valores por defecto

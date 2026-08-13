@@ -260,13 +260,16 @@ export class InventoryService {
     return this.http.get<{ data: InventoryItem[]; total: number; page: number; lastPage: number }>(url);
   }
 
-  searchDevicesByPackage(packageId: string, query: string, storageId?: string, page = 1, limit = 20, status?: string): Observable<{ data: InventoryItem[]; total: number; page: number; lastPage: number }> {
+  searchDevicesByPackage(packageId: string, query: string, storageId?: string, page = 1, limit = 20, status?: string, protocolId?: string): Observable<{ data: InventoryItem[]; total: number; page: number; lastPage: number }> {
     let url = `${this.packagesUrl}/${packageId}/devices/search/${encodeURIComponent(query)}?page=${page}&limit=${limit}`;
     if (storageId) {
       url += `&storage_id=${storageId}`;
     }
     if (status) {
       url += `&status=${status}`;
+    }
+    if (protocolId) {
+      url += `&protocol_id=${encodeURIComponent(protocolId)}`;
     }
     return this.http.get<{ data: InventoryItem[]; total: number; page: number; lastPage: number }>(url);
   }
