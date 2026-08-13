@@ -4852,39 +4852,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Si es modificar tipo de SIM card, actualizar solo el tipo
             if (this.processForm.type === 'sim_type_change') {
                 try {
-                    // Preparar datos para actualizar solo el tipo de SIM card
+                    // Esta operación debe ser parcial. Reenviar el target completo hace
+                    // que valores heredados vacíos (por ejemplo installation_details)
+                    // vuelvan a pasar por las validaciones del DTO del backend.
                     const updateData: UpdateTargetDto = {
-                        name: this.target.name,
-                        device_imei: this.target.device_imei,
-                        type: this.target.type,
-                        sim_card_number: this.target.sim_card_number, // Mantener el número de SIM existente
-                        sim_company: this.processForm.newSimType.trim(), // Nuevo tipo de SIM
-                        description: this.target.description,
-                        target_plate_number: this.target.target_plate_number,
-                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
-                        target_year: this.target.target_year,
-                        installation_location: this.target.installation_location,
-                        target_brand_id: this.target.target_brand_id,
-                        target_model_id: this.target.target_model_id,
-                        target_color: this.target.target_color,
-                        target_chassis_number: this.target.target_chassis_number,
-                        mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
-                        last_change_date: new Date(),
-                        gps_model: this.target.gps_model,
-                        ignition_sensor: this.target.ignition_sensor,
-                        shutdown_control: this.target.shutdown_control,
-                        engine_shutdown: this.target.engine_shutdown,
-                        installation_details: this.target.installation_details,
-                        status: this.target.status == 'active',
-                        canceled: this.target.canceled,
-                        delete: this.target['delete'],
-                        index: this.target.index,
-                        // Preservar plan y precio existentes
-                        creator_id: this.target.creator_id,
-                        parent_id: this.target.parent_id,
-                        user_id: this.target.user_id
+                        sim_company: this.processForm.newSimType.trim(),
+                        last_change_date: new Date()
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
