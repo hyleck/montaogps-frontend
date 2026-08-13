@@ -177,6 +177,7 @@
               <th>{{ 'inventory.device.warehouse' | translate }}</th>
               <th>{{ 'inventory.device.storageDate' | translate }}</th>
               <th>Estado</th>
+              <th>Trazabilidad</th>
               <th class="devices-table__actions-heading">{{ 'inventory.device.actions' | translate }}</th>
             </tr>
           </thead>
@@ -252,6 +253,18 @@
                   [title]="device.inspection_reason">
                   {{ device.inspection_reason }}
                 </small>
+              </td>
+              <td>
+                <div class="inventory-audit">
+                  <span [title]="auditUserLabel(device.created_by)">
+                    <i class="pi pi-user-plus"></i><small>Creado por</small>
+                    <strong>{{ auditUserLabel(device.created_by) }}</strong>
+                  </span>
+                  <span [title]="auditUserLabel(device.updated_by)">
+                    <i class="pi pi-pencil"></i><small>Modificado por</small>
+                    <strong>{{ auditUserLabel(device.updated_by) }}</strong>
+                  </span>
+                </div>
               </td>
               <td class="devices-table__actions-cell">
                 <div class="inventory-result-actions">
@@ -354,6 +367,17 @@
                     <strong>{{ package.price | currency: 'USD':'symbol':'1.2-2' }}</strong>
                   </span>
                 </div>
+              </div>
+
+              <div class="inventory-audit inventory-audit--card">
+                <span [title]="auditUserLabel(package.created_by)">
+                  <i class="pi pi-user-plus"></i><small>Creado por</small>
+                  <strong>{{ auditUserLabel(package.created_by) }}</strong>
+                </span>
+                <span [title]="auditUserLabel(package.updated_by)">
+                  <i class="pi pi-pencil"></i><small>Modificado por</small>
+                  <strong>{{ auditUserLabel(package.updated_by) }}</strong>
+                </span>
               </div>
             </div>
 
@@ -461,6 +485,7 @@
               <th>Almacén</th>
               <th>Fecha de ingreso</th>
               <th>Estado</th>
+              <th>Trazabilidad</th>
               <th class="simcard-table__actions-heading">Acciones</th>
             </tr>
           </thead>
@@ -516,6 +541,18 @@
                 </span>
               </td>
               <td>
+                <div class="inventory-audit">
+                  <span [title]="auditUserLabel(simcard.created_by)">
+                    <i class="pi pi-user-plus"></i><small>Creado por</small>
+                    <strong>{{ auditUserLabel(simcard.created_by) }}</strong>
+                  </span>
+                  <span [title]="auditUserLabel(simcard.updated_by)">
+                    <i class="pi pi-pencil"></i><small>Modificado por</small>
+                    <strong>{{ auditUserLabel(simcard.updated_by) }}</strong>
+                  </span>
+                </div>
+              </td>
+              <td>
                 <div class="simcard-actions">
                   <button type="button" class="simcard-action" (click)="editSimcard(simcard)"
                     pTooltip="Editar" tooltipPosition="top" aria-label="Editar SIM card"
@@ -531,7 +568,7 @@
               </td>
             </tr>
             <tr *ngIf="simcardsList.length === 0 && !simcardIsLoadingMore && !isSearchingSimcards">
-              <td colspan="8">
+              <td colspan="9">
                 <div class="simcard-empty-state">
                   <span><i class="pi pi-credit-card"></i></span>
                   <strong>No se encontraron SIM cards</strong>
@@ -695,6 +732,16 @@
             <small>Configuración</small>
             <span><i class="pi pi-clone"></i> {{ getGpsModelTemplateName(model) }}</span>
           </div>
+          <div class="inventory-audit inventory-audit--model">
+            <span [title]="auditUserLabel(model.created_by)">
+              <i class="pi pi-user-plus"></i><small>Creado por</small>
+              <strong>{{ auditUserLabel(model.created_by) }}</strong>
+            </span>
+            <span [title]="auditUserLabel(model.updated_by)">
+              <i class="pi pi-pencil"></i><small>Modificado por</small>
+              <strong>{{ auditUserLabel(model.updated_by) }}</strong>
+            </span>
+          </div>
           <span class="gps-model-row__commands">
             <strong>{{ model.commands.length || 0 }}</strong>
             <small>comandos</small>
@@ -762,6 +809,7 @@
                   <th class="warehouse-table__number">Equipos</th>
                   <th class="warehouse-table__number">SIM cards</th>
                   <th>Estado</th>
+                  <th>Trazabilidad</th>
                   <th class="warehouse-table__actions">Acciones</th>
                 </tr>
               </thead>
@@ -819,6 +867,18 @@
                         [ngClass]="(warehouse.stock || 0) < (warehouse.min_quantity || 0) ? 'pi-exclamation-triangle' : 'pi-check-circle'"></i>
                       {{ (warehouse.stock || 0) < (warehouse.min_quantity || 0) ? 'Stock bajo' : 'Disponible' }}
                     </span>
+                  </td>
+                  <td>
+                    <div class="inventory-audit">
+                      <span [title]="auditUserLabel(warehouse.created_by)">
+                        <i class="pi pi-user-plus"></i><small>Creado por</small>
+                        <strong>{{ auditUserLabel(warehouse.created_by) }}</strong>
+                      </span>
+                      <span [title]="auditUserLabel(warehouse.updated_by)">
+                        <i class="pi pi-pencil"></i><small>Modificado por</small>
+                        <strong>{{ auditUserLabel(warehouse.updated_by) }}</strong>
+                      </span>
+                    </div>
                   </td>
                   <td class="warehouse-table__actions">
                     <button pButton pRipple icon="pi pi-pencil"
@@ -1289,7 +1349,7 @@
             <th>Fecha</th>
             <th>Almacén destino</th>
             <th>Contenido</th>
-            <th>Creado por</th>
+            <th>Trazabilidad</th>
             <th>Estado</th>
             <th class="conduces-history-table__actions-heading">PDF</th>
           </tr>
@@ -1334,10 +1394,16 @@
               </button>
             </td>
             <td>
-              <span class="conduce-creator">
-                <i class="pi pi-user"></i>
-                <span>{{ conduce.created_by?.name || 'Sistema' }} {{ conduce.created_by?.last_name || '' }}</span>
-              </span>
+              <div class="inventory-audit">
+                <span [title]="auditUserLabel(conduce.created_by)">
+                  <i class="pi pi-user-plus"></i><small>Creado por</small>
+                  <strong>{{ auditUserLabel(conduce.created_by) }}</strong>
+                </span>
+                <span [title]="auditUserLabel(conduce.updated_by)">
+                  <i class="pi pi-pencil"></i><small>Modificado por</small>
+                  <strong>{{ auditUserLabel(conduce.updated_by) }}</strong>
+                </span>
+              </div>
             </td>
             <td>
               <span class="conduce-status" [class.conduce-status--completed]="conduce.status === 'completed'"

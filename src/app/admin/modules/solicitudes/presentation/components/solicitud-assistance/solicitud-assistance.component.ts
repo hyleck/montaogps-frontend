@@ -121,28 +121,6 @@ export class SolicitudAssistanceComponent implements OnChanges, OnDestroy {
     { label: 'Mascota', value: 'pet' },
     { label: 'Equipaje', value: 'luggage' },
   ];
-  readonly installationLocations = [
-    { label: 'Bajo el tablero', value: 'bajo_tablero' },
-    { label: 'En el maletero', value: 'maletero' },
-    { label: 'Bajo el asiento del conductor', value: 'asiento_conductor' },
-    { label: 'Asiento del chofer', value: 'asiento_chofer' },
-    { label: 'Compartimento del motor', value: 'compartimento_motor' },
-    { label: 'Panel de instrumentos', value: 'panel_instrumentos' },
-    { label: 'Debajo del volante', value: 'debajo_volante' },
-    { label: 'Parte trasera del vehículo', value: 'parte_trasera' },
-    { label: 'Luz del techo', value: 'luz_techo' },
-    { label: 'Luz trasera', value: 'luz_trasera' },
-    { label: 'Asiento del pasajero', value: 'asiento_pasajero' },
-    { label: 'Caja de fusibles', value: 'caja_fusibles' },
-    { label: 'Asiento trasero', value: 'asiento_trasero' },
-    { label: 'Guantera del pasajero', value: 'guantera_pasajero' },
-    { label: 'En el radio', value: 'radio' },
-    { label: 'El buche', value: 'buche' },
-    { label: 'Lateral izquierdo', value: 'lateral_izquierdo' },
-    { label: 'El millero', value: 'millero' },
-    { label: 'El chasis', value: 'chasis' },
-    { label: 'Otro', value: 'otro' },
-  ];
   readonly yesNoOptions = [
     { label: 'No', value: 'No' },
     { label: 'Sí', value: 'Si' },

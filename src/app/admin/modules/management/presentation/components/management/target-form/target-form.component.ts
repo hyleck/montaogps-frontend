@@ -6,7 +6,6 @@ import { LangService } from '../../../../../../../shareds/services/langi18/lang.
 import {
     TARGET_FORM_STYLES,
     TARGET_FORM_TRANSLATIONS,
-    INSTALLATION_LOCATIONS,
     FALLBACK_GPS_MODELS,
     FIELDS_TO_PRESERVE,
     YEARS_CONFIG,
@@ -169,7 +168,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     availableModels: SelectOption[] = [];
     availableYears: SelectOption[] = [];
     availableGpsModels: SelectOption[] = [];
-    availableLocations: SelectOption[] = [];
     availableColors: SelectOption[] = [];
     availableSimCardTypes: SelectOption[] = SIM_CARD_TYPES;
     filteredColors: SelectOption[] = [];
@@ -1624,7 +1622,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 });
 
             // Usar constantes para ubicaciones y tipos de SIM
-            this.availableLocations = [...INSTALLATION_LOCATIONS];
             this.availableSimCardTypes = [...SIM_CARD_TYPES];
 
             // Cargar técnicos desde el servicio

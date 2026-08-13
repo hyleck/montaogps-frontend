@@ -1,0 +1,161 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.installation-location-control {
+  display: grid;
+  gap: 0.45rem;
+}
+
+select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 2.35rem 0 0.8rem;
+  border: 1px solid var(--managementFieldsBorder, #d5d9e2);
+  border-radius: 8px;
+  outline: none;
+  background: var(--managementColorCardBackground, #fff);
+  color: var(--managementColorTextUser, #202636);
+  font: inherit;
+}
+
+select:focus {
+  border-color: var(--globalColorPrimaryInmutable, #ec4343);
+  box-shadow: 0 0 0 3px rgba(236, 67, 67, 0.1);
+}
+
+.installation-location-add {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--globalColorPrimaryInmutable, #ec4343);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.installation-location-add:hover,
+.installation-location-add:focus-visible {
+  text-decoration: underline;
+}
+
+.installation-location-add:focus-visible {
+  outline: 2px solid var(--globalColorPrimaryInmutable, #ec4343);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.installation-location-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(10, 14, 24, 0.62);
+  backdrop-filter: blur(3px);
+}
+
+.installation-location-dialog {
+  width: min(460px, 100%);
+  padding: 1.15rem;
+  border: 1px solid var(--managementFieldsBorder, #d5d9e2);
+  border-radius: 14px;
+  background: var(--managementColorCardBackground, #fff);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.24);
+  color: var(--managementColorTextUser, #202636);
+}
+
+.installation-location-dialog header {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.installation-location-dialog header > span {
+  display: grid;
+  flex: 0 0 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(236, 67, 67, 0.1);
+  color: var(--globalColorPrimaryInmutable, #ec4343);
+}
+
+.installation-location-dialog h3,
+.installation-location-dialog p {
+  margin: 0;
+}
+
+.installation-location-dialog h3 {
+  font-size: 1rem;
+}
+
+.installation-location-dialog p {
+  margin-top: 0.25rem;
+  color: var(--globalColorTextLight, #778093);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.installation-location-dialog label {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.installation-location-dialog input {
+  min-height: 44px;
+  padding: 0 0.8rem;
+  border: 1px solid var(--managementFieldsBorder, #d5d9e2);
+  border-radius: 8px;
+  outline: none;
+  background: var(--managementColorBackgroundUser, #fff);
+  color: inherit;
+  font: inherit;
+}
+
+.installation-location-error {
+  display: block;
+  margin-top: 0.45rem;
+  color: #dc2626;
+}
+
+.installation-location-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.installation-location-dialog button {
+  min-height: 40px;
+  padding: 0 0.9rem;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.installation-location-dialog button.is-secondary {
+  background: rgba(127, 127, 127, 0.1);
+  color: inherit;
+}
+
+.installation-location-dialog button.is-primary {
+  background: var(--globalColorPrimaryInmutable, #ec4343);
+  color: #fff;
+}
+
+.installation-location-dialog button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}

@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
-import { finalize, firstValueFrom, timeout } from 'rxjs';
+import { finalize, firstValueFrom, Subscription, timeout } from 'rxjs';
 import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -35,6 +35,7 @@ import { SystemService } from '../../../../../../core/services/system.service';
 import { MapUtils } from '../../../../../../shareds/helpers/map.helper';
 import * as maplibregl from 'maplibre-gl';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
+import { InstallationLocationsService } from '../../../../../../core/services/installation-locations.service';
 interface SelectOption {
     label: string;
     value: string;
@@ -742,7 +743,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     solicitudToInstall: Solicitud | null = null;
     availableProtocols: Protocol[] = [];
     simCardTypes = SIM_CARD_TYPES;
-    installationLocations = INSTALLATION_LOCATIONS;
+    installationLocations = [...INSTALLATION_LOCATIONS];
+    private installationLocationsSubscription?: Subscription;
     installData = {
         name: '',
         type: '',
@@ -767,6 +769,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         private targetsService: TargetsService,
         private protocolsService: ProtocolsService,
         private inventoryService: InventoryService,
+        private installationLocationsService: InstallationLocationsService,
         private authService: AuthService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService,
@@ -781,6 +784,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        this.installationLocationsSubscription = this.installationLocationsService.locations$.subscribe(
+            locations => { this.installationLocations = locations; }
+        );
+        this.installationLocationsService.load().subscribe();
         this.initializeTopDateFilters();
         this.loadSolicitudes(false);
         this.startRealtimeRefresh();
@@ -788,6 +795,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.installationLocationsSubscription?.unsubscribe();
         this.destroyLocationConfigMap();
         this.destroyProcessLocationMap();
         this.destroyTechnicianLocationMap();

@@ -506,7 +506,7 @@
 
 .gps-model-row {
   display: grid;
-  grid-template-columns: 42px minmax(160px, 1.2fr) minmax(180px, 1fr) 76px 76px;
+  grid-template-columns: 42px minmax(150px, 1.1fr) minmax(165px, 1fr) minmax(180px, 1fr) 76px 76px;
   align-items: center;
   gap: 0.75rem;
   min-height: 66px;
@@ -1368,7 +1368,7 @@ textarea.form-input {
   background: var(--managementColorCardBackground);
   border: 1px solid var(--inventory-surface-border);
   border-radius: 12px;
-  min-height: 218px;
+  min-height: 286px;
   padding: 1rem;
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
@@ -1514,6 +1514,58 @@ textarea.form-input {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.inventory-audit {
+  display: grid;
+  min-width: 168px;
+  gap: 0.35rem;
+}
+
+.inventory-audit > span {
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 0.4rem;
+  min-width: 0;
+}
+
+.inventory-audit > span > i {
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--globalColorPrimaryInmutable, #ec4343);
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+
+.inventory-audit small {
+  color: var(--inventory-muted-text, #8d96a8);
+  font-size: 0.56rem;
+  font-weight: 750;
+  letter-spacing: 0.045em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.inventory-audit strong {
+  overflow: hidden;
+  color: var(--managementColorTextUser);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-audit--card {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  margin-top: 0.7rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--inventory-surface-border);
+}
+
+.inventory-audit--model {
+  min-width: 0;
 }
 
 .package-description {
@@ -1726,7 +1778,7 @@ textarea.form-input {
 
 .devices-table {
   width: 100%;
-  min-width: 1160px;
+  min-width: 1350px;
   border-collapse: collapse;
   table-layout: fixed;
   background: var(--managementColorCardBackground);
@@ -1759,6 +1811,7 @@ textarea.form-input {
 .devices-table th:nth-child(5) { width: 180px; }
 .devices-table th:nth-child(6) { width: 105px; }
 .devices-table th:nth-child(7) { width: 115px; }
+.devices-table th:nth-child(8) { width: 190px; }
 .devices-table th:last-child { width: 150px; }
 
 .devices-table__actions-heading,
@@ -2199,7 +2252,7 @@ textarea.form-input {
 
 .simcard-table {
   width: 100%;
-  min-width: 1040px;
+  min-width: 1230px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -2251,6 +2304,10 @@ textarea.form-input {
 
 .simcard-table th:nth-child(7) {
   width: 170px;
+}
+
+.simcard-table th:nth-child(8) {
+  width: 190px;
 }
 
 .simcard-table th:last-child {
@@ -3386,7 +3443,7 @@ textarea.form-input {
 
 .package-devices-table {
   width: 100%;
-  min-width: 1030px;
+  min-width: 1220px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -3434,6 +3491,10 @@ textarea.form-input {
 
 .package-devices-table th:nth-child(6) {
   width: 115px;
+}
+
+.package-devices-table th:nth-child(7) {
+  width: 190px;
 }
 
 .package-devices-table th:last-child {
@@ -3877,7 +3938,7 @@ textarea.form-input {
 
 .warehouse-table {
   width: 100%;
-  min-width: 980px;
+  min-width: 1170px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -3915,6 +3976,10 @@ textarea.form-input {
 
 .warehouse-table th:nth-child(6) {
   width: 13%;
+}
+
+.warehouse-table th:nth-child(7) {
+  width: 190px;
 }
 
 .warehouse-table th:last-child {

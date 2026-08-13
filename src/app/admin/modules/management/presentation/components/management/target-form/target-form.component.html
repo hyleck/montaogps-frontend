@@ -826,15 +826,11 @@
                                         <div class="target-form__field">
                                             <label for="installation_location">{{
                                                 translate(translations.installationLocation) }}</label>
-                                            <select [(ngModel)]="target.installation_location"
-                                                name="installation_location" id="installation_location">
-                                                <option [ngValue]="''">{{
-                                                    translate('management.targetForm.selectLocation') }}</option>
-                                                <option *ngFor="let location of availableLocations"
-                                                    [ngValue]="location.value">
-                                                    {{location.label}}
-                                                </option>
-                                            </select>
+                                            <app-installation-location-select
+                                                [(ngModel)]="target.installation_location"
+                                                name="installation_location" inputId="installation_location"
+                                                [placeholder]="translate('management.targetForm.selectLocation')">
+                                            </app-installation-location-select>
                                         </div>
 
                                         <div class="target-form__field" *ngIf="!isTagTarget()">
@@ -2392,10 +2388,10 @@
                 </div>
                 <div class="target-form__field installation-registration-grid__wide">
                     <label for="registration_location">Lugar de instalación</label>
-                    <select id="registration_location" [(ngModel)]="installationRegistrationForm.installationLocation">
-                        <option value="">Seleccionar</option>
-                        <option *ngFor="let location of availableLocations" [value]="location.value">{{ location.label }}</option>
-                    </select>
+                    <app-installation-location-select
+                        [(ngModel)]="installationRegistrationForm.installationLocation"
+                        inputId="registration_location" placeholder="Seleccionar">
+                    </app-installation-location-select>
                 </div>
             </div>
         </section>

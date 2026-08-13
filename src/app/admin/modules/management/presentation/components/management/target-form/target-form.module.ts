@@ -5,6 +5,7 @@ import { PrimengModule } from '../../../../../../../shareds/libraries/primeng/pr
 import { FormsModule } from '@angular/forms';
 import { CloudComponent } from '../../../../../../../shareds/components/cloud/cloud.component';
 import { ContactsModule } from '../../../../../contacts/contacts.module';
+import { InstallationLocationSelectComponent } from '../../../../../../../shareds/components/installation-location-select/installation-location-select.component';
 
 
 @NgModule({
@@ -16,7 +17,8 @@ import { ContactsModule } from '../../../../../contacts/contacts.module';
     PrimengModule,
     FormsModule,
     CloudComponent,
-    ContactsModule
+    ContactsModule,
+    InstallationLocationSelectComponent
   ],
   exports: [
     TargetFormComponent

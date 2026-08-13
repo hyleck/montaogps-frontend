@@ -82,6 +82,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
             targetsService as any,
             {} as any,
             {} as any,
+            {} as any,
             authService as any,
             messageService as any,
             confirmationService as any,

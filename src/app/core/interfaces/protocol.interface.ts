@@ -17,6 +17,10 @@ export interface Protocol {
   isAirtag?: boolean;
   templateProtocolId?: string | { _id: string; name?: string };
   commands: ProtocolCommand[];
+  created_by?: { _id?: string; name?: string; last_name?: string; email?: string } | string;
+  updated_by?: { _id?: string; name?: string; last_name?: string; email?: string } | string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateGpsModelFromTemplateDto {

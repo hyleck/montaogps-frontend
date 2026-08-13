@@ -31,6 +31,12 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   items: MenuItem[] = [{ label: 'Inventario' }];
   home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
 
+  auditUserLabel(user: any): string {
+    if (!user || typeof user !== 'object') return 'No registrado';
+    const fullName = `${user.name || ''} ${user.last_name || ''}`.trim();
+    return fullName || user.email || 'No registrado';
+  }
+
   packageDevices: InventoryItem[] = [];
   selectedDevice: InventoryItem | null = null;
   deviceDialogVisible = false;

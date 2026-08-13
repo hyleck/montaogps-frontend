@@ -306,7 +306,7 @@
             </ng-container>
 
             <ng-container *ngIf="action.id === 'location' && action.state !== 'not_applicable'">
-              <label class="sol-assistance-field is-wide"><span>Lugar de instalación</span><p-dropdown [options]="installationLocations" [(ngModel)]="detailsForm['installation_location']" optionLabel="label" optionValue="value" appendTo="body" placeholder="Selecciona el lugar"></p-dropdown></label>
+              <label class="sol-assistance-field is-wide"><span>Lugar de instalación</span><app-installation-location-select [(ngModel)]="detailsForm['installation_location']" placeholder="Selecciona el lugar"></app-installation-location-select></label>
               <div class="sol-assistance-workspace__actions"><button pButton type="button" icon="pi pi-save" label="Guardar lugar" (click)="saveLocation()" [loading]="working" [disabled]="!canEditProcess"></button></div>
             </ng-container>
 

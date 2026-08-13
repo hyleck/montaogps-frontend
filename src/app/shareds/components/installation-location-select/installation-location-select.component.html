@@ -1,0 +1,41 @@
+<div class="installation-location-control">
+  <select [id]="inputId" [value]="value" [disabled]="disabled" (change)="selectValue($event)"
+    (blur)="markTouched()">
+    <option value="">{{ placeholder }}</option>
+    <option *ngFor="let location of displayedLocations" [value]="location.value">{{ location.label }}</option>
+  </select>
+
+  <button *ngIf="!disabled" type="button" class="installation-location-add" (click)="openDialog()"
+    aria-haspopup="dialog">
+    <i class="pi pi-plus-circle" aria-hidden="true"></i>
+    Registrar nuevo lugar
+  </button>
+</div>
+
+<div *ngIf="dialogVisible" class="installation-location-backdrop" (click)="closeDialog()">
+  <section class="installation-location-dialog" role="dialog" aria-modal="true"
+    aria-labelledby="newInstallationLocationTitle" (click)="$event.stopPropagation()">
+    <header>
+      <span><i class="pi pi-map-marker"></i></span>
+      <div>
+        <h3 id="newInstallationLocationTitle">Agregar lugar de instalación</h3>
+        <p>Se guardará en el catálogo y estará disponible en GPS Mobile y gps-frontend.</p>
+      </div>
+    </header>
+
+    <label>
+      <span>Nombre del lugar</span>
+      <input type="text" [(ngModel)]="newLocationLabel" [ngModelOptions]="{standalone: true}"
+        maxlength="80" placeholder="Ej. Dentro de la consola central" (keyup.enter)="saveLocation()" autofocus>
+    </label>
+    <small *ngIf="errorMessage" class="installation-location-error">{{ errorMessage }}</small>
+
+    <footer>
+      <button type="button" class="is-secondary" (click)="closeDialog()" [disabled]="saving">Cancelar</button>
+      <button type="button" class="is-primary" (click)="saveLocation()" [disabled]="saving">
+        <i [class]="saving ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
+        {{ saving ? 'Guardando…' : 'Guardar y seleccionar' }}
+      </button>
+    </footer>
+  </section>
+</div>

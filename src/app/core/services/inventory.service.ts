@@ -3,6 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+export interface InventoryAuditUser {
+  _id?: string;
+  name?: string;
+  last_name?: string;
+  email?: string;
+}
+
 export interface InventoryItem {
   _id?: string;
   // Frontend fields (lowercase)
@@ -23,6 +30,8 @@ export interface InventoryItem {
   storageDate?: string; // Date when warehouse was assigned
   createdAt?: string;
   updatedAt?: string;
+  created_by?: InventoryAuditUser | string;
+  updated_by?: InventoryAuditUser | string;
   installed?: boolean;
   activation_mode?: boolean;
   inventory_status?: 'available' | 'reserved' | 'installed' | 'inspection';
@@ -69,6 +78,8 @@ export interface Package {
   devices?: InventoryItem[];
   createdAt?: string;
   updatedAt?: string;
+  created_by?: InventoryAuditUser | string;
+  updated_by?: InventoryAuditUser | string;
 }
 
 export interface Warehouse {
@@ -80,6 +91,10 @@ export interface Warehouse {
   access_users?: string[];
   stock?: number;
   simcard_stock?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  created_by?: InventoryAuditUser | string;
+  updated_by?: InventoryAuditUser | string;
 }
 
 export interface SimcardItem {
@@ -96,6 +111,8 @@ export interface SimcardItem {
   packageId?: string;
   createdAt?: string;
   updatedAt?: string;
+  created_by?: InventoryAuditUser | string;
+  updated_by?: InventoryAuditUser | string;
 }
 
 export interface Conduce {
@@ -107,7 +124,9 @@ export interface Conduce {
   simcards?: string[] | any[];
   status?: string;
   created_by?: string | any;
+  updated_by?: string | any;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 @Injectable({ providedIn: 'root' })

@@ -2745,10 +2745,10 @@
                 <div class="sol-form-row">
                     <div class="sol-form-field" style="grid-column: span 2;">
                         <label>Lugar de {{ getInstallationEntityName(selectedSolicitud.installations[editingInstallationIndex]) }}</label>
-                        <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].installation_location">
-                            <option value="">Seleccionar lugar</option>
-                            <option *ngFor="let loc of installationLocations" [value]="loc.value">{{ loc.label }}</option>
-                        </select>
+                        <app-installation-location-select
+                            [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].installation_location"
+                            placeholder="Seleccionar lugar">
+                        </app-installation-location-select>
                     </div>
 
                 </div>

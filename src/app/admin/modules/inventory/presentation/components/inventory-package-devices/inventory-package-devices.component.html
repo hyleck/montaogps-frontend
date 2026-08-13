@@ -125,6 +125,7 @@
               <th>Protocolo</th>
               <th>Almacén</th>
               <th>Fecha de ingreso</th>
+              <th>Trazabilidad</th>
               <th class="package-devices-table__actions-heading">Acciones</th>
             </tr>
           </thead>
@@ -182,6 +183,18 @@
                 <ng-template #noStorageDate><span class="package-device-empty">Sin fecha</span></ng-template>
               </td>
               <td>
+                <div class="inventory-audit">
+                  <span [title]="auditUserLabel(device.created_by)">
+                    <i class="pi pi-user-plus"></i><small>Creado por</small>
+                    <strong>{{ auditUserLabel(device.created_by) }}</strong>
+                  </span>
+                  <span [title]="auditUserLabel(device.updated_by)">
+                    <i class="pi pi-pencil"></i><small>Modificado por</small>
+                    <strong>{{ auditUserLabel(device.updated_by) }}</strong>
+                  </span>
+                </div>
+              </td>
+              <td>
                 <div class="package-device-actions">
                   <button type="button" class="package-row-action" (click)="editDevice(device)"
                     pTooltip="Editar" aria-label="Editar dispositivo" *ngIf="canUpdateInventory()">
@@ -207,7 +220,7 @@
               </td>
             </tr>
             <tr *ngIf="!loading && packageDevices.length === 0">
-              <td colspan="7">
+              <td colspan="8">
                 <div class="package-devices-empty">
                   <span><i class="pi pi-box"></i></span>
                   <strong>No hay dispositivos en este paquete</strong>
