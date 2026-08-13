@@ -287,6 +287,10 @@
                         </button>
                     </div>
                     <div class="comm-message__bubble">
+                        <div *ngIf="msg.from === 'incoming'" class="comm-msg-sig comm-msg-sig--customer">
+                            <i class="pi pi-user comm-msg-sig-icon"></i>
+                            <span>{{ getIncomingCustomerSignature() }}</span>
+                        </div>
                         <!-- Reply quote -->
                         <div *ngIf="msg.replyTo" class="comm-reply-quote"
                             [class.comm-reply-quote--me]="msg.replyTo.from === 'me'">

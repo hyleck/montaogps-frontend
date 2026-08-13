@@ -27,6 +27,7 @@ import {
   buildAgentSignatureLabel,
   parseAgentSignedMessage,
 } from './agent-signature';
+import { buildCustomerSignatureLabel } from './customer-signature';
 import { resolveConversationMessageTranslationLanguage } from './conversation-translation';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
@@ -3775,6 +3776,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
       return mapped;
     });
+  }
+
+  getIncomingCustomerSignature(): string {
+    return buildCustomerSignatureLabel(
+      this.gpsUser,
+      this.selectedConversation?.contact?.name || 'Cliente',
+    );
   }
 
   shouldShowMessageTranslation(message: ChatMessage): boolean {

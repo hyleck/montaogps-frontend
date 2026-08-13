@@ -1559,6 +1559,10 @@
 ::ng-deep .comm-msg-sig-icon {
     font-size: 0.6rem;
 }
+.comm-msg-sig--customer {
+    opacity: 0.72;
+    font-weight: 650;
+}
 ::ng-deep .comm-msg-body {
     line-height: 1.4;
 }
@@ -5271,6 +5275,14 @@
 }
 :host-context(.app-light) .comm-message--system .comm-message__bubble { background: rgba(0,0,0,0.05); border: none; color: #64748b; }
 :host-context(.app-light) .comm-message--outgoing .comm-msg-sig-icon { color: #dc2626; }
+:host-context(.app-light) .comm-message--incoming .comm-msg-sig--customer {
+    color: #475569;
+    opacity: 1;
+    font-weight: 700;
+}
+:host-context(.app-light) .comm-message--incoming .comm-msg-sig--customer .comm-msg-sig-icon {
+    color: #64748b;
+}
 :host-context(.app-light) .comm-message--sticker-only .comm-message__bubble { background: transparent; border: 0; box-shadow: none; }
 :host-context(.app-light) .comm-audio-transcription {
     background: rgba(2, 132, 199, 0.07);
