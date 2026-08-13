@@ -63,7 +63,7 @@ describe('BreadcrumbService', () => {
     ]);
   });
 
-  it('starts an employee external route at its shared entry account', () => {
+  it('shows the authenticated employee before an external shared route', () => {
     const items = service.updateFromUserPath([
       { id: 'owner', fullName: 'Cuenta superior' },
       {
@@ -74,22 +74,52 @@ describe('BreadcrumbService', () => {
       { id: 'child', fullName: 'Cliente' },
     ], undefined, {
       id: 'employee',
+      name: 'Ericka',
+      last_name: 'Tatis Reyes',
       affiliation_type_id: 'empleado',
     });
 
     expect(items.map((item) => item.label)).toEqual([
+      'Ericka Tatis Reyes',
       'Cuenta compartida',
+      'Cliente',
+    ]);
+    items[0].command?.({} as any);
+    expect(managementService.setOp).toHaveBeenCalledOnceWith('u', 'employee');
+  });
+
+  it('does not duplicate an employee already present in the hierarchy', () => {
+    const items = service.updateFromUserPath([
+      { id: 'employee', fullName: 'Ericka Tatis Reyes' },
+      { id: 'child', fullName: 'Cliente' },
+    ], undefined, {
+      id: 'employee',
+      name: 'Ericka',
+      last_name: 'Tatis Reyes',
+      affiliation_type_id: 'empleado',
+    });
+
+    expect(items.map((item) => item.label)).toEqual([
+      'Ericka Tatis Reyes',
       'Cliente',
     ]);
   });
 
-  it('fails closed when the backend path has no authorized entry point', () => {
+  it('keeps the viewer but does not restore unauthorized ancestors', () => {
     const items = service.updateFromUserPath([
       { id: 'owner', fullName: 'Cuenta superior' },
       { id: 'child', fullName: 'Cliente' },
-    ], undefined, { id: 'viewer', affiliation_type_id: 'cliente' });
+    ], undefined, {
+      id: 'viewer',
+      name: 'Usuario',
+      last_name: 'Autenticado',
+      affiliation_type_id: 'cliente',
+    });
 
-    expect(items.map((item) => item.label)).toEqual(['Cliente']);
-    expect(service.canNavigateBack()).toBeFalse();
+    expect(items.map((item) => item.label)).toEqual([
+      'Usuario Autenticado',
+      'Cliente',
+    ]);
+    expect(items.map((item) => item.label)).not.toContain('Cuenta superior');
   });
 });

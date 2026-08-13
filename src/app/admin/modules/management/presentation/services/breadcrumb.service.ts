@@ -11,6 +11,10 @@ export interface BreadcrumbItem {
 export interface BreadcrumbViewer {
   id?: string;
   _id?: string;
+  name?: string;
+  last_name?: string;
+  fullName?: string;
+  email?: string;
   root?: boolean | string;
   developer?: boolean | string;
   affiliation_type_id?: string;
@@ -48,7 +52,10 @@ export class BreadcrumbService {
       return this.items;
     }
 
-    const safePath = this.limitPathForViewer(pathData, viewer);
+    const safePath = this.withAuthenticatedViewer(
+      this.limitPathForViewer(pathData, viewer),
+      viewer,
+    );
     this.path = [...safePath];
 
     // Convertir los datos del path en elementos del breadcrumb
@@ -91,6 +98,33 @@ export class BreadcrumbService {
     }
 
     return [pathData[pathData.length - 1]];
+  }
+
+  /**
+   * Un usuario puede entrar a una cuenta autorizada que no sea descendiente
+   * estructural de su cuenta. El backend devuelve solamente la rama autorizada;
+   * anteponemos al usuario autenticado como punto de navegación, sin incorporar
+   * ningún ancestro que haya sido ocultado por seguridad.
+   */
+  private withAuthenticatedViewer(
+    safePath: BreadcrumbItem[],
+    viewer?: BreadcrumbViewer | null,
+  ): BreadcrumbItem[] {
+    if (!viewer || safePath.length === 0) return safePath;
+
+    const viewerId = String(viewer.id || viewer._id || '').trim();
+    if (!viewerId || safePath.some((segment) => String(segment.id) === viewerId)) {
+      return safePath;
+    }
+
+    const fullName = String(
+      viewer.fullName
+      || [viewer.name, viewer.last_name].filter(Boolean).join(' ')
+      || viewer.email
+      || 'Usuario autenticado'
+    ).trim();
+
+    return [{ id: viewerId, fullName }, ...safePath];
   }
 
   /**
