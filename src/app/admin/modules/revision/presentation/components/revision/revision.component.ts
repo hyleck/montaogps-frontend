@@ -83,7 +83,7 @@ export class RevisionComponent implements OnInit {
     this.releaseCandidate = null;
   }
 
-  confirmRelease(): void {
+  confirmRelease(cancelOfficeTarget = false): void {
     const candidate = this.releaseCandidate;
     const id = String(candidate?._id || '').trim();
     if (!id || this.releasingId) return;
@@ -91,11 +91,13 @@ export class RevisionComponent implements OnInit {
     const imei = String(candidate?.IMEI || candidate?.imei || '').trim();
     this.releasingId = id;
     this.actionError = '';
-    this.inventoryService.releaseInspection(id).subscribe({
+    this.inventoryService.releaseInspection(id, { cancelOfficeTarget }).subscribe({
       next: () => {
         this.releasingId = '';
         this.releaseCandidate = null;
-        this.success = `El GPS ${imei || 'seleccionado'} salió de revisión correctamente.`;
+        this.success = cancelOfficeTarget
+          ? `El GPS ${imei || 'seleccionado'} salió de revisión, se canceló el objetivo temporal y volvió a Inventario disponible.`
+          : `El GPS ${imei || 'seleccionado'} salió de revisión correctamente.`;
         if (this.devices.length === 1 && this.page > 1) this.page -= 1;
         this.loadDevices();
         this.inventoryService.checkInspectionRequired();
@@ -107,6 +109,10 @@ export class RevisionComponent implements OnInit {
           || 'No se pudo sacar el dispositivo de revisión.';
       },
     });
+  }
+
+  canCancelOfficeTarget(device: InventoryItem | null): boolean {
+    return String(device?.inspection_solicitud_id || '').startsWith('office-review:');
   }
 
   protocolName(device: InventoryItem): string {

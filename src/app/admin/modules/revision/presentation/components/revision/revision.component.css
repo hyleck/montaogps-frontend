@@ -156,6 +156,7 @@
 
 .revision-button--primary { color: #fff; background: #dc3d3d; border-color: #dc3d3d; }
 .revision-button--release { color: #fff; background: #059669; border-color: #059669; }
+.revision-button--danger { color: #fff; background: #dc2626; border-color: #dc2626; }
 .revision-button:disabled { opacity: 0.55; cursor: default; }
 
 .revision-table-shell {
@@ -293,7 +294,8 @@
 .revision-confirm h2 { margin: 0; color: var(--globalColorTextDark, #f8fafc); font-size: 1.15rem; }
 .revision-confirm p { margin: 9px 0 0; color: var(--globalColorTextMuted, #94a3b8); font-size: 0.88rem; line-height: 1.55; }
 .revision-confirm p strong { color: var(--globalColorTextDark, #f8fafc); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.revision-confirm footer { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 9px; padding-top: 4px; }
+.revision-confirm .revision-confirm__hint { color: #fca5a5; }
+.revision-confirm footer { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; padding-top: 4px; }
 
 .revision-pagination {
   display: flex;

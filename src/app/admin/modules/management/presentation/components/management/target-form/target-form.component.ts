@@ -4175,36 +4175,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
                     // Preparar datos para actualizar solo la fecha de instalación
                     const updateData: UpdateTargetDto = {
-                        name: this.target.name,
-                        device_imei: this.target.device_imei,
-                        type: this.target.type,
-                        sim_card_number: this.target.sim_card_number,
-                        sim_company: this.target.sim_company,
-                        description: this.target.description,
-                        target_plate_number: this.target.target_plate_number,
-                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
-                        target_year: this.target.target_year,
-                        installation_location: this.target.installation_location,
-                        target_brand_id: this.target.target_brand_id,
-                        target_model_id: this.target.target_model_id,
-                        target_color: this.target.target_color,
-                        target_chassis_number: this.target.target_chassis_number,
-                        mechanic_id: this.target.mechanic_id,
                         activation_date: this.parseLocalDate(this.processForm.newInstallationDate), // Nueva fecha de instalación
-                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
-                        last_change_date: new Date(),
-                        gps_model: this.target.gps_model,
-                        ignition_sensor: this.target.ignition_sensor,
-                        shutdown_control: this.target.shutdown_control,
-                        engine_shutdown: this.target.engine_shutdown,
-                        installation_details: this.target.installation_details,
-                        status: this.target.status == 'active',
-                        canceled: this.target.canceled,
-                        delete: this.target['delete'],
-                        index: this.target.index,
-                        creator_id: this.target.creator_id,
-                        parent_id: this.target.parent_id,
-                        user_id: this.target.user_id
+                        last_change_date: new Date()
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
@@ -4240,37 +4212,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
                     // Preparar datos para actualizar solo la fecha de expiración
                     const updateData: UpdateTargetDto = {
-                        name: this.target.name,
-                        device_imei: this.target.device_imei,
-                        type: this.target.type,
-                        sim_card_number: this.target.sim_card_number,
-                        sim_company: this.target.sim_company,
-                        description: this.target.description,
-                        target_plate_number: this.target.target_plate_number,
-                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
-                        target_year: this.target.target_year,
-                        installation_location: this.target.installation_location,
-                        target_brand_id: this.target.target_brand_id,
-                        target_model_id: this.target.target_model_id,
-                        target_color: this.target.target_color,
-                        target_chassis_number: this.target.target_chassis_number,
-                        mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
                         expiration_date: this.parseLocalDate(this.processForm.newExpirationDate), // Nueva fecha de expiración
-                        last_change_date: new Date(),
-                        gps_model: this.target.gps_model,
-                        ignition_sensor: this.target.ignition_sensor,
-                        shutdown_control: this.target.shutdown_control,
-                        engine_shutdown: this.target.engine_shutdown,
-                        installation_details: this.target.installation_details,
-                        status: this.target.status == 'active',
-                        canceled: this.target.canceled,
-                        delete: this.target['delete'],
-                        index: this.target.index,
-                        // Estructurar el plan como objeto según requiere el backend (preservar plan y precio existentes)
-                        creator_id: this.target.creator_id,
-                        parent_id: this.target.parent_id,
-                        user_id: this.target.user_id
+                        last_change_date: new Date()
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
@@ -4330,37 +4273,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
                     // Preparar datos para actualizar solo la fecha de expiración (renovación)
                     const updateData: UpdateTargetDto = {
-                        name: this.target.name,
-                        device_imei: this.target.device_imei,
-                        type: this.target.type,
-                        sim_card_number: this.target.sim_card_number,
-                        sim_company: this.target.sim_company,
-                        description: this.target.description,
-                        target_plate_number: this.target.target_plate_number,
-                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
-                        target_year: this.target.target_year,
-                        installation_location: this.target.installation_location,
-                        target_brand_id: this.target.target_brand_id,
-                        target_model_id: this.target.target_model_id,
-                        target_color: this.target.target_color,
-                        target_chassis_number: this.target.target_chassis_number,
-                        mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
                         expiration_date: this.parseLocalDate(this.processForm.newRenewalDate), // Nueva fecha de renovación
-                        last_change_date: new Date(),
-                        gps_model: this.target.gps_model,
-                        ignition_sensor: this.target.ignition_sensor,
-                        shutdown_control: this.target.shutdown_control,
-                        engine_shutdown: this.target.engine_shutdown,
-                        installation_details: this.target.installation_details,
-                        status: this.target.status == 'active',
-                        canceled: this.target.canceled,
-                        delete: this.target['delete'],
-                        index: this.target.index,
-                        // Estructurar el plan como objeto según requiere el backend (preservar plan y precio existentes)
-                        creator_id: this.target.creator_id,
-                        parent_id: this.target.parent_id,
-                        user_id: this.target.user_id
+                        last_change_date: new Date()
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
@@ -4412,37 +4326,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
                     // Preparar datos para actualizar solo el técnico
                     const updateData: UpdateTargetDto = {
-                        name: this.target.name,
-                        device_imei: this.target.device_imei,
-                        type: this.target.type,
-                        sim_card_number: this.target.sim_card_number,
-                        sim_company: this.target.sim_company,
-                        description: this.target.description,
-                        target_plate_number: this.target.target_plate_number,
-                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
-                        target_year: this.target.target_year,
-                        installation_location: this.target.installation_location,
-                        target_brand_id: this.target.target_brand_id,
-                        target_model_id: this.target.target_model_id,
-                        target_color: this.target.target_color,
-                        target_chassis_number: this.target.target_chassis_number,
                         mechanic_id: this.processForm.newTechnician, // Nuevo técnico
-                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
-                        last_change_date: new Date(),
-                        gps_model: this.target.gps_model,
-                        ignition_sensor: this.target.ignition_sensor,
-                        shutdown_control: this.target.shutdown_control,
-                        engine_shutdown: this.target.engine_shutdown,
-                        installation_details: this.target.installation_details,
-                        status: this.target.status == 'active',
-                        canceled: this.target.canceled,
-                        delete: this.target['delete'],
-                        index: this.target.index,
-                        // Preservar plan y precio existentes
-                        creator_id: this.target.creator_id,
-                        parent_id: this.target.parent_id,
-                        user_id: this.target.user_id
+                        last_change_date: new Date()
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
@@ -4476,37 +4361,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
                     // Preparar datos para actualizar el IMEI, modelo GPS y detalles de instalación
                     const updateData: UpdateTargetDto = {
-                        name: this.target.name,
                         device_imei: this.processForm.newGpsImei.trim(), // Nuevo IMEI
                         type: this.processForm.newGpsModel, // Nuevo modelo GPS (el backend espera 'type')
-                        sim_card_number: this.target.sim_card_number,
-                        sim_company: this.target.sim_company,
-                        description: this.target.description,
-                        target_plate_number: this.target.target_plate_number,
-                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
-                        target_year: this.target.target_year,
-                        installation_location: this.target.installation_location,
-                        target_brand_id: this.target.target_brand_id,
-                        target_model_id: this.target.target_model_id,
-                        target_color: this.target.target_color,
-                        target_chassis_number: this.target.target_chassis_number,
-                        mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
-                        last_change_date: new Date(),
-                        gps_model: this.target.gps_model, // Mantener el valor actual de gps_model
-                        ignition_sensor: this.target.ignition_sensor,
-                        shutdown_control: this.target.shutdown_control,
-                        engine_shutdown: this.target.engine_shutdown,
                         installation_details: this.processForm.newInstallationDetails.trim(), // Nuevos detalles de instalación
-                        status: this.target.status == 'active',
-                        canceled: this.target.canceled,
-                        delete: this.target['delete'],
-                        index: this.target.index,
-                        // Preservar plan y precio existentes
-                        creator_id: this.target.creator_id,
-                        parent_id: this.target.parent_id,
-                        user_id: this.target.user_id
+                        last_change_date: new Date()
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
@@ -4542,37 +4400,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 try {
                     // Preparar datos para actualizar solo los detalles de instalación
                     const updateData: UpdateTargetDto = {
-                        name: this.target.name,
-                        device_imei: this.target.device_imei,
-                        type: this.target.type,
-                        sim_card_number: this.target.sim_card_number,
-                        sim_company: this.target.sim_company,
-                        description: this.target.description,
-                        target_plate_number: this.target.target_plate_number,
-                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
-                        target_year: this.target.target_year,
-                        installation_location: this.target.installation_location,
-                        target_brand_id: this.target.target_brand_id,
-                        target_model_id: this.target.target_model_id,
-                        target_color: this.target.target_color,
-                        target_chassis_number: this.target.target_chassis_number,
-                        mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
-                        last_change_date: new Date(),
-                        gps_model: this.target.gps_model,
-                        ignition_sensor: this.target.ignition_sensor,
-                        shutdown_control: this.target.shutdown_control,
-                        engine_shutdown: this.target.engine_shutdown,
                         installation_details: this.processForm.newInstallationDetails.trim(), // Nuevos detalles de instalación
-                        status: this.target.status == 'active',
-                        canceled: this.target.canceled,
-                        delete: this.target['delete'],
-                        index: this.target.index,
-                        // Preservar plan y precio existentes
-                        creator_id: this.target.creator_id,
-                        parent_id: this.target.parent_id,
-                        user_id: this.target.user_id
+                        last_change_date: new Date()
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
@@ -4604,37 +4433,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 try {
                     // Preparar datos para actualizar solo el modelo de GPS
                     const updateData: UpdateTargetDto = {
-                        name: this.target.name,
-                        device_imei: this.target.device_imei,
                         type: this.processForm.newGpsModel, // Nuevo modelo GPS (el backend espera 'type')
-                        sim_card_number: this.target.sim_card_number,
-                        sim_company: this.target.sim_company,
-                        description: this.target.description,
-                        target_plate_number: this.target.target_plate_number,
-                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
-                        target_year: this.target.target_year,
-                        installation_location: this.target.installation_location,
-                        target_brand_id: this.target.target_brand_id,
-                        target_model_id: this.target.target_model_id,
-                        target_color: this.target.target_color,
-                        target_chassis_number: this.target.target_chassis_number,
-                        mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
-                        last_change_date: new Date(),
-                        gps_model: this.target.gps_model,
-                        ignition_sensor: this.target.ignition_sensor,
-                        shutdown_control: this.target.shutdown_control,
-                        engine_shutdown: this.target.engine_shutdown,
-                        installation_details: this.target.installation_details,
-                        status: this.target.status == 'active',
-                        canceled: this.target.canceled,
-                        delete: this.target['delete'],
-                        index: this.target.index,
-                        // Preservar plan y precio existentes
-                        creator_id: this.target.creator_id,
-                        parent_id: this.target.parent_id,
-                        user_id: this.target.user_id
+                        last_change_date: new Date()
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
@@ -4666,37 +4466,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 try {
                     // Preparar datos para actualizar solo el IMEI / GPS ID
                     const updateData: UpdateTargetDto = {
-                        name: this.target.name,
                         device_imei: this.processForm.newGpsImei.trim(), // Nuevo IMEI
-                        type: this.target.type,
-                        sim_card_number: this.target.sim_card_number,
-                        sim_company: this.target.sim_company,
-                        description: this.target.description,
-                        target_plate_number: this.target.target_plate_number,
-                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
-                        target_year: this.target.target_year,
-                        installation_location: this.target.installation_location,
-                        target_brand_id: this.target.target_brand_id,
-                        target_model_id: this.target.target_model_id,
-                        target_color: this.target.target_color,
-                        target_chassis_number: this.target.target_chassis_number,
-                        mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
-                        last_change_date: new Date(),
-                        gps_model: this.target.gps_model,
-                        ignition_sensor: this.target.ignition_sensor,
-                        shutdown_control: this.target.shutdown_control,
-                        engine_shutdown: this.target.engine_shutdown,
-                        installation_details: this.target.installation_details,
-                        status: this.target.status == 'active',
-                        canceled: this.target.canceled,
-                        delete: this.target['delete'],
-                        index: this.target.index,
-                        // Preservar plan y precio existentes
-                        creator_id: this.target.creator_id,
-                        parent_id: this.target.parent_id,
-                        user_id: this.target.user_id
+                        last_change_date: new Date()
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
@@ -4728,37 +4499,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 try {
                     // Preparar datos para actualizar solo la SIM card
                     const updateData: UpdateTargetDto = {
-                        name: this.target.name,
-                        device_imei: this.target.device_imei,
-                        type: this.target.type,
                         sim_card_number: this.processForm.newSimCard.trim(), // Nueva SIM card
                         sim_company: this.processForm.newSimCompany.trim(), // Nuevo tipo de SIM
-                        description: this.target.description,
-                        target_plate_number: this.target.target_plate_number,
-                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
-                        target_year: this.target.target_year,
-                        installation_location: this.target.installation_location,
-                        target_brand_id: this.target.target_brand_id,
-                        target_model_id: this.target.target_model_id,
-                        target_color: this.target.target_color,
-                        target_chassis_number: this.target.target_chassis_number,
-                        mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
-                        last_change_date: new Date(),
-                        gps_model: this.target.gps_model,
-                        ignition_sensor: this.target.ignition_sensor,
-                        shutdown_control: this.target.shutdown_control,
-                        engine_shutdown: this.target.engine_shutdown,
-                        installation_details: this.target.installation_details,
-                        status: this.target.status == 'active',
-                        canceled: this.target.canceled,
-                        delete: this.target['delete'],
-                        index: this.target.index,
-                        // Preservar plan y precio existentes
-                        creator_id: this.target.creator_id,
-                        parent_id: this.target.parent_id,
-                        user_id: this.target.user_id
+                        last_change_date: new Date()
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
@@ -4792,37 +4535,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 try {
                     // Preparar datos para actualizar solo el número de SIM card
                     const updateData: UpdateTargetDto = {
-                        name: this.target.name,
-                        device_imei: this.target.device_imei,
-                        type: this.target.type,
                         sim_card_number: this.processForm.newSimNumber.trim(), // Nuevo número de SIM
-                        sim_company: this.target.sim_company, // Mantener el tipo de SIM existente
-                        description: this.target.description,
-                        target_plate_number: this.target.target_plate_number,
-                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
-                        target_year: this.target.target_year,
-                        installation_location: this.target.installation_location,
-                        target_brand_id: this.target.target_brand_id,
-                        target_model_id: this.target.target_model_id,
-                        target_color: this.target.target_color,
-                        target_chassis_number: this.target.target_chassis_number,
-                        mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
-                        last_change_date: new Date(),
-                        gps_model: this.target.gps_model,
-                        ignition_sensor: this.target.ignition_sensor,
-                        shutdown_control: this.target.shutdown_control,
-                        engine_shutdown: this.target.engine_shutdown,
-                        installation_details: this.target.installation_details,
-                        status: this.target.status == 'active',
-                        canceled: this.target.canceled,
-                        delete: this.target['delete'],
-                        index: this.target.index,
-                        // Preservar plan y precio existentes
-                        creator_id: this.target.creator_id,
-                        parent_id: this.target.parent_id,
-                        user_id: this.target.user_id
+                        last_change_date: new Date()
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);

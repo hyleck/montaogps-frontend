@@ -149,10 +149,13 @@ export class InventoryService {
     );
   }
 
-  releaseInspection(id: string): Observable<InventoryItem> {
+  releaseInspection(
+    id: string,
+    options: { cancelOfficeTarget?: boolean } = {},
+  ): Observable<InventoryItem> {
     return this.http.patch<InventoryItem>(
       `${this.apiUrl}/inspection/${encodeURIComponent(id)}/release`,
-      {},
+      options,
     );
   }
 

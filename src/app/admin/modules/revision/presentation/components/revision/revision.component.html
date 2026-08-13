@@ -134,12 +134,24 @@
           Se cerrará cualquier revisión de oficina activa y se recalculará el estado real del GPS
           <strong>{{ releaseCandidate.IMEI || releaseCandidate.imei }}</strong> en Inventario.
         </p>
+        <p *ngIf="canCancelOfficeTarget(releaseCandidate)" class="revision-confirm__hint">
+          Si ya no necesitas el objetivo temporal de oficina, puedes cancelarlo al mismo tiempo para que el GPS vuelva disponible.
+        </p>
       </div>
       <footer>
         <button type="button" class="revision-button" (click)="cancelRelease()" [disabled]="!!releasingId">Cancelar</button>
-        <button type="button" class="revision-button revision-button--release" (click)="confirmRelease()" [disabled]="!!releasingId">
+        <button type="button" class="revision-button revision-button--release" (click)="confirmRelease(false)" [disabled]="!!releasingId">
           <i class="pi" [ngClass]="releasingId ? 'pi-spin pi-spinner' : 'pi-check'"></i>
-          {{ releasingId ? 'Procesando...' : 'Sí, sacar de revisión' }}
+          {{ releasingId ? 'Procesando...' : 'Solo sacar de revisión' }}
+        </button>
+        <button
+          *ngIf="canCancelOfficeTarget(releaseCandidate)"
+          type="button"
+          class="revision-button revision-button--danger"
+          (click)="confirmRelease(true)"
+          [disabled]="!!releasingId">
+          <i class="pi" [ngClass]="releasingId ? 'pi-spin pi-spinner' : 'pi-times-circle'"></i>
+          {{ releasingId ? 'Procesando...' : 'Sacar y cancelar objetivo' }}
         </button>
       </footer>
     </section>

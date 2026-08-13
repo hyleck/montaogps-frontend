@@ -53,10 +53,40 @@ describe('RevisionComponent', () => {
 
     component.confirmRelease();
 
-    expect(inventoryService.releaseInspection).toHaveBeenCalledWith('inventory-id');
+    expect(inventoryService.releaseInspection).toHaveBeenCalledWith(
+      'inventory-id',
+      { cancelOfficeTarget: false },
+    );
     expect(inventoryService.getInspectionRequired).toHaveBeenCalled();
     expect(inventoryService.checkInspectionRequired).toHaveBeenCalled();
     expect(component.releaseCandidate).toBeNull();
     expect(component.success).toContain('868720063779593');
+  });
+
+  it('can release an office review and cancel its temporary target', () => {
+    const inventoryService = {
+      getInspectionRequired: jasmine.createSpy('getInspectionRequired').and.returnValue(of({
+        data: [], total: 0, page: 1, lastPage: 1,
+      })),
+      releaseInspection: jasmine.createSpy('releaseInspection').and.returnValue(of({
+        _id: 'inventory-id', IMEI: '868720063779593',
+      })),
+      checkInspectionRequired: jasmine.createSpy('checkInspectionRequired'),
+    };
+    const component = new RevisionComponent(inventoryService as any);
+    component.releaseCandidate = {
+      _id: 'inventory-id',
+      IMEI: '868720063779593',
+      inspection_solicitud_id: 'office-review:507f1f77bcf86cd799439012:1786622400000',
+    } as any;
+
+    expect(component.canCancelOfficeTarget(component.releaseCandidate)).toBeTrue();
+    component.confirmRelease(true);
+
+    expect(inventoryService.releaseInspection).toHaveBeenCalledWith(
+      'inventory-id',
+      { cancelOfficeTarget: true },
+    );
+    expect(component.success).toContain('volvió a Inventario disponible');
   });
 });
