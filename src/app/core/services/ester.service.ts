@@ -101,18 +101,6 @@ export interface EsterSkill {
   updatedAt?: string;
 }
 
-export interface EsterSupervisorSettings {
-  active: boolean;
-  guidelines: string;
-  mandatoryGuidelines: string[];
-  updatedAt?: string;
-}
-
-export interface EsterSupervisorSettingsPayload {
-  active?: boolean;
-  guidelines?: string;
-}
-
 export interface EsterCommunicationStatus {
   whatsappAutoReplyActive: boolean;
 }
@@ -227,21 +215,6 @@ export class EsterService {
     return this.http.patch<EsterSkill>(
       `${environment.apiUrl}/ester/skills/${skillId}`,
       { active },
-    );
-  }
-
-  getSupervisorSettings(): Observable<EsterSupervisorSettings> {
-    return this.http.get<EsterSupervisorSettings>(
-      `${environment.apiUrl}/ester/supervisor`,
-    );
-  }
-
-  updateSupervisorSettings(
-    payload: EsterSupervisorSettingsPayload,
-  ): Observable<EsterSupervisorSettings> {
-    return this.http.patch<EsterSupervisorSettings>(
-      `${environment.apiUrl}/ester/supervisor`,
-      payload,
     );
   }
 

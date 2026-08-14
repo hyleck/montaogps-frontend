@@ -17,7 +17,6 @@ import {
   EsterService,
   EsterSelfLearningRule,
   EsterSkill,
-  EsterSupervisorSettings,
   EsterWorkflowNode,
   EsterWorkflowRun,
   EsterWorkflowStatus,
@@ -45,7 +44,6 @@ type EsterView =
   | 'knowledge'
   | 'self-learning'
   | 'skills'
-  | 'supervisor'
   | 'workflow';
 
 @Component({
@@ -67,13 +65,6 @@ export class EsterComponent implements OnInit, OnDestroy {
   activeView: EsterView = 'knowledge';
   skills: EsterSkill[] = [];
   skillsLoading = true;
-  supervisorSettings?: EsterSupervisorSettings;
-  supervisorLoading = true;
-  supervisorSaving = false;
-  supervisorForm = {
-    active: true,
-    guidelines: '',
-  };
   private readonly updatingSkillIds = new Set<string>();
   workflowRuns: EsterWorkflowRun[] = [];
   selectedWorkflowRunId = '';
@@ -101,7 +92,6 @@ export class EsterComponent implements OnInit, OnDestroy {
     this.loadEntries();
     this.loadSelfLearningRules();
     this.loadSkills();
-    this.loadSupervisorSettings();
   }
 
   ngOnDestroy(): void {
@@ -188,7 +178,6 @@ export class EsterComponent implements OnInit, OnDestroy {
       knowledge: 'Base de conocimiento',
       'self-learning': 'Aprendizaje prioritario',
       skills: 'Habilidades',
-      supervisor: 'Supervisor',
       workflow: 'Flujo de trabajo',
     };
     return titles[this.activeView];
@@ -202,8 +191,6 @@ export class EsterComponent implements OnInit, OnDestroy {
         'Consulta las reglas que Ester optimiza automáticamente a partir del feedback root.',
       skills:
         'Controla las capacidades incorporadas en el código de Ester.',
-      supervisor:
-        'Define las pautas que validan cada respuesta antes de enviarla.',
       workflow:
         'Supervisa en vivo cómo Ester procesa y responde cada conversación.',
     };
@@ -362,65 +349,6 @@ export class EsterComponent implements OnInit, OnDestroy {
         );
       },
     });
-  }
-
-  loadSupervisorSettings(): void {
-    this.supervisorLoading = true;
-    this.esterService.getSupervisorSettings().subscribe({
-      next: settings => {
-        this.supervisorSettings = settings;
-        this.supervisorForm = {
-          active: settings.active,
-          guidelines: settings.guidelines || '',
-        };
-        this.supervisorLoading = false;
-      },
-      error: (error) => {
-        this.supervisorLoading = false;
-        this.notify(
-          'error',
-          getApiErrorMessage(error, 'No se pudo cargar la configuración del supervisor'),
-        );
-      },
-    });
-  }
-
-  saveSupervisorSettings(): void {
-    if (this.supervisorSaving) return;
-
-    this.supervisorSaving = true;
-    this.esterService
-      .updateSupervisorSettings({
-        active: this.supervisorForm.active,
-        guidelines: this.supervisorForm.guidelines.trim(),
-      })
-      .subscribe({
-        next: settings => {
-          this.supervisorSettings = settings;
-          this.supervisorForm = {
-            active: settings.active,
-            guidelines: settings.guidelines || '',
-          };
-          this.supervisorSaving = false;
-          this.notify(
-            'success',
-            settings.active
-              ? 'Supervisor actualizado y activo.'
-              : 'Supervisor desactivado.',
-          );
-        },
-        error: (error) => {
-          this.supervisorSaving = false;
-          this.notify(
-            'error',
-            getApiErrorMessage(error, 'No se pudo guardar la configuración del supervisor'),
-          );
-        },
-      });
-  }
-
-  get supervisorGuidelinesCharacters(): number {
-    return this.supervisorForm.guidelines.length;
   }
 
   toggleSkill(skill: EsterSkill): void {

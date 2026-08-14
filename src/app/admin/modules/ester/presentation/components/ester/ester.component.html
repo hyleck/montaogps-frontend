@@ -48,24 +48,6 @@
     </button>
     <button
       type="button"
-      [class.ester__view--active]="activeView === 'supervisor'"
-      (click)="setActiveView('supervisor')"
-    >
-      <i class="pi pi-shield"></i>
-      Supervisor
-      <span
-        class="ester__view-count"
-        [attr.title]="supervisorForm.active ? 'Activo' : 'Desactivado'"
-      >
-        <i
-          class="pi"
-          [class.pi-check]="supervisorForm.active"
-          [class.pi-pause]="!supervisorForm.active"
-        ></i>
-      </span>
-    </button>
-    <button
-      type="button"
       [class.ester__view--active]="activeView === 'workflow'"
       (click)="setActiveView('workflow')"
     >
@@ -241,7 +223,7 @@
           <span><i class="pi pi-lock"></i> Solo Ester modifica</span>
         </div>
         <p>
-          Cada feedback root se analiza junto con la conversación. Ester crea una regla nueva o mejora una existente, conserva el historial y la aplica antes que el conocimiento complementario. El Supervisor también usa estas reglas para validar y corregir cada respuesta antes de enviarla.
+          Cada feedback root se analiza junto con la conversación. Ester crea una regla nueva o mejora una existente, conserva el historial y la aplica antes que el conocimiento complementario.
         </p>
       </div>
       <button type="button" class="self-learning__refresh" (click)="loadSelfLearningRules()" [disabled]="selfLearningLoading">
@@ -255,7 +237,7 @@
       <i class="pi pi-arrow-right"></i>
       <article><i class="pi pi-search"></i><span><b>2. Analiza contexto</b><small>Lee la conversación y reglas similares</small></span></article>
       <i class="pi pi-arrow-right"></i>
-      <article><i class="pi pi-shield"></i><span><b>3. Se aplica y supervisa</b><small>Ester responde y el Supervisor valida la regla</small></span></article>
+      <article><i class="pi pi-check-circle"></i><span><b>3. Se aplica</b><small>Ester usa la regla en conversaciones relacionadas</small></span></article>
     </div>
 
     <div *ngIf="selfLearningLoading" class="ester__state">
@@ -425,154 +407,6 @@
         </footer>
       </article>
     </ng-template>
-  </section>
-
-  <section *ngIf="activeView === 'supervisor'" class="supervisor">
-    <div *ngIf="supervisorLoading" class="ester__state">
-      <i class="pi pi-spin pi-spinner"></i>
-      <span>Cargando configuración del supervisor...</span>
-    </div>
-
-    <ng-container *ngIf="!supervisorLoading">
-      <header class="supervisor__header">
-        <div class="supervisor__identity">
-          <span class="supervisor__icon">
-            <i class="pi pi-shield"></i>
-          </span>
-          <div>
-            <div class="supervisor__title-line">
-              <h2>Supervisor independiente</h2>
-              <span
-                class="supervisor__status"
-                [class.supervisor__status--inactive]="!supervisorForm.active"
-              >
-                <i
-                  class="pi"
-                  [class.pi-check-circle]="supervisorForm.active"
-                  [class.pi-pause-circle]="!supervisorForm.active"
-                ></i>
-                {{ supervisorForm.active ? 'Validando respuestas' : 'Desactivado' }}
-              </span>
-            </div>
-            <p>
-              Revisa la conversación y la respuesta propuesta por Ester antes de permitir su envío.
-            </p>
-          </div>
-        </div>
-
-        <label class="supervisor__switch">
-          <input
-            type="checkbox"
-            [(ngModel)]="supervisorForm.active"
-            [disabled]="supervisorSaving"
-          />
-          <span aria-hidden="true"></span>
-          <b>{{ supervisorForm.active ? 'Activo' : 'Inactivo' }}</b>
-        </label>
-      </header>
-
-      <div class="supervisor__flow" aria-label="Flujo de supervisión">
-        <article>
-          <span><i class="pi pi-sparkles"></i></span>
-          <div>
-            <strong>Ester prepara</strong>
-            <small>Genera una respuesta candidata, pero aún no se envía.</small>
-          </div>
-        </article>
-        <i class="pi pi-arrow-right"></i>
-        <article class="supervisor__flow-review">
-          <span><i class="pi pi-shield"></i></span>
-          <div>
-            <strong>Supervisor valida</strong>
-            <small>Aprueba, corrige o bloquea según las pautas.</small>
-          </div>
-        </article>
-        <i class="pi pi-arrow-right"></i>
-        <article>
-          <span><i class="pi pi-whatsapp"></i></span>
-          <div>
-            <strong>WhatsApp recibe</strong>
-            <small>Solo se entrega una respuesta que superó la revisión.</small>
-          </div>
-        </article>
-      </div>
-
-      <div class="supervisor__workspace">
-        <section class="supervisor__rules">
-          <header>
-            <span><i class="pi pi-lock"></i></span>
-            <div>
-              <h3>Pautas obligatorias</h3>
-              <p>
-                Estas protecciones siempre forman parte de la revisión y no se pueden eliminar.
-              </p>
-            </div>
-          </header>
-
-          <div class="supervisor__rule-list">
-            <article
-              *ngFor="let guideline of supervisorSettings?.mandatoryGuidelines; let index = index"
-            >
-              <span>{{ index + 1 }}</span>
-              <p>{{ guideline }}</p>
-            </article>
-          </div>
-        </section>
-
-        <section class="supervisor__custom">
-          <header>
-            <span><i class="pi pi-sliders-h"></i></span>
-            <div>
-              <h3>Pautas adicionales</h3>
-              <p>
-                Escribe reglas específicas de la empresa, una por línea y con instrucciones claras.
-              </p>
-            </div>
-          </header>
-
-          <textarea
-            [(ngModel)]="supervisorForm.guidelines"
-            maxlength="12000"
-            rows="13"
-            placeholder="Ejemplo:&#10;No utilizar más de dos párrafos en respuestas simples.&#10;Cuando el cliente esté molesto, responder primero con empatía y luego ofrecer el próximo paso.&#10;No mencionar precios si no aparecen en la base de conocimiento."
-            aria-label="Pautas adicionales del supervisor"
-          ></textarea>
-          <div class="supervisor__textarea-meta">
-            <span>
-              <i class="pi pi-info-circle"></i>
-              Se aplican a respuestas automáticas y a “Dejar que responda Ester”.
-            </span>
-            <small>{{ supervisorGuidelinesCharacters }} / 12000</small>
-          </div>
-        </section>
-      </div>
-
-      <footer class="supervisor__footer">
-        <span *ngIf="supervisorSettings?.updatedAt">
-          <i class="pi pi-clock"></i>
-          Última actualización:
-          {{ supervisorSettings?.updatedAt | date:'dd/MM/yyyy, h:mm a' }}
-        </span>
-        <span *ngIf="!supervisorSettings?.updatedAt">
-          <i class="pi pi-shield"></i>
-          Configuración inicial protegida
-        </span>
-        <button
-          type="button"
-          class="ester__primary-button"
-          [disabled]="supervisorSaving"
-          (click)="saveSupervisorSettings()"
-        >
-          <i
-            class="pi"
-            [class.pi-save]="!supervisorSaving"
-            [class.pi-spin]="supervisorSaving"
-            [class.pi-spinner]="supervisorSaving"
-          ></i>
-          {{ supervisorSaving ? 'Guardando...' : 'Guardar configuración' }}
-        </button>
-      </footer>
-    </ng-container>
   </section>
 
   <section *ngIf="activeView === 'workflow'" class="workflow">
