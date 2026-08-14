@@ -85,6 +85,7 @@ interface MessageTranslation {
 interface ChatMessage {
   id?: number;
   from: 'me' | 'incoming' | 'system';
+  status?: string;
   type?: string;
   text?: string;
   transcription?: string;
@@ -3726,6 +3727,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       const mapped: ChatMessage = {
         id: msg.id,
         from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
+        status: String(msg.status || 'sent').trim().toLowerCase(),
         type: msg.type || 'text',
         text: msg.type === 'contacts' || ['unsupported', 'unknown'].includes(msg.type)
           ? ''
@@ -5181,9 +5183,23 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           if (this.selectedConversation?.id !== conversationId) return;
           if (res.success && res.messages?.length) {
             const newestId = res.messages[res.messages.length - 1].id;
-            if (newestId !== this.lastApiMessageId) {
+            const latestMessages = this.mapApiMessages(res.messages);
+            const currentMessagesById = new Map(
+              this.messages
+                .filter((message): message is ChatMessage & { id: number } => typeof message.id === 'number')
+                .map((message) => [message.id, message])
+            );
+            const hasDeliveryStatusUpdates = latestMessages.some((message) => {
+              if (typeof message.id !== 'number') return false;
+              const currentMessage = currentMessagesById.get(message.id);
+              return Boolean(
+                currentMessage
+                && currentMessage.status !== message.status
+              );
+            });
+
+            if (newestId !== this.lastApiMessageId || hasDeliveryStatusUpdates) {
               const shouldScrollToBottom = this.isNearBottom();
-              const latestMessages = this.mapApiMessages(res.messages);
               const latestById = new Map(
                 latestMessages
                   .filter((message): message is ChatMessage & { id: number } => typeof message.id === 'number')
@@ -5220,6 +5236,19 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         }
       });
     }, this.POLL_INTERVAL);
+  }
+
+  getMessageDeliveryLabel(message: ChatMessage): string {
+    switch (String(message.status || '').toLowerCase()) {
+      case 'read':
+        return 'Visto';
+      case 'delivered':
+        return 'Entregado';
+      case 'failed':
+        return 'No se pudo enviar';
+      default:
+        return 'Enviado';
+    }
   }
 
   private isConfirmedOptimisticMessage(message: ChatMessage, confirmedMessages: ChatMessage[]): boolean {

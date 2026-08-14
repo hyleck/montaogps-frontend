@@ -260,6 +260,7 @@
                     [class.comm-message--outgoing]="msg.from === 'me'"
                     [class.comm-message--incoming]="msg.from === 'incoming'"
                     [class.comm-message--system]="msg.from === 'system'"
+                    [class.comm-message--deleted]="msg.status === 'deleted'"
                     [class.comm-message--has-reaction]="!!msg.reaction"
                     [class.comm-message--sticker-only]="isStickerOnlyMessage(msg)">
                     <div *ngIf="msg.id && msg.from !== 'system' && isConversationAssignedToMe(selectedConversation)" class="comm-message__actions">
@@ -287,10 +288,18 @@
                         </button>
                     </div>
                     <div class="comm-message__bubble">
-                        <div *ngIf="msg.from === 'incoming'" class="comm-msg-sig comm-msg-sig--customer">
-                            <i class="pi pi-user comm-msg-sig-icon"></i>
-                            <span>{{ getIncomingCustomerSignature() }}</span>
+                        <div *ngIf="msg.status === 'deleted'" class="comm-message__deleted-label">
+                            <i class="pi pi-trash"></i>
+                            <span>
+                                <strong>Mensaje borrado</strong>
+                                <small>Pasa el cursor para mostrarlo</small>
+                            </span>
                         </div>
+                        <div class="comm-message__content">
+                            <div *ngIf="msg.from === 'incoming'" class="comm-msg-sig comm-msg-sig--customer">
+                                <i class="pi pi-user comm-msg-sig-icon"></i>
+                                <span>{{ getIncomingCustomerSignature() }}</span>
+                            </div>
                         <!-- Reply quote -->
                         <div *ngIf="msg.replyTo" class="comm-reply-quote"
                             [class.comm-reply-quote--me]="msg.replyTo.from === 'me'">
@@ -474,8 +483,25 @@
                                 <span class="comm-message__rt-subtitle">Toca para navegar</span>
                             </div>
                         </a>
-                        <div class="comm-message__time">{{ msg.time | date:'HH:mm' }}</div>
-                        <button *ngIf="isRootUser && isEsterMessage(msg) && !msg.esterFeedback"
+                        </div>
+                        <div class="comm-message__meta">
+                            <div class="comm-message__time">{{ msg.time | date:'HH:mm' }}</div>
+                            <span *ngIf="msg.from === 'me' && msg.id && msg.status !== 'deleted'"
+                                class="comm-message__delivery-status"
+                                [class.comm-message__delivery-status--read]="msg.status === 'read'"
+                                [class.comm-message__delivery-status--delivered]="msg.status === 'delivered'"
+                                [class.comm-message__delivery-status--failed]="msg.status === 'failed'"
+                                [attr.title]="getMessageDeliveryLabel(msg)"
+                                [attr.aria-label]="getMessageDeliveryLabel(msg)">
+                                <i *ngIf="msg.status === 'failed'" class="pi pi-exclamation-circle"></i>
+                                <ng-container *ngIf="msg.status !== 'failed'">
+                                    <i class="pi pi-check"></i>
+                                    <i *ngIf="msg.status === 'delivered' || msg.status === 'read'"
+                                        class="pi pi-check comm-message__delivery-status-second"></i>
+                                </ng-container>
+                            </span>
+                        </div>
+                        <button *ngIf="isRootUser && isEsterMessage(msg) && !msg.esterFeedback && msg.status !== 'deleted'"
                             type="button"
                             class="comm-message__feedback"
                             (click)="openEsterFeedback(msg)"
@@ -483,7 +509,7 @@
                             <i class="pi pi-comment"></i>
                             Feedback
                         </button>
-                        <div *ngIf="isRootUser && isEsterMessage(msg) && msg.esterFeedback as savedFeedback"
+                        <div *ngIf="isRootUser && isEsterMessage(msg) && msg.status !== 'deleted' && msg.esterFeedback as savedFeedback"
                             class="comm-message__feedback-saved"
                             title="Este mensaje ya recibió feedback">
                             <i class="pi pi-check-circle"></i>
