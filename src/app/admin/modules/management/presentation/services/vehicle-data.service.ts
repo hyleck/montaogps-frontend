@@ -370,23 +370,30 @@ export class VehicleDataService {
 
     if (comboToTargets.size === 0) return results;
 
-    // Check cache via gps-backend
+    // Check cache via gps-backend in one request for all visible combinations.
     const gpsApiUrl = (environment as any).apiUrl || 'http://localhost:3333';
-    const promises = Array.from(comboToTargets.entries()).map(async ([_key, { brand, model, year, color, targetIds }]) => {
-      try {
-        const url = `${gpsApiUrl}/devices/check-ai-cache?brand=${encodeURIComponent(brand)}&model=${encodeURIComponent(model)}&year=${encodeURIComponent(year)}&color=${encodeURIComponent(color)}`;
-        const response = await lastValueFrom(this.http.get<any>(url));
-        if (response?.success && response?.thumbnailUrl) {
-          for (const id of targetIds) {
-            results.set(id, { url: response.url, thumbnailUrl: response.thumbnailUrl });
-          }
-        }
-      } catch (err) {
-        // Cache miss or error, silently ignore
-      }
-    });
+    try {
+      const combinations = Array.from(comboToTargets.entries()).map(
+        ([key, { brand, model, year, color }]) => ({ key, brand, model, year, color }),
+      );
+      const responses = await lastValueFrom(this.http.post<Array<{
+        key: string;
+        result: { success?: boolean; url?: string; thumbnailUrl?: string };
+      }>>(`${gpsApiUrl}/devices/check-ai-cache/batch`, { combinations }));
 
-    await Promise.all(promises);
+      for (const response of responses || []) {
+        const targetGroup = comboToTargets.get(response.key);
+        if (!targetGroup || !response.result?.success || !response.result.thumbnailUrl) continue;
+        for (const id of targetGroup.targetIds) {
+          results.set(id, {
+            url: response.result.url || response.result.thumbnailUrl,
+            thumbnailUrl: response.result.thumbnailUrl,
+          });
+        }
+      }
+    } catch (err) {
+      // Cache miss or error, silently ignore.
+    }
     return results;
   }
 

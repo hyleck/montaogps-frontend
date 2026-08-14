@@ -100,9 +100,9 @@
                         [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }"
                         class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets |
                         translate }} {{ totalTargetsCountDisplay }} </button>
-                    <button *ngIf="userWarehouse" (click)="openWarehouseModal()"
+                    <button *ngIf="canReadInventory()" (click)="openWarehouseModal()"
                         class="button button--flat" style="color: #14b8a6;">
-                        <i class="pi pi-box"></i> Almacén ( {{ userWarehouse.stock || 0 }} )
+                        <i class="pi pi-box"></i> Almacén<span *ngIf="userWarehouse"> ( {{ userWarehouse.stock || 0 }} )</span>
                     </button>
                     <button *ngIf="selectedUser && canStartSupportAccess(selectedUser)" type="button"
                         (click)="openSupportAccess(selectedUser)"
@@ -167,7 +167,7 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div *ngFor="let user of users"
+                                <div *ngFor="let user of users; trackBy: trackUserBy"
                                     class="management__user-card management__user-card--maps"
                                     [ngClass]="{'management__user-card--shared': isSharedUser(user), 'management__user-card--no-assistance': shouldShowNoAssistanceState(user), 'management__user-card--main-account': isMainAccount(user)}">
                                     <span *ngIf="isMainAccount(user)" class="management__main-account-badge">
@@ -245,6 +245,8 @@
 
                             <div class="card">
                                 <p-table [value]="loading ? [] : targetsList" [(selection)]="targetsSelected"
+                                    (selectionChange)="onTargetsSelectionChange()"
+                                    [rowTrackBy]="trackTargetBy"
                                     dataKey="_id" [loading]="loading" loadingIcon="pi pi-spinner loading-spinner">
                                     <ng-template pTemplate="emptymessage">
                                         <tr>
@@ -682,9 +684,9 @@
                         [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }"
                         class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets |
                         translate }} ( {{ totalTargetsCountDisplay }} )</button>
-                    <button *ngIf="userWarehouse" (click)="openWarehouseModal()"
+                    <button *ngIf="canReadInventory()" (click)="openWarehouseModal()"
                         class="button button--flat" style="color: #14b8a6;">
-                        <i class="pi pi-box"></i> Almacén ( {{ userWarehouse.stock || 0 }} )
+                        <i class="pi pi-box"></i> Almacén<span *ngIf="userWarehouse"> ( {{ userWarehouse.stock || 0 }} )</span>
                     </button>
                 </div>
                 <div class="management__user-back-button" *ngIf="canNavigateBack()">
@@ -743,7 +745,7 @@
 
                             </div>
                         </div>
-                        <div *ngFor="let user of users" class="management__user-card"
+                        <div *ngFor="let user of users; trackBy: trackUserBy" class="management__user-card"
                             [ngClass]="{'management__user-card--shared': isSharedUser(user), 'management__user-card--no-assistance': shouldShowNoAssistanceState(user), 'management__user-card--main-account': isMainAccount(user)}">
                             <span *ngIf="isMainAccount(user)" class="management__main-account-badge">
                                 <i class="pi pi-star-fill"></i>
@@ -870,7 +872,7 @@
                                     <small *ngIf="filterStatus === 'offline'">Solo fuera de línea</small>
                                 </div>
                             </div>
-                            <p-table [value]="targetsCardList" dataKey="_id"
+                            <p-table [value]="targetsCardList" dataKey="_id" [rowTrackBy]="trackTargetBy"
                                 [tableStyle]="{'width': '100%', 'min-width': '0'}">
                                 <ng-template pTemplate="header">
                                     <tr>
@@ -1151,7 +1153,7 @@
                                             <td>
                                                 <div class="target-linked-pair-card__targets">
                                                     <div class="target-linked-pair-card__target"
-                                                        *ngFor="let linkedTarget of getLinkedCardTargets(target); let first = first">
+                                                        *ngFor="let linkedTarget of getLinkedCardTargets(target); let first = first; trackBy: trackTargetBy">
                                                         <div class="target-linked-pair-card__image">
                                                             <img *ngIf="getTargetImageUrl(linkedTarget)" [src]="getTargetImageUrl(linkedTarget)" [alt]="linkedTarget.name">
                                                             <i *ngIf="!getTargetImageUrl(linkedTarget)" class="pi pi-car"></i>
@@ -1191,7 +1193,7 @@
                                             <td>
                                                 <div class="target-linked-pair-card__meta">
                                                     <div class="imei-container"
-                                                        *ngFor="let linkedTarget of getLinkedCardTargets(target)">
+                                                        *ngFor="let linkedTarget of getLinkedCardTargets(target); trackBy: trackTargetBy">
                                                         <span class="target-card-imei">IMEI: {{ linkedTarget.imei }}<i *ngIf="isTargetVerified(linkedTarget)" class="pi pi-check-circle target-verified-check" title="Objetivo verificado"></i></span>
                                                         <span class="target-card-sim">SIM: {{ linkedTarget.sim || linkedTarget.sim_card_number || '—' }}</span>
                                                         <span class="target-card-expiration" [ngClass]="{
@@ -1204,7 +1206,7 @@
                                             </td>
                                             <td>
                                                 <div class="target-linked-pair-card__actions">
-                                                    <ng-container *ngFor="let linkedTarget of getLinkedCardTargets(target); let first = first">
+                                                    <ng-container *ngFor="let linkedTarget of getLinkedCardTargets(target); let first = first; trackBy: trackTargetBy">
                                                         <button class="button button--primary-flat" (click)="showTargetForm(linkedTarget)" [title]="first ? 'Editar principal' : 'Editar vinculado'" *ngIf="canUpdateDevices()">
                                                             <i [class]="first ? 'pi pi-pen-to-square' : 'pi pi-link'"></i>
                                                         </button>
@@ -1776,11 +1778,11 @@
         <span>Accesos Directos ({{shortcuts.length}})</span>
     </button>
 
-    <button class="floating-priority-btn" [class.vibrate]="isVibrating"
-        *ngIf="priorityDevices && priorityDevices.length > 0 && currentUserAffiliationTypeId === 'empleado' && !showMaps"
+    <button class="floating-priority-btn"
+        *ngIf="currentUserAffiliationTypeId === 'empleado' && !showMaps"
         (click)="verifyConnectionPriority()">
         <i class="pi pi-exclamation-triangle"></i>
-        <span>Prioridad ({{priorityDevices.length}})</span>
+        <span>Prioridad<span *ngIf="priorityDevices.length"> ({{priorityDevices.length}})</span></span>
     </button>
 </div>
 
@@ -2263,7 +2265,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr *ngFor="let device of userWarehouseDevices"
+                    <tr *ngFor="let device of userWarehouseDevices; trackBy: trackWarehouseDeviceBy"
                         style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                         <td style="padding: 8px; font-family: monospace; font-size: 0.9rem;">
                             {{ device.IMEI || device.imei || 'N/A' }}

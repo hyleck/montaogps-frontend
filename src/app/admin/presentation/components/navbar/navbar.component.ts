@@ -770,26 +770,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.initializeMenus();
     }
 
-    // Si el botón se vuelve visible y hay un parentId, cargar targets cancelados automáticamente
+    // El listado se carga únicamente al abrir el drawer. Mantener este trabajo
+    // fuera de la navegación evita competir con usuarios y objetivos.
     if (this.showCanceledButton && parentId) {
-      // Solo cargar si:
-      // 1. El botón no estaba visible antes (nueva ruta)
-      // 2. O si no hay targets cargados aún
-      // 3. O si el parentId cambió (diferente usuario)
-      const shouldLoad = !wasVisible ||
-        this.canceledTargets.length === 0 ||
-        this.lastLoadedParentId !== parentId;
-
-      if (shouldLoad) {
-        console.log('🚀 Cargando targets cancelados automáticamente:', {
-          reason: !wasVisible ? 'nueva ruta' :
-            this.canceledTargets.length === 0 ? 'sin targets cargados' :
-              'cambio de usuario',
-          parentId,
-          lastParentId: this.lastLoadedParentId
-        });
+      if (this.lastLoadedParentId !== parentId) {
+        this.canceledTargets = [];
+        this.totalCanceledTargetsCount = 0;
+        this.hasMoreCanceledTargets = true;
         this.lastLoadedParentId = parentId;
-        await this.loadCanceledTargets();
       }
     } else if (!this.showCanceledButton) {
       // Si el botón se oculta, limpiar los datos

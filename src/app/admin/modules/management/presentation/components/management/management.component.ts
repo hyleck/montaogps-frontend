@@ -2,8 +2,8 @@
 import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Observable, Subscription, Subject, forkJoin, from, lastValueFrom, of } from 'rxjs';
-import { catchError, debounceTime, distinctUntilChanged, switchMap, map } from 'rxjs/operators';
+import { EMPTY, Observable, Subscription, Subject, forkJoin, from, lastValueFrom, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, filter, switchMap, map, tap } from 'rxjs/operators';
 
 // Third-party imports
 import { MenuItem, ConfirmationService, MessageService } from 'primeng/api';
@@ -76,10 +76,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
   searchingTransferUserBranchParent: boolean = false;
   transferringUserBranch: boolean = false;
   targets: Target[] = [];
-  targetsList: any[] = [];
-  private targetsCardListCacheSource: any[] | null = null;
-  private targetsCardListCacheSignature = '';
-  private targetsCardListCache: any[] = [];
+  private targetsListValue: any[] = [];
+  targetsCardList: any[] = [];
+
+  get targetsList(): any[] {
+    return this.targetsListValue;
+  }
+
+  set targetsList(value: any[]) {
+    this.targetsListValue = Array.isArray(value) ? value : [];
+    this.targetsCardList = this.buildLinkedTargetCardRows(this.targetsListValue);
+  }
   generatingAITargets: Set<string> = new Set();
   activatingTargets: Set<string> = new Set();
   activatingTargetStatus: Map<string, any> = new Map();
@@ -164,9 +171,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
   searchingUserForTransfer: boolean = false;
   isTransferring: boolean = false;
 
-  private priorityIntervalId: any;
-  private vibrationIntervalId: any;
-  isVibrating: boolean = false;
 
   // ====================================
   // PROPIEDADES PARA CANCELACIÓN
@@ -233,8 +237,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private usersListLoadRequestId: number = 0;
   private targetsLoadRequestId: number = 0;
   private userPathLoadRequestId: number = 0;
+  private managementSummaryLoadRequestId: number = 0;
+  private managementSummaryLoading: boolean = false;
   private warehouseLoadRequestId: number = 0;
-  private selectionWatcherIntervalId: ReturnType<typeof setInterval> | null = null;
 
   // Getters para el template
   get isLoadingMoreTargets(): boolean {
@@ -245,8 +250,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return this.hasMoreTargets;
   }
 
-  get totalTargetsCountDisplay(): number {
-    return this.totalTargetsCount;
+  get totalTargetsCountDisplay(): number | string {
+    return this.managementSummaryLoading ? '…' : this.totalTargetsCount;
   }
 
   // Getters para usuarios
@@ -258,8 +263,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return this.hasMoreUsers;
   }
 
-  get totalUsersCountDisplay(): number {
-    return this.totalUsersCount;
+  get totalUsersCountDisplay(): number | string {
+    return this.managementSummaryLoading ? '…' : this.totalUsersCount;
   }
 
   // ====================================
@@ -567,17 +572,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return String(target?.gps_adicional || source.gps_adicional || target?.additional_gps || source.additional_gps || '').trim();
   }
 
-  private getTargetsCardListSignature(targets: any[]): string {
-    return targets.map(target => {
-      const source = target?.originalTarget || target || {};
-      return [
-        target?._id || '',
-        this.getTargetImei(target),
-        this.getTargetLinkedGpsImei(target),
-        target?.traccarStatus || '',
-        source.verificado === true || target?.verificado === true ? '1' : '0'
-      ].join(':');
-    }).join('|');
+  private refreshTargetsCardList(): void {
+    this.targetsCardList = this.buildLinkedTargetCardRows(this.targetsList || []);
   }
 
   // ====================================
@@ -593,20 +589,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
   get showMaps(): boolean { return this.uiService.areMapsVisible(); }
   get isUserSearchActive(): boolean { return this.isSearchingUsers; }
   get isTargetSearchActive(): boolean { return this.isSearchingTargets; }
-  get targetsCardList(): any[] {
-    const source = this.targetsList || [];
-    const signature = this.getTargetsCardListSignature(source);
-
-    if (this.targetsCardListCacheSource === source && this.targetsCardListCacheSignature === signature) {
-      return this.targetsCardListCache;
-    }
-
-    this.targetsCardListCacheSource = source;
-    this.targetsCardListCacheSignature = signature;
-    this.targetsCardListCache = this.buildLinkedTargetCardRows(source);
-    return this.targetsCardListCache;
-  }
-
   // Mobile/responsive state
   isMobileView: boolean = false;
   showMobileMapFullscreen: boolean = false;
@@ -624,6 +606,18 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   // Target selection helpers
   get currentTargetFromUrl(): string | null { return this.targetIdFromUrl; }
+
+  trackUserBy(_index: number, user: User): string {
+    return String(user?._id || _index);
+  }
+
+  trackTargetBy(_index: number, target: any): string {
+    return String(target?._id || target?.originalTarget?._id || _index);
+  }
+
+  trackWarehouseDeviceBy(_index: number, device: InventoryItem): string {
+    return String((device as any)?._id || (device as any)?.IMEI || (device as any)?.imei || _index);
+  }
 
   isTargetSelectedFromUrl(targetId: string): boolean {
     return this.targetIdFromUrl === targetId;
@@ -680,6 +674,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     } else {
       this.targetsSelected = [...this.targetsSelected, target];
     }
+    this.onTargetsSelectionChange();
   }
 
   isTargetPairSelectedForActions(row: any): boolean {
@@ -707,12 +702,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.targetsSelected = this.targetsSelected.filter((selected: any) =>
         !pairIds.has(String(selected?._id || ''))
       );
+      this.onTargetsSelectionChange();
       return;
     }
 
     const selectedIds = new Set(this.targetsSelected.map((selected: any) => String(selected?._id || '')));
     const missingTargets = pairTargets.filter((target: any) => !selectedIds.has(String(target?._id || '')));
     this.targetsSelected = [...this.targetsSelected, ...missingTargets];
+    this.onTargetsSelectionChange();
   }
 
   // ====================================
@@ -797,6 +794,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   canReadDevices(): boolean {
     return this.authService.hasPrivilege('devices', 'read');
+  }
+
+  canReadInventory(): boolean {
+    return this.authService.hasPrivilege('inventory', 'read');
   }
 
   canUpdateDevices(): boolean {
@@ -905,7 +906,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.checkMobileView();
     this.setupInitialState();
     this.setupSubscriptions();
-    this.setupSelectionWatcher();
     this.setupRouting();
     this.checkUserInbox();
     // Nota: El status polling ahora está integrado en el polling principal de 10s
@@ -920,8 +920,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // this.loadMap();
 
     // Cargar dispositivos con prioridad excedida una sola vez al inicio
-    this.refreshPriorityDevices();
-    this.startPriorityPolling();
 
     // Load shortcuts from localStorage
     this.loadShortcuts();
@@ -939,16 +937,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.userLocationMarker?.remove?.();
     this.userLocationMapInstance?.remove?.();
     this.cleanupSubscriptions();
-    if (this.priorityIntervalId) {
-      clearInterval(this.priorityIntervalId);
-    }
-    if (this.vibrationIntervalId) {
-      clearInterval(this.vibrationIntervalId);
-    }
-    if (this.selectionWatcherIntervalId) {
-      clearInterval(this.selectionWatcherIntervalId);
-      this.selectionWatcherIntervalId = null;
-    }
     this.breadcrumbService.clear();
     this.stopPolling();
     // Nota: El status polling ahora está integrado en el polling principal
@@ -1028,28 +1016,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return this.breadcrumbService.canNavigateBack(managementState);
   }
 
-  async enterUser(user: User): Promise<void> {
+  enterUser(user: User): void {
     const currentOp = this.managementService.getOp() || 'u';
-
-    try {
-      const [usersResponse, targetsResponse] = await Promise.all([
-        lastValueFrom(this.userService.getAllWithPagination(user._id, 0, 1)),
-        this.targetsService.getTargetsWithPagination(user._id, 0, 1),
-      ]);
-
-      // Prioridad: usuarios hijos, luego dispositivos. Sin contenido se conserva la vista actual.
-      const nextOp = usersResponse.totalCount > 0
-        ? 'u'
-        : targetsResponse.totalCount > 0
-          ? 't'
-          : currentOp;
-
-      this.managementService.setOp(nextOp, user._id);
-    } catch (error) {
-      console.error('No se pudo determinar el contenido inicial del usuario:', error);
-      // Ante un fallo de consulta, mantenemos el comportamiento seguro anterior.
-      this.managementService.setOp(currentOp, user._id);
-    }
+    this.managementService.setOp(currentOp, user._id);
   }
 
   canStartSupportAccess(user: User): boolean {
@@ -3499,10 +3468,32 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Obtener el tipo de afiliación del usuario actual
     this.currentUserAffiliationTypeId = currentUser?.affiliation_type_id || '';
 
-    // Configurar suscripciones a parámetros de ruta
+    // Resolver una sola vez cada usuario de ruta. switchMap cancela el HTTP
+    // anterior si el usuario navega a otra cuenta antes de que termine.
     this.subscriptions.push(
-      this.route.params.subscribe(params => {
-        this.handleRouteParams(params, currentUser);
+      this.route.params.pipe(
+        tap(params => this.managementService.verifyURLStatus(params)),
+        map(params => String(params['user'] || '').trim()),
+        filter(userId => this.isValidManagementUserId(userId)),
+        distinctUntilChanged(),
+        tap(userId => {
+          this.loadingUserRouteId = userId;
+          this.uiService.setLoading(true);
+        }),
+        switchMap(userId => this.managementService.loadUserData$(userId).pipe(
+          map(user => ({ userId, user })),
+          catchError(error => {
+            console.error('Error al cargar los datos del usuario:', error);
+            this.loadingUserRouteId = '';
+            this.uiService.setLoading(false);
+            void this.router.navigate(['/admin/dashboard']);
+            return EMPTY;
+          }),
+        )),
+      ).subscribe(({ userId, user }) => {
+        if (String(user._id) !== userId) return;
+        this.loadingUserRouteId = '';
+        this.handleUserLoaded(user);
       })
     );
 
@@ -3534,24 +3525,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private cleanupSubscriptions(): void {
     this.subscriptions.forEach(sub => sub.unsubscribe());
     this.subscriptions = [];
-  }
-
-  /**
-   * Configura el observador para cambios en la selección de targets
-   */
-  private setupSelectionWatcher(): void {
-    // Usar un polling simple para detectar cambios en targetsSelected
-    // Ya que PrimeNG no emite eventos específicos para cambios de selección
-    let previousSelectionLength = 0;
-
-    this.selectionWatcherIntervalId = setInterval(() => {
-      const currentSelectionLength = this.targetsSelected?.length || 0;
-
-      if (currentSelectionLength !== previousSelectionLength) {
-        this.onTargetsSelectionChange();
-        previousSelectionLength = currentSelectionLength;
-      }
-    }, 100); // Verificar cada 100ms
   }
 
   /**
@@ -3751,8 +3724,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.closeUserLocationDialog();
     this.targetOwnerLocationCache.clear();
     this.selectedUser = this.sanitizeManagementUserLocation(user);
+    // La cabecera puede mostrarse de inmediato; cada panel administra su propio loading.
+    this.uiService.setLoading(false);
     // Limpiar datos anteriores y resetear bandera de carga completada
+    this.users = [];
     this.targetsList = [];
+    this.refreshTargetsCardList();
     this.targets = [];
     this.targetsSelected = [];
     this.targetsLoadCompletedFlag = false;
@@ -3776,51 +3753,112 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.pendingUserSearchTerm = '';
 
     this.loadUserPath(user._id);
-    this.loadUsersForUser(user._id);
-    this.loadTargetsForUser(user._id);
-    this.loadUserWarehouse();
+    this.loadManagementSummary(user._id);
+    this.userWarehouse = null;
+    if (activeOp === 't') {
+      this.loadTargetsForUser(user._id);
+    } else {
+      this.stopPolling();
+      this.loadUsersForUser(user._id);
+    }
   }
 
   private isValidManagementUserId(value: unknown): boolean {
     return /^[a-f\d]{24}$/i.test(String(value || '').trim());
   }
 
+  private loadManagementSummary(userId: string): void {
+    const requestId = ++this.managementSummaryLoadRequestId;
+    this.managementSummaryLoading = true;
+    this.userService.getManagementSummary(userId).subscribe({
+      next: summary => {
+        if (
+          requestId !== this.managementSummaryLoadRequestId ||
+          this.selectedUser?._id !== userId
+        ) return;
+        this.totalUsersCount = summary.usersCount;
+        this.totalTargetsCount = summary.targetsCount;
+        this.managementSummaryLoading = false;
+      },
+      error: () => {
+        if (
+          requestId !== this.managementSummaryLoadRequestId ||
+          this.selectedUser?._id !== userId
+        ) return;
+
+        // Compatibilidad durante despliegues escalonados: si el backend todavía
+        // no expone el resumen liviano, obtenemos únicamente los conteos de la
+        // primera página y nunca mostramos un cero engañoso.
+        forkJoin({
+          users: this.userService.getAllWithPagination(userId, 0, 1),
+          targets: from(this.targetsService.getTargetsWithPagination(userId, 0, 1)),
+        }).subscribe({
+          next: ({ users, targets }) => {
+            if (
+              requestId !== this.managementSummaryLoadRequestId ||
+              this.selectedUser?._id !== userId
+            ) return;
+            this.totalUsersCount = users.totalCount;
+            this.totalTargetsCount = targets.totalCount;
+            this.managementSummaryLoading = false;
+          },
+          error: () => {
+            if (requestId === this.managementSummaryLoadRequestId) {
+              this.managementSummaryLoading = false;
+            }
+          },
+        });
+      },
+    });
+  }
+
   // ====================================
   // WAREHOUSE METHODS
   // ====================================
 
-  private loadUserWarehouse(): void {
+  private loadUserWarehouse(onLoaded?: (warehouse: Warehouse | null) => void): void {
     const requestId = ++this.warehouseLoadRequestId;
     if (!this.selectedUser?.email) {
       this.userWarehouse = null;
+      onLoaded?.(null);
       return;
     }
     const email = this.selectedUser.email;
 
-    // Use cached data first for instant display
-    const cached = this.inventoryService.warehouses$.getValue();
-    if (cached && cached.length > 0) {
-      this.userWarehouse = cached.find(w => w.assigned_user === email) || null;
-    }
-
-    // Refresh in background
-    this.inventoryService.getWarehouses().subscribe({
-      next: (warehouses) => {
+    this.inventoryService.getAssignedWarehouse(email).subscribe({
+      next: (warehouse) => {
         if (
           requestId !== this.warehouseLoadRequestId ||
           this.selectedUser?.email !== email
         ) return;
-        this.userWarehouse = warehouses.find(w => w.assigned_user === email) || null;
+        this.userWarehouse = warehouse;
+        onLoaded?.(warehouse);
       },
       error: () => {
         if (requestId !== this.warehouseLoadRequestId) return;
-        if (!this.userWarehouse) this.userWarehouse = null;
+        this.userWarehouse = null;
+        onLoaded?.(null);
       }
     });
   }
 
   openWarehouseModal(): void {
-    if (!this.userWarehouse?._id) return;
+    if (!this.canReadInventory()) return;
+    if (!this.userWarehouse?._id) {
+      this.loadUserWarehouse((warehouse) => {
+        if (warehouse?._id) {
+          this.openWarehouseModal();
+          return;
+        }
+        this.messageService.add({
+          severity: 'info',
+          summary: 'Sin almacén',
+          detail: 'Esta cuenta no tiene un almacén asignado.',
+          life: 3000,
+        });
+      });
+      return;
+    }
     this.warehouseModalVisible = true;
     this.loadingWarehouseDevices = true;
     this.userWarehouseDevices = [];
@@ -4569,18 +4607,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
         filteredSharedTargets = filteredSharedTargets.filter(t => t.sim_company?.toLowerCase() === this.filterSimCompany?.toLowerCase());
       }
 
-      // 🔍 CONSOLE LOG PARA DEBUG: Ver cómo llegan los targets
-      console.log('🔍 [DEBUG] Respuesta completa del servicio de targets:', {
-        targetsResponse: targetsResponse,
-        sharedTargets: sharedTargets,
-        filteredSharedTargets: filteredSharedTargets,
-        userId: userId,
-        parentId: parentId,
-        currentOffset: requestOffset,
-        pageSize: pageSizeForRequest,
-        connectionFilter: this.filterStatus
-      });
-
       // Extraer devices y totalCount de la respuesta
       const targets = targetsResponse.devices || [];
       const backendTotalCount = targetsResponse.totalCount || targets.length;
@@ -4837,8 +4863,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
       let logMessage = '📡 Actualizando ';
       let selectedTargetName = '';
 
-      // 1. Actualizar target seleccionado (si existe)
-      if (this.selectedTargetForMap) {
+      // Los objetivos propios se actualizan en bloque debajo. Para un objetivo
+      // compartido conservamos la consulta individual porque pertenece a otra cuenta.
+      if (this.selectedTargetForMap?.isShared) {
         logMessage += 'target seleccionado y ';
         const updatedTarget = await this.targetsService.getTargetById(this.selectedTargetForMap._id);
 
@@ -4854,6 +4881,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
         };
 
         selectedTargetName = updatedTarget.name;
+      } else if (this.selectedTargetForMap) {
+        selectedTargetName = this.selectedTargetForMap.name;
       }
 
       logMessage += 'status de todos los targets';
@@ -4885,139 +4914,103 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private async updateAllTargetsStatusInPolling(): Promise<void> {
-    // Solo ejecutar si hay un usuario seleccionado y targets cargados
     if (!this.selectedUser || this.targetsList.length === 0) {
       return;
     }
 
     try {
-      // Obtener la lista actualizada de targets
-      const parentId = this.managementService.getCurrentUserId();
-      const updatedTargetsResponse = await this.targetsService.getTargetsByUserId(this.selectedUser._id, parentId);
-      const updatedTargets = updatedTargetsResponse.devices;
+      const ownTargetIds = this.targetsList
+        .filter(target => !target.isShared)
+        .map(target => String(target._id || ''))
+        .filter(Boolean);
+      if (ownTargetIds.length === 0) return;
 
-      let statusChanges: string[] = [];
-      let offlineChangesDetected = 0;
+      const statuses = await this.targetsService.getTargetStatuses(
+        this.selectedUser._id,
+        ownTargetIds,
+      );
+      const statusesById = new Map(statuses.map(status => [String(status._id), status]));
 
-      // Comparar con el estado anterior y actualizar los que cambiaron
-      updatedTargets.forEach((updatedTarget: Target) => {
-        const targetId = updatedTarget._id;
-        const existingTarget = this.targetsList.find(t => t._id === targetId);
+      this.targetsList = this.targetsList.map(previousTarget => {
+        const targetId = String(previousTarget._id || '');
+        const liveStatus = statusesById.get(targetId);
+        if (!liveStatus) return previousTarget;
+
+        const previousOriginalTarget = previousTarget.originalTarget || previousTarget;
+        const mergedTarget = {
+          ...previousOriginalTarget,
+          traccarInfo: liveStatus.traccarInfo,
+        };
         const newStatus = this.getDisplayTraccarStatus({
-          ...existingTarget,
-          ...updatedTarget,
-          originalTarget: updatedTarget
+          ...previousTarget,
+          ...mergedTarget,
+          originalTarget: mergedTarget,
         });
         const previousStatus = this.previousTargetsStatus.get(targetId);
 
-        // Detectar cualquier cambio de status
-        if (previousStatus && previousStatus !== newStatus) {
-          const changeMessage = `${updatedTarget.name}: ${previousStatus} → ${newStatus}`;
-          statusChanges.push(changeMessage);
+        if (previousStatus === 'offline' && newStatus === 'online') {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Dispositivo conectado',
+            detail: `${previousTarget.name} ahora está en línea`,
+            life: 5000,
+          });
+        }
+        this.previousTargetsStatus.set(targetId, newStatus);
 
-          // Especialmente importante: cambios a offline
-          if (newStatus === 'offline') {
-            offlineChangesDetected++;
-          } else if (previousStatus === 'offline' && newStatus === 'online') {
-
-            // Mostrar mensaje cuando un target pasa a online
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Dispositivo Conectado',
-              detail: `${updatedTarget.name} ahora está en línea`,
-              life: 5000
-            });
-          }
-
-          // Actualizar en la lista de targets
-          const targetIndex = this.targetsList.findIndex(t => t._id === targetId);
-          if (targetIndex !== -1) {
-            const previousTarget = this.targetsList[targetIndex];
-            const previousOriginalTarget = previousTarget.originalTarget || previousTarget;
-            const mergedUpdatedTarget = {
-              ...previousOriginalTarget,
-              ...updatedTarget,
-              verificado: (updatedTarget as any).verificado ?? previousOriginalTarget.verificado ?? previousTarget.verificado,
-              verified: (updatedTarget as any).verified ?? previousOriginalTarget.verified ?? previousTarget.verified,
-              matricula_img: (updatedTarget as any).matricula_img ?? previousOriginalTarget.matricula_img ?? previousTarget.matricula_img
-            };
-            const isOnline = newStatus === 'online';
-            const isWeakSignal = newStatus === 'Señal débil';
-            let offlineTimeText = previousTarget.offlineTimeText;
-            let offlineDateText = previousTarget.offlineDateText;
-
-            if (isOnline || isWeakSignal) {
-              if (isWeakSignal && updatedTarget.traccarInfo?.['lastUpdate']) {
-                const offlineInfo = this.calculateOfflineTime(updatedTarget.traccarInfo['lastUpdate']);
-                offlineTimeText = 'Señal débil';
-                offlineDateText = offlineInfo.dateText;
-              } else {
-                offlineTimeText = '';
-                offlineDateText = '';
-              }
-            } else if (updatedTarget.traccarInfo?.['lastUpdate']) {
-              const offlineInfo = this.calculateOfflineTime(updatedTarget.traccarInfo['lastUpdate'], newStatus === 'Localizado');
-              offlineTimeText = offlineInfo.timeText;
-              offlineDateText = offlineInfo.dateText;
-            }
-
-            this.targetsList[targetIndex] = {
-              ...previousTarget,
-              status: isOnline ? this.translate.instant('management.status.online') : (isWeakSignal ? 'Señal débil' : this.translate.instant('management.status.offline')),
-              traccarStatus: newStatus,
-              traccarInfo: updatedTarget.traccarInfo,
-              verificado: mergedUpdatedTarget.verificado,
-              verified: mergedUpdatedTarget.verified,
-              matricula_img: mergedUpdatedTarget.matricula_img,
-              originalTarget: mergedUpdatedTarget,
-              offlineTimeText,
-              offlineDateText
-            };
-          }
-
-          // Actualizar también en la lista de targets originales
-          const originalTargetIndex = this.targets.findIndex(t => t._id === targetId);
-          if (originalTargetIndex !== -1) {
-            const previousOriginalTarget = this.targets[originalTargetIndex] as any;
-            this.targets[originalTargetIndex] = {
-              ...previousOriginalTarget,
-              ...updatedTarget,
-              verificado: (updatedTarget as any).verificado ?? previousOriginalTarget.verificado,
-              verified: (updatedTarget as any).verified ?? previousOriginalTarget.verified,
-              matricula_img: (updatedTarget as any).matricula_img ?? previousOriginalTarget.matricula_img
-            } as Target;
-          }
-
-          // IMPORTANTE: Actualizar selectedTargetForMap si este target es el que está seleccionado
-          if (this.selectedTargetForMap && this.selectedTargetForMap._id === targetId) {
-
-            const previousTraccarStatus = this.selectedTargetForMap.traccarStatus;
-            this.selectedTargetForMap = {
-              ...this.selectedTargetForMap,
-              ...updatedTarget,
-              // Preservar información adicional que pueda tener el target local
-              traccarInfo: updatedTarget.traccarInfo,
-              // IMPORTANTE: Establecer traccarStatus para que el mapa lo detecte
-              traccarStatus: newStatus,
-              isShared: this.selectedTargetForMap.isShared,
-              offlineTimeText: newStatus === 'online' || newStatus === 'Señal débil' ? '' : this.selectedTargetForMap.offlineTimeText,
-              offlineDateText: newStatus === 'online' || newStatus === 'Señal débil' ? '' : this.selectedTargetForMap.offlineDateText
-            };
-
-
-          }
+        const isOnline = newStatus === 'online';
+        const isWeakSignal = newStatus === 'Señal débil';
+        let offlineTimeText = previousTarget.offlineTimeText;
+        let offlineDateText = previousTarget.offlineDateText;
+        const lastUpdate = liveStatus.traccarInfo?.['lastUpdate'];
+        if (isOnline) {
+          offlineTimeText = '';
+          offlineDateText = '';
+        } else if (isWeakSignal && lastUpdate) {
+          offlineTimeText = 'Señal débil';
+          offlineDateText = this.calculateOfflineTime(lastUpdate).dateText;
+        } else if (lastUpdate) {
+          const offlineInfo = this.calculateOfflineTime(lastUpdate, newStatus === 'Localizado');
+          offlineTimeText = offlineInfo.timeText;
+          offlineDateText = offlineInfo.dateText;
         }
 
-        // Actualizar el estado anterior
-        this.previousTargetsStatus.set(targetId, newStatus);
+        return {
+          ...previousTarget,
+          status: isOnline
+            ? this.translate.instant('management.status.online')
+            : isWeakSignal
+              ? 'Señal débil'
+              : this.translate.instant('management.status.offline'),
+          traccarStatus: newStatus,
+          traccarInfo: liveStatus.traccarInfo,
+          originalTarget: mergedTarget,
+          offlineTimeText,
+          offlineDateText,
+        };
       });
 
-      // Log de resultados (solo si hay cambios para evitar spam)
+      this.targets = this.targets.map(target => {
+        const liveStatus = statusesById.get(String(target._id || ''));
+        return liveStatus
+          ? { ...target, traccarInfo: liveStatus.traccarInfo } as Target
+          : target;
+      });
+      this.refreshTargetsCardList();
 
-
+      if (this.selectedTargetForMap) {
+        const selectedUpdate = this.targetsList.find(
+          target => target._id === this.selectedTargetForMap._id,
+        );
+        if (selectedUpdate) {
+          this.selectedTargetForMap = {
+            ...this.selectedTargetForMap,
+            ...selectedUpdate,
+          };
+        }
+      }
     } catch (error) {
       console.error('❌ Error actualizando status en polling:', error);
-      // No mostrar error al usuario para evitar spam, solo log en consola
     }
   }
 
@@ -5084,38 +5077,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   async verifyConnectionPriority() {
     this.showPriorityDialog = true;
-    // Si ya tenemos datos, no necesitamos recargar forzosamente, 
-    // pero si se desea refrescar al abrir el dialogo:
-    // await this.refreshPriorityDevices(); 
-    // Por ahora solo abrimos el dialogo ya que se cargan al inicio
-  }
-
-  // Por ahora solo abrimos el dialogo ya que se cargan al inicio
-
-  startPriorityPolling() {
-    // Solo para empleados
-    if (this.currentUserAffiliationTypeId !== 'empleado') {
-      return;
-    }
-
-    // Consultar cada 30 segundos (30000 ms)
-    this.priorityIntervalId = setInterval(() => {
-      this.refreshPriorityDevices(true); // Pasar true para indicar que es background
-    }, 30000);
-
-    // Vibrar cada 15 segundos
-    this.vibrationIntervalId = setInterval(() => {
-      if (this.priorityDevices.length > 0) {
-        this.triggerVibration();
-      }
-    }, 15000);
-  }
-
-  triggerVibration() {
-    this.isVibrating = true;
-    setTimeout(() => {
-      this.isVibrating = false;
-    }, 500); // Duración de la animación
+    await this.refreshPriorityDevices();
   }
 
   async refreshPriorityDevices(isBackground: boolean = false) {

@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { UserService } from '@app/core/services/user.service';
 import { StatusService } from '@app/shareds/services/status.service';
 import { User } from '@app/core/interfaces/user.interface';
@@ -80,19 +81,15 @@ export class ManagementService {
   }
 
   loadUserData(userId: string): Promise<User> {
-    return new Promise((resolve, reject) => {
-      this.userService.getById(userId).subscribe({
-        next: (user: User) => {
-          this.selectedUser = user;
-          resolve(user);
-        },
-        error: (error: any) => {
-          console.error('Error al cargar los datos del usuario:', error);
-          this.router.navigate(['/admin/dashboard']);
-          reject(error);
-        }
-      });
-    });
+    return firstValueFrom(this.loadUserData$(userId));
+  }
+
+  loadUserData$(userId: string): Observable<User> {
+    return this.userService.getById(userId).pipe(
+      tap((user: User) => {
+        this.selectedUser = user;
+      }),
+    );
   }
 
   async buildUserPath(userId: string): Promise<MenuItem[]> {

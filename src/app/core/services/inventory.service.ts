@@ -287,6 +287,12 @@ export class InventoryService {
     );
   }
 
+  getAssignedWarehouse(email: string): Observable<Warehouse | null> {
+    return this.http.get<Warehouse | null>(
+      `${this.warehouseUrl}/assigned/${encodeURIComponent(email)}`
+    );
+  }
+
   checkLowStock(): void {
     this.getWarehouses().subscribe();
   }

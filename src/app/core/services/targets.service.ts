@@ -11,6 +11,12 @@ export interface TargetsResponse {
   totalCount: number;
 }
 
+export interface TargetStatusResponse {
+  _id: string;
+  device_imei: string;
+  traccarInfo?: Target['traccarInfo'];
+}
+
 export interface DeviceDistanceResponse {
   deviceId: string;
   traccarDeviceId: string;
@@ -356,6 +362,18 @@ export class TargetsService {
     }
 
     const observable = this.http.get<TargetsResponse>(url);
+    return await lastValueFrom(observable);
+  }
+
+  async getTargetStatuses(parentId: string, ids: string[]): Promise<TargetStatusResponse[]> {
+    const params: Record<string, string> = {
+      parent: parentId,
+    };
+    const normalizedIds = ids.map(id => String(id || '').trim()).filter(Boolean);
+    if (normalizedIds.length > 0) {
+      params['ids'] = normalizedIds.join(',');
+    }
+    const observable = this.http.get<TargetStatusResponse[]>(`${this.apiUrl}/statuses`, { params });
     return await lastValueFrom(observable);
   }
 

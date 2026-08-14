@@ -163,6 +163,12 @@ export class UserService {
     return this.http.get<UsersResponse>(this.apiUrl, { params });
   }
 
+  getManagementSummary(id: string): Observable<{ usersCount: number; targetsCount: number }> {
+    return this.http.get<{ usersCount: number; targetsCount: number }>(
+      `${this.apiUrl}/${encodeURIComponent(id)}/management-summary`
+    );
+  }
+
   search(query: string, parent?: string, offset: number = 0, limit: number = 30): Observable<UsersResponse> {
     let params: any = {
       q: query,
