@@ -1311,7 +1311,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           ? 'Ester Assistant'
           : assignedAgent
             ? this.getActiveEmployeeName(assignedAgent)
-            : `Agente ${targetAgentId}`;
+            : 'otro empleado';
 
         // Buscar el agente en memoria para sacar su ID de Mongo y enviarle el Push
         const contactName = this.selectedConversation?.contact.name || 'un cliente';
@@ -1590,7 +1590,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   getConversationAssigneeLabel(conv: ChatConversation): string {
     if (!conv.assignee_id) return 'Ester Assistant';
-    return (conv.assignee_name || conv.assignee_email || `Agente ${conv.assignee_id}`).trim();
+    return (conv.assignee_name || conv.assignee_email || 'otro empleado').trim();
   }
 
   isEsterAutoReplyDisabled(
