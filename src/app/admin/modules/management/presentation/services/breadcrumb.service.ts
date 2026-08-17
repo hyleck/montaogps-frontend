@@ -6,6 +6,7 @@ export interface BreadcrumbItem {
   id: string;
   fullName: string;
   profile_type_id?: string;
+  accessEntry?: boolean;
 }
 
 export interface BreadcrumbViewer {
@@ -63,7 +64,10 @@ export class BreadcrumbService {
       const isLast = index === safePath.length - 1;
       
       return {
-        label: pathItem.fullName,
+        label: pathItem.accessEntry
+          ? `Acceso: ${pathItem.fullName}`
+          : pathItem.fullName,
+        icon: pathItem.accessEntry ? 'pi pi-key' : undefined,
         // Para elementos que no son el último, agregar comando para navegar
         command: !isLast ? () => {
           this.navigateToUser(pathItem.id);
@@ -124,7 +128,7 @@ export class BreadcrumbService {
       || 'Usuario autenticado'
     ).trim();
 
-    return [{ id: viewerId, fullName }, ...safePath];
+    return [{ id: viewerId, fullName, accessEntry: true }, ...safePath];
   }
 
   /**

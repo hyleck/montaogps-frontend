@@ -42,11 +42,21 @@ export class ManagementService {
     this.op = normalizedOp;
     this.currentUserId = nextUserId;
     const userChanged = previousUserId !== nextUserId;
-    if (userChanged) this.selectedUser = undefined;
+    if (userChanged) {
+      this.selectedUser = undefined;
+      // Una búsqueda describe la lista del usuario que estaba abierto. Si se
+      // conserva al entrar a un resultado, el nuevo usuario vuelve a ejecutar
+      // esa búsqueda dentro de su propia rama y puede aparecer como hijo de sí
+      // mismo. Cada cambio de cuenta comienza con una lista limpia.
+      this.searchUsersTerm = '';
+      this.searchTargetsTerm = '';
+    }
 
-    const searchParam = normalizedOp === 'u'
+    const searchParam = !userChanged && normalizedOp === 'u'
       ? this.searchUsersTerm.trim()
-      : this.searchTargetsTerm.trim();
+      : !userChanged
+        ? this.searchTargetsTerm.trim()
+        : '';
     const currentQuery = this.router.parseUrl(this.router.url).queryParams;
     const queryParams: Record<string, string> = {};
     if (searchParam) queryParams['search'] = searchParam;

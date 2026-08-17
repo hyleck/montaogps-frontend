@@ -80,7 +80,7 @@ describe('BreadcrumbService', () => {
     });
 
     expect(items.map((item) => item.label)).toEqual([
-      'Ericka Tatis Reyes',
+      'Acceso: Ericka Tatis Reyes',
       'Cuenta compartida',
       'Cliente',
     ]);
@@ -117,7 +117,7 @@ describe('BreadcrumbService', () => {
     });
 
     expect(items.map((item) => item.label)).toEqual([
-      'Usuario Autenticado',
+      'Acceso: Usuario Autenticado',
       'Cliente',
     ]);
     expect(items.map((item) => item.label)).not.toContain('Cuenta superior');

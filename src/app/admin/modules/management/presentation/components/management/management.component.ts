@@ -232,6 +232,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private hasMoreUsers: boolean = true;
   private loadingMoreUsers: boolean = false;
   private totalUsersCount: number = 0;
+  private directUsersCount: number = 0;
   private userRouteLoadRequestId: number = 0;
   private loadingUserRouteId = '';
   private usersListLoadRequestId: number = 0;
@@ -264,7 +265,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   get totalUsersCountDisplay(): number | string {
-    return this.managementSummaryLoading ? '…' : this.totalUsersCount;
+    return this.managementSummaryLoading ? '…' : this.directUsersCount;
   }
 
   // ====================================
@@ -2465,7 +2466,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     const currentUserId = this.selectedUser?._id;
     if (currentUserId) {
       const url = this.router.serializeUrl(
-        this.router.createUrlTree(['/admin/management/user', currentUserId], {
+        this.router.createUrlTree(['/admin/management', 't', currentUserId], {
           queryParams: { target: target._id }
         })
       );
@@ -3360,8 +3361,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
           }
           if (!response) return;
           // Siempre recibimos un objeto con users y totalCount
-          this.users = this.sanitizeManagementUsers(response.users);
-          this.totalUsersCount = response.totalCount;
+          const sanitizedUsers = this.sanitizeManagementUsers(response.users);
+          const selfMatches = sanitizedUsers.filter(
+            user => String(user?._id || '') === requestedUserId,
+          ).length;
+          this.users = sanitizedUsers.filter(
+            user => String(user?._id || '') !== requestedUserId,
+          );
+          this.totalUsersCount = Math.max(0, response.totalCount - selfMatches);
           this.currentUsersOffset = response.users.length;
           this.hasMoreUsers = this.currentUsersOffset < this.totalUsersCount;
         },
@@ -3777,6 +3784,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.selectedUser?._id !== userId
         ) return;
         this.totalUsersCount = summary.usersCount;
+        this.directUsersCount = summary.usersCount;
         this.totalTargetsCount = summary.targetsCount;
         this.managementSummaryLoading = false;
       },
@@ -3799,6 +3807,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
               this.selectedUser?._id !== userId
             ) return;
             this.totalUsersCount = users.totalCount;
+            this.directUsersCount = users.totalCount;
             this.totalTargetsCount = targets.totalCount;
             this.managementSummaryLoading = false;
           },
@@ -4139,6 +4148,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
             ...this.sanitizeManagementUsers(allUsers),
           ]);
           this.totalUsersCount = usersResponse.totalCount;
+          this.directUsersCount = usersResponse.totalCount;
 
           // Verificar si hay más usuarios disponibles
           this.currentUsersOffset += usersResponse.users.length;
@@ -4170,6 +4180,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
             ...this.sanitizeManagementUsers(usersResponse.users),
           ]);
           this.totalUsersCount = usersResponse.totalCount;
+          this.directUsersCount = usersResponse.totalCount;
 
           // Verificar si hay más usuarios disponibles
           this.currentUsersOffset += usersResponse.users.length;
@@ -4432,6 +4443,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
           ...this.sanitizeManagementUsers(response.users),
         ]);
         this.totalUsersCount = response.totalCount;
+        if (!this.isSearchingUsers) {
+          this.directUsersCount = response.totalCount;
+        }
         this.currentUsersOffset += response.users.length;
         this.hasMoreUsers = this.currentUsersOffset < this.totalUsersCount;
 
