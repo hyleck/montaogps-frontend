@@ -1424,6 +1424,33 @@ app-solicitudes > .management__route {
     color: #f59e0b;
 }
 
+.sol-tag[data-type="cambio_vehiculo"] {
+    background: rgba(14, 165, 233, 0.12);
+    color: #0284c7;
+}
+
+.sol-vehicle-change-current {
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    border-radius: 10px;
+    background: rgba(14, 165, 233, 0.08);
+    color: var(--managementColorTextUser);
+}
+
+.sol-vehicle-change-current strong {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #0284c7;
+}
+
+.sol-vehicle-change-current small {
+    line-height: 1.45;
+    opacity: 0.8;
+}
+
 .sol-tag[data-type="desinstalacion"] {
     background: rgba(239, 68, 68, 0.12);
     color: #ef4444;
@@ -7560,6 +7587,37 @@ html.app-dark .sol-location-config-clear:hover {
 
 .sol-request-form-dialog .sol-install-card-arrow {
     color: var(--sol-form-accent);
+}
+
+.sol-install-details-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--sol-form-accent) 45%, transparent);
+    border-radius: 9px;
+    background: var(--sol-form-card);
+    color: var(--sol-form-accent);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.74rem;
+    font-weight: 800;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.sol-install-details-button:hover {
+    border-color: var(--sol-form-accent);
+    background: var(--sol-form-accent);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.sol-install-details-button:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--sol-form-accent) 45%, transparent);
+    outline-offset: 2px;
 }
 
 .sol-request-form-dialog .sol-install-status-badge {

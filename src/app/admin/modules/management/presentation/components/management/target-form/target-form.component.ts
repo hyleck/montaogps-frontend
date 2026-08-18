@@ -5255,7 +5255,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             17: 'Activación automática',
             18: 'Reinstalación',
             19: 'Desinstalación',
-            20: 'Pre-renovación'
+            20: 'Pre-renovación',
+            21: 'Cambio de vehículo'
         };
         return typeNames[type] || `Proceso desconocido`;
     }
@@ -5378,7 +5379,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             17: 'pi pi-bolt',         // Activación automática
             18: 'pi pi-refresh',      // Reinstalación
             19: 'pi pi-times-circle', // Desinstalación
-            20: 'pi pi-wallet'        // Pre-renovación
+            20: 'pi pi-wallet',       // Pre-renovación
+            21: 'pi pi-car'           // Cambio de vehículo
         };
         return iconMap[type] || 'pi pi-circle';
     }
@@ -5405,7 +5407,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             17: 'status-automatic-activation', // Activación automática
             18: 'status-reinstallation', // Reinstalación
             19: 'status-uninstallation', // Desinstalación
-            20: 'status-service-renewal' // Pre-renovación
+            20: 'status-service-renewal', // Pre-renovación
+            21: 'status-plan-change'     // Cambio de vehículo
         };
         return statusMap[type] || 'status-default';
     }
@@ -5436,7 +5439,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             17: 'ACTIVADO',
             18: 'REINSTALADO',
             19: 'DESINSTALADO',
-            20: 'PENDIENTE DE FACTURA'
+            20: 'PENDIENTE DE FACTURA',
+            21: 'VEHÍCULO ACTUALIZADO'
         };
         return statusMap[type] || 'COMPLETADO';
     }

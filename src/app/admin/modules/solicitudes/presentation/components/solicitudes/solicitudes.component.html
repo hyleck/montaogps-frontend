@@ -540,6 +540,12 @@
                         Creada {{ getSolicitudCreatedAtDisplay(sol.createdAt) }}
                     </span>
                     <div class="sol-kanban-actions">
+                        <button *ngIf="canApplyVehicleChange(sol)" pButton pRipple
+                            [icon]="isApplyingVehicleChange(sol) ? 'pi pi-spin pi-spinner' : 'pi pi-car'"
+                            [disabled]="isApplyingVehicleChange(sol)"
+                            class="p-button-rounded p-button-text p-button-success"
+                            (click)="applyVehicleChangeRequest(sol, $event)"
+                            pTooltip="Aplicar cambio de vehículo" tooltipPosition="top"></button>
                         <button pButton pRipple
                             [icon]="isSolicitudLocked(sol) ? 'pi pi-lock-open' : 'pi pi-lock'"
                             class="p-button-rounded p-button-text sol-request-lock-action"
@@ -666,6 +672,12 @@
                         Creada {{ getSolicitudCreatedAtDisplay(sol.createdAt) }}
                     </span>
                     <div class="sol-kanban-actions">
+                        <button *ngIf="canApplyVehicleChange(sol)" pButton pRipple
+                            [icon]="isApplyingVehicleChange(sol) ? 'pi pi-spin pi-spinner' : 'pi pi-car'"
+                            [disabled]="isApplyingVehicleChange(sol)"
+                            class="p-button-rounded p-button-text p-button-success"
+                            (click)="applyVehicleChangeRequest(sol, $event)"
+                            pTooltip="Aplicar cambio de vehículo" tooltipPosition="top"></button>
                         <button pButton pRipple
                             [icon]="isSolicitudLocked(sol) ? 'pi pi-lock-open' : 'pi pi-lock'"
                             class="p-button-rounded p-button-text sol-request-lock-action"
@@ -783,6 +795,12 @@
                         Creada {{ getSolicitudCreatedAtDisplay(sol.createdAt) }}
                     </span>
                     <div class="sol-kanban-actions">
+                        <button *ngIf="canApplyVehicleChange(sol)" pButton pRipple
+                            [icon]="isApplyingVehicleChange(sol) ? 'pi pi-spin pi-spinner' : 'pi pi-car'"
+                            [disabled]="isApplyingVehicleChange(sol)"
+                            class="p-button-rounded p-button-text p-button-success"
+                            (click)="applyVehicleChangeRequest(sol, $event)"
+                            pTooltip="Aplicar cambio de vehículo" tooltipPosition="top"></button>
                         <button pButton pRipple
                             [icon]="isSolicitudLocked(sol) ? 'pi pi-lock-open' : 'pi pi-lock'"
                             class="p-button-rounded p-button-text sol-request-lock-action"
@@ -2177,12 +2195,14 @@
                         <label>Tipo de Proceso *</label>
                         <select [(ngModel)]="selectedSolicitud.type" required [disabled]="isEditMode" (change)="onTypeChange()">
                             <option value="">Seleccionar tipo</option>
-                            <option *ngFor="let opt of typeOptions.slice(1)" [value]="opt.value">{{ opt.label }}</option>
+                            <option *ngFor="let opt of (isEditMode ? typeOptions.slice(1) : creationTypeOptions)" [value]="opt.value">{{ opt.label }}</option>
                         </select>
                     </div>
                     <div class="sol-form-field">
                         <label>Cantidad *</label>
-                        <input type="number" [(ngModel)]="selectedSolicitud.quantity" min="1" max="100" (ngModelChange)="onQuantityChange()" required />
+                        <input type="number" [(ngModel)]="selectedSolicitud.quantity" min="1" max="100"
+                            [disabled]="selectedSolicitud.type === 'cambio_vehiculo'"
+                            (ngModelChange)="onQuantityChange()" required />
                     </div>
                     <div class="sol-form-field">
                         <label>Estado</label>
@@ -2511,9 +2531,14 @@
                                 </div>
                                 <p>Equipo, ubicación y detalles del proceso</p>
                             </div>
-                            <div class="sol-install-card-arrow">
-                                <i class="pi pi-chevron-right"></i>
-                            </div>
+                            <button
+                                type="button"
+                                class="sol-install-details-button"
+                                (click)="$event.stopPropagation(); openInstallationModal(i)"
+                                [attr.aria-label]="'Ver detalles de ' + getInstallationEntityName(install) + ' ' + (i + 1)">
+                                <i class="pi pi-pencil"></i>
+                                <span>Detalles</span>
+                            </button>
                         </div>
                     </ng-container>
                 </div>
@@ -2546,12 +2571,32 @@
             <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('vehicle')" [class.active]="showVehicleData" style="cursor: pointer; justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 0.6rem;">
                     <i class="pi pi-car" style="color: #6366f1;"></i>
-                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">Datos del Vehículo (Opcional)</span>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">
+                        Datos del Vehículo {{ selectedSolicitud.type === 'cambio_vehiculo' ? '(Opcional; puede completarlos el técnico)' : '(Opcional)' }}
+                    </span>
                 </div>
                 <i class="pi" [ngClass]="showVehicleData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
             </div>
 
             <div *ngIf="showVehicleData" class="sol-collapsible-section" style="animation: fadein 0.2s; display: flex; flex-direction: column; gap: 0.85rem;">
+                <div *ngIf="selectedSolicitud.type === 'cambio_vehiculo'" class="sol-vehicle-change-current">
+                    <strong><i class="pi pi-history"></i> Vehículo actual</strong>
+                    <span>{{ selectedSolicitud.installations[editingInstallationIndex].previous_target_name || '—' }}</span>
+                    <small>
+                        {{ getBrandName(selectedSolicitud.installations[editingInstallationIndex].previous_brand) }}
+                        {{ getModelName(selectedSolicitud.installations[editingInstallationIndex].previous_brand, selectedSolicitud.installations[editingInstallationIndex].previous_model) }}
+                        {{ selectedSolicitud.installations[editingInstallationIndex].previous_year || '' }}
+                        · {{ getColorName(selectedSolicitud.installations[editingInstallationIndex].previous_color) || 'Sin color' }}
+                        · Placa {{ selectedSolicitud.installations[editingInstallationIndex].previous_plate || '—' }}
+                        · Chasis {{ selectedSolicitud.installations[editingInstallationIndex].previous_chassis || '—' }}
+                    </small>
+                </div>
+                <div *ngIf="selectedSolicitud.type === 'cambio_vehiculo'" class="sol-form-field">
+                    <label>Nombre del nuevo vehículo (opcional)</label>
+                    <input type="text"
+                        [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].target_name"
+                        placeholder="Ej. Toyota Corolla de Juan" />
+                </div>
                 <div class="sol-form-row sol-form-row-3">
                     <div class="sol-form-field">
                         <label>Marca</label>
@@ -2651,11 +2696,12 @@
                             (keydown.enter)="selectFirstInventoryDevice($event, editingInstallationIndex, 'current')"
                             optionLabel="IMEI"
                             optionValue="IMEI"
-                            [forceSelection]="false"
+                            [forceSelection]="selectedSolicitud.type === 'cambio_vehiculo'"
                             [dropdown]="true"
                             [minLength]="2"
+                            emptyMessage="No se encontraron GPS con ese IMEI"
                             appendTo="body"
-                            placeholder="Buscar IMEI en inventario"
+                            [placeholder]="selectedSolicitud.type === 'cambio_vehiculo' ? 'Seleccionar GPS instalado del cliente' : 'Buscar IMEI en inventario'"
                             inputStyleClass="sol-device-autocomplete-input"
                             styleClass="sol-device-autocomplete">
                             <ng-template let-device pTemplate="item">
@@ -2710,6 +2756,7 @@
                             [forceSelection]="false"
                             [dropdown]="true"
                             [minLength]="2"
+                            emptyMessage="No se encontraron GPS disponibles con ese IMEI"
                             appendTo="body"
                             placeholder="Buscar IMEI disponible"
                             inputStyleClass="sol-device-autocomplete-input"
@@ -3597,6 +3644,7 @@
                         [forceSelection]="false"
                         [dropdown]="true"
                         [minLength]="2"
+                        emptyMessage="No se encontraron GPS con ese IMEI"
                         appendTo="body"
                         placeholder="Buscar IMEI en inventario"
                         inputStyleClass="sol-device-autocomplete-input"

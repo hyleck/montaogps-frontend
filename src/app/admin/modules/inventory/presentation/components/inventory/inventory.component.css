@@ -784,12 +784,8 @@
   font-size: 0.82rem;
 }
 
-.inventory-dropdown > .inventory-filter-dropdown-panel {
-  left: 0 !important;
-  right: auto !important;
-  width: 100% !important;
-  min-width: 100% !important;
-  max-width: 100% !important;
+.inventory-filter-dropdown-panel {
+  z-index: 1250 !important;
   overflow: hidden;
   border: 1px solid var(--inventory-surface-border);
   border-radius: 9px;

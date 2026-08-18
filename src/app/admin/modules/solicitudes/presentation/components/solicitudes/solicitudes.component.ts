@@ -537,6 +537,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     requestLockSaving = false;
     requestLockError = '';
     private readonly failedTechnicianPhotos = new Set<string>();
+    private readonly applyingVehicleChangeIds = new Set<string>();
     private requestDialogOverlayCleanupTimer?: ReturnType<typeof setTimeout>;
     verifyingAvailabilityId = '';
     availabilityCallLoadingId = '';
@@ -676,9 +677,13 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         { label: 'Desinstalación', value: 'desinstalacion' },
         { label: 'Chequeo', value: 'chequeo' },
         { label: 'Cambio de GPS', value: 'cambio' },
+        { label: 'Cambio de vehículo', value: 'cambio_vehiculo' },
         { label: 'Mixta', value: 'mixta' }
     ];
     readonly topFilterTypeOptions = this.typeOptions.slice(1);
+    readonly creationTypeOptions = this.typeOptions
+        .slice(1)
+        .filter(option => option.value !== 'cambio_vehiculo');
     readonly mixedProcessOptions = this.typeOptions.filter(option =>
         ['instalacion', 'reinstalacion', 'desinstalacion', 'chequeo', 'cambio'].includes(option.value)
     );
@@ -695,6 +700,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         if (t === 'reinstalacion') return plural ? 'Reinstalaciones' : 'Reinstalación';
         if (t === 'desinstalacion') return plural ? 'Desinstalaciones' : 'Desinstalación';
         if (t === 'cambio') return plural ? 'Cambios' : 'Cambio';
+        if (t === 'cambio_vehiculo') return plural ? 'Cambios de vehículo' : 'Cambio de vehículo';
         if (t === 'mixta') return plural ? 'Procesos' : 'Proceso';
         if (t === 'otro') return plural ? 'Procesos' : 'Proceso';
         return plural ? 'Instalaciones' : 'Instalación';
@@ -722,6 +728,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         reinstalacion: 'Reinstalación',
         chequeo: 'Chequeo',
         cambio: 'Cambio',
+        cambio_vehiculo: 'Cambio de vehículo',
         desinstalacion: 'Desinstalación',
         mixta: 'Mixta',
         otro: 'Otro'
@@ -1339,6 +1346,15 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 installation.process_type ||= 'instalacion';
             });
         }
+        if (this.selectedSolicitud.type === 'cambio_vehiculo') {
+            this.selectedSolicitud.quantity = 1;
+            const installation = this.selectedSolicitud.installations?.[0];
+            if (installation) {
+                installation.process_type = 'cambio_vehiculo';
+                installation.device_type = 'gps';
+                installation.target_category = 'vehicle';
+            }
+        }
         this.deinstallationReasonError = false;
         this.onQuantityChange();
 
@@ -1442,7 +1458,53 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     private isDeviceRequiredForProcess(type: string): boolean {
-        return ['chequeo', 'desinstalacion', 'cambio'].includes(type);
+        return ['chequeo', 'desinstalacion', 'cambio', 'cambio_vehiculo'].includes(type);
+    }
+
+    canApplyVehicleChange(solicitud: Solicitud): boolean {
+        return solicitud.type === 'cambio_vehiculo'
+            && !this.isSolicitudLocked(solicitud)
+            && !['completada', 'cancelada', 'rechazada'].includes(solicitud.status)
+            && Boolean(solicitud._id);
+    }
+
+    isApplyingVehicleChange(solicitud: Solicitud): boolean {
+        return Boolean(solicitud._id && this.applyingVehicleChangeIds.has(solicitud._id));
+    }
+
+    applyVehicleChangeRequest(solicitud: Solicitud, event?: Event): void {
+        event?.preventDefault();
+        event?.stopPropagation();
+        const solicitudId = String(solicitud._id || '').trim();
+        if (!solicitudId || !this.canApplyVehicleChange(solicitud)) return;
+
+        this.confirmSolicitudCompletion(
+            solicitud,
+            () => { void this.executeVehicleChangeRequest(solicitudId); },
+        );
+    }
+
+    private async executeVehicleChangeRequest(solicitudId: string): Promise<void> {
+        this.applyingVehicleChangeIds.add(solicitudId);
+        try {
+            const updated = await firstValueFrom(
+                this.solicitudesService.applyVehicleChange(solicitudId),
+            );
+            this.upsertSolicitud(updated);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Cambio aplicado',
+                detail: 'Los datos del vehículo fueron actualizados y el proceso quedó registrado.',
+            });
+        } catch (error) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo aplicar',
+                detail: getApiErrorMessage(error, 'No se pudo actualizar el vehículo.'),
+            });
+        } finally {
+            this.applyingVehicleChangeIds.delete(solicitudId);
+        }
     }
 
     isSelectedSolicitudFinalized(): boolean {
@@ -2423,6 +2485,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         try {
             const user = await this.userService.getByEmail(email).toPromise();
             if (user) {
+                this.selectedSolicitud.client_id = user._id || (user as any).id;
                 this.selectedSolicitud.client_name = `${user.name || ''} ${user.last_name || ''}`.trim() || this.selectedSolicitud.client_name;
                 if (user.phone) {
                     this.selectedSolicitud.client_phone = user.phone;
@@ -2931,6 +2994,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             : event.value;
         if (!this.selectedSolicitud || !user) return;
 
+        this.selectedSolicitud.client_id = user._id;
         this.selectedSolicitud.client_email = user.email || '';
         this.selectedSolicitud.client_name = `${user.name || ''} ${user.last_name || ''}`.trim() || this.selectedSolicitud.client_name;
         if (user.phone) {
@@ -2948,6 +3012,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     async searchInventoryDevices(event: { query: string }, target: 'current' | 'new' = 'current'): Promise<void> {
         const activeSolicitudType = this.selectedSolicitud?.type || this.solicitudToInstall?.type;
+        const isVehicleChange = activeSolicitudType === 'cambio_vehiculo' && target === 'current';
         const query = (event.query || '').trim();
         const requestSequence = ++this.inventoryDeviceSearchSequence;
         if (!query || query.length < 2) {
@@ -2959,18 +3024,40 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             ? 'available'
             : ['instalacion', 'reinstalacion'].includes(activeSolicitudType || '')
             ? 'available'
-            : ['chequeo', 'desinstalacion', 'cambio'].includes(activeSolicitudType || '')
+            : ['chequeo', 'desinstalacion', 'cambio', 'cambio_vehiculo'].includes(activeSolicitudType || '')
                 ? 'installed'
                 : undefined;
-        const selectedClientId = String(
+        let selectedClientId = String(
             this.selectedSolicitud?.client_id
             || this.solicitudToInstall?.client_id
             || '',
         ).trim();
+        if (isVehicleChange && !selectedClientId) {
+            const resolvedClient = await this.findSelectedSolicitudClient();
+            if (requestSequence !== this.inventoryDeviceSearchSequence) return;
+            selectedClientId = String(
+                resolvedClient?._id || (resolvedClient as any)?.id || '',
+            ).trim();
+            if (selectedClientId && this.selectedSolicitud) {
+                this.selectedSolicitud.client_id = selectedClientId;
+            }
+        }
 
         try {
-            const requests: Array<Promise<any>> = [
-                firstValueFrom(this.inventoryService.searchAllDevices(
+            if (isVehicleChange) {
+                const devices = await this.searchVehicleChangeDevices(
+                    query,
+                    selectedClientId,
+                    12,
+                );
+                if (requestSequence !== this.inventoryDeviceSearchSequence) return;
+                this.inventoryDeviceSuggestions = devices;
+                return;
+            }
+
+            const inventoryRequest = isVehicleChange
+                ? Promise.resolve({ data: [] })
+                : firstValueFrom(this.inventoryService.searchAllDevices(
                     query,
                     undefined,
                     1,
@@ -2979,14 +3066,19 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                     status === 'installed' && selectedClientId
                         ? selectedClientId
                         : undefined,
-                )),
-            ];
-            if (selectedClientId) {
-                requests.push(
-                    this.targetsService.searchTargets(query, selectedClientId, 0, 12),
-                );
-            }
-            const [inventoryResult, targetsResult] = await Promise.allSettled(requests);
+                ));
+            const targetsRequest = selectedClientId || isVehicleChange
+                ? this.targetsService.searchTargets(
+                    query,
+                    selectedClientId || undefined,
+                    0,
+                    12,
+                )
+                : Promise.resolve({ devices: [] });
+            const [inventoryResult, targetsResult] = await Promise.allSettled([
+                inventoryRequest,
+                targetsRequest,
+            ]);
 
             const inventoryDevices = inventoryResult.status === 'fulfilled'
                 ? (inventoryResult.value.data || [])
@@ -3003,6 +3095,60 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }
     }
 
+    private async searchVehicleChangeDevices(
+        query: string,
+        selectedClientId = '',
+        limit = 12,
+    ): Promise<any[]> {
+        const normalizedQuery = String(query || '').trim();
+        const normalizedClientId = String(selectedClientId || '').trim();
+        if (!normalizedQuery) return [];
+
+        const shouldSearchLegacyTargets = normalizedQuery
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .length >= 6;
+        const [inventoryResult, clientTargetsResult, globalTargetResult] = await Promise.allSettled([
+            firstValueFrom(this.inventoryService.searchAllDevices(
+                normalizedQuery,
+                undefined,
+                1,
+                limit,
+                'installed',
+            )),
+            normalizedClientId
+                ? this.targetsService.searchTargets(
+                    normalizedQuery,
+                    normalizedClientId,
+                    0,
+                    limit,
+                )
+                : Promise.resolve({ devices: [] }),
+            shouldSearchLegacyTargets
+                ? this.targetsService.getTargetByImei(normalizedQuery)
+                    .then(device => ({ devices: device ? [device] : [] }))
+                : Promise.resolve({ devices: [] }),
+        ]);
+
+        const inventoryDevices = inventoryResult.status === 'fulfilled'
+            ? (inventoryResult.value.data || [])
+            : [];
+        const clientTargets = clientTargetsResult.status === 'fulfilled'
+            ? (clientTargetsResult.value.devices || [])
+            : [];
+        const globalTargets = globalTargetResult.status === 'fulfilled'
+            ? (globalTargetResult.value.devices || [])
+            : [];
+
+        return this.mergeDeviceSuggestions(
+            inventoryDevices,
+            [...clientTargets, ...globalTargets],
+        ).filter(device => (
+            device?.canceled !== true
+            && device?.deleted !== true
+            && device?.status !== false
+        ));
+    }
+
     onInventoryDeviceSelect(event: { value: InventoryItem | string }, index?: number, target: 'current' | 'new' = 'current'): void {
         const device = typeof event.value === 'string'
             ? this.inventoryDeviceSuggestions.find(item => this.getInventoryDeviceImei(item) === event.value)
@@ -3011,6 +3157,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
         const imei = this.getInventoryDeviceImei(device);
         const sim = this.getInventoryDeviceSim(device);
+        const simCompany = this.getInventoryDeviceSimCompany(device);
         const protocolId = this.getInventoryDeviceProtocolId(device);
 
         if (typeof index === 'number' && this.selectedSolicitud?.installations?.[index]) {
@@ -3019,6 +3166,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 inst.new_device_imei = imei;
                 if (sim) {
                     inst.new_sim_card_number = sim;
+                    this.resolveSelectedSimCompany(sim, simCompany, company => {
+                        if (inst.new_sim_card_number === sim) {
+                            inst.new_sim_company = company;
+                        }
+                    });
                 }
                 if (protocolId) {
                     inst.new_protocol = protocolId;
@@ -3028,6 +3180,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             inst.device_imei = imei;
             if (sim) {
                 inst.sim_card_number = sim;
+                this.resolveSelectedSimCompany(sim, simCompany, company => {
+                    if (inst.sim_card_number === sim) {
+                        inst.sim_company = company;
+                    }
+                });
             }
             return;
         }
@@ -3035,6 +3192,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.installData.device_imei = imei;
         if (sim) {
             this.installData.sim_card_number = sim;
+            this.resolveSelectedSimCompany(sim, simCompany, company => {
+                if (this.installData.sim_card_number === sim) {
+                    this.installData.sim_company = company;
+                }
+            });
         }
         if (protocolId) {
             this.installData.type = protocolId;
@@ -3050,13 +3212,27 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     private mergeDeviceSuggestions(inventoryDevices: any[], targetDevices: any[]): any[] {
-        const seen = new Set<string>();
-        return [...inventoryDevices, ...targetDevices].filter(device => {
+        const devicesByImei = new Map<string, any>();
+        [...inventoryDevices, ...targetDevices].forEach(device => {
             const imei = this.getInventoryDeviceImei(device);
-            if (!imei || seen.has(imei)) return false;
-            seen.add(imei);
-            return true;
+            if (!imei) return;
+            const existing = devicesByImei.get(imei);
+            if (!existing) {
+                devicesByImei.set(imei, { ...device, IMEI: imei });
+                return;
+            }
+            Object.entries(device || {}).forEach(([field, value]) => {
+                if (
+                    (existing[field] === undefined || existing[field] === null || existing[field] === '')
+                    && value !== undefined
+                    && value !== null
+                    && value !== ''
+                ) {
+                    existing[field] = value;
+                }
+            });
         });
+        return [...devicesByImei.values()];
     }
 
     getInventoryDeviceImei(device: any): string {
@@ -3065,6 +3241,59 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     getInventoryDeviceSim(device: any): string {
         return device?.SIM || device?.sim || device?.sim_card_number || '';
+    }
+
+    getInventoryDeviceSimCompany(device: any): string {
+        return this.normalizeSimCompany(
+            device?.sim_company
+            || device?.simCompany
+            || device?.SIMCompany
+            || device?.sim_card?.sim_company
+            || device?.simcard?.sim_company,
+        );
+    }
+
+    private resolveSelectedSimCompany(
+        sim: string,
+        currentCompany: string,
+        assign: (company: string) => void,
+    ): void {
+        const normalizedCompany = this.normalizeSimCompany(currentCompany);
+        if (normalizedCompany) {
+            assign(normalizedCompany);
+            return;
+        }
+        this.inventoryService.findSimcardByIccid(sim).subscribe({
+            next: simcard => {
+                const company = this.normalizeSimCompany(simcard?.sim_company);
+                if (company) assign(company);
+            },
+            error: () => undefined,
+        });
+    }
+
+    private normalizeSimCompany(rawValue: unknown): string {
+        const value = String(rawValue || '').trim().toLocaleLowerCase();
+        if (!value) return '';
+        const comparable = value
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/g, '');
+        const aliases: Record<string, string> = {
+            nacional: 'nacionales',
+            nacionales: 'nacionales',
+            twilio: 'nacionales',
+            globale: 'global-e',
+            emnify: 'global-e',
+            globalm: 'global-m',
+            globalm2: 'global-m2',
+        };
+        if (aliases[comparable]) return aliases[comparable];
+        return this.simCardTypes.find(option => {
+            const optionValue = option.value.toLocaleLowerCase().replace(/[^a-z0-9]/g, '');
+            const optionLabel = option.label.toLocaleLowerCase().replace(/[^a-z0-9]/g, '');
+            return optionValue === comparable || optionLabel === comparable;
+        })?.value || '';
     }
 
     getInventoryDeviceProtocolName(device: any): string {
@@ -3100,6 +3329,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         try {
             const user = await this.userService.getByPhone(phone).toPromise();
             if (user) {
+                this.selectedSolicitud.client_id = user._id;
                 this.selectedSolicitud.client_name = `${user.name || ''} ${user.last_name || ''}`.trim() || this.selectedSolicitud.client_name;
                 if (user.email) {
                     this.selectedSolicitud.client_email = user.email;
@@ -3127,33 +3357,62 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.checkingExistingGpsTargetByInstallation[index] = true;
         try {
             const clientId = String(this.selectedSolicitud.client_id || '').trim();
-            const inventory = await firstValueFrom(
-                this.inventoryService.searchAllDevices(
+            const isVehicleChange = this.selectedSolicitud.type === 'cambio_vehiculo';
+            let devices: any[];
+            if (isVehicleChange) {
+                devices = await this.searchVehicleChangeDevices(imei, clientId, 10);
+            } else {
+                const inventory = await firstValueFrom(this.inventoryService.searchAllDevices(
                     imei,
                     undefined,
                     1,
                     10,
                     'installed',
                     clientId || undefined,
-                ),
-            );
-            const targetResult = clientId
-                ? await this.targetsService.searchTargets(imei, clientId, 0, 10)
-                : { devices: [] };
-            const devices = this.mergeDeviceSuggestions(
-                inventory?.data || [],
-                targetResult?.devices || [],
-            );
+                ));
+                const targetResult = clientId
+                    ? await this.targetsService.searchTargets(
+                        imei,
+                        clientId,
+                        0,
+                        10,
+                    )
+                    : { devices: [] };
+                devices = this.mergeDeviceSuggestions(
+                    inventory?.data || [],
+                    targetResult?.devices || [],
+                );
+            }
             if (devices.length > 0) {
-                // Find exact match by IMEI or Name
+                // Al validar el campo solo se admite el IMEI completo. Una
+                // coincidencia parcial sirve para sugerir, pero no para guardar.
                 const exactMatch: any = devices.find(
-                    (device: any) => this.getInventoryDeviceImei(device) === imei
-                        || device.name === imei,
-                ) || devices[0];
+                    (device: any) => this.normalizeDeviceSearchValue(
+                        this.getInventoryDeviceImei(device),
+                    ) === this.normalizeDeviceSearchValue(imei),
+                );
                 
                 if (exactMatch) {
                     this.existingGpsTargetByInstallation[index] = exactMatch;
-                    inst.brand = exactMatch.target_brand_id || exactMatch.brand || inst.brand;
+                    const currentTargetName = String(exactMatch.target_name || exactMatch.name || '').trim();
+                    const currentBrand = exactMatch.target_brand_id || exactMatch.brand || '';
+                    const currentModel = exactMatch.target_model_id || exactMatch.model || '';
+                    const currentYear = exactMatch.target_year?.toString() || exactMatch.year?.toString() || '';
+                    const currentColor = exactMatch.target_color || exactMatch.color || '';
+                    const currentPlate = exactMatch.target_plate_number || exactMatch.plate || '';
+                    const currentChassis = exactMatch.target_chassis_number || exactMatch.chassis || '';
+                    const isVehicleChange = this.selectedSolicitud.type === 'cambio_vehiculo';
+                    if (isVehicleChange) {
+                        inst.previous_target_name ??= currentTargetName;
+                        inst.previous_brand ??= currentBrand;
+                        inst.previous_model ??= currentModel;
+                        inst.previous_year ??= currentYear;
+                        inst.previous_color ??= currentColor;
+                        inst.previous_plate ??= currentPlate;
+                        inst.previous_chassis ??= currentChassis;
+                        inst.target_name ||= currentTargetName;
+                    }
+                    inst.brand = isVehicleChange ? (inst.brand || currentBrand) : (currentBrand || inst.brand);
                     // Prepare model lookup if brand is found
                     if (inst.brand) {
                         try {
@@ -3161,10 +3420,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                             this.availableModels = models.map((m: any) => ({ label: m.nombre, value: m._id })).sort((a: any, b: any) => a.label.localeCompare(b.label));
                         } catch(e) {}
                     }
-                    inst.model = exactMatch.target_model_id || exactMatch.model || inst.model;
-                    inst.year = exactMatch.target_year?.toString() || exactMatch.year?.toString() || inst.year;
+                    inst.model = isVehicleChange ? (inst.model || currentModel) : (currentModel || inst.model);
+                    inst.year = isVehicleChange ? (inst.year || currentYear) : (currentYear || inst.year);
                     
-                    const colorVal = exactMatch.target_color || exactMatch.color;
+                    const colorVal = isVehicleChange ? (inst.color || currentColor) : currentColor;
                     if (colorVal) {
                         inst.color = colorVal;
                         const foundColor = this.availableColors.find(c => c.value === colorVal);
@@ -3176,10 +3435,18 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                         }
                     }
                     
-                    inst.plate = exactMatch.target_plate_number || exactMatch.plate || inst.plate;
-                    inst.chassis = exactMatch.target_chassis_number || exactMatch.chassis || inst.chassis;
-                    inst.sim_card_number = exactMatch.sim_card_number || inst.sim_card_number;
-                    inst.sim_company = exactMatch.sim_company || inst.sim_company;
+                    inst.plate = isVehicleChange ? (inst.plate || currentPlate) : (currentPlate || inst.plate);
+                    inst.chassis = isVehicleChange ? (inst.chassis || currentChassis) : (currentChassis || inst.chassis);
+                    const selectedSim = this.getInventoryDeviceSim(exactMatch) || inst.sim_card_number;
+                    inst.sim_card_number = selectedSim;
+                    const simCompany = this.getInventoryDeviceSimCompany(exactMatch);
+                    if (selectedSim) {
+                        this.resolveSelectedSimCompany(selectedSim, simCompany, company => {
+                            if (inst.sim_card_number === selectedSim) {
+                                inst.sim_company = company;
+                            }
+                        });
+                    }
                     
                     // Show message
                     if (showFoundToast) {
@@ -3195,6 +3462,12 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         } finally {
             this.checkingExistingGpsTargetByInstallation[index] = false;
         }
+    }
+
+    private normalizeDeviceSearchValue(value: unknown): string {
+        return String(value || '')
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .toLowerCase();
     }
 
     hasExistingGpsTarget(index: number): boolean {
@@ -4605,6 +4878,43 @@ async initLocationMap(): Promise<void> {
 
         }
 
+        if (this.selectedSolicitud.type === 'cambio_vehiculo') {
+            const hasExistingClient = Boolean(
+                String(this.selectedSolicitud.client_id || '').trim(),
+            );
+            const newClientPhone = this.normalizePhoneDigits(
+                this.selectedSolicitud.client_phone,
+            );
+            if (!hasExistingClient && (newClientPhone.length < 8 || newClientPhone.length > 15)) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Cliente requerido',
+                    detail: 'Seleccione un cliente existente o use “Nuevo cliente” e indique su WhatsApp.'
+                });
+                return;
+            }
+
+            for (let index = 0; index < (this.selectedSolicitud.installations?.length || 0); index += 1) {
+                await this.lookupExistingGpsTarget(index, false);
+                const installation = this.selectedSolicitud.installations?.[index];
+                const selectedDevice = this.existingGpsTargetByInstallation[index];
+                if (
+                    !installation?.device_imei
+                    || this.getInventoryDeviceImei(selectedDevice) !== installation.device_imei.trim()
+                ) {
+                    this.showInstallationsCards = true;
+                    this.showDeviceData = true;
+                    this.editingInstallationIndex = index;
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'GPS no válido',
+                        detail: `El IMEI ${installation?.device_imei || ''} no es un GPS instalado activo. Selecciónelo desde la lista.`
+                    });
+                    return;
+                }
+            }
+        }
+
         if (!this.isSelectedSolicitudAssignmentLocked()) {
             this.syncSolicitudScheduledDate();
         }
@@ -5627,7 +5937,7 @@ async initLocationMap(): Promise<void> {
                 : installation.device_imei,
         ).trim()));
         const transferable = completed.filter(installation =>
-            ['instalacion', 'reinstalacion', 'cambio'].includes(
+            ['instalacion', 'reinstalacion', 'cambio', 'cambio_vehiculo'].includes(
                 this.getProcessTypeForSolicitud(solicitud, installation),
             ) && Boolean(String(installation.device_imei || '').trim()),
         );

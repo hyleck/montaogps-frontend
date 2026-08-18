@@ -248,6 +248,7 @@ export class ProcessesComponent implements OnInit {
       18: '1565C0',  // Reinstalación
       19: 'B71C1C',  // Desinstalación
       20: '2E7D32',  // Pre-renovación
+      21: '0284C7',  // Cambio de vehículo
     };
 
     // Apply type colors to column B (Tipo)
@@ -302,6 +303,7 @@ export class ProcessesComponent implements OnInit {
       18: 'info',     // Reinstalación
       19: 'danger',   // Desinstalación
       20: 'success',  // Pre-renovación
+      21: 'info',     // Cambio de vehículo
     };
     return severities[type] || 'info';
   }

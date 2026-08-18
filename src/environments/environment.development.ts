@@ -1,6 +1,6 @@
 export const environment = {
     production: false,
-    apiUrl: 'http://localhost:3333',
+    apiUrl: 'http://localhost:3000',
     montaoApiUrl: 'https://back-montao.dorhu.com',
     firebase: {
         apiKey: 'AIzaSyBHM_Mr0u_B70uYPkeocLq-ReMgFUjLcuM',

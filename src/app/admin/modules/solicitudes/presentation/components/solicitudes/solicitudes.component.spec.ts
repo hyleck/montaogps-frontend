@@ -17,8 +17,25 @@ describe('SolicitudesComponent scheduled date editing', () => {
                     evaluated_technicians: 0,
                     available_technicians: 0,
                 })),
+            getCompletionPreview: jasmine.createSpy('getCompletionPreview').and.returnValue(of({
+                mode: 'status_update',
+                actions: [{
+                    key: 'transfer_devices',
+                    title: 'Transferir dispositivos GPS',
+                    detail: 'Se transferirá el GPS al cliente.',
+                    state: 'will_run',
+                    icon: 'pi-send',
+                    count: 1,
+                }],
+                transfer: { mode: 'automatic', target_user: null },
+            })),
             create: jasmine.createSpy('create').and.returnValue(of({})),
             update: jasmine.createSpy('update').and.returnValue(of({})),
+            applyVehicleChange: jasmine.createSpy('applyVehicleChange').and.callFake((id: string) => of({
+                _id: id,
+                type: 'cambio_vehiculo',
+                status: 'completada',
+            })),
             reorder: jasmine.createSpy('reorder').and.callFake((items: Array<{
                 id: string;
                 status: string;
@@ -64,6 +81,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
         };
         const targetsService = {
             getTargetByImei: jasmine.createSpy('getTargetByImei').and.resolveTo({}),
+            searchTargets: jasmine.createSpy('searchTargets').and.resolveTo({ devices: [] }),
         };
         const authService = {
             getCurrentUser: jasmine.createSpy('getCurrentUser').and.returnValue({
@@ -74,6 +92,10 @@ describe('SolicitudesComponent scheduled date editing', () => {
         const confirmationService = {
             confirm: jasmine.createSpy('confirm'),
         };
+        const inventoryService = {
+            findSimcardByIccid: jasmine.createSpy('findSimcardByIccid').and.returnValue(of(null)),
+            searchAllDevices: jasmine.createSpy('searchAllDevices').and.returnValue(of({ data: [] })),
+        };
         const component = new SolicitudesComponent(
             solicitudesService as any,
             vehicleBrandsService as any,
@@ -81,7 +103,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
             userService as any,
             targetsService as any,
             {} as any,
-            {} as any,
+            inventoryService as any,
             {} as any,
             authService as any,
             messageService as any,
@@ -103,8 +125,165 @@ describe('SolicitudesComponent scheduled date editing', () => {
             authService,
             confirmationService,
             messageService,
+            inventoryService,
         };
     }
+
+    it('selects the SIM company automatically when an IMEI is selected', () => {
+        const { component, inventoryService } = createComponent();
+        inventoryService.findSimcardByIccid.and.returnValue(of({
+            iccid: '8099823107',
+            sim_company: 'Global-E',
+        }));
+        component.selectedSolicitud = {
+            _id: 'request-id',
+            type: 'chequeo',
+            status: 'pendiente',
+            installations: [{}],
+        };
+
+        component.onInventoryDeviceSelect({
+            value: {
+                IMEI: '862667088695',
+                SIM: '8099823107',
+            },
+        }, 0, 'current');
+
+        expect(inventoryService.findSimcardByIccid).toHaveBeenCalledWith('8099823107');
+        expect(component.selectedSolicitud.installations?.[0].sim_card_number).toBe('8099823107');
+        expect(component.selectedSolicitud.installations?.[0].sim_company).toBe('global-e');
+    });
+
+    it('combines installed inventory with the selected client GPS for vehicle changes', async () => {
+        const { component, inventoryService, targetsService } = createComponent();
+        targetsService.searchTargets.and.resolveTo({
+            devices: [{ device_imei: '862667088436426', name: 'Vehículo actual' }],
+        });
+        component.selectedSolicitud = {
+            type: 'cambio_vehiculo',
+            status: 'pendiente',
+            client_id: 'client-id',
+            installations: [{}],
+        };
+
+        await component.searchInventoryDevices({ query: '862667' }, 'current');
+
+        expect(inventoryService.searchAllDevices).toHaveBeenCalledWith(
+            '862667', undefined, 1, 12, 'installed',
+        );
+        expect(targetsService.searchTargets).toHaveBeenCalledWith('862667', 'client-id', 0, 12);
+        expect(component.inventoryDeviceSuggestions).toEqual([
+            jasmine.objectContaining({
+                IMEI: '862667088436426',
+                device_imei: '862667088436426',
+            }),
+        ]);
+    });
+
+    it('searches active GPS globally for a new client identified by WhatsApp', async () => {
+        const { component, inventoryService, targetsService } = createComponent();
+        targetsService.getTargetByImei.and.resolveTo({
+            device_imei: '862667088436426',
+            name: 'Vehículo actual',
+            status: true,
+        });
+        component.selectedSolicitud = {
+            type: 'cambio_vehiculo',
+            status: 'pendiente',
+            client_phone: '18095551234',
+            installations: [{}],
+        };
+
+        await component.searchInventoryDevices({ query: '862667' }, 'current');
+
+        expect(inventoryService.searchAllDevices).toHaveBeenCalledWith(
+            '862667', undefined, 1, 12, 'installed',
+        );
+        expect(targetsService.searchTargets).not.toHaveBeenCalled();
+        expect(targetsService.getTargetByImei).toHaveBeenCalledOnceWith('862667');
+        expect(component.inventoryDeviceSuggestions).toEqual([
+            jasmine.objectContaining({ IMEI: '862667088436426' }),
+        ]);
+    });
+
+    it('offers a GPS from another owner so the confirmation can decide its transfer', async () => {
+        const { component, targetsService } = createComponent();
+        targetsService.searchTargets.and.resolveTo({ devices: [] });
+        targetsService.getTargetByImei.and.resolveTo({
+            device_imei: '863874080943669',
+            parent_id: 'current-owner-id',
+            name: 'Vehículo actual',
+            status: true,
+        });
+        component.selectedSolicitud = {
+            type: 'cambio_vehiculo',
+            status: 'pendiente',
+            client_id: 'destination-client-id',
+            installations: [{}],
+        };
+
+        await component.searchInventoryDevices({ query: '863874080' }, 'current');
+
+        expect(targetsService.searchTargets).toHaveBeenCalledWith(
+            '863874080', 'destination-client-id', 0, 12,
+        );
+        expect(component.inventoryDeviceSuggestions).toEqual([
+            jasmine.objectContaining({
+                IMEI: '863874080943669',
+                parent_id: 'current-owner-id',
+            }),
+        ]);
+    });
+
+    it('stores the selected client id before searching for a vehicle-change GPS', () => {
+        const { component } = createComponent();
+        component.selectedSolicitud = {
+            type: 'cambio_vehiculo',
+            status: 'pendiente',
+            installations: [{}],
+        };
+
+        component.onClientEmailSelect({
+            value: {
+                _id: 'client-id',
+                name: 'Cliente',
+                last_name: 'Prueba',
+                email: 'cliente@montao.net',
+            } as any,
+        });
+
+        expect(component.selectedSolicitud.client_id).toBe('client-id');
+    });
+
+    it('allows a vehicle-change request for a new client identified by WhatsApp', async () => {
+        const { component, solicitudesService, targetsService } = createComponent();
+        targetsService.getTargetByImei.and.resolveTo({
+            device_imei: '862667088436426',
+            name: 'Vehículo actual',
+            status: true,
+        });
+        component.selectedSolicitud = {
+            type: 'cambio_vehiculo',
+            status: 'pendiente',
+            client_phone: '18095551234',
+            quantity: 1,
+            installations: [{
+                process_type: 'cambio_vehiculo',
+                device_type: 'gps',
+                device_imei: '862667088436426',
+            }],
+        };
+
+        await component.saveSolicitud();
+
+        expect(solicitudesService.create).toHaveBeenCalledWith(
+            jasmine.objectContaining({
+                client_phone: '18095551234',
+                type: 'cambio_vehiculo',
+            }),
+        );
+        expect(solicitudesService.create.calls.mostRecent().args[0].client_id).toBeUndefined();
+    });
 
     it('keeps an existing unscheduled request empty when opened and saved unchanged', async () => {
         const { component, solicitudesService } = createComponent();
@@ -125,6 +304,45 @@ describe('SolicitudesComponent scheduled date editing', () => {
         const savedSolicitud = solicitudesService.update.calls.mostRecent().args[1] as Solicitud;
         expect(savedSolicitud.scheduled_date).toBe('');
         expect(savedSolicitud.installations?.[0]?.scheduled_date).toBeUndefined();
+    });
+
+    it('applies a vehicle-change request through the dedicated action', async () => {
+        const {
+            component,
+            solicitudesService,
+            messageService,
+        } = createComponent();
+        const solicitud: Solicitud = {
+            _id: 'vehicle-change-id',
+            __v: 2,
+            type: 'cambio_vehiculo',
+            status: 'pendiente',
+            installations: [{
+                device_imei: '862667088436426',
+                target_name: 'Vehículo nuevo',
+            }],
+        };
+
+        component.applyVehicleChangeRequest(solicitud);
+        expect(component.completionConfirmDialogVisible).toBeTrue();
+        expect(solicitudesService.applyVehicleChange).not.toHaveBeenCalled();
+
+        component.cancelCompletionDeviceTransfer();
+        await component.approveSolicitudCompletion();
+        await Promise.resolve();
+
+        expect(solicitudesService.update).toHaveBeenCalledWith(
+            'vehicle-change-id',
+            jasmine.objectContaining({
+                completion_transfer_mode: 'disabled',
+                expected_version: 2,
+            }),
+        );
+
+        expect(solicitudesService.applyVehicleChange).toHaveBeenCalledWith('vehicle-change-id');
+        expect(messageService.add).toHaveBeenCalledWith(
+            jasmine.objectContaining({ summary: 'Cambio aplicado' }),
+        );
     });
 
     it('defaults legacy processes to GPS and preserves a selected MTAG type', async () => {

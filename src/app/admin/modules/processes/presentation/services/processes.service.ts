@@ -113,6 +113,7 @@ export const PROCESS_TYPE_LABELS: { [key: number]: string } = {
   18: 'Reinstalación',
   19: 'Desinstalación',
   20: 'Pre-renovación',
+  21: 'Cambio de vehículo',
 };
 
 @Injectable({

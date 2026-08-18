@@ -15,6 +15,13 @@ export interface InstallationDetail {
     color?: string;
     plate?: string;
     chassis?: string;
+    previous_target_name?: string;
+    previous_brand?: string;
+    previous_model?: string;
+    previous_year?: string;
+    previous_color?: string;
+    previous_plate?: string;
+    previous_chassis?: string;
     device_imei?: string;
     new_device_imei?: string;
     sim_card_number?: string;
@@ -452,6 +459,13 @@ export class SolicitudesService {
 
     update(id: string, solicitud: Partial<Solicitud>): Observable<Solicitud> {
         return this.http.patch<Solicitud>(`${this.apiUrl}/${id}`, solicitud);
+    }
+
+    applyVehicleChange(id: string): Observable<Solicitud> {
+        return this.http.post<Solicitud>(
+            `${this.apiUrl}/${encodeURIComponent(id)}/apply-vehicle-change`,
+            {},
+        );
     }
 
     reorder(items: Array<{

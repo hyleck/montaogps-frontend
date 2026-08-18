@@ -73,7 +73,7 @@
 
             <p-dropdown [options]="warehouses" [(ngModel)]="globalSearchStorageId" optionLabel="name" optionValue="_id"
               name="warehouseFilter" placeholder="Todos los almacenes" [showClear]="true" styleClass="inventory-dropdown"
-              panelStyleClass="inventory-filter-dropdown-panel" [style]="{'width':'100%'}"
+              panelStyleClass="inventory-filter-dropdown-panel" appendTo="body" [style]="{'width':'100%'}"
               [disabled]="isSearchingGlobal" (onChange)="searchAllInventory()">
             </p-dropdown>
 
@@ -81,7 +81,7 @@
               [options]="[{label: 'Todos', value: ''}, {label: 'Instalados', value: 'installed'}, {label: 'Reservados / en instalación', value: 'reserved'}, {label: 'Disponibles', value: 'available'}, {label: 'En revisión / Averiados', value: 'inspection'}]"
               [(ngModel)]="globalSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
               placeholder="Todos los estados" styleClass="inventory-dropdown"
-              panelStyleClass="inventory-filter-dropdown-panel" [style]="{'width':'100%'}" [disabled]="isSearchingGlobal"
+              panelStyleClass="inventory-filter-dropdown-panel" appendTo="body" [style]="{'width':'100%'}" [disabled]="isSearchingGlobal"
               (onChange)="searchAllInventory()">
             </p-dropdown>
 
@@ -113,7 +113,7 @@
 
             <p-dropdown [options]="warehouses" [(ngModel)]="simcardSearchStorageId" optionLabel="name" optionValue="_id"
               name="warehouseFilter" placeholder="Todos los almacenes" [showClear]="true" styleClass="inventory-dropdown"
-              panelStyleClass="inventory-filter-dropdown-panel" [style]="{'width':'100%'}"
+              panelStyleClass="inventory-filter-dropdown-panel" appendTo="body" [style]="{'width':'100%'}"
               [disabled]="isSearchingSimcards" (onChange)="searchAllSimcards()">
             </p-dropdown>
 
@@ -121,14 +121,14 @@
               [options]="[{label: 'Todas', value: ''}, {label: 'Instaladas', value: 'installed'}, {label: 'Disponibles', value: 'available'}]"
               [(ngModel)]="simcardSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
               placeholder="Todos los estados" styleClass="inventory-dropdown"
-              panelStyleClass="inventory-filter-dropdown-panel" [style]="{'width':'100%'}" [disabled]="isSearchingSimcards"
+              panelStyleClass="inventory-filter-dropdown-panel" appendTo="body" [style]="{'width':'100%'}" [disabled]="isSearchingSimcards"
               (onChange)="searchAllSimcards()">
             </p-dropdown>
 
             <p-dropdown [options]="[{label: 'Todas las compañías', value: ''}].concat(availableSimCardTypes)"
               [(ngModel)]="simcardSearchCompany" name="companyFilter" optionLabel="label" optionValue="value"
               placeholder="Todas las compañías" styleClass="inventory-dropdown"
-              panelStyleClass="inventory-filter-dropdown-panel" [style]="{'width':'100%'}" [disabled]="isSearchingSimcards"
+              panelStyleClass="inventory-filter-dropdown-panel" appendTo="body" [style]="{'width':'100%'}" [disabled]="isSearchingSimcards"
               (onChange)="searchAllSimcards()">
             </p-dropdown>
 
