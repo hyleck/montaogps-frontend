@@ -8,13 +8,27 @@ export function isNationalSimCompany(value: unknown): boolean {
   return normalized === 'nacionales' || normalized === 'nacional';
 }
 
+export function isDominicanSimNumber(value: unknown): boolean {
+  const digits = String(value || '').replace(/\D/g, '');
+  const nationalDigits =
+    digits.length === 11 && digits.startsWith('1')
+      ? digits.slice(1)
+      : digits;
+
+  return nationalDigits.length === 10
+    && ['809', '829', '849'].includes(nationalDigits.slice(0, 3));
+}
+
 export function formatConduceSimcardCode(
   value: unknown,
   simCompany: unknown,
 ): string {
   const originalValue = String(value || '').trim();
   if (!originalValue) return 'N/A';
-  if (!isNationalSimCompany(simCompany)) return originalValue;
+  if (
+    !isNationalSimCompany(simCompany)
+    && !isDominicanSimNumber(originalValue)
+  ) return originalValue;
 
   const digits = originalValue.replace(/\D/g, '');
   if (!digits) return originalValue;

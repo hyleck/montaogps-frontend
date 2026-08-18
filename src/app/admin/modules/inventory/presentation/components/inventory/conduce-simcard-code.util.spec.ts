@@ -1,5 +1,6 @@
 import {
   formatConduceSimcardCode,
+  isDominicanSimNumber,
   isNationalSimCompany,
 } from './conduce-simcard-code.util';
 
@@ -26,6 +27,28 @@ describe('Conduce SIM card code', () => {
         'emnify',
       ),
     ).toBe('894450010000000001');
+  });
+
+  it('protects Dominican phone numbers when the company is missing', () => {
+    const code = formatConduceSimcardCode(
+      '829-333-7963',
+      '',
+    );
+
+    expect(code).not.toBe('829-333-7963');
+    expect(
+      code
+        .split(' ')
+        .map(group => group.slice(1))
+        .join(''),
+    ).toBe('8293337963');
+  });
+
+  it('recognizes only Dominican ten-digit numbering as a fallback', () => {
+    expect(isDominicanSimNumber('(809) 608-7995')).toBeTrue();
+    expect(isDominicanSimNumber('+1 (849) 279-1071')).toBeTrue();
+    expect(isDominicanSimNumber('3055550123')).toBeFalse();
+    expect(isDominicanSimNumber('809123456789012345')).toBeFalse();
   });
 
   it('recognizes the national company without depending on casing', () => {
