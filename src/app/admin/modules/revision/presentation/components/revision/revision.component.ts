@@ -15,6 +15,8 @@ export class RevisionComponent implements OnInit {
   loading = true;
   error = '';
   search = '';
+  preventiveDays: number | null = null;
+  readonly preventiveDayOptions = Array.from({ length: 10 }, (_, index) => index + 1);
   total = 0;
   page = 1;
   readonly limit = 25;
@@ -35,7 +37,12 @@ export class RevisionComponent implements OnInit {
     this.error = '';
     this.actionError = '';
     this.inventoryService
-      .getInspectionRequired(this.search, this.page, this.limit)
+      .getInspectionRequired(
+        this.search,
+        this.page,
+        this.limit,
+        this.preventiveDays || undefined,
+      )
       .subscribe({
         next: response => {
           this.devices = response?.data || [];
@@ -61,6 +68,17 @@ export class RevisionComponent implements OnInit {
   clearSearch(): void {
     if (!this.search) return;
     this.search = '';
+    this.page = 1;
+    this.loadDevices();
+  }
+
+  applyPreventiveFilter(value: number | null): void {
+    const parsedValue = Number(value);
+    this.preventiveDays = Number.isInteger(parsedValue)
+      && parsedValue >= 1
+      && parsedValue <= 10
+        ? parsedValue
+        : null;
     this.page = 1;
     this.loadDevices();
   }
@@ -129,6 +147,57 @@ export class RevisionComponent implements OnInit {
       return String((warehouse as any).name || 'Sin almacén');
     }
     return 'Sin almacén';
+  }
+
+  isPreventive(device: InventoryItem): boolean {
+    return device?.revision_source === 'preventive';
+  }
+
+  isMtag(device: InventoryItem): boolean {
+    const protocol = device?.Protocol || device?.protocol;
+    const name = this.protocolName(device)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/gi, '')
+      .toUpperCase();
+    return Boolean(
+      protocol && typeof protocol === 'object' && protocol.isAirtag === true
+    ) || name === 'MTAGA' || name === 'MTAGP';
+  }
+
+  statusLabel(device: InventoryItem): string {
+    return String(device?.live_status || (this.isMtag(device) ? 'No localizado' : 'Fuera de línea'));
+  }
+
+  statusClass(device: InventoryItem): string {
+    const key = String(device?.live_status_key || (this.isMtag(device) ? 'not-located' : 'offline'));
+    return `device-status--${key}`;
+  }
+
+  statusIcon(device: InventoryItem): string {
+    switch (device?.live_status_key) {
+      case 'online': return 'pi-wifi';
+      case 'located': return 'pi-map-marker';
+      case 'not-located': return 'pi-map-marker';
+      default: return 'pi-wifi';
+    }
+  }
+
+  reviewReason(device: InventoryItem): string {
+    if (this.isPreventive(device)) {
+      const days = Number(device?.preventive_days || this.preventiveDays || 0);
+      if (this.isMtag(device)) {
+        return `Nunca ha reportado ubicación dentro de ${days === 1 ? 'su primer día' : `sus primeros ${days} días`} desde la instalación.`;
+      }
+      return `Fuera de línea dentro de ${days === 1 ? 'su primer día' : `sus primeros ${days} días`} desde la instalación.`;
+    }
+    return device?.inspection_reason || 'Sin motivo registrado';
+  }
+
+  relevantDate(device: InventoryItem): string | undefined {
+    return this.isPreventive(device)
+      ? device?.installed_at || device?.activation_date
+      : device?.inspection_requested_at;
   }
 
   formatDate(value?: string): string {

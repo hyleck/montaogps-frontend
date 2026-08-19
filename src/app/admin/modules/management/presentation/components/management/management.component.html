@@ -1662,6 +1662,21 @@
                     {{ cancelForm.description.length || 0 }}/500 caracteres
                 </small>
             </div>
+
+            <div class="form-group">
+                <label for="cancelDisposition">Destino del dispositivo *</label>
+                <select id="cancelDisposition" [(ngModel)]="cancelForm.disposition"
+                    class="form-control form-select">
+                    <option *ngFor="let option of cancellationDispositionOptions" [value]="option.value">
+                        {{ option.label }}
+                    </option>
+                </select>
+                <small style="color: var(--globalColorTextMuted); font-size: 12px; margin-top: 4px; display: block;">
+                    {{ cancelForm.disposition === 'retained_by_client'
+                        ? 'Se reservará para esta misma cuenta y conservará su vencimiento. Solo podrá reactivarse con una solicitud de Reinstalación.'
+                        : 'El equipo quedará fuera del inventario disponible hasta completar la revisión correspondiente.' }}
+                </small>
+            </div>
         </div>
     </ng-template>
 

@@ -3332,6 +3332,25 @@ html.app-dark .sol-technician-schedule-status--error {
     white-space: normal;
 }
 
+.sol-process-office-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    max-width: 100%;
+    padding: 0.16rem 0.42rem;
+    border: 1px solid rgba(37, 99, 235, 0.3);
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    font-size: 0.61rem;
+    font-weight: 850;
+    line-height: 1.15;
+}
+
+.sol-process-office-status i {
+    font-size: 0.62rem !important;
+}
+
 .sol-process-final-status i {
     flex: 0 0 auto;
     font-size: 0.62rem !important;
@@ -3490,6 +3509,326 @@ html.app-dark .sol-technician-schedule-status--error {
     font-size: 0.76rem;
     line-height: 1.4;
     opacity: 0.72;
+}
+
+.sol-process-details-dialog .p-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.65rem;
+}
+
+.sol-btn-correction {
+    border-color: rgba(99, 102, 241, 0.34);
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+}
+
+.sol-btn-correction:hover {
+    border-color: #6366f1;
+    background: #6366f1;
+    color: #ffffff;
+}
+
+.sol-btn-office-completion {
+    border-color: rgba(37, 99, 235, 0.36);
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+}
+
+.sol-btn-office-completion:hover:not(:disabled) {
+    border-color: #2563eb;
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.sol-office-completion-audit {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) minmax(160px, 280px);
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.72rem 0.85rem;
+    border: 1px solid rgba(37, 99, 235, 0.28);
+    border-radius: 12px;
+    background: rgba(37, 99, 235, 0.07);
+}
+
+.sol-office-completion-audit__icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(37, 99, 235, 0.14);
+    color: #2563eb;
+}
+
+.sol-office-completion-audit div {
+    min-width: 0;
+}
+
+.sol-office-completion-audit strong,
+.sol-office-completion-audit small {
+    display: block;
+}
+
+.sol-office-completion-audit strong {
+    color: #1d4ed8;
+    font-size: 0.74rem;
+}
+
+.sol-office-completion-audit small,
+.sol-office-completion-audit > span:last-child {
+    color: var(--managementColorTextUser);
+    font-size: 0.65rem;
+    line-height: 1.35;
+}
+
+.sol-office-completion-audit small {
+    opacity: 0.72;
+}
+
+.sol-correction-audit {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.72rem 0.85rem;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 12px;
+    background: rgba(99, 102, 241, 0.07);
+}
+
+.sol-correction-audit__icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(99, 102, 241, 0.14);
+    color: #6366f1;
+}
+
+.sol-correction-audit div {
+    min-width: 0;
+}
+
+.sol-correction-audit strong,
+.sol-correction-audit small {
+    display: block;
+}
+
+.sol-correction-audit strong {
+    color: var(--managementColorTitleUser);
+    font-size: 0.74rem;
+}
+
+.sol-correction-audit small,
+.sol-correction-audit > span:last-child {
+    color: var(--managementColorTextUser);
+    font-size: 0.65rem;
+    opacity: 0.72;
+}
+
+.sol-correction-audit > span:last-child {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sol-correction-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.sol-correction-editor__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    padding: 0.9rem;
+    border: 1px solid rgba(99, 102, 241, 0.26);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.11), transparent 72%);
+}
+
+.sol-correction-editor__icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 12px;
+    background: #6366f1;
+    color: #ffffff;
+}
+
+.sol-correction-editor__header > div > span {
+    display: block;
+    color: #6366f1;
+    font-size: 0.62rem;
+    font-weight: 850;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.sol-correction-editor__header h2 {
+    margin: 0.08rem 0 0;
+    color: var(--managementColorTitleUser);
+    font-size: 1rem;
+}
+
+.sol-correction-editor__header p {
+    margin: 0.2rem 0 0;
+    color: var(--managementColorTextUser);
+    font-size: 0.7rem;
+    line-height: 1.45;
+    opacity: 0.76;
+}
+
+.sol-correction-section,
+.sol-correction-reason {
+    padding: 0.9rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 13px;
+    background: var(--managementColorBackgroundUser);
+}
+
+.sol-correction-section__title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--managementFieldsBorder);
+}
+
+.sol-correction-section__title > i {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: rgba(99, 102, 241, 0.11);
+    color: #6366f1;
+}
+
+.sol-correction-section__title strong,
+.sol-correction-section__title small {
+    display: block;
+}
+
+.sol-correction-section__title strong {
+    color: var(--managementColorTitleUser);
+    font-size: 0.76rem;
+}
+
+.sol-correction-section__title small {
+    margin-top: 0.08rem;
+    color: var(--managementColorTextUser);
+    font-size: 0.62rem;
+    opacity: 0.66;
+}
+
+.sol-correction-grid {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.sol-correction-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sol-correction-grid__wide {
+    grid-column: span 2;
+}
+
+.sol-correction-grid label,
+.sol-correction-reason > label {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.32rem;
+    color: var(--managementColorTitleUser);
+    font-size: 0.66rem;
+    font-weight: 800;
+}
+
+.sol-correction-grid input,
+.sol-correction-grid select,
+.sol-correction-grid textarea,
+.sol-correction-reason textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 39px;
+    padding: 0.58rem 0.68rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 9px;
+    outline: none;
+    background: var(--managementColorCardBackground);
+    color: var(--managementColorTitleUser);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.sol-correction-grid textarea,
+.sol-correction-reason textarea {
+    min-height: 70px;
+    resize: vertical;
+}
+
+.sol-correction-grid input:focus,
+.sol-correction-grid select:focus,
+.sol-correction-grid textarea:focus,
+.sol-correction-reason textarea:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.sol-correction-checks {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.75rem;
+    padding: 0.7rem;
+    border-radius: 10px;
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.sol-correction-checks > span {
+    grid-column: 1 / -1;
+    color: #6366f1;
+    font-size: 0.65rem;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.sol-correction-checks label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--managementColorTitleUser);
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.sol-correction-reason {
+    border-color: rgba(99, 102, 241, 0.25);
+}
+
+.sol-correction-reason label small {
+    font-weight: 600;
+    opacity: 0.65;
+}
+
+.sol-correction-reason > small {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--managementColorTextUser);
+    font-size: 0.6rem;
+    text-align: right;
+    opacity: 0.62;
 }
 
 .sol-closed-info__status {
@@ -4679,6 +5018,26 @@ html.app-dark .sol-process-activation-disclosure__copy small {
     .sol-process-location-map {
         height: 360px;
         min-height: 360px;
+    }
+
+    .sol-correction-grid--three,
+    .sol-correction-checks {
+        grid-template-columns: 1fr;
+    }
+
+    .sol-correction-grid__wide,
+    .sol-correction-checks > span {
+        grid-column: auto;
+    }
+
+    .sol-correction-audit,
+    .sol-office-completion-audit {
+        grid-template-columns: 34px minmax(0, 1fr);
+    }
+
+    .sol-correction-audit > span:last-child,
+    .sol-office-completion-audit > span:last-child {
+        grid-column: 2;
     }
 }
 

@@ -9,6 +9,7 @@ export interface InstallationDetail {
     target_name?: string;
     target_category?: string;
     deinstallation_reason?: string;
+    post_uninstall_disposition?: 'return_to_company' | 'retained_by_client' | 'not_recovered';
     brand?: string;
     model?: string;
     year?: string;
@@ -74,10 +75,33 @@ export interface InstallationDetail {
     contacts?: string;
     notes?: string;
     completed?: boolean;
+    completion_source?: 'technician' | 'office';
+    completed_at?: string | Date;
+    completed_by_id?: string;
+    completed_by_name?: string;
+    completed_by_email?: string;
+    office_completion_reason?: string;
+    technician_completion_missing?: boolean;
     cancelled?: boolean;
     omitted?: boolean;
     omitted_at?: string | Date;
     omitted_reason?: string;
+    reinstallation_validated?: boolean;
+    retained_device_id?: string;
+    retained_expiration_date?: string | Date;
+    correction_history?: InstallationCorrectionHistoryEntry[];
+}
+
+export interface InstallationCorrectionHistoryEntry {
+    _id?: string;
+    corrected_at: string | Date;
+    corrected_by_id: string;
+    corrected_by_name: string;
+    corrected_by_email?: string;
+    reason?: string;
+    changed_fields: string[];
+    before?: Record<string, any>;
+    after?: Record<string, any>;
 }
 
 export interface SolicitudReassignment {
@@ -119,6 +143,7 @@ export interface Solicitud {
     notes?: string;
     cancellation_reason?: string;
     deinstallation_reason?: string;
+    post_uninstall_disposition?: 'return_to_company' | 'retained_by_client' | 'not_recovered';
     contacts?: string;
     referido?: string;
     province?: string;
@@ -403,6 +428,50 @@ export class SolicitudesService {
                 ...(status ? { status } : {}),
                 ...(expectedVersion !== undefined ? { expected_version: expectedVersion } : {}),
             },
+        );
+    }
+
+    correctInstallation(
+        solicitudId: string,
+        installationIndex: number,
+        payload: {
+            changes: Record<string, any>;
+            reason?: string;
+            expected_version?: number;
+        },
+    ): Observable<{
+        solicitud: Solicitud;
+        installation: InstallationDetail;
+        correction: InstallationCorrectionHistoryEntry;
+        operation_warnings?: string[];
+    }> {
+        return this.http.patch<{
+            solicitud: Solicitud;
+            installation: InstallationDetail;
+            correction: InstallationCorrectionHistoryEntry;
+            operation_warnings?: string[];
+        }>(
+            `${this.apiUrl}/${encodeURIComponent(solicitudId)}/installations/${installationIndex}/correction`,
+            payload,
+        );
+    }
+
+    completeInstallationFromOffice(
+        solicitudId: string,
+        installationIndex: number,
+        payload: { reason?: string; expected_version?: number },
+    ): Observable<{
+        solicitud: Solicitud;
+        installation: InstallationDetail;
+        operation_warnings?: string[];
+    }> {
+        return this.http.post<{
+            solicitud: Solicitud;
+            installation: InstallationDetail;
+            operation_warnings?: string[];
+        }>(
+            `${this.apiUrl}/${encodeURIComponent(solicitudId)}/installations/${installationIndex}/complete-from-office`,
+            payload,
         );
     }
 

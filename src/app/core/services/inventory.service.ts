@@ -49,11 +49,22 @@ export interface InventoryItem {
   inspection_solicitud_id?: string;
   inspection_released_at?: string;
   inspection_released_by?: string;
+  activation_date?: string;
+  device_name?: string;
+  live_status?: 'En línea' | 'Fuera de línea' | 'Localizado' | 'No localizado' | string;
+  live_status_key?: 'online' | 'offline' | 'located' | 'not-located';
+  live_status_updated_at?: string | null;
+  revision_source?: 'inspection' | 'preventive';
+  preventive_days?: number;
   reservation_client_id?: string;
   reservation_client_name?: string;
   reservation_by?: string;
   reservation_at?: string;
   reservation_intent?: 'reserve' | 'install' | 'review';
+  client_retained?: boolean;
+  retained_device_id?: string;
+  retained_expiration_date?: string;
+  retained_at?: string;
 }
 
 export interface InventoryDeviceAssignmentResponse {
@@ -159,12 +170,20 @@ export class InventoryService {
     return this.http.get<InventoryItem>(`${this.apiUrl}/${id}`);
   }
 
-  getInspectionRequired(query = '', page = 1, limit = 30): Observable<InspectionRequiredResponse> {
+  getInspectionRequired(
+    query = '',
+    page = 1,
+    limit = 30,
+    preventiveDays?: number,
+  ): Observable<InspectionRequiredResponse> {
     const normalizedQuery = String(query || '').trim();
-    const url = `${this.apiUrl}/inspection/required?q=${encodeURIComponent(normalizedQuery)}&page=${page}&limit=${limit}`;
+    const preventiveParam = preventiveDays
+      ? `&preventive_days=${encodeURIComponent(preventiveDays)}`
+      : '';
+    const url = `${this.apiUrl}/inspection/required?q=${encodeURIComponent(normalizedQuery)}&page=${page}&limit=${limit}${preventiveParam}`;
     return this.http.get<InspectionRequiredResponse>(url).pipe(
       tap(response => {
-        if (!normalizedQuery) {
+        if (!normalizedQuery && !preventiveDays) {
           this.inspectionRequiredCount$.next(Number(response?.total || 0));
         }
       }),

@@ -23,7 +23,7 @@ import * as XLSX from 'xlsx-js-style';
 import { MapAlertComponent } from '../map-alert/map-alert.component';
 import { FirebaseNotificationsService, NotificationLog } from '../../../../core/services/firebase-notifications.service';
 import { SupportService } from '../../../../core/services/support.service';
-import { CreateTicketDto } from '../../../../core/interfaces/support.interface';
+import { CreateTicketDto, Ticket } from '../../../../core/interfaces/support.interface';
 import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
 import {
   ALERT_PRESET_CATEGORIES,
@@ -482,16 +482,71 @@ export class NavbarComponent implements OnInit, OnDestroy {
   };
   priorities: any[] = [];
   activeSupportTab: 'create' | 'list' = 'create';
-  userTickets: any[] = [];
+  userTickets: Ticket[] = [];
   loadingTickets: boolean = false;
 
   // Detalles del ticket
   ticketDetailsDialogVisible: boolean = false;
-  selectedTicket: any = null; // Stores the selected ticket for details view
+  selectedTicket: Ticket | null = null;
+  private returnToSupportAfterTicketDetails: boolean = false;
 
-  openTicketDetails(ticket: any) {
+  openTicketDetails(ticket: Ticket) {
+    this.returnToSupportAfterTicketDetails = this.supportDialogVisible;
+    this.supportDialogVisible = false;
     this.selectedTicket = ticket;
     this.ticketDetailsDialogVisible = true;
+  }
+
+  onTicketDetailsHidden(): void {
+    if (!this.returnToSupportAfterTicketDetails) return;
+    this.returnToSupportAfterTicketDetails = false;
+    this.activeSupportTab = 'list';
+    this.supportDialogVisible = true;
+  }
+
+  get activeTicketsCount(): number {
+    return this.userTickets.filter(ticket =>
+      ticket.status === 'open' || ticket.status === 'in_progress'
+    ).length;
+  }
+
+  get completedTicketsCount(): number {
+    return this.userTickets.filter(ticket =>
+      ticket.status === 'resolved' || ticket.status === 'closed'
+    ).length;
+  }
+
+  get supportResolutionRate(): number {
+    if (!this.userTickets.length) return 0;
+    return Math.round((this.completedTicketsCount / this.userTickets.length) * 100);
+  }
+
+  getTicketProgress(status: Ticket['status']): number {
+    switch (status) {
+      case 'open': return 20;
+      case 'in_progress': return 60;
+      case 'resolved':
+      case 'closed': return 100;
+      default: return 0;
+    }
+  }
+
+  getTicketStatusIcon(status: Ticket['status']): string {
+    switch (status) {
+      case 'open': return 'pi pi-inbox';
+      case 'in_progress': return 'pi pi-spin pi-spinner';
+      case 'resolved': return 'pi pi-check-circle';
+      case 'closed': return 'pi pi-lock';
+      default: return 'pi pi-circle';
+    }
+  }
+
+  getPriorityClass(priority: Ticket['priority']): string {
+    return `ticket-priority-${priority}`;
+  }
+
+  trackTicketById(_index: number, ticket: Ticket): string {
+    return ticket._id || `${ticket.title}-${ticket.createdAt || ''}`;
   }
 
   initializePriorities() {

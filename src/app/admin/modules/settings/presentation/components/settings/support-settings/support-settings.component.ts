@@ -18,6 +18,8 @@ export class SupportSettingsComponent implements OnInit {
     viewDialog: boolean = false;
     selectedTicket: Ticket | null = null;
     currentUser: any = null;
+    ticketSearch: string = '';
+    ticketStatusFilter: 'all' | Ticket['status'] = 'all';
 
     newTicket: CreateTicketDto = {
         title: '',
@@ -49,6 +51,44 @@ export class SupportSettingsComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadTickets();
+    }
+
+    get filteredTickets(): Ticket[] {
+        const search = this.ticketSearch.trim().toLowerCase();
+        return this.tickets.filter((ticket) => {
+            const matchesStatus = this.ticketStatusFilter === 'all'
+                || ticket.status === this.ticketStatusFilter;
+            const searchable = [
+                ticket._id,
+                ticket.title,
+                ticket.description,
+                ticket.user?.name,
+                ticket.user?.last_name,
+                ticket.user?.email
+            ].filter(Boolean).join(' ').toLowerCase();
+            return matchesStatus && (!search || searchable.includes(search));
+        });
+    }
+
+    get activeTicketsCount(): number {
+        return this.tickets.filter(ticket =>
+            ticket.status === 'open' || ticket.status === 'in_progress'
+        ).length;
+    }
+
+    get inProgressTicketsCount(): number {
+        return this.tickets.filter(ticket => ticket.status === 'in_progress').length;
+    }
+
+    get completedTicketsCount(): number {
+        return this.tickets.filter(ticket =>
+            ticket.status === 'resolved' || ticket.status === 'closed'
+        ).length;
+    }
+
+    get resolutionRate(): number {
+        if (!this.tickets.length) return 0;
+        return Math.round((this.completedTicketsCount / this.tickets.length) * 100);
     }
 
     loadTickets(): void {
@@ -118,6 +158,44 @@ export class SupportSettingsComponent implements OnInit {
         }
     }
 
+    getStatusLabel(status: Ticket['status']): string {
+        return this.statusOptions.find(option => option.value === status)?.label || status;
+    }
+
+    getPriorityLabel(priority: Ticket['priority']): string {
+        return this.priorities.find(option => option.value === priority)?.label || priority;
+    }
+
+    getTicketProgress(status: Ticket['status']): number {
+        switch (status) {
+            case 'open': return 20;
+            case 'in_progress': return 60;
+            case 'resolved':
+            case 'closed': return 100;
+            default: return 0;
+        }
+    }
+
+    getTicketStatusIcon(status: Ticket['status']): string {
+        switch (status) {
+            case 'open': return 'pi pi-inbox';
+            case 'in_progress': return 'pi pi-spin pi-spinner';
+            case 'resolved': return 'pi pi-check-circle';
+            case 'closed': return 'pi pi-lock';
+            default: return 'pi pi-circle';
+        }
+    }
+
+    getUserInitials(ticket: Ticket): string {
+        const name = `${ticket.user?.name || ''} ${ticket.user?.last_name || ''}`.trim();
+        if (!name) return 'US';
+        return name.split(/\s+/).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase();
+    }
+
+    trackTicketById(_index: number, ticket: Ticket): string {
+        return ticket._id || `${ticket.title}-${ticket.createdAt || ''}`;
+    }
+
     onStatusChange(ticket: Ticket): void {
         if (!ticket || !ticket._id) return;
 
@@ -126,6 +204,7 @@ export class SupportSettingsComponent implements OnInit {
         this.supportService.updateTicket(ticket._id, { status: ticket.status }).subscribe({
             next: () => {
                 this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Estado del ticket actualizado correctamente' });
+                this.loadTickets();
             },
             error: (error) => {
                 this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo actualizar el estado del ticket') });

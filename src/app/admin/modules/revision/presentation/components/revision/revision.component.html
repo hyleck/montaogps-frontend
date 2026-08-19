@@ -5,12 +5,12 @@
       <div>
         <span class="revision-kicker">Control técnico</span>
         <h1>Revisión de dispositivos</h1>
-        <p>GPS retirados de una instalación porque requieren diagnóstico antes de volver al inventario disponible.</p>
+        <p>GPS en revisión y objetivos recién instalados que requieren seguimiento preventivo.</p>
       </div>
     </div>
     <div class="revision-counter" aria-label="Dispositivos pendientes">
       <strong>{{ total }}</strong>
-      <span>{{ total === 1 ? 'pendiente' : 'pendientes' }}</span>
+      <span>{{ preventiveDays ? (total === 1 ? 'resultado' : 'resultados') : (total === 1 ? 'pendiente' : 'pendientes') }}</span>
     </div>
   </header>
 
@@ -26,6 +26,19 @@
       <button *ngIf="search" type="button" class="revision-search__clear" (click)="clearSearch()" aria-label="Limpiar búsqueda">
         <i class="pi pi-times"></i>
       </button>
+    </label>
+    <label class="revision-preventive-filter">
+      <span><i class="pi pi-shield"></i>Revisión preventiva</span>
+      <select
+        name="preventiveDays"
+        [(ngModel)]="preventiveDays"
+        (ngModelChange)="applyPreventiveFilter($event)"
+        aria-label="Días desde la instalación para revisión preventiva">
+        <option [ngValue]="null">Desactivada</option>
+        <option *ngFor="let days of preventiveDayOptions" [ngValue]="days">
+          Primeros {{ days }} {{ days === 1 ? 'día' : 'días' }} desde instalación
+        </option>
+      </select>
     </label>
     <button type="submit" class="revision-button revision-button--primary">
       <i class="pi pi-search"></i><span>Buscar</span>
@@ -60,8 +73,8 @@
 
   <div *ngIf="!loading && !error && devices.length === 0" class="revision-empty">
     <span><i class="pi pi-check-circle"></i></span>
-    <h2>{{ search ? 'No encontramos coincidencias' : 'No hay GPS pendientes de revisión' }}</h2>
-    <p>{{ search ? 'Prueba con otro IMEI, SIM o una parte del motivo.' : 'Los dispositivos que un técnico marque para revisión aparecerán aquí.' }}</p>
+    <h2>{{ search ? 'No encontramos coincidencias' : (preventiveDays ? 'No hay equipos para revisión preventiva' : 'No hay GPS pendientes de revisión') }}</h2>
+    <p>{{ search ? 'Prueba con otro IMEI, SIM o una parte del motivo.' : (preventiveDays ? 'No hay objetivos actualmente fuera de línea dentro de ese período posterior a su instalación.' : 'Los dispositivos que un técnico marque para revisión aparecerán aquí.') }}</p>
   </div>
 
   <div *ngIf="!loading && !error && devices.length > 0" class="revision-table-shell">
@@ -70,10 +83,11 @@
         <tr>
           <th>Dispositivo</th>
           <th>Modelo</th>
+          <th>Estado</th>
           <th>SIM</th>
           <th>Almacén</th>
           <th>Motivo de revisión</th>
-          <th>Marcado</th>
+          <th>Fecha</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -84,28 +98,38 @@
               <span class="device-cell__icon"><i class="pi pi-microchip"></i></span>
               <div>
                 <strong>{{ device.IMEI || device.imei }}</strong>
-                <span class="status-pill"><i class="pi pi-exclamation-circle"></i>Pendiente de revisión</span>
+                <span *ngIf="!isPreventive(device)" class="status-pill"><i class="pi pi-exclamation-circle"></i>Pendiente de revisión</span>
+                <span *ngIf="isPreventive(device)" class="status-pill status-pill--preventive"><i class="pi pi-shield"></i>Revisión preventiva</span>
               </div>
             </div>
           </td>
           <td data-label="Modelo"><span class="model-pill">{{ protocolName(device) }}</span></td>
+          <td data-label="Estado">
+            <span class="device-status" [ngClass]="statusClass(device)">
+              <i class="pi" [ngClass]="statusIcon(device)"></i>
+              {{ statusLabel(device) }}
+            </span>
+            <small *ngIf="device.live_status_updated_at">Último reporte {{ formatDate(device.live_status_updated_at || undefined) }}</small>
+          </td>
           <td data-label="SIM">
             <strong class="secondary-value">{{ device.SIM || device.sim || 'Sin SIM' }}</strong>
             <small *ngIf="device.IDSIM || device.idsim">ID {{ device.IDSIM || device.idsim }}</small>
           </td>
           <td data-label="Almacén"><span class="secondary-value">{{ warehouseName(device) }}</span></td>
           <td data-label="Motivo de revisión">
-            <p class="reason-text">{{ device.inspection_reason || 'Sin motivo registrado' }}</p>
-            <small *ngIf="device.inspection_solicitud_id">Solicitud {{ device.inspection_solicitud_id }}</small>
+            <p class="reason-text">{{ reviewReason(device) }}</p>
+            <small *ngIf="!isPreventive(device) && device.inspection_solicitud_id">Solicitud {{ device.inspection_solicitud_id }}</small>
+            <small *ngIf="isPreventive(device) && device.device_name">Objetivo: {{ device.device_name }}</small>
           </td>
-          <td data-label="Marcado">
-            <span class="date-value">{{ formatDate(device.inspection_requested_at) }}</span>
+          <td [attr.data-label]="isPreventive(device) ? 'Instalación' : 'Marcado'">
+            <span class="date-value">{{ formatDate(relevantDate(device)) }}</span>
           </td>
           <td data-label="Acciones">
-            <button type="button" class="revision-release-button" (click)="requestRelease(device)" [disabled]="!!releasingId">
+            <button *ngIf="!isPreventive(device)" type="button" class="revision-release-button" (click)="requestRelease(device)" [disabled]="!!releasingId">
               <i class="pi pi-sign-out"></i>
               <span>Sacar de revisión</span>
             </button>
+            <span *ngIf="isPreventive(device)" class="preventive-readonly"><i class="pi pi-eye"></i>Solo seguimiento</span>
           </td>
         </tr>
       </tbody>

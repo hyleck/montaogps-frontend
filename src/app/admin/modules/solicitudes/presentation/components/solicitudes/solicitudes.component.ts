@@ -7,6 +7,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx-js-style';
 import {
     InstallationDetail,
+    InstallationCorrectionHistoryEntry,
     SolicitudesService,
     Solicitud,
     SolicitudCompletionPreview,
@@ -55,7 +56,7 @@ interface AvailabilityTranscriptMessage {
     side: 'ester' | 'technician';
 }
 
-type SolicitudLocationConfigTarget = 'root' | 'installation';
+type SolicitudLocationConfigTarget = 'root' | 'installation' | 'correction';
 type SolicitudLocationConfigMethod = 'search' | 'coordinates' | 'link';
 type SolicitudExportFormat = 'pdf' | 'excel';
 type SolicitudCancellationAction = 'cancel' | 'new' | 'duplicate';
@@ -427,6 +428,12 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     processDetailsDeviceError = '';
     processDetailsTimeline: ProcessTechnicianTimelineItem[] = [];
     private processDetailsDeviceRequestId = 0;
+    processCorrectionMode = false;
+    processCorrectionSaving = false;
+    processOfficeCompletionSaving = false;
+    processCorrectionDraft: InstallationDetail | null = null;
+    processCorrectionReason = '';
+    processCorrectionModels: SelectOption[] = [];
     processLocationMapDialogVisible = false;
     processLocationMapLoading = false;
     processLocationMapError = '';
@@ -692,6 +699,23 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         { label: 'MTAG-P', value: 'mtag_p' },
     ];
     readonly deinstallationReasons = DEVICE_CANCELLATION_REASONS;
+    readonly postUninstallDispositionOptions = [
+        {
+            label: 'Regresa a Montao para revisión',
+            value: 'return_to_company' as const,
+            help: 'Queda bloqueado en revisión antes de volver al inventario disponible.',
+        },
+        {
+            label: 'Lo conserva el cliente',
+            value: 'retained_by_client' as const,
+            help: 'Queda reservado para esta cuenta y solo podrá usarse en una reinstalación.',
+        },
+        {
+            label: 'No fue recuperado',
+            value: 'not_recovered' as const,
+            help: 'Permanece fuera del inventario disponible.',
+        },
+    ];
 
     getEntityName(plural: boolean = false): string {
         const t = this.selectedSolicitud?.type || 'instalacion';
@@ -1319,6 +1343,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             description: source.description,
             notes: source.notes,
             deinstallation_reason: source.deinstallation_reason,
+            post_uninstall_disposition: source.post_uninstall_disposition,
             contacts: source.contacts,
             referido: source.referido,
             province: source.province,
@@ -1339,6 +1364,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         if (!this.selectedSolicitud) return;
         if (this.selectedSolicitud.type !== 'desinstalacion') {
             this.selectedSolicitud.deinstallation_reason = undefined;
+            this.selectedSolicitud.post_uninstall_disposition = undefined;
+        } else {
+            this.selectedSolicitud.post_uninstall_disposition ||= 'return_to_company';
         }
         if (this.selectedSolicitud.type === 'mixta') {
             this.selectedSolicitud.installations?.forEach(installation => {
@@ -1452,12 +1480,15 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     onInstallationProcessTypeChange(installation: InstallationDetail): void {
         if (installation.process_type !== 'desinstalacion') {
             installation.deinstallation_reason = undefined;
+            installation.post_uninstall_disposition = undefined;
+        } else {
+            installation.post_uninstall_disposition ||= 'return_to_company';
         }
         this.deinstallationReasonError = false;
     }
 
     private isDeviceRequiredForProcess(type: string): boolean {
-        return ['chequeo', 'desinstalacion', 'cambio', 'cambio_vehiculo'].includes(type);
+        return ['reinstalacion', 'chequeo', 'desinstalacion', 'cambio', 'cambio_vehiculo'].includes(type);
     }
 
     canApplyVehicleChange(solicitud: Solicitud): boolean {
@@ -1797,15 +1828,19 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     openSolicitudLocationConfig(target: SolicitudLocationConfigTarget): void {
-        if (!this.selectedSolicitud) return;
+        if (target === 'correction') {
+            if (!this.processCorrectionDraft) return;
+        } else if (!this.selectedSolicitud) {
+            return;
+        }
         if (target === 'installation' && !this.getCurrentLocationInstallation()) return;
 
         this.locationConfigTarget = target;
         this.locationConfigMethod = 'search';
         this.locationConfigResolvingLink = false;
         this.locationConfigGoogleMapsLink = target === 'root'
-            ? String(this.selectedSolicitud.google_maps_url || this.rootGoogleMapsLink || '')
-            : String(this.getCurrentLocationInstallation()?.google_maps_url || '');
+            ? String(this.selectedSolicitud?.google_maps_url || this.rootGoogleMapsLink || '')
+            : String(this.getLocationConfigInstallation()?.google_maps_url || '');
         this.locationConfigSelectedAddress = this.getSolicitudLocationAddress();
         this.locationConfigSearchQuery = this.locationConfigSelectedAddress;
         this.locationConfigSuggestions = [];
@@ -1834,9 +1869,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     get solicitudLocationConfigTitle(): string {
-        return this.locationConfigTarget === 'root'
-            ? 'Ubicación del cliente'
-            : `Ubicación de ${this.getEntityName()}`;
+        if (this.locationConfigTarget === 'root') return 'Ubicación del cliente';
+        if (this.locationConfigTarget === 'correction') return 'Ubicación del proceso';
+        return `Ubicación de ${this.getEntityName()}`;
     }
 
     get solicitudLocationCoordinates(): { latitude?: number; longitude?: number } {
@@ -1847,7 +1882,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             };
         }
 
-        const installation = this.getCurrentLocationInstallation();
+        const installation = this.getLocationConfigInstallation();
         return {
             latitude: installation?.latitude,
             longitude: installation?.longitude,
@@ -1862,7 +1897,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     get solicitudLocationZoneLabel(): string {
         const source = this.locationConfigTarget === 'root'
             ? this.selectedSolicitud
-            : this.getCurrentLocationInstallation();
+            : this.getLocationConfigInstallation();
         if (!source) return 'Sin zona configurada';
 
         const parts = [source.sector, source.municipality, source.province]
@@ -2295,22 +2330,26 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     clearSolicitudLocationConfig(): void {
-        if (!this.selectedSolicitud) return;
+        if (this.locationConfigTarget === 'correction') {
+            if (!this.processCorrectionDraft) return;
+        } else if (!this.selectedSolicitud) {
+            return;
+        }
 
         if (this.locationConfigTarget === 'root') {
-            this.selectedSolicitud.latitude = undefined;
-            this.selectedSolicitud.longitude = undefined;
-            this.selectedSolicitud.google_maps_url = undefined;
-            this.selectedSolicitud.location_address = undefined;
+            this.selectedSolicitud!.latitude = undefined;
+            this.selectedSolicitud!.longitude = undefined;
+            this.selectedSolicitud!.google_maps_url = undefined;
+            this.selectedSolicitud!.location_address = undefined;
             this.rootGoogleMapsLink = '';
-            this.selectedSolicitud.installations?.forEach(installation => {
+            this.selectedSolicitud!.installations?.forEach(installation => {
                 installation.latitude = undefined;
                 installation.longitude = undefined;
                 installation.google_maps_url = undefined;
                 installation.location_address = undefined;
             });
         } else {
-            const installation = this.getCurrentLocationInstallation();
+            const installation = this.getLocationConfigInstallation();
             if (installation) {
                 installation.latitude = undefined;
                 installation.longitude = undefined;
@@ -2342,7 +2381,16 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         return this.selectedSolicitud?.installations?.[this.editingInstallationIndex];
     }
 
+    private getLocationConfigInstallation(): InstallationDetail | undefined {
+        return this.locationConfigTarget === 'correction'
+            ? this.processCorrectionDraft || undefined
+            : this.getCurrentLocationInstallation();
+    }
+
     private getSolicitudLocationAddress(): string {
+        if (this.locationConfigTarget === 'correction') {
+            return String(this.processCorrectionDraft?.location_address || '').trim();
+        }
         if (!this.selectedSolicitud) return '';
 
         const installation = this.locationConfigTarget === 'root'
@@ -2363,8 +2411,15 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     private setSolicitudLocationAddress(address: string): void {
-        if (!this.selectedSolicitud) return;
         const normalizedAddress = String(address || '').trim() || undefined;
+
+        if (this.locationConfigTarget === 'correction') {
+            if (this.processCorrectionDraft) {
+                this.processCorrectionDraft.location_address = normalizedAddress;
+            }
+            return;
+        }
+        if (!this.selectedSolicitud) return;
 
         if (this.locationConfigTarget === 'root') {
             this.selectedSolicitud.location_address = normalizedAddress;
@@ -2374,7 +2429,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             return;
         }
 
-        const installation = this.getCurrentLocationInstallation();
+        const installation = this.getLocationConfigInstallation();
         if (installation) {
             installation.location_address = normalizedAddress;
         }
@@ -2413,6 +2468,12 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     private setSolicitudLocationLink(link: string): void {
+        if (this.locationConfigTarget === 'correction') {
+            if (this.processCorrectionDraft) {
+                this.processCorrectionDraft.google_maps_url = link;
+            }
+            return;
+        }
         if (!this.selectedSolicitud) return;
 
         if (this.locationConfigTarget === 'root') {
@@ -2424,27 +2485,32 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             return;
         }
 
-        const installation = this.getCurrentLocationInstallation();
+        const installation = this.getLocationConfigInstallation();
         if (installation) {
             installation.google_maps_url = link;
         }
     }
 
     private setSolicitudLocationCoordinates(lat: number, lng: number, centerMap: boolean): void {
-        if (!this.selectedSolicitud || !this.isValidCoordinatePair(Number(lat), Number(lng))) return;
+        if (!this.isValidCoordinatePair(Number(lat), Number(lng))) return;
+        if (this.locationConfigTarget === 'correction') {
+            if (!this.processCorrectionDraft) return;
+        } else if (!this.selectedSolicitud) {
+            return;
+        }
 
         const latitude = Number(Number(lat).toFixed(6));
         const longitude = Number(Number(lng).toFixed(6));
         if (this.locationConfigTarget === 'root') {
-            this.selectedSolicitud.latitude = latitude;
-            this.selectedSolicitud.longitude = longitude;
-            this.selectedSolicitud.installations?.forEach(installation => {
+            this.selectedSolicitud!.latitude = latitude;
+            this.selectedSolicitud!.longitude = longitude;
+            this.selectedSolicitud!.installations?.forEach(installation => {
                 installation.latitude = latitude;
                 installation.longitude = longitude;
             });
             void this.refreshTechnicianRecommendation();
         } else {
-            const installation = this.getCurrentLocationInstallation();
+            const installation = this.getLocationConfigInstallation();
             if (!installation) return;
             installation.latitude = latitude;
             installation.longitude = longitude;
@@ -3051,9 +3117,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
         try {
             if (searchesInstalledObjective) {
-                const devices = isVehicleChange
-                    ? await this.searchVehicleChangeDevices(query, selectedClientId, 12)
-                    : await this.searchObjectiveDevices(query, selectedClientId, 12);
+                const devices = activeSolicitudType === 'reinstalacion'
+                    ? await this.searchRetainedObjectiveDevices(query, selectedClientId)
+                    : isVehicleChange
+                        ? await this.searchVehicleChangeDevices(query, selectedClientId, 12)
+                        : await this.searchObjectiveDevices(query, selectedClientId, 12);
                 if (requestSequence !== this.inventoryDeviceSearchSequence) return;
                 this.inventoryDeviceSuggestions = devices;
                 return;
@@ -3149,12 +3217,18 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     getCurrentDeviceSearchPlaceholder(): string {
+        if (this.getDeviceSearchProcessType('current') === 'reinstalacion') {
+            return 'Buscar GPS reservado para reinstalación';
+        }
         return this.isDeviceRequiredForProcess(this.getDeviceSearchProcessType('current'))
             ? 'Buscar GPS en objetivos'
             : 'Buscar IMEI en inventario';
     }
 
     getCurrentDeviceSearchEmptyMessage(): string {
+        if (this.getDeviceSearchProcessType('current') === 'reinstalacion') {
+            return 'Este cliente no tiene GPS conservados pendientes de reinstalación';
+        }
         return this.isDeviceRequiredForProcess(this.getDeviceSearchProcessType('current'))
             ? 'No se encontraron objetivos con ese IMEI'
             : 'No se encontraron GPS con ese IMEI';
@@ -3173,6 +3247,19 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             && device?.deleted !== true
             && device?.status !== false
         ));
+    }
+
+    private async searchRetainedObjectiveDevices(
+        query: string,
+        selectedClientId = '',
+    ): Promise<any[]> {
+        const parentId = String(selectedClientId || '').trim();
+        if (!parentId) return [];
+        const devices = await this.targetsService.searchRetainedTargets(query, parentId);
+        return this.mergeDeviceSuggestions([], devices || []).map(device => ({
+            ...device,
+            retained_by_client: true,
+        }));
     }
 
     private async resolveObjectiveSearchParentId(selectedClientId = ''): Promise<string> {
@@ -3219,6 +3306,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 return;
             }
             inst.device_imei = imei;
+            const targetName = String(device?.target_name || device?.name || '').trim();
+            if (targetName) {
+                inst.target_name ||= targetName;
+            }
             if (sim) {
                 inst.sim_card_number = sim;
                 this.resolveSelectedSimCompany(sim, simCompany, company => {
@@ -3454,8 +3545,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                         inst.previous_color ??= currentColor;
                         inst.previous_plate ??= currentPlate;
                         inst.previous_chassis ??= currentChassis;
-                        inst.target_name ||= currentTargetName;
                     }
+                    inst.target_name ||= currentTargetName;
                     inst.brand = isVehicleChange ? (inst.brand || currentBrand) : (currentBrand || inst.brand);
                     // Prepare model lookup if brand is found
                     if (inst.brand) {
@@ -4027,6 +4118,272 @@ async initLocationMap(): Promise<void> {
         this.processDetailsDeviceLoading = false;
         this.processDetailsDeviceError = '';
         this.processDetailsTimeline = [];
+        this.processOfficeCompletionSaving = false;
+        this.resetProcessCorrection();
+    }
+
+    canCompleteProcessFromOffice(
+        solicitud: Solicitud | null = this.processDetailsSolicitud,
+        installation: InstallationDetail | null = this.processDetailsInstallation,
+    ): boolean {
+        if (
+            !solicitud?._id
+            || !installation
+            || installation.completed === true
+            || installation.cancelled === true
+            || installation.omitted === true
+            || this.isSolicitudClosed(solicitud)
+            || this.isSolicitudLocked(solicitud)
+        ) {
+            return false;
+        }
+        const user: any = this.authService.getCurrentUser();
+        const elevated = [user?.root, user?.developer]
+            .some(value => value === true || String(value).toLowerCase() === 'true');
+        const affiliation = String(
+            user?.affiliation_type_id || user?.affiliation_type || '',
+        ).trim().toLowerCase();
+        return elevated || affiliation === 'empleado' || affiliation === 'admin';
+    }
+
+    completeProcessFromOffice(): void {
+        const solicitud = this.processDetailsSolicitud;
+        const installation = this.processDetailsInstallation;
+        if (!this.canCompleteProcessFromOffice(solicitud, installation)) return;
+
+        this.confirmationService.confirm({
+            key: 'solicitudes-confirm',
+            header: 'Finalizar proceso desde oficina',
+            icon: 'pi pi-exclamation-triangle',
+            message: 'Esta acción dejará constancia de que el técnico asignado no finalizó el proceso desde la aplicación y registrará al empleado que realiza el cierre. ¿Deseas continuar?',
+            acceptLabel: 'Sí, finalizar desde oficina',
+            rejectLabel: 'Cancelar',
+            accept: () => void this.persistProcessOfficeCompletion(),
+        });
+    }
+
+    private async persistProcessOfficeCompletion(): Promise<void> {
+        const solicitud = this.processDetailsSolicitud;
+        const solicitudId = String(solicitud?._id || '').trim();
+        if (!solicitud || !solicitudId || this.processOfficeCompletionSaving) return;
+
+        this.processOfficeCompletionSaving = true;
+        try {
+            const response = await firstValueFrom(
+                this.solicitudesService.completeInstallationFromOffice(
+                    solicitudId,
+                    this.processDetailsIndex,
+                    {
+                        reason: 'El técnico asignado no finalizó el proceso desde la aplicación.',
+                        expected_version: solicitud.__v,
+                    },
+                ),
+            );
+            const updated = response.solicitud;
+            const listIndex = this.solicitudes.findIndex(item => item._id === updated._id);
+            if (listIndex !== -1) {
+                this.solicitudes[listIndex] = updated;
+                this.solicitudes = [...this.solicitudes];
+            }
+            this.processDetailsSolicitud = updated;
+            this.processDetailsInstallation = updated.installations?.[this.processDetailsIndex]
+                || response.installation;
+            this.processDetailsTimeline = this.getProcessTechnicianTimeline(
+                updated,
+                this.processDetailsInstallation,
+                this.processDetailsIndex,
+            );
+            const warning = response.operation_warnings?.join(' ');
+            this.messageService.add({
+                severity: warning ? 'warn' : 'success',
+                summary: warning ? 'Proceso finalizado con advertencias' : 'Proceso finalizado desde oficina',
+                detail: warning || 'El cierre quedó registrado a nombre del empleado y con constancia de que el técnico no lo finalizó.',
+            });
+        } catch (error) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo finalizar el proceso',
+                detail: getApiErrorMessage(
+                    error,
+                    'Recarga la solicitud y verifica que el proceso todavía esté pendiente.',
+                ),
+            });
+        } finally {
+            this.processOfficeCompletionSaving = false;
+        }
+    }
+
+    canCorrectProcess(installation: InstallationDetail | null = this.processDetailsInstallation): boolean {
+        if (!installation || (installation.completed !== true && installation.omitted !== true)) {
+            return false;
+        }
+        const user: any = this.authService.getCurrentUser();
+        const elevated = [user?.root, user?.developer]
+            .some(value => value === true || String(value).toLowerCase() === 'true');
+        const affiliation = String(
+            user?.affiliation_type_id || user?.affiliation_type || '',
+        ).trim().toLowerCase();
+        return elevated || affiliation === 'empleado' || affiliation === 'admin';
+    }
+
+    async startProcessCorrection(): Promise<void> {
+        const installation = this.processDetailsInstallation;
+        const solicitud = this.processDetailsSolicitud;
+        if (!installation || !solicitud || !this.canCorrectProcess(installation)) return;
+
+        const draft: InstallationDetail = JSON.parse(JSON.stringify(installation));
+        draft.process_type ||= this.getProcessTypeForSolicitud(
+            solicitud,
+            installation,
+        );
+        draft.device_type ||= 'gps';
+        draft.checkup_recovery ||= {};
+        this.processCorrectionDraft = draft;
+        this.processCorrectionReason = '';
+        this.processCorrectionMode = true;
+        await this.loadProcessCorrectionModels(draft.brand);
+    }
+
+    cancelProcessCorrection(): void {
+        this.resetProcessCorrection();
+    }
+
+    private resetProcessCorrection(): void {
+        if (this.locationConfigTarget === 'correction') {
+            this.locationConfigDialogVisible = false;
+            this.destroyLocationConfigMap();
+        }
+        this.processCorrectionMode = false;
+        this.processCorrectionSaving = false;
+        this.processCorrectionDraft = null;
+        this.processCorrectionReason = '';
+        this.processCorrectionModels = [];
+    }
+
+    async onProcessCorrectionBrandChange(): Promise<void> {
+        if (!this.processCorrectionDraft) return;
+        this.processCorrectionDraft.model = '';
+        await this.loadProcessCorrectionModels(this.processCorrectionDraft.brand);
+    }
+
+    private async loadProcessCorrectionModels(brand?: string): Promise<void> {
+        this.processCorrectionModels = [];
+        if (!brand) return;
+        try {
+            const models = await this.vehicleBrandsService.getAllModelsByBrand(brand);
+            this.processCorrectionModels = (models || [])
+                .map((model: any) => ({ label: model.nombre, value: model._id }))
+                .sort((a: SelectOption, b: SelectOption) => a.label.localeCompare(b.label));
+            this.processCorrectionModels.forEach(model => {
+                this.modelNameCache[model.value] = model.label;
+            });
+        } catch {
+            this.processCorrectionModels = [];
+        }
+    }
+
+    async saveProcessCorrection(): Promise<void> {
+        const solicitud = this.processDetailsSolicitud;
+        const draft = this.processCorrectionDraft;
+        const solicitudId = String(solicitud?._id || '').trim();
+        if (!solicitud || !draft || !solicitudId || this.processCorrectionSaving) return;
+
+        const editableFields: Array<keyof InstallationDetail> = [
+            'process_type', 'device_type', 'target_name', 'target_category',
+            'deinstallation_reason', 'brand', 'model', 'year', 'color', 'plate',
+            'chassis', 'device_imei', 'new_device_imei', 'sim_card_number',
+            'new_sim_card_number', 'sim_company', 'new_sim_company', 'new_protocol',
+            'province', 'municipality', 'sector', 'latitude', 'longitude',
+            'google_maps_url', 'location_address', 'installation_location',
+            'scheduled_date', 'engine_shutdown', 'ignition_sensor',
+            'installation_details', 'diagnosis', 'resolution_type',
+            'connection_status', 'checkup_recovery', 'notes',
+        ];
+        const changes = editableFields.reduce<Record<string, any>>((result, field) => {
+            const value = draft[field];
+            if (value !== undefined) result[field] = value;
+            return result;
+        }, {});
+
+        this.processCorrectionSaving = true;
+        try {
+            const response = await firstValueFrom(
+                this.solicitudesService.correctInstallation(
+                    solicitudId,
+                    this.processDetailsIndex,
+                    {
+                        changes,
+                        reason: this.processCorrectionReason.trim(),
+                        expected_version: solicitud.__v,
+                    },
+                ),
+            );
+            const updated = response.solicitud;
+            const listIndex = this.solicitudes.findIndex(item => item._id === updated._id);
+            if (listIndex !== -1) {
+                this.solicitudes[listIndex] = updated;
+                this.solicitudes = [...this.solicitudes];
+            }
+            this.processDetailsSolicitud = updated;
+            this.processDetailsInstallation = updated.installations?.[this.processDetailsIndex]
+                || response.installation;
+            this.processDetailsTimeline = this.getProcessTechnicianTimeline(
+                updated,
+                this.processDetailsInstallation,
+                this.processDetailsIndex,
+            );
+            this.resetProcessCorrection();
+            const warning = response.operation_warnings?.join(' ');
+            this.messageService.add({
+                severity: warning ? 'warn' : 'success',
+                summary: warning ? 'Corrección guardada con advertencias' : 'Corrección guardada',
+                detail: warning || 'Los datos fueron actualizados y el usuario quedó registrado en el historial.',
+            });
+            void this.loadProcessDetailsDevice(
+                updated,
+                this.processDetailsInstallation,
+                this.processDetailsIndex,
+            );
+        } catch (error) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo guardar la corrección',
+                detail: getApiErrorMessage(
+                    error,
+                    'Revisa los datos o recarga la solicitud antes de intentarlo nuevamente.',
+                ),
+            });
+        } finally {
+            this.processCorrectionSaving = false;
+        }
+    }
+
+    getLatestProcessCorrection(
+        installation: InstallationDetail | null = this.processDetailsInstallation,
+    ): InstallationCorrectionHistoryEntry | null {
+        const history = installation?.correction_history || [];
+        return history.length ? history[history.length - 1] : null;
+    }
+
+    getCorrectionFieldLabel(field: string): string {
+        const labels: Record<string, string> = {
+            process_type: 'tipo de proceso', device_type: 'tipo de dispositivo',
+            target_name: 'nombre del objetivo', target_category: 'categoría del objetivo',
+            deinstallation_reason: 'razón de desinstalación', brand: 'marca', model: 'modelo',
+            year: 'año', color: 'color', plate: 'placa', chassis: 'chasis',
+            device_imei: 'IMEI', new_device_imei: 'nuevo IMEI',
+            sim_card_number: 'SIM', new_sim_card_number: 'nueva SIM',
+            sim_company: 'compañía SIM', new_sim_company: 'nueva compañía SIM',
+            new_protocol: 'nuevo protocolo', province: 'provincia', municipality: 'municipio',
+            sector: 'sector', latitude: 'latitud', longitude: 'longitud',
+            google_maps_url: 'enlace del mapa', location_address: 'dirección',
+            installation_location: 'lugar de instalación', scheduled_date: 'fecha programada',
+            engine_shutdown: 'apagado de motor', ignition_sensor: 'sensor de ignición',
+            installation_details: 'detalles del trabajo', diagnosis: 'diagnóstico',
+            resolution_type: 'resolución', connection_status: 'estado de conexión',
+            checkup_recovery: 'acciones del chequeo', contacts: 'contacto', notes: 'notas',
+        };
+        return labels[field] || field.replace(/_/g, ' ');
     }
 
     private async loadProcessDetailsDevice(
@@ -4545,22 +4902,36 @@ async initLocationMap(): Promise<void> {
             || solicitud.status === 'rechazada'
             ? 'danger'
             : (installation.omitted ? 'info' : (installation.completed ? 'success' : 'warning'));
+        const completedFromOffice = installation.completion_source === 'office';
         add({
             title: installation.cancelled
                 ? 'Canceló este proceso'
                 : (installation.omitted
                     ? 'Este proceso fue omitido automáticamente'
-                    : (installation.completed ? 'Finalizó este proceso' : 'El proceso permanece pendiente')),
+                    : (installation.completed
+                        ? (completedFromOffice ? 'Proceso finalizado desde oficina' : 'Finalizó este proceso')
+                        : 'El proceso permanece pendiente')),
             description: installation.cancelled
                 ? 'El técnico marcó este proceso como cancelado.'
                 : (installation.omitted
                     ? (installation.omitted_reason || 'La solicitud finalizó antes de completar este proceso.')
-                    : (installation.completed ? 'El técnico marcó el trabajo como realizado.' : 'Todavía no existe un cierre técnico registrado.')),
-            icon: installation.cancelled ? 'pi-times-circle' : (installation.omitted ? 'pi-minus-circle' : (installation.completed ? 'pi-flag-fill' : 'pi-clock')),
+                    : (installation.completed
+                        ? (completedFromOffice
+                            ? (installation.office_completion_reason || 'El técnico asignado no finalizó el proceso desde la aplicación.')
+                            : 'El técnico marcó el trabajo como realizado.')
+                        : 'Todavía no existe un cierre técnico registrado.')),
+            icon: installation.cancelled ? 'pi-times-circle' : (installation.omitted ? 'pi-minus-circle' : (installation.completed ? (completedFromOffice ? 'pi-building' : 'pi-flag-fill') : 'pi-clock')),
             state: finalState,
-            timestamp: installation.omitted_at || (installation.completed || installation.cancelled ? solicitud.completed_date : undefined),
+            timestamp: installation.omitted_at
+                || (installation.completed || installation.cancelled
+                    ? (installation.completed_at || solicitud.completed_date)
+                    : undefined),
             details: details(
                 ['Estado del proceso', installation.cancelled ? 'Cancelado' : (installation.omitted ? 'Omitido' : (installation.completed ? 'Realizado' : 'Pendiente'))],
+                ['Origen del cierre', completedFromOffice ? 'Oficina' : (installation.completed ? 'Técnico' : '')],
+                ['Finalizado por', completedFromOffice ? installation.completed_by_name : ''],
+                ['Correo del empleado', completedFromOffice ? installation.completed_by_email : ''],
+                ['Constancia', completedFromOffice ? 'El técnico asignado no registró la finalización.' : ''],
                 ['Estado de la solicitud', this.statusLabels[solicitud.status] || solicitud.status],
                 ['Estado del GPS al finalizar', (installation.completed || installation.cancelled || installation.omitted)
                     && this.hasInstallationFinalDeviceStatus(installation)
@@ -4577,6 +4948,25 @@ async initLocationMap(): Promise<void> {
                     : ''],
             ),
         });
+
+        for (const correction of installation.correction_history || []) {
+            add({
+                title: 'Realizó una corrección administrativa',
+                description: correction.reason
+                    ? correction.reason
+                    : 'Actualizó datos registrados después del cierre del proceso.',
+                icon: 'pi-pencil',
+                state: 'info',
+                timestamp: correction.corrected_at,
+                details: details(
+                    ['Corregido por', correction.corrected_by_name],
+                    ['Correo', correction.corrected_by_email],
+                    ['Campos modificados', (correction.changed_fields || [])
+                        .map(field => this.getCorrectionFieldLabel(field))
+                        .join(', ')],
+                ),
+            });
+        }
 
         return items;
     }
@@ -4900,6 +5290,22 @@ async initLocationMap(): Promise<void> {
             return;
         }
         this.deinstallationReasonError = false;
+
+        const includesReinstallation = this.selectedSolicitud.type === 'reinstalacion'
+            || (
+                this.selectedSolicitud.type === 'mixta'
+                && this.selectedSolicitud.installations?.some(
+                    installation => this.getInstallationProcessType(installation) === 'reinstalacion',
+                )
+            );
+        if (includesReinstallation && !String(this.selectedSolicitud.client_id || '').trim()) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Cliente requerido',
+                detail: 'Seleccione la cuenta que conserva el GPS antes de crear la reinstalación.',
+            });
+            return;
+        }
 
         // Chequeos y desinstalaciones necesitan identificar el dispositivo.
         if (this.isDeviceRequiredForSolicitud()) {

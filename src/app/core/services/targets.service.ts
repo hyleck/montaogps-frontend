@@ -290,7 +290,11 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
-  async cancelTarget(id: string, cancelData: { reason: string; description: string }): Promise<any> {
+  async cancelTarget(id: string, cancelData: {
+    reason: string;
+    description: string;
+    disposition: 'return_to_company' | 'retained_by_client' | 'not_recovered';
+  }): Promise<any> {
     const observable = this.http.patch(`${this.apiUrl}/${id}/cancel`, cancelData);
     return await lastValueFrom(observable);
   }
@@ -325,6 +329,17 @@ export class TargetsService {
 
     const observable = this.http.get<TargetsResponse>(`${this.apiUrl}/search`, { params });
     return await lastValueFrom(observable);
+  }
+
+  async searchRetainedTargets(query: string, parentId: string): Promise<Target[]> {
+    const observable = this.http.get<Target[]>(`${this.apiUrl}/canceled/search`, {
+      params: {
+        q: query,
+        parent: parentId,
+        disposition: 'retained_by_client',
+      },
+    });
+    return lastValueFrom(observable);
   }
 
   async getExpiredConnectionPriorityTargets(): Promise<Target[]> {

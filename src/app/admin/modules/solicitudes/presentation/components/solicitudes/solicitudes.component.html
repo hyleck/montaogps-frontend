@@ -515,6 +515,9 @@
                                     <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
                                     <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
                                 </span>
+                                <small *ngIf="inst.completion_source === 'office'" class="sol-process-office-status">
+                                    <i class="pi pi-building"></i> Finalizado desde oficina
+                                </small>
                                 <small *ngIf="(inst.completed || inst.cancelled || inst.omitted) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
                                     [attr.data-state]="getInstallationFinalDeviceState(inst)">
                                     <i [class]="getInstallationFinalDeviceStatusIcon(inst)"></i>
@@ -651,6 +654,9 @@
                                     <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
                                     <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
                                 </span>
+                                <small *ngIf="inst.completion_source === 'office'" class="sol-process-office-status">
+                                    <i class="pi pi-building"></i> Finalizado desde oficina
+                                </small>
                                 <small *ngIf="(inst.completed || inst.cancelled || inst.omitted) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
                                     [attr.data-state]="getInstallationFinalDeviceState(inst)">
                                     <i [class]="getInstallationFinalDeviceStatusIcon(inst)"></i>
@@ -778,6 +784,9 @@
                                     <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
                                     <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
                                 </span>
+                                <small *ngIf="inst.completion_source === 'office'" class="sol-process-office-status">
+                                    <i class="pi pi-building"></i> Finalizado desde oficina
+                                </small>
                                 <small *ngIf="(inst.completed || inst.cancelled || inst.omitted) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
                                     [attr.data-state]="getInstallationFinalDeviceState(inst)">
                                     <i [class]="getInstallationFinalDeviceStatusIcon(inst)"></i>
@@ -906,6 +915,9 @@
                         <i class="pi" [ngClass]="inst.cancelled ? 'pi-times-circle' : (inst.omitted ? 'pi-minus-circle' : (inst.completed ? 'pi-check-circle' : 'pi-circle'))"></i>
                         <span class="sol-process-summary">
                             <span class="sol-process-name">{{ getKanbanProcessLabel(sol, inst, i) }}</span>
+                            <small *ngIf="inst.completion_source === 'office'" class="sol-process-office-status">
+                                <i class="pi pi-building"></i> Finalizado desde oficina
+                            </small>
                             <small *ngIf="(inst.completed || inst.cancelled || inst.omitted) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
                                 [attr.data-state]="getInstallationFinalDeviceState(inst)">
                                 <i [class]="getInstallationFinalDeviceStatusIcon(inst)"></i>
@@ -1018,7 +1030,7 @@
     </ng-template>
 </p-dialog>
 
-<p-dialog *ngIf="selectedSolicitud" [(visible)]="locationConfigDialogVisible"
+<p-dialog *ngIf="selectedSolicitud || processCorrectionDraft" [(visible)]="locationConfigDialogVisible"
     [modal]="true" [draggable]="false" [resizable]="false"
     [style]="{ width: '620px', maxWidth: '94vw' }"
     [header]="solicitudLocationConfigTitle"
@@ -1150,35 +1162,54 @@
                 <span>Escribir coordenadas</span>
             </div>
 
-            <div class="sol-location-config-coordinates" *ngIf="locationConfigTarget === 'root'">
-                <label>
-                    <span>Latitud</span>
-                    <input type="number" [(ngModel)]="selectedSolicitud.latitude"
-                        min="-90" max="90" step="0.000001" placeholder="18.486100" />
-                </label>
-                <label>
-                    <span>Longitud</span>
-                    <input type="number" [(ngModel)]="selectedSolicitud.longitude"
-                        min="-180" max="180" step="0.000001" placeholder="-69.931200" />
-                </label>
-                <button type="button" (click)="applySolicitudLocationCoordinates()">Aplicar</button>
-            </div>
-
-            <ng-container *ngIf="selectedSolicitud.installations?.[editingInstallationIndex] as locationInstallation">
-                <div class="sol-location-config-coordinates" *ngIf="locationConfigTarget === 'installation'">
+            <ng-container *ngIf="selectedSolicitud as locationSolicitud">
+                <div class="sol-location-config-coordinates" *ngIf="locationConfigTarget === 'root'">
                     <label>
                         <span>Latitud</span>
-                        <input type="number" [(ngModel)]="locationInstallation.latitude"
+                        <input type="number" [(ngModel)]="locationSolicitud.latitude"
                             min="-90" max="90" step="0.000001" placeholder="18.486100" />
                     </label>
                     <label>
                         <span>Longitud</span>
-                        <input type="number" [(ngModel)]="locationInstallation.longitude"
+                        <input type="number" [(ngModel)]="locationSolicitud.longitude"
                             min="-180" max="180" step="0.000001" placeholder="-69.931200" />
                     </label>
                     <button type="button" (click)="applySolicitudLocationCoordinates()">Aplicar</button>
                 </div>
             </ng-container>
+
+            <ng-container *ngIf="selectedSolicitud as locationSolicitud">
+                <ng-container *ngIf="locationSolicitud.installations?.[editingInstallationIndex] as locationInstallation">
+                    <div class="sol-location-config-coordinates" *ngIf="locationConfigTarget === 'installation'">
+                        <label>
+                            <span>Latitud</span>
+                            <input type="number" [(ngModel)]="locationInstallation.latitude"
+                                min="-90" max="90" step="0.000001" placeholder="18.486100" />
+                        </label>
+                        <label>
+                            <span>Longitud</span>
+                            <input type="number" [(ngModel)]="locationInstallation.longitude"
+                                min="-180" max="180" step="0.000001" placeholder="-69.931200" />
+                        </label>
+                        <button type="button" (click)="applySolicitudLocationCoordinates()">Aplicar</button>
+                    </div>
+                </ng-container>
+            </ng-container>
+
+            <div class="sol-location-config-coordinates"
+                *ngIf="locationConfigTarget === 'correction' && processCorrectionDraft as correctionLocation">
+                <label>
+                    <span>Latitud</span>
+                    <input type="number" [(ngModel)]="correctionLocation.latitude"
+                        min="-90" max="90" step="0.000001" placeholder="18.486100" />
+                </label>
+                <label>
+                    <span>Longitud</span>
+                    <input type="number" [(ngModel)]="correctionLocation.longitude"
+                        min="-180" max="180" step="0.000001" placeholder="-69.931200" />
+                </label>
+                <button type="button" (click)="applySolicitudLocationCoordinates()">Aplicar</button>
+            </div>
 
             <div class="sol-location-config-map-header">
                 <div>
@@ -1366,6 +1397,221 @@
     <ng-template pTemplate="content">
         <div class="sol-closed-info" *ngIf="processDetailsSolicitud as sol">
             <ng-container *ngIf="processDetailsInstallation as installation">
+                <div class="sol-correction-editor" *ngIf="processCorrectionMode && processCorrectionDraft as correction">
+                    <header class="sol-correction-editor__header">
+                        <span class="sol-correction-editor__icon"><i class="pi pi-pencil"></i></span>
+                        <div>
+                            <span>Edición posterior al cierre</span>
+                            <h2>Realizar corrección</h2>
+                            <p>Actualiza únicamente los datos que quedaron registrados de forma incorrecta. El sistema conservará el usuario, la fecha y los campos modificados.</p>
+                        </div>
+                    </header>
+
+                    <section class="sol-correction-section">
+                        <div class="sol-correction-section__title">
+                            <i class="pi pi-sliders-h"></i>
+                            <div><strong>Datos del proceso</strong><small>Tipo, dispositivo y referencia principal</small></div>
+                        </div>
+                        <div class="sol-correction-grid sol-correction-grid--three">
+                            <label>Tipo de proceso
+                                <select [(ngModel)]="correction.process_type">
+                                    <option value="instalacion">Instalación</option>
+                                    <option value="reinstalacion">Reinstalación</option>
+                                    <option value="chequeo">Chequeo</option>
+                                    <option value="cambio">Cambio de GPS</option>
+                                    <option value="cambio_vehiculo">Cambio de vehículo</option>
+                                    <option value="desinstalacion">Desinstalación</option>
+                                </select>
+                            </label>
+                            <label>Tipo de dispositivo
+                                <select [(ngModel)]="correction.device_type">
+                                    <option *ngFor="let option of processDeviceTypeOptions" [value]="option.value">{{ option.label }}</option>
+                                </select>
+                            </label>
+                            <label>Nombre del objetivo
+                                <input type="text" [(ngModel)]="correction.target_name" placeholder="Nombre visible del objetivo">
+                            </label>
+                            <label *ngIf="correction.process_type === 'desinstalacion'">Motivo de desinstalación
+                                <select [(ngModel)]="correction.deinstallation_reason">
+                                    <option value="">Sin especificar</option>
+                                    <option *ngFor="let reason of deinstallationReasons" [value]="reason.value">{{ reason.label }}</option>
+                                </select>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="sol-correction-section">
+                        <div class="sol-correction-section__title">
+                            <i class="pi pi-map-marker"></i>
+                            <div><strong>Ubicación</strong><small>Mismo selector utilizado al crear una solicitud</small></div>
+                        </div>
+
+                        <div class="sol-location-config-card sol-correction-location-card"
+                            (click)="openSolicitudLocationConfig('correction')">
+                            <div class="sol-location-config-card__icon"><i class="pi pi-map-marker"></i></div>
+                            <div class="sol-location-config-card__copy">
+                                <strong>Ubicación del proceso <small>(Opcional)</small></strong>
+                                <span *ngIf="correction.latitude != null && correction.longitude != null">
+                                    {{ correction.latitude | number:'1.6-6' }},
+                                    {{ correction.longitude | number:'1.6-6' }}
+                                </span>
+                                <span *ngIf="correction.latitude == null || correction.longitude == null">
+                                    {{ correction.location_address || 'Sin ubicación configurada' }}
+                                </span>
+                            </div>
+                            <button type="button"
+                                (click)="$event.stopPropagation(); openSolicitudLocationConfig('correction')">
+                                <i class="pi pi-map-marker"></i>
+                                Configurar
+                            </button>
+                        </div>
+                    </section>
+
+                    <section class="sol-correction-section">
+                        <div class="sol-correction-section__title">
+                            <i class="pi pi-car"></i>
+                            <div><strong>Vehículo</strong><small>Datos vinculados al objetivo</small></div>
+                        </div>
+                        <div class="sol-correction-grid sol-correction-grid--three">
+                            <label>Marca
+                                <select [(ngModel)]="correction.brand" (change)="onProcessCorrectionBrandChange()">
+                                    <option value="">Sin especificar</option>
+                                    <option *ngFor="let brand of availableBrands" [value]="brand.value">{{ brand.label }}</option>
+                                </select>
+                            </label>
+                            <label>Modelo
+                                <select [(ngModel)]="correction.model" [disabled]="!correction.brand">
+                                    <option value="">Sin especificar</option>
+                                    <option *ngFor="let model of processCorrectionModels" [value]="model.value">{{ model.label }}</option>
+                                </select>
+                            </label>
+                            <label>Año
+                                <select [(ngModel)]="correction.year">
+                                    <option value="">Sin especificar</option>
+                                    <option *ngFor="let year of availableYears" [value]="year.value">{{ year.label }}</option>
+                                </select>
+                            </label>
+                            <label>Color
+                                <select [(ngModel)]="correction.color">
+                                    <option value="">Sin especificar</option>
+                                    <option *ngFor="let color of availableColors" [value]="color.value">{{ color.label }}</option>
+                                </select>
+                            </label>
+                            <label>Placa
+                                <input type="text" [(ngModel)]="correction.plate" placeholder="Ej. A123456">
+                            </label>
+                            <label>Chasis
+                                <input type="text" [(ngModel)]="correction.chassis" placeholder="Número de chasis">
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="sol-correction-section">
+                        <div class="sol-correction-section__title">
+                            <i class="pi pi-microchip"></i>
+                            <div><strong>GPS y SIM</strong><small>Identificadores guardados durante el proceso</small></div>
+                        </div>
+                        <div class="sol-correction-grid sol-correction-grid--three">
+                            <label>IMEI
+                                <input type="text" [(ngModel)]="correction.device_imei" placeholder="IMEI principal">
+                            </label>
+                            <label>SIM
+                                <input type="text" [(ngModel)]="correction.sim_card_number" placeholder="Número de SIM">
+                            </label>
+                            <label>Compañía SIM
+                                <select [(ngModel)]="correction.sim_company">
+                                    <option value="">Sin especificar</option>
+                                    <option *ngFor="let simType of simCardTypes" [value]="simType.value">{{ simType.label }}</option>
+                                </select>
+                            </label>
+                            <label>Nuevo IMEI
+                                <input type="text" [(ngModel)]="correction.new_device_imei" placeholder="Solo si hubo reemplazo">
+                            </label>
+                            <label>Nueva SIM
+                                <input type="text" [(ngModel)]="correction.new_sim_card_number" placeholder="Solo si hubo reemplazo">
+                            </label>
+                            <label>Nueva compañía SIM
+                                <select [(ngModel)]="correction.new_sim_company">
+                                    <option value="">Sin especificar</option>
+                                    <option *ngFor="let simType of simCardTypes" [value]="simType.value">{{ simType.label }}</option>
+                                </select>
+                            </label>
+                            <label>Nuevo protocolo
+                                <input type="text" [(ngModel)]="correction.new_protocol" placeholder="Protocolo registrado">
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="sol-correction-section">
+                        <div class="sol-correction-section__title">
+                            <i class="pi pi-wrench"></i>
+                            <div><strong>Trabajo realizado</strong><small>Configuración, resultado y notas</small></div>
+                        </div>
+                        <div class="sol-correction-grid sol-correction-grid--three">
+                            <label>Lugar de instalación
+                                <app-installation-location-select
+                                    [(ngModel)]="correction.installation_location"
+                                    placeholder="Seleccionar lugar">
+                                </app-installation-location-select>
+                            </label>
+                            <label>Apagado de motor
+                                <select [(ngModel)]="correction.engine_shutdown">
+                                    <option value="">Sin especificar</option><option value="si">Sí</option><option value="no">No</option>
+                                </select>
+                            </label>
+                            <label>Sensor de ignición
+                                <select [(ngModel)]="correction.ignition_sensor">
+                                    <option value="">Sin especificar</option><option value="si">Sí</option><option value="no">No</option>
+                                </select>
+                            </label>
+                            <label *ngIf="correction.process_type === 'chequeo'">Resolución
+                                <select [(ngModel)]="correction.resolution_type">
+                                    <option value="">Sin especificar</option>
+                                    <option value="sin_cambio">Restablecido sin reemplazo</option>
+                                    <option value="corregir_conexion">Conexión o alimentación corregida</option>
+                                    <option value="cambio_simcard">Cambio de SIM card</option>
+                                    <option value="cambio_gps">Cambio de GPS</option>
+                                    <option value="requiere_seguimiento">Requiere seguimiento</option>
+                                </select>
+                            </label>
+                            <label *ngIf="correction.process_type === 'chequeo'">Estado de conexión
+                                <select [(ngModel)]="correction.connection_status">
+                                    <option value="">Sin especificar</option>
+                                    <option value="bien_conectado">Bien conectado</option>
+                                    <option value="mal_conectado">Mal conectado</option>
+                                </select>
+                            </label>
+                            <label class="sol-correction-grid__wide">Diagnóstico
+                                <textarea [(ngModel)]="correction.diagnosis" rows="3" placeholder="Diagnóstico registrado por el técnico"></textarea>
+                            </label>
+                            <label class="sol-correction-grid__wide">Detalles del trabajo
+                                <textarea [(ngModel)]="correction.installation_details" rows="3" placeholder="Detalle de lo realizado"></textarea>
+                            </label>
+                            <label class="sol-correction-grid__wide">Notas
+                                <textarea [(ngModel)]="correction.notes" rows="2" placeholder="Notas adicionales del proceso"></textarea>
+                            </label>
+                        </div>
+
+                        <div class="sol-correction-checks" *ngIf="correction.process_type === 'chequeo' && correction.checkup_recovery as recovery">
+                            <span>Acciones del chequeo</span>
+                            <label><input type="checkbox" [(ngModel)]="recovery.connection_checked"> Conexión revisada</label>
+                            <label><input type="checkbox" [(ngModel)]="recovery.connection_corrected"> Conexión corregida</label>
+                            <label><input type="checkbox" [(ngModel)]="recovery.power_checked"> Alimentación revisada</label>
+                            <label><input type="checkbox" [(ngModel)]="recovery.power_corrected"> Alimentación corregida</label>
+                            <label><input type="checkbox" [(ngModel)]="recovery.sim_replacement_attempted"> SIM reemplazada</label>
+                            <label><input type="checkbox" [(ngModel)]="recovery.gps_replacement_attempted"> GPS reemplazado</label>
+                        </div>
+                    </section>
+
+                    <section class="sol-correction-reason">
+                        <label>Motivo o nota de la corrección <small>(opcional)</small></label>
+                        <textarea [(ngModel)]="processCorrectionReason" rows="3" maxlength="500"
+                            placeholder="Ej. El técnico digitó la placa incorrectamente"></textarea>
+                        <small>{{ processCorrectionReason.length }}/500</small>
+                    </section>
+                </div>
+
+                <div [hidden]="processCorrectionMode">
                 <header class="sol-closed-info__hero">
                     <div class="sol-closed-info__hero-icon">
                         <i class="pi" [ngClass]="installation.cancelled ? 'pi-times' : (installation.omitted ? 'pi-minus' : (installation.completed ? 'pi-check' : 'pi-cog'))"></i>
@@ -1377,9 +1623,33 @@
                     </div>
                     <span class="sol-closed-info__status" [attr.data-status]="installation.cancelled ? 'cancelada' : (installation.omitted ? 'omitida' : 'completada')">
                         <i class="pi" [ngClass]="installation.cancelled ? 'pi-times-circle' : (installation.omitted ? 'pi-minus-circle' : (installation.completed ? 'pi-check-circle' : 'pi-clock'))"></i>
-                        {{ installation.cancelled ? 'Cancelado' : (installation.omitted ? 'Omitido' : (installation.completed ? 'Realizado' : 'Pendiente')) }}
+                        {{ installation.cancelled ? 'Cancelado' : (installation.omitted ? 'Omitido' : (installation.completed ? (installation.completion_source === 'office' ? 'Finalizado desde oficina' : 'Realizado') : 'Pendiente')) }}
                     </span>
                 </header>
+
+                <section class="sol-correction-audit" *ngIf="getLatestProcessCorrection(installation) as latestCorrection">
+                    <span class="sol-correction-audit__icon"><i class="pi pi-history"></i></span>
+                    <div>
+                        <strong>Última corrección realizada por {{ latestCorrection.corrected_by_name }}</strong>
+                        <small>
+                            {{ latestCorrection.corrected_at | date: 'dd/MM/yyyy, h:mm a' }}
+                            · {{ latestCorrection.changed_fields.length }} campo(s) modificado(s)
+                        </small>
+                    </div>
+                    <span>{{ latestCorrection.reason || 'Corrección administrativa' }}</span>
+                </section>
+
+                <section class="sol-office-completion-audit" *ngIf="installation.completion_source === 'office'">
+                    <span class="sol-office-completion-audit__icon"><i class="pi pi-building"></i></span>
+                    <div>
+                        <strong>Finalizado desde oficina por {{ installation.completed_by_name || 'un empleado administrativo' }}</strong>
+                        <small>
+                            {{ installation.completed_at | date: 'dd/MM/yyyy, h:mm a' }}
+                            <ng-container *ngIf="installation.completed_by_email"> · {{ installation.completed_by_email }}</ng-container>
+                        </small>
+                    </div>
+                    <span>{{ installation.office_completion_reason || 'El técnico asignado no registró el cierre del proceso.' }}</span>
+                </section>
 
                 <section class="sol-info-card sol-info-card--full" *ngIf="processDetailsDeviceLoading">
                     <div class="sol-process-device-loading">
@@ -1802,13 +2072,35 @@
                         </ol>
                     </div>
                 </details>
+                </div>
             </ng-container>
         </div>
     </ng-template>
     <ng-template pTemplate="footer">
-        <button type="button" class="sol-btn sol-btn-cancel" (click)="closeKanbanProcessDetails()">
-            <i class="pi pi-times"></i> Cerrar
-        </button>
+        <ng-container *ngIf="!processCorrectionMode; else processCorrectionFooter">
+            <button *ngIf="canCompleteProcessFromOffice()" type="button"
+                class="sol-btn sol-btn-office-completion"
+                [disabled]="processOfficeCompletionSaving"
+                (click)="completeProcessFromOffice()">
+                <i class="pi" [ngClass]="processOfficeCompletionSaving ? 'pi-spin pi-spinner' : 'pi-building'"></i>
+                {{ processOfficeCompletionSaving ? 'Finalizando...' : 'Finalizar desde oficina' }}
+            </button>
+            <button *ngIf="canCorrectProcess()" type="button" class="sol-btn sol-btn-correction" (click)="startProcessCorrection()">
+                <i class="pi pi-pencil"></i> Realizar corrección
+            </button>
+            <button type="button" class="sol-btn sol-btn-cancel" (click)="closeKanbanProcessDetails()">
+                <i class="pi pi-times"></i> Cerrar
+            </button>
+        </ng-container>
+        <ng-template #processCorrectionFooter>
+            <button type="button" class="sol-btn sol-btn-cancel" [disabled]="processCorrectionSaving" (click)="cancelProcessCorrection()">
+                <i class="pi pi-times"></i> Cancelar
+            </button>
+            <button type="button" class="sol-btn sol-btn-save" [disabled]="processCorrectionSaving" (click)="saveProcessCorrection()">
+                <i class="pi" [ngClass]="processCorrectionSaving ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+                {{ processCorrectionSaving ? 'Guardando...' : 'Guardar corrección' }}
+            </button>
+        </ng-template>
     </ng-template>
 </p-dialog>
 
@@ -2247,6 +2539,19 @@
                             Debe seleccionar una razón de desinstalación antes de guardar.
                         </small>
                     </div>
+                    <div class="sol-form-field">
+                        <label>Destino del dispositivo *</label>
+                        <select [(ngModel)]="selectedSolicitud.post_uninstall_disposition" required>
+                            <option *ngFor="let option of postUninstallDispositionOptions" [value]="option.value">
+                                {{ option.label }}
+                            </option>
+                        </select>
+                        <small>
+                            {{ selectedSolicitud.post_uninstall_disposition === 'retained_by_client'
+                                ? 'El GPS quedará reservado para esta cuenta y conservará su fecha de vencimiento.'
+                                : 'El GPS no volverá al inventario disponible hasta completar la revisión correspondiente.' }}
+                        </small>
+                    </div>
                 </div>
 
                 <div class="sol-client-picker">
@@ -2545,6 +2850,17 @@
                                             </option>
                                         </select>
                                     </label>
+                                    <label *ngIf="install.process_type === 'desinstalacion'">
+                                        <span>Destino del dispositivo</span>
+                                        <select
+                                            [(ngModel)]="install.post_uninstall_disposition"
+                                            [disabled]="isSelectedSolicitudFinalized()"
+                                            required>
+                                            <option *ngFor="let option of postUninstallDispositionOptions" [value]="option.value">
+                                                {{ option.label }}
+                                            </option>
+                                        </select>
+                                    </label>
                                 </div>
                                 <p>Equipo, ubicación y detalles del proceso</p>
                             </div>
@@ -2608,11 +2924,13 @@
                         · Chasis {{ selectedSolicitud.installations[editingInstallationIndex].previous_chassis || '—' }}
                     </small>
                 </div>
-                <div *ngIf="selectedSolicitud.type === 'cambio_vehiculo'" class="sol-form-field">
-                    <label>Nombre del nuevo vehículo (opcional)</label>
+                <div class="sol-form-field">
+                    <label>
+                        {{ selectedSolicitud.type === 'cambio_vehiculo' ? 'Nombre del nuevo objetivo' : 'Nombre del objetivo' }} (opcional)
+                    </label>
                     <input type="text"
                         [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].target_name"
-                        placeholder="Ej. Toyota Corolla de Juan" />
+                        [placeholder]="selectedSolicitud.type === 'cambio_vehiculo' ? 'Ej. Toyota Corolla nuevo de Juan' : 'Ej. Toyota Corolla de Juan'" />
                 </div>
                 <div class="sol-form-row sol-form-row-3">
                     <div class="sol-form-field">

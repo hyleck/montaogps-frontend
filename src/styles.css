@@ -1261,6 +1261,19 @@ body:not(.app-dark) .app-dark-dialog .p-dropdown .p-dropdown-label {
   padding: 1rem 1.5rem !important;
 }
 
+.ticket-details-modal.ticket-details-modal--compact .p-dialog-header {
+  padding: 1rem 1.25rem !important;
+}
+
+.ticket-details-modal.ticket-details-modal--compact .p-dialog-content {
+  padding: 1rem 1.25rem !important;
+  overflow: hidden !important;
+}
+
+.ticket-details-modal.ticket-details-modal--compact .p-dialog-footer {
+  padding: 0.75rem 1.25rem !important;
+}
+
 .ticket-details-main {
   padding: 1.5rem;
   display: flex;

@@ -1099,9 +1099,12 @@
                         <div class="target-title">
                             <h4>{{ target.name }}</h4>
                             <span class="canceled-badge">{{ 'common.canceled' | translate }}</span>
+                            <span *ngIf="target.cancellationDisposition === 'retained_by_client'" class="canceled-badge">
+                                Reservado para reinstalación
+                            </span>
                         </div>
                         <div class="target-actions">
-                            <button *ngIf="currentUser?.affiliation_type_id === 'empleado'" type="button" class="restore-btn" (click)="restoreTarget(target._id!)"
+                            <button *ngIf="currentUser?.affiliation_type_id === 'empleado' && target.cancellationDisposition !== 'retained_by_client'" type="button" class="restore-btn" (click)="restoreTarget(target._id!)"
                                 title="{{ 'navbar.restoreTarget' | translate }}">
                                 <i class="pi pi-refresh"></i>
                             </button>
@@ -1417,7 +1420,7 @@
     </ng-template>
 
     <ng-template pTemplate="footer">
-        <button *ngIf="currentUser?.affiliation_type_id === 'empleado'" type="button" (click)="restoreTarget(selectedTargetDetails?._id!)" class="button button--primary">
+        <button *ngIf="currentUser?.affiliation_type_id === 'empleado' && selectedTargetDetails?.cancellationDisposition !== 'retained_by_client'" type="button" (click)="restoreTarget(selectedTargetDetails?._id!)" class="button button--primary">
             <i class="pi pi-refresh"></i>
             {{ 'navbar.restoreTarget' | translate }}
         </button>
@@ -2113,114 +2116,158 @@
 
 <!-- Modal para crear ticket de soporte -->
 @defer (when supportDialogVisible) {
-<p-dialog [(visible)]="supportDialogVisible" [modal]="true" [style]="{width: '550px', maxWidth: '95vw'}"
-    styleClass="app-dark-dialog" appendTo="body">
+<p-dialog [(visible)]="supportDialogVisible" [modal]="true" [style]="{width: '820px', maxWidth: '95vw'}"
+    styleClass="app-dark-dialog support-ticket-dialog" appendTo="body" [draggable]="false" [resizable]="false">
 
-    <!-- Header Personalizado con Tabs -->
     <ng-template pTemplate="header">
-        <div class="flex items-center gap-4 w-full">
-            <button (click)="showCreateForm()" [class.active-tab]="activeSupportTab === 'create'" class="tab-btn">
-                {{ 'support.createTicket' | translate }}
-            </button>
-            <button (click)="showTicketList()" [class.active-tab]="activeSupportTab === 'list'" class="tab-btn">
-                {{ 'support.myTickets' | translate }}
-            </button>
+        <div class="support-dialog-header">
+            <div class="support-dialog-heading">
+                <span class="support-dialog-icon"><i class="pi pi-headphones"></i></span>
+                <div>
+                    <strong>Centro de soporte</strong>
+                    <small>Reporta una incidencia y consulta su avance</small>
+                </div>
+            </div>
+            <div class="support-dialog-tabs" role="tablist" aria-label="Opciones de soporte">
+                <button type="button" role="tab" (click)="showCreateForm()"
+                    [attr.aria-selected]="activeSupportTab === 'create'"
+                    [class.active]="activeSupportTab === 'create'">
+                    <i class="pi pi-plus-circle"></i>
+                    {{ 'support.createTicket' | translate }}
+                </button>
+                <button type="button" role="tab" (click)="showTicketList()"
+                    [attr.aria-selected]="activeSupportTab === 'list'"
+                    [class.active]="activeSupportTab === 'list'">
+                    <i class="pi pi-list-check"></i>
+                    {{ 'support.myTickets' | translate }}
+                    <span *ngIf="userTickets.length" class="support-tab-count">{{ userTickets.length }}</span>
+                </button>
+            </div>
         </div>
     </ng-template>
 
-    <div class="support-content-container">
-        <!-- FORMULARIO DE CREACIÓN -->
-        <div *ngIf="activeSupportTab === 'create'" class="support-form-content p-2">
-            <!-- Título -->
-            <div class="field mb-4">
-                <label for="support-title" class="font-bold block mb-2">
-                    {{ 'support.ticketTitle' | translate }}
-                </label>
-                <input id="support-title" type="text" [(ngModel)]="newTicket.title" class="native-input w-full"
-                    [placeholder]="'support.ticketTitlePlaceholder' | translate" />
-            </div>
+    <div class="support-content-container support-shell">
+        <div *ngIf="activeSupportTab === 'create'" class="support-create-panel">
+            <div class="support-form-grid">
+                <div class="field support-field support-field-wide">
+                    <label for="support-title">
+                        <i class="pi pi-ticket"></i>
+                        {{ 'support.ticketTitle' | translate }}
+                    </label>
+                    <input id="support-title" type="text" [(ngModel)]="newTicket.title" class="native-input"
+                        [placeholder]="'support.ticketTitlePlaceholder' | translate" />
+                </div>
 
-            <!-- Prioridad -->
-            <div class="field mb-4">
-                <label for="support-priority" class="font-bold block mb-2">
-                    {{ 'support.priority' | translate }}
-                </label>
-                <select id="support-priority" [(ngModel)]="newTicket.priority" class="native-select w-full">
-                    <option value="" disabled>{{ 'support.selectPriority' | translate }}</option>
-                    <option *ngFor="let p of priorities" [value]="p.value">{{ p.label }}</option>
-                </select>
-            </div>
+                <div class="field support-field">
+                    <label for="support-priority">
+                        <i class="pi pi-flag"></i>
+                        {{ 'support.priority' | translate }}
+                    </label>
+                    <select id="support-priority" [(ngModel)]="newTicket.priority" class="native-select">
+                        <option value="" disabled>{{ 'support.selectPriority' | translate }}</option>
+                        <option *ngFor="let p of priorities" [value]="p.value">{{ p.label }}</option>
+                    </select>
+                </div>
 
-            <!-- Descripción -->
-            <div class="field mb-1">
-                <label for="support-description" class="font-bold block mb-2">
-                    {{ 'support.descriptionLabel' | translate }}
-                </label>
-                <textarea id="support-description" [(ngModel)]="newTicket.description" rows="6"
-                    class="native-textarea w-full"
-                    [placeholder]="'support.descriptionPlaceholder' | translate"></textarea>
+                <div class="field support-field support-field-full">
+                    <div class="support-label-row">
+                        <label for="support-description">
+                            <i class="pi pi-align-left"></i>
+                            {{ 'support.descriptionLabel' | translate }}
+                        </label>
+                        <span>{{ newTicket.description.length }} caracteres</span>
+                    </div>
+                    <textarea id="support-description" [(ngModel)]="newTicket.description" rows="7"
+                        class="native-textarea"
+                        [placeholder]="'support.descriptionPlaceholder' | translate"></textarea>
+                </div>
             </div>
         </div>
 
-        <!-- LISTADO DE TICKETS (Tabla) -->
         <div *ngIf="activeSupportTab === 'list'" class="support-list-content">
-            <div *ngIf="loadingTickets" class="flex justify-center p-8">
-                <i class="pi pi-spin pi-spinner text-4xl" style="color: var(--globalColorPrimaryInmutable)"></i>
+            <div *ngIf="loadingTickets" class="support-loading-state">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Cargando tus tickets...</span>
             </div>
 
-            <div *ngIf="!loadingTickets && userTickets.length === 0" class="empty-state p-8 text-center">
-                <i class="pi pi-inbox text-5xl mb-3 opacity-30"></i>
-                <p class="text-xl opacity-60">{{ 'support.noTickets' | translate }}</p>
-                <button pButton [label]="'support.newTicket' | translate" class="p-button-text mt-4"
-                    (click)="showCreateForm()"></button>
+            <div *ngIf="!loadingTickets && userTickets.length === 0" class="support-empty-state">
+                <span><i class="pi pi-inbox"></i></span>
+                <strong>{{ 'support.noTickets' | translate }}</strong>
+                <p>Cuando reportes una incidencia podrás consultar aquí su progreso.</p>
+                <button pButton icon="pi pi-plus" [label]="'support.newTicket' | translate"
+                    class="p-button-outlined" (click)="showCreateForm()"></button>
             </div>
 
-            <div *ngIf="!loadingTickets && userTickets.length > 0" class="tickets-table-container">
-                <table class="native-table w-full">
-                    <thead>
-                        <tr>
-                            <th class="text-left px-4 py-3">{{ 'support.table.title' | translate }}</th>
-                            <th class="text-center px-4 py-3">{{ 'support.table.priority' | translate }}</th>
-                            <th class="text-center px-4 py-3">{{ 'support.table.status' | translate }}</th>
-                            <th class="text-right px-4 py-3">{{ 'support.table.date' | translate }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let ticket of userTickets" class="table-row-item">
-                            <td class="px-4 py-3">
-                                <div class="ticket-info-cell">
-                                    <span class="ticket-id-small">#{{ ticket._id.substring(ticket._id.length - 6)
-                                        }}</span>
-                                    <span class="ticket-title-truncate">{{ ticket.title }}</span>
+            <ng-container *ngIf="!loadingTickets && userTickets.length > 0">
+                <div class="support-summary-grid">
+                    <div class="support-summary-card">
+                        <span class="summary-icon total"><i class="pi pi-ticket"></i></span>
+                        <div><small>Total</small><strong>{{ userTickets.length }}</strong></div>
+                    </div>
+                    <div class="support-summary-card">
+                        <span class="summary-icon active"><i class="pi pi-clock"></i></span>
+                        <div><small>Activos</small><strong>{{ activeTicketsCount }}</strong></div>
+                    </div>
+                    <div class="support-summary-card">
+                        <span class="summary-icon done"><i class="pi pi-check-circle"></i></span>
+                        <div><small>Completados</small><strong>{{ completedTicketsCount }}</strong></div>
+                    </div>
+                    <div class="support-resolution-card">
+                        <div><small>Nivel de resolución</small><strong>{{ supportResolutionRate }}%</strong></div>
+                        <div class="support-resolution-track" role="progressbar" aria-label="Nivel de resolución"
+                            [attr.aria-valuenow]="supportResolutionRate" aria-valuemin="0" aria-valuemax="100">
+                            <span [style.width.%]="supportResolutionRate"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="navbar-ticket-list">
+                    <article *ngFor="let ticket of userTickets; trackBy: trackTicketById" class="navbar-ticket-card">
+                        <div class="navbar-ticket-accent" [ngClass]="getStatusClass(ticket.status)"></div>
+                        <div class="navbar-ticket-content">
+                            <div class="navbar-ticket-topline">
+                                <span class="navbar-ticket-id">#{{ ticket._id | slice:-6 }}</span>
+                                <span class="navbar-ticket-date"><i class="pi pi-calendar"></i>{{ ticket.createdAt | date:'mediumDate' }}</span>
+                            </div>
+                            <div class="navbar-ticket-title-row">
+                                <div>
+                                    <h4>{{ ticket.title }}</h4>
+                                    <p>{{ ticket.description }}</p>
                                 </div>
-                            </td>
-                            <td class="px-4 py-3 text-center">
-                                <span class="priority-text-small">
-                                    {{ getPriorityLabel(ticket.priority) | translate }}
+                                <button pButton icon="pi pi-arrow-right" class="p-button-rounded p-button-text"
+                                    (click)="openTicketDetails(ticket)" aria-label="Ver detalles del ticket"></button>
+                            </div>
+                            <div class="navbar-ticket-badges">
+                                <span [class]="'ticket-priority-pill ' + getPriorityClass(ticket.priority)">
+                                    <i class="pi pi-flag-fill"></i>{{ getPriorityLabel(ticket.priority) | translate }}
                                 </span>
-                            </td>
-                            <td class="px-4 py-3 text-center">
                                 <span [class]="'status-badge-compact ' + getStatusClass(ticket.status)">
+                                    <i [class]="getTicketStatusIcon(ticket.status)"></i>
                                     {{ getStatusLabel(ticket.status) | translate }}
                                 </span>
-                            </td>
-                            <td class="px-4 py-3 text-right text-sm opacity-60">
-                                {{ ticket.createdAt | date:'shortDate' }}
-                                <button pButton icon="pi pi-eye"
-                                    class="p-button-outlined p-button-info p-button-rounded p-button-sm ml-2"
-                                    (click)="openTicketDetails(ticket)" [pTooltip]="'common.viewDetails' | translate"
-                                    tooltipPosition="top"></button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                            </div>
+                            <div class="navbar-ticket-progress">
+                                <div>
+                                    <span>Progreso de atención</span>
+                                    <strong>{{ getTicketProgress(ticket.status) }}%</strong>
+                                </div>
+                                <div class="ticket-progress-track" role="progressbar"
+                                    [attr.aria-label]="'Progreso del ticket ' + ticket.title"
+                                    [attr.aria-valuenow]="getTicketProgress(ticket.status)" aria-valuemin="0" aria-valuemax="100">
+                                    <span [ngClass]="getStatusClass(ticket.status)"
+                                        [style.width.%]="getTicketProgress(ticket.status)"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </ng-container>
         </div>
     </div>
 
     <!-- Footer (Solo visible en pestaña de creación) -->
     <ng-template pTemplate="footer">
-        <div *ngIf="activeSupportTab === 'create'">
+        <div *ngIf="activeSupportTab === 'create'" class="support-dialog-actions">
             <button pButton pRipple [label]="'support.cancel' | translate" icon="pi pi-times" class="p-button-text"
                 (click)="supportDialogVisible = false" [disabled]="savingTicket"></button>
             <button pButton pRipple [label]="'support.sendTicket' | translate"
@@ -2277,97 +2324,77 @@
     </ng-template>
 </p-dialog>
 }
-<!-- SUPPORT MODAL HARDCODED V3 -->
 @defer (when ticketDetailsDialogVisible) {
-<p-dialog [(visible)]="ticketDetailsDialogVisible" [modal]="true" [style]="{width: '1000px', maxWidth: '95vw'}"
-    styleClass="app-dark-dialog ticket-details-modal" appendTo="body"
-    [header]="'Detalles del Ticket #' + (selectedTicket?._id | slice:-6)" [dismissableMask]="true"
-    [closeOnEscape]="true" [draggable]="false" [resizable]="false">
+<p-dialog [(visible)]="ticketDetailsDialogVisible" [modal]="true" [style]="{width: '900px', maxWidth: '95vw'}"
+    styleClass="app-dark-dialog ticket-details-modal ticket-details-modal--compact" appendTo="body"
+    [dismissableMask]="true"
+    [closeOnEscape]="true" [draggable]="false" [resizable]="false" (onHide)="onTicketDetailsHidden()">
 
-    <div *ngIf="selectedTicket" class="ticket-details-layout animate-fade-in">
-        <!-- Left Column: Ticket Details -->
-        <div class="ticket-details-left">
-            <!-- Main Info -->
-            <div class="ticket-info-group">
-                <div class="ticket-label">
-                    <i class="pi pi-ticket"></i>
-                    Título del Problema
-                </div>
-                <div class="ticket-value title">{{ selectedTicket.title }}</div>
-                <div class="ticket-meta">
-                    <div class="ticket-date">
-                        <i class="pi pi-calendar"></i>
-                        {{ selectedTicket.createdAt | date:'medium' }}
-                    </div>
-                    <span [class]="'status-badge ' + getStatusClass(selectedTicket.status)">
+    <ng-template pTemplate="header">
+        <div *ngIf="selectedTicket" class="ticket-detail-dialog-header">
+            <span class="ticket-detail-header-icon"><i class="pi pi-ticket"></i></span>
+            <div>
+                <small>TICKET #{{ selectedTicket._id | slice:-6 }}</small>
+                <strong>Detalles del ticket</strong>
+                <span>{{ selectedTicket.title }}</span>
+            </div>
+        </div>
+    </ng-template>
+
+    <div *ngIf="selectedTicket" class="ticket-details-layout ticket-details-layout--modern animate-fade-in">
+        <section class="ticket-details-left">
+            <article class="ticket-overview-card">
+                <div class="ticket-overview-topline">
+                    <span [class]="'ticket-priority-pill ' + getPriorityClass(selectedTicket.priority)">
+                        <i class="pi pi-flag"></i>
+                        {{ getPriorityLabel(selectedTicket.priority) | translate }}
+                    </span>
+                    <span [class]="'status-badge-compact ' + getStatusClass(selectedTicket.status)">
+                        <i [class]="getTicketStatusIcon(selectedTicket.status)"></i>
                         {{ getStatusLabel(selectedTicket.status) | translate }}
                     </span>
                 </div>
-            </div>
+                <h3>{{ selectedTicket.title }}</h3>
+                <p><i class="pi pi-calendar"></i>{{ selectedTicket.createdAt | date:'medium' }}</p>
 
-            <!-- Details Grid -->
-            <div class="ticket-grid">
-                <!-- Priority -->
-                <div class="ticket-info-group">
-                    <div class="ticket-label">
-                        <i class="pi pi-flag"></i>
-                        Prioridad
+                <div class="ticket-detail-progress">
+                    <div>
+                        <span>Progreso de atención</span>
+                        <strong>{{ getTicketProgress(selectedTicket.status) }}%</strong>
                     </div>
-                    <div class="ticket-value">
-                        <span class="flex align-items-center gap-2">
-                            <i class="pi pi-flag" [ngClass]="{
-                                'text-green-500': selectedTicket.priority === 'low',
-                                'text-blue-500': selectedTicket.priority === 'medium',
-                                'text-orange-500': selectedTicket.priority === 'high',
-                                'text-red-500': selectedTicket.priority === 'critical'
-                            }"></i>
-                            {{ getPriorityLabel(selectedTicket.priority) | translate }}
-                        </span>
+                    <div class="ticket-progress-track" role="progressbar"
+                        [attr.aria-valuenow]="getTicketProgress(selectedTicket.status)"
+                        aria-valuemin="0" aria-valuemax="100">
+                        <span [ngClass]="getStatusClass(selectedTicket.status)"
+                            [style.width.%]="getTicketProgress(selectedTicket.status)"></span>
                     </div>
                 </div>
+            </article>
 
-                <!-- Type -->
-                <div class="ticket-info-group">
-                    <div class="ticket-label">
-                        <i class="pi pi-tag"></i>
-                        Tipo
-                    </div>
-                    <div class="ticket-value">
-                        <span class="flex align-items-center gap-2">
-                            <i class="pi pi-tag text-purple-500"></i>
-                            {{ selectedTicket.type || 'General' }}
-                        </span>
-                    </div>
-                </div>
+            <article class="ticket-description-card">
+                <header><i class="pi pi-align-left"></i><strong>Descripción</strong></header>
+                <p>{{ selectedTicket.description }}</p>
+            </article>
+
+            <article *ngIf="selectedTicket.response" class="ticket-description-card ticket-response-card">
+                <header><i class="pi pi-comments"></i><strong>Respuesta del soporte</strong></header>
+                <p>{{ selectedTicket.response }}</p>
+            </article>
+        </section>
+
+        <section class="ticket-details-right">
+            <div class="ticket-files-heading">
+                <span><i class="pi pi-paperclip"></i></span>
+                <div><strong>Archivos y evidencias</strong><small>Documentos, imágenes y notas del ticket</small></div>
             </div>
-
-            <!-- Description -->
-            <div class="ticket-info-group">
-                <div class="ticket-label">
-                    <i class="pi pi-align-left"></i>
-                    Descripción Detallada
-                </div>
-                <div class="ticket-value" style="white-space: pre-wrap;">{{ selectedTicket.description }}</div>
+            <div class="ticket-cloud-wrapper">
+                <app-cloud [targetId]="selectedTicket._id"></app-cloud>
             </div>
-
-            <!-- Response -->
-            <div *ngIf="selectedTicket.response" class="ticket-info-group ticket-response">
-                <div class="ticket-label">
-                    <i class="pi pi-comments"></i>
-                    Respuesta del Soporte
-                </div>
-                <div class="ticket-value" style="white-space: pre-wrap;">{{ selectedTicket.response }}</div>
-            </div>
-        </div>
-
-        <!-- Right Column: Cloud Files -->
-        <div class="ticket-details-right">
-            <app-cloud [targetId]="selectedTicket._id"></app-cloud>
-        </div>
+        </section>
     </div>
 
     <ng-template pTemplate="footer">
-        <button pButton pRipple label="Cerrar" icon="pi pi-times" class="p-button-outlined p-button-secondary w-full"
+        <button pButton pRipple label="Cerrar" icon="pi pi-times" class="p-button-outlined p-button-secondary"
             (click)="ticketDetailsDialogVisible = false"></button>
     </ng-template>
 </p-dialog>

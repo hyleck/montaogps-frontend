@@ -31,6 +31,8 @@ describe('SolicitudesComponent scheduled date editing', () => {
             })),
             create: jasmine.createSpy('create').and.returnValue(of({})),
             update: jasmine.createSpy('update').and.returnValue(of({})),
+            correctInstallation: jasmine.createSpy('correctInstallation'),
+            completeInstallationFromOffice: jasmine.createSpy('completeInstallationFromOffice'),
             applyVehicleChange: jasmine.createSpy('applyVehicleChange').and.callFake((id: string) => of({
                 _id: id,
                 type: 'cambio_vehiculo',
@@ -72,6 +74,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
         const vehicleBrandsService = {
             getMunicipalities: jasmine.createSpy('getMunicipalities').and.resolveTo([]),
             getSectors: jasmine.createSpy('getSectors').and.resolveTo([]),
+            getAllModelsByBrand: jasmine.createSpy('getAllModelsByBrand').and.resolveTo([]),
         };
         const userService = {
             searchSolicitudClients: jasmine.createSpy('searchSolicitudClients').and.returnValue(of({
@@ -132,7 +135,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
         };
     }
 
-    it('selects the SIM company automatically when an IMEI is selected', () => {
+    it('selects the SIM company and objective name automatically when an IMEI is selected', () => {
         const { component, inventoryService } = createComponent();
         inventoryService.findSimcardByIccid.and.returnValue(of({
             iccid: '8099823107',
@@ -149,12 +152,14 @@ describe('SolicitudesComponent scheduled date editing', () => {
             value: {
                 IMEI: '862667088695',
                 SIM: '8099823107',
-            },
+                name: 'Toyota Corolla de Juan',
+            } as any,
         }, 0, 'current');
 
         expect(inventoryService.findSimcardByIccid).toHaveBeenCalledWith('8099823107');
         expect(component.selectedSolicitud.installations?.[0].sim_card_number).toBe('8099823107');
         expect(component.selectedSolicitud.installations?.[0].sim_company).toBe('global-e');
+        expect(component.selectedSolicitud.installations?.[0].target_name).toBe('Toyota Corolla de Juan');
     });
 
     it('searches only the selected client objectives for vehicle changes', async () => {
@@ -2455,5 +2460,186 @@ describe('SolicitudesComponent scheduled date editing', () => {
         component.openSolicitudAssistance(inProgress);
         expect(component.assistanceDialogVisible).toBeTrue();
         expect(component.assistanceSolicitud).toBe(inProgress);
+    });
+
+    it('opens correction mode only for completed or omitted processes', async () => {
+        const { component } = createComponent();
+        const completed = { completed: true, plate: 'A000001' };
+        component.processDetailsSolicitud = {
+            _id: 'request-id',
+            type: 'instalacion',
+            status: 'completada',
+            installations: [completed],
+        };
+        component.processDetailsInstallation = completed;
+
+        await component.startProcessCorrection();
+
+        expect(component.processCorrectionMode).toBeTrue();
+        expect(component.processCorrectionDraft).toEqual(jasmine.objectContaining({
+            process_type: 'instalacion',
+            device_type: 'gps',
+            plate: 'A000001',
+        }));
+
+        component.cancelProcessCorrection();
+        component.processDetailsInstallation = { completed: false, omitted: false };
+        await component.startProcessCorrection();
+        expect(component.processCorrectionMode).toBeFalse();
+    });
+
+    it('asks for confirmation before an employee finalizes a pending process from office', () => {
+        const { component, confirmationService } = createComponent();
+        component.processDetailsSolicitud = {
+            _id: 'request-office-close',
+            __v: 2,
+            type: 'instalacion',
+            status: 'en_progreso',
+            installations: [{ completed: false, cancelled: false, omitted: false }],
+        };
+        component.processDetailsInstallation = component.processDetailsSolicitud.installations![0];
+
+        component.completeProcessFromOffice();
+
+        expect(confirmationService.confirm).toHaveBeenCalledWith(jasmine.objectContaining({
+            header: 'Finalizar proceso desde oficina',
+            key: 'solicitudes-confirm',
+            accept: jasmine.any(Function),
+        }));
+    });
+
+    it('refreshes the process with the office completion audit returned by the server', async () => {
+        const { component, solicitudesService, messageService } = createComponent();
+        const pending = { completed: false, cancelled: false, omitted: false };
+        const officeCompleted = {
+            ...pending,
+            completed: true,
+            completion_source: 'office' as const,
+            completed_at: '2026-08-19T13:00:00.000Z',
+            completed_by_id: 'root-1',
+            completed_by_name: 'Usuario Root',
+            technician_completion_missing: true,
+        };
+        const current: Solicitud = {
+            _id: 'request-office-close',
+            __v: 2,
+            type: 'instalacion',
+            status: 'en_progreso',
+            installations: [pending],
+        };
+        const updated: Solicitud = {
+            ...current,
+            __v: 3,
+            status: 'por_confirmar',
+            installations: [officeCompleted],
+        };
+        solicitudesService.completeInstallationFromOffice.and.returnValue(of({
+            solicitud: updated,
+            installation: officeCompleted,
+        }));
+        component.solicitudes = [current];
+        component.processDetailsSolicitud = current;
+        component.processDetailsInstallation = pending;
+        component.processDetailsIndex = 0;
+
+        await (component as any).persistProcessOfficeCompletion();
+
+        expect(solicitudesService.completeInstallationFromOffice).toHaveBeenCalledWith(
+            'request-office-close',
+            0,
+            jasmine.objectContaining({ expected_version: 2 }),
+        );
+        expect(component.processDetailsInstallation?.completion_source).toBe('office');
+        expect(component.processDetailsTimeline.some(item =>
+            item.title === 'Proceso finalizado desde oficina',
+        )).toBeTrue();
+        expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({
+            summary: 'Proceso finalizado desde oficina',
+        }));
+    });
+
+    it('saves a correction and refreshes the audited process details', async () => {
+        const { component, solicitudesService, messageService } = createComponent();
+        const current = { completed: true, device_imei: '862667088436426', plate: 'A000001' };
+        const corrected = {
+            ...current,
+            plate: 'A999999',
+            correction_history: [{
+                corrected_at: '2026-08-19T12:00:00.000Z',
+                corrected_by_id: 'root-1',
+                corrected_by_name: 'Usuario Root',
+                changed_fields: ['plate'],
+            }],
+        };
+        const updated: Solicitud = {
+            _id: 'request-id',
+            __v: 8,
+            type: 'instalacion',
+            status: 'completada',
+            installations: [corrected],
+        };
+        solicitudesService.correctInstallation.and.returnValue(of({
+            solicitud: updated,
+            installation: corrected,
+            correction: corrected.correction_history[0],
+        }));
+        component.solicitudes = [{
+            _id: 'request-id',
+            __v: 7,
+            type: 'instalacion',
+            status: 'completada',
+            installations: [current],
+        }];
+        component.processDetailsSolicitud = component.solicitudes[0];
+        component.processDetailsInstallation = current;
+        component.processDetailsIndex = 0;
+        component.processCorrectionMode = true;
+        component.processCorrectionDraft = { ...current, plate: 'A999999' };
+
+        await component.saveProcessCorrection();
+
+        expect(solicitudesService.correctInstallation).toHaveBeenCalledWith(
+            'request-id',
+            0,
+            jasmine.objectContaining({
+                changes: jasmine.objectContaining({ plate: 'A999999' }),
+                expected_version: 7,
+            }),
+        );
+        expect(component.processDetailsInstallation?.plate).toBe('A999999');
+        expect(component.getLatestProcessCorrection()?.corrected_by_name).toBe('Usuario Root');
+        expect(messageService.add).toHaveBeenCalledWith(
+            jasmine.objectContaining({ summary: 'Corrección guardada' }),
+        );
+    });
+
+    it('uses the shared request location selector for process corrections', () => {
+        const { component } = createComponent();
+        component.selectedSolicitud = null;
+        component.processCorrectionMode = true;
+        component.processCorrectionDraft = {
+            completed: true,
+            latitude: 19.451234,
+            longitude: -70.692345,
+            location_address: 'Santiago de los Caballeros',
+            google_maps_url: 'https://www.google.com/maps?q=19.451234,-70.692345',
+        };
+
+        component.openSolicitudLocationConfig('correction');
+
+        expect(component.locationConfigDialogVisible).toBeTrue();
+        expect(component.locationConfigTarget).toBe('correction');
+        expect(component.solicitudLocationConfigTitle).toBe('Ubicación del proceso');
+        expect(component.solicitudLocationCoordinates).toEqual({
+            latitude: 19.451234,
+            longitude: -70.692345,
+        });
+        expect(component.locationConfigSelectedAddress).toBe('Santiago de los Caballeros');
+
+        component.clearSolicitudLocationConfig();
+        expect(component.processCorrectionDraft.latitude).toBeUndefined();
+        expect(component.processCorrectionDraft.longitude).toBeUndefined();
+        expect(component.processCorrectionDraft.location_address).toBeUndefined();
+        expect(component.processCorrectionDraft.google_maps_url).toBeUndefined();
     });
 });

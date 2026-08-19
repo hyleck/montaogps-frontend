@@ -51,6 +51,7 @@ export interface Target {
   shutdown_control?: string | null;
   engine_shutdown?: string | null;
   installation_details?: string;
+  cancellationDisposition?: 'return_to_company' | 'retained_by_client' | 'not_recovered';
   status: 'active' | 'inactive' | null;
   server_id?: string | null;
   user_id?: string;
@@ -107,6 +108,7 @@ export interface CreateTargetDto {
   canceled: boolean;
   cancelReason?: string;
   cancelDescription?: string;
+  cancellationDisposition?: 'return_to_company' | 'retained_by_client' | 'not_recovered';
   delete: boolean;
   index: string;
   creator_id: string;
@@ -199,6 +201,7 @@ export interface TargetDevice {
   canceled: boolean;
   cancelReason?: string;
   cancelDescription?: string;
+  cancellationDisposition?: 'return_to_company' | 'retained_by_client' | 'not_recovered';
   deleted: boolean;
   shared?: string;
   index: string;

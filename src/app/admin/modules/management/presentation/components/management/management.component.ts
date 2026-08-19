@@ -181,8 +181,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
   massCancelSource: 'shortcuts' | 'selected' = 'shortcuts';
   cancelForm = {
     reason: '',
-    description: ''
+    description: '',
+    disposition: 'return_to_company' as 'return_to_company' | 'retained_by_client' | 'not_recovered',
   };
+  readonly cancellationDispositionOptions = [
+    { label: 'Regresa a Montao para revisión', value: 'return_to_company' },
+    { label: 'Lo conserva el cliente para reinstalarlo', value: 'retained_by_client' },
+    { label: 'No fue recuperado', value: 'not_recovered' },
+  ];
   cancelReasons = DEVICE_CANCELLATION_REASONS;
 
   // Suspend dialog state
@@ -5049,7 +5055,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.targetToCancel = target;
         this.cancelForm = {
           reason: '',
-          description: ''
+          description: '',
+          disposition: 'return_to_company'
         };
         this.cancelDialogVisible = true;
       },
@@ -5085,7 +5092,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.targetToCancel = null;
     this.cancelForm = {
       reason: '',
-      description: ''
+      description: '',
+      disposition: 'return_to_company'
     };
   }
 
@@ -5135,7 +5143,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // 1. Cancelar el target usando el nuevo endpoint
       await this.targetsService.cancelTarget(this.targetToCancel._id, {
         reason: this.cancelForm.reason,
-        description: this.cancelForm.description
+        description: this.cancelForm.description,
+        disposition: this.cancelForm.disposition,
       });
 
       // 2. Registrar el proceso de cancelación
@@ -5158,7 +5167,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.targetToCancel = null;
       this.cancelForm = {
         reason: '',
-        description: ''
+        description: '',
+        disposition: 'return_to_company'
       };
 
     } catch (error) {
@@ -5203,7 +5213,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
         status: "canceled",
         canceled: true,
         cancelReason: this.cancelForm.reason,
-        cancelDescription: this.cancelForm.description
+        cancelDescription: this.cancelForm.description,
+        cancellationDisposition: this.cancelForm.disposition,
       },
       creator: this.authService.getCurrentUser()?.id || "creator_ejemplo_id"
     };
@@ -5475,7 +5486,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.targetToCancel = { name: `${this.targetsSelected.length} Dispositivos (Seleccionados)`, device_imei: 'Múltiples IMEI' };
         this.cancelForm = {
           reason: '',
-          description: ''
+          description: '',
+          disposition: 'return_to_company'
         };
         this.cancelDialogVisible = true;
       }
@@ -5627,7 +5639,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.targetToCancel = { name: `${this.shortcuts.length} Dispositivos (Múltiple)`, device_imei: 'Múltiples IMEI' };
         this.cancelForm = {
           reason: '',
-          description: ''
+          description: '',
+          disposition: 'return_to_company'
         };
         this.cancelDialogVisible = true;
       }
@@ -5660,7 +5673,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
         try {
           await this.targetsService.cancelTarget(target._id, {
             reason: this.cancelForm.reason,
-            description: this.cancelForm.description
+            description: this.cancelForm.description,
+            disposition: this.cancelForm.disposition,
           });
 
           await this.createCancelationProcess(target);
@@ -5714,7 +5728,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.isMassCancelMode = false;
       this.massCancelSource = 'shortcuts';
       this.targetToCancel = null;
-      this.cancelForm = { reason: '', description: '' };
+      this.cancelForm = {
+        reason: '',
+        description: '',
+        disposition: 'return_to_company',
+      };
     }
   }
 

@@ -1,191 +1,739 @@
+:host {
+    display: block;
+}
+
 .support-container {
-    padding: 1.5rem;
+    padding: clamp(1rem, 2vw, 1.75rem);
 }
 
-/* ============================================
-   SUPPORT FORM - CLEAN MODERN DESIGN
-   ============================================ */
-
-/* Clean Form Header */
-:host ::ng-deep .text-center {
-    padding: 2rem 0 1.5rem !important;
-    border-bottom: 2px solid rgba(16, 185, 129, 0.2) !important;
-    margin-bottom: 2rem !important;
-    background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, transparent 100%) !important;
+.support-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    color: var(--globalColorTextInput);
 }
 
-:host ::ng-deep .text-center i {
-    color: #10b981 !important;
-    font-size: 3rem !important;
-    margin-bottom: 1rem !important;
-    display: block !important;
+.support-hero {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 1.35rem 1.5rem;
+    border: 1px solid rgba(200, 50, 50, 0.2);
+    border-radius: 18px;
+    background:
+        radial-gradient(circle at 90% 10%, rgba(200, 50, 50, 0.14), transparent 28%),
+        linear-gradient(135deg, var(--managementColorCardBackground), rgba(200, 50, 50, 0.045));
 }
 
-:host ::ng-deep .text-muted {
-    color: #d1d5db !important;
-    font-size: 1rem !important;
-    font-weight: 400 !important;
-    line-height: 1.5 !important;
-    margin: 0 !important;
+.support-hero::after {
+    content: '';
+    position: absolute;
+    right: -60px;
+    bottom: -80px;
+    width: 210px;
+    height: 210px;
+    border: 28px solid rgba(200, 50, 50, 0.04);
+    border-radius: 50%;
+    pointer-events: none;
 }
 
-/* Form Field Container */
-:host ::ng-deep .field {
-    margin-bottom: 1.5rem !important;
+.support-hero-copy,
+.support-hero-copy > div {
+    display: flex;
 }
 
-/* Beautiful Labels */
-:host ::ng-deep .field label {
-    display: block !important;
-    margin-bottom: 0.6rem !important;
-    font-weight: 500 !important;
-    color: #e5e7eb !important;
-    font-size: 0.875rem !important;
+.support-hero-copy {
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
 }
 
-/* Clean Input Fields */
-:host ::ng-deep .p-inputtext {
-    background: rgba(55, 65, 81, 0.5) !important;
-    border: 1.5px solid rgba(107, 114, 128, 0.4) !important;
-    color: #f9fafb !important;
-    padding: 0.65rem 1rem !important;
-    font-size: 0.95rem !important;
-    border-radius: 8px !important;
-    transition: all 0.2s ease !important;
-    font-weight: 400 !important;
-    width: 100% !important;
+.support-hero-copy > div {
+    flex-direction: column;
 }
 
-:host ::ng-deep .p-dropdown {
-    background: rgba(55, 65, 81, 0.5) !important;
-    border: 1.5px solid rgba(107, 114, 128, 0.4) !important;
-    padding: 0.65rem 1rem !important;
-    border-radius: 8px !important;
-    transition: all 0.2s ease !important;
-    width: 100% !important;
+.support-hero-icon {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 16px;
+    color: #fff;
+    font-size: 1.35rem;
+    background: linear-gradient(135deg, var(--globalColorPrimaryInmutable), #ef5350);
+    box-shadow: 0 10px 22px rgba(200, 50, 50, 0.24);
 }
 
-:host ::ng-deep .p-inputtextarea {
-    background: rgba(55, 65, 81, 0.5) !important;
-    border: 1.5px solid rgba(107, 114, 128, 0.4) !important;
-    color: #f9fafb !important;
-    padding: 0.75rem 1rem !important;
-    font-size: 0.95rem !important;
-    border-radius: 8px !important;
-    transition: all 0.2s ease !important;
-    font-weight: 400 !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    resize: vertical !important;
-    min-height: 140px !important;
-    line-height: 1.6 !important;
+.support-eyebrow {
+    color: var(--globalColorPrimaryInmutable);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
 }
 
-:host ::ng-deep .p-inputtext::placeholder,
-:host ::ng-deep .p-inputtextarea::placeholder {
-    color: #9ca3af !important;
-    opacity: 0.8 !important;
+.support-hero h2 {
+    margin: 0.18rem 0;
+    color: var(--globalColorTextInput);
+    font-size: clamp(1.25rem, 2vw, 1.65rem);
 }
 
-/* Hover State */
-:host ::ng-deep .p-inputtext:enabled:hover,
-:host ::ng-deep .p-dropdown:not(.p-disabled):hover,
-:host ::ng-deep .p-inputtextarea:enabled:hover {
-    border-color: rgba(16, 185, 129, 0.6) !important;
-    background: rgba(55, 65, 81, 0.7) !important;
+.support-hero p {
+    max-width: 660px;
+    margin: 0;
+    color: var(--globalColorTextMuted, #64748b);
+    font-size: 0.86rem;
+    line-height: 1.45;
 }
 
-/* Focus State */
-:host ::ng-deep .p-inputtext:enabled:focus,
-:host ::ng-deep .p-dropdown:not(.p-disabled).p-focus,
-:host ::ng-deep .p-inputtextarea:enabled:focus {
-    border-color: #10b981 !important;
-    background: rgba(55, 65, 81, 0.8) !important;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
-    outline: none !important;
+:host ::ng-deep .support-primary-action.p-button {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: var(--globalColorPrimaryInmutable) !important;
+    box-shadow: 0 8px 18px rgba(200, 50, 50, 0.2) !important;
+    font-weight: 700 !important;
 }
 
-/* Dropdown Specific */
-:host ::ng-deep .p-dropdown .p-dropdown-label {
-    padding: 0 !important;
-    color: #f9fafb !important;
+.support-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 0.75rem;
 }
 
-:host ::ng-deep .p-dropdown .p-dropdown-trigger {
-    color: #10b981 !important;
+.support-metric-card,
+.support-resolution-overview {
+    border: 1px solid var(--globalColorBorderDark);
+    border-radius: 15px;
+    background: var(--managementColorCardBackground);
 }
 
-:host ::ng-deep .p-dropdown-panel {
-    background: #374151 !important;
-    border: 1.5px solid rgba(16, 185, 129, 0.3) !important;
-    border-radius: 8px !important;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+.support-metric-card {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    min-height: 92px;
+    padding: 1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-:host ::ng-deep .p-dropdown-panel .p-dropdown-item {
-    color: #e5e7eb !important;
-    padding: 0.75rem 1rem !important;
-    transition: all 0.15s ease !important;
+.support-metric-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(200, 50, 50, 0.24);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
-:host ::ng-deep .p-dropdown-panel .p-dropdown-item:hover {
-    background: rgba(16, 185, 129, 0.15) !important;
-    color: #10b981 !important;
+.support-metric-card > span {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    font-size: 1.05rem;
 }
 
-:host ::ng-deep .p-dropdown-panel .p-dropdown-item.p-highlight {
-    background: rgba(16, 185, 129, 0.2) !important;
-    color: #10b981 !important;
-    font-weight: 500 !important;
+.metric-total > span { color: #2563eb; background: rgba(59, 130, 246, 0.12); }
+.metric-active > span { color: #dc2626; background: rgba(239, 68, 68, 0.11); }
+.metric-progress > span { color: #d97706; background: rgba(245, 158, 11, 0.13); }
+.metric-completed > span { color: #059669; background: rgba(16, 185, 129, 0.12); }
+
+.support-metric-card div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
 }
 
-/* Footer */
-:host ::ng-deep .p-dialog-footer {
-    display: flex !important;
-    gap: 0.75rem !important;
-    justify-content: flex-end !important;
-    padding: 1.5rem !important;
-    border-top: 2px solid rgba(16, 185, 129, 0.2) !important;
-    background: linear-gradient(0deg, rgba(16, 185, 129, 0.03) 0%, transparent 100%) !important;
+.support-metric-card small,
+.support-resolution-overview small {
+    color: var(--globalColorTextMuted, #64748b);
+    font-size: 0.73rem;
 }
 
-:host ::ng-deep .p-dialog-footer .p-button {
-    font-weight: 600 !important;
-    padding: 0.75rem 1.5rem !important;
-    border-radius: 8px !important;
-    font-size: 0.95rem !important;
-    border: none !important;
-    transition: all 0.2s ease !important;
+.support-metric-card strong {
+    color: var(--globalColorTextInput);
+    font-size: 1.35rem;
 }
 
-:host ::ng-deep .p-dialog-footer .p-button-primary {
-    background: #10b981 !important;
-    color: white !important;
-    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
+.support-resolution-overview {
+    grid-column: 1 / -1;
+    padding: 0.95rem 1.1rem;
 }
 
-:host ::ng-deep .p-dialog-footer .p-button-primary:hover {
-    background: #059669 !important;
-    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4) !important;
-    transform: translateY(-1px) !important;
+.resolution-heading,
+.resolution-heading > div {
+    display: flex;
 }
 
-:host ::ng-deep .p-dialog-footer .p-button-primary:active {
-    transform: translateY(0) !important;
+.resolution-heading {
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.65rem;
 }
 
-:host ::ng-deep .p-dialog-footer .p-button-text,
-:host ::ng-deep .p-dialog-footer .p-button-secondary {
-    color: #d1d5db !important;
+.resolution-heading > div {
+    align-items: baseline;
+    gap: 0.65rem;
+}
+
+.resolution-heading strong {
+    color: #059669;
+    font-size: 1rem;
+}
+
+.resolution-heading > span {
+    color: var(--globalColorTextMuted, #64748b);
+    font-size: 0.72rem;
+}
+
+.support-progress-track {
+    height: 7px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.2);
+}
+
+.support-progress-track > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #10b981, #34d399);
+    transition: width 0.35s ease;
+}
+
+.support-progress-large {
+    height: 9px;
+}
+
+.support-table-panel {
+    overflow: hidden;
+    border: 1px solid var(--globalColorBorderDark);
+    border-radius: 18px;
+    background: var(--managementColorCardBackground);
+}
+
+.support-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.1rem 1.25rem;
+    border-bottom: 1px solid var(--globalColorBorderDark);
+}
+
+.support-toolbar h3 {
+    margin: 0;
+    color: var(--globalColorTextInput);
+    font-size: 1rem;
+}
+
+.support-toolbar p {
+    margin: 0.2rem 0 0;
+    color: var(--globalColorTextMuted, #64748b);
+    font-size: 0.72rem;
+}
+
+.support-toolbar-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.support-search-box,
+.support-status-filter {
+    height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0 0.8rem;
+    border: 1px solid var(--globalColorBorderDark);
+    border-radius: 11px;
+    color: var(--globalColorTextMuted, #64748b);
+    background: var(--managementColorInputSearch);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.support-search-box:focus-within,
+.support-status-filter:focus-within {
+    border-color: var(--globalColorPrimaryInmutable);
+    box-shadow: 0 0 0 3px rgba(200, 50, 50, 0.08);
+}
+
+.support-search-box {
+    width: min(310px, 32vw);
+}
+
+.support-search-box input,
+.support-status-filter select {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    color: var(--globalColorTextInput);
+    background: transparent;
+    font: inherit;
+    font-size: 0.8rem;
+}
+
+.support-search-box input::placeholder {
+    color: var(--globalColorTextMuted, #64748b);
+}
+
+.support-status-filter select {
+    min-width: 150px;
+    cursor: pointer;
+}
+
+:host ::ng-deep .support-ticket-table .p-datatable-wrapper {
+    border: 0 !important;
+}
+
+:host ::ng-deep .support-ticket-table .p-datatable-thead > tr > th {
+    padding: 0.8rem 1rem !important;
+    border-width: 0 0 1px !important;
+    border-color: var(--globalColorBorderDark) !important;
+    color: var(--globalColorTextMuted, #64748b) !important;
+    background: var(--managementColorInputSearch) !important;
+    font-size: 0.68rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+:host ::ng-deep .support-ticket-table .p-datatable-tbody > tr {
+    color: var(--globalColorTextInput) !important;
+    background: transparent !important;
+    transition: background 0.2s ease;
+}
+
+:host ::ng-deep .support-ticket-table .p-datatable-tbody > tr:hover {
+    background: rgba(200, 50, 50, 0.035) !important;
+}
+
+:host ::ng-deep .support-ticket-table .p-datatable-tbody > tr > td {
+    padding: 0.9rem 1rem !important;
+    border-width: 0 0 1px !important;
+    border-color: var(--globalColorBorderDark) !important;
+    vertical-align: middle;
+}
+
+:host ::ng-deep .support-ticket-table .p-paginator {
+    border: 0 !important;
+    border-top: 1px solid var(--globalColorBorderDark) !important;
     background: transparent !important;
 }
 
-:host ::ng-deep .p-dialog-footer .p-button-text:hover,
-:host ::ng-deep .p-dialog-footer .p-button-secondary:hover {
-    background: rgba(255, 255, 255, 0.05) !important;
-    color: #f3f4f6 !important;
+.admin-ticket-identity,
+.ticket-user-cell,
+.ticket-date-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
 }
 
-/* Ticket Header in View Dialog - REMOVED (Replaced by global ticket-details-modal) */
+.admin-ticket-identity {
+    min-width: 270px;
+    max-width: 390px;
+}
 
-/* Description Box - REMOVED (Replaced by global ticket-details-modal) */
+.admin-ticket-icon,
+.ticket-user-avatar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+}
+
+.admin-ticket-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    color: var(--globalColorPrimaryInmutable);
+    background: rgba(200, 50, 50, 0.1);
+}
+
+.admin-ticket-identity > div,
+.ticket-user-cell > div,
+.ticket-date-cell > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+
+.admin-ticket-id {
+    color: var(--globalColorPrimaryInmutable);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.65rem;
+    font-weight: 800;
+}
+
+.admin-ticket-identity strong,
+.ticket-user-cell strong,
+.ticket-date-cell strong {
+    overflow: hidden;
+    color: var(--globalColorTextInput);
+    font-size: 0.8rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-ticket-identity small,
+.ticket-user-cell small,
+.ticket-date-cell small {
+    overflow: hidden;
+    max-width: 270px;
+    color: var(--globalColorTextMuted, #64748b);
+    font-size: 0.68rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ticket-user-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    color: #fff;
+    background: linear-gradient(135deg, #475569, #1e293b);
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.admin-priority-pill,
+.admin-status-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: fit-content;
+    padding: 0.3rem 0.58rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.priority-low { color: #16a34a; background: rgba(34, 197, 94, 0.11); }
+.priority-medium { color: #2563eb; background: rgba(59, 130, 246, 0.11); }
+.priority-high { color: #d97706; background: rgba(245, 158, 11, 0.13); }
+.priority-critical { color: #dc2626; background: rgba(239, 68, 68, 0.12); }
+
+.ticket-status-open { color: #dc2626; background: rgba(239, 68, 68, 0.1); }
+.ticket-status-in_progress { color: #2563eb; background: rgba(59, 130, 246, 0.1); }
+.ticket-status-resolved { color: #059669; background: rgba(16, 185, 129, 0.11); }
+.ticket-status-closed { color: #64748b; background: rgba(100, 116, 139, 0.12); }
+
+.admin-ticket-progress {
+    min-width: 190px;
+}
+
+.admin-ticket-progress > div:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    margin-bottom: 0.45rem;
+}
+
+.admin-ticket-progress > div:first-child > strong {
+    color: var(--globalColorTextInput);
+    font-size: 0.7rem;
+}
+
+.ticket-progress-open { background: #ef4444 !important; }
+.ticket-progress-in_progress { background: #3b82f6 !important; }
+.ticket-progress-resolved { background: #10b981 !important; }
+.ticket-progress-closed { background: #94a3b8 !important; }
+
+.ticket-date-cell i {
+    color: var(--globalColorPrimaryInmutable);
+}
+
+:host ::ng-deep .admin-ticket-details-button.p-button {
+    border-color: rgba(200, 50, 50, 0.26) !important;
+    color: var(--globalColorPrimaryInmutable) !important;
+    border-radius: 10px !important;
+    font-size: 0.74rem !important;
+}
+
+.support-admin-empty {
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    color: var(--globalColorTextMuted, #64748b);
+}
+
+.support-admin-empty > span {
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    color: var(--globalColorPrimaryInmutable);
+    background: rgba(200, 50, 50, 0.1);
+    font-size: 1.4rem;
+}
+
+.support-admin-empty strong {
+    color: var(--globalColorTextInput);
+}
+
+.support-admin-empty p {
+    margin: 0;
+    font-size: 0.78rem;
+}
+
+/* Details dialog */
+:host ::ng-deep .support-admin-details-dialog .p-dialog-header,
+:host ::ng-deep .support-create-dialog .p-dialog-header {
+    padding: 1.2rem 1.4rem !important;
+    border-bottom: 1px solid var(--globalColorBorderDark) !important;
+    background: var(--globalColorBackground) !important;
+}
+
+:host ::ng-deep .support-admin-details-dialog .p-dialog-content,
+:host ::ng-deep .support-create-dialog .p-dialog-content {
+    background: var(--globalColorBackground) !important;
+}
+
+:host ::ng-deep .support-admin-details-dialog .p-dialog-footer,
+:host ::ng-deep .support-create-dialog .p-dialog-footer {
+    padding: 1rem 1.4rem !important;
+    border-top: 1px solid var(--globalColorBorderDark) !important;
+    background: var(--globalColorBackground) !important;
+}
+
+.support-detail-header,
+.support-create-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.support-detail-header > span,
+.support-create-header > span {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 13px;
+    color: #fff;
+    background: linear-gradient(135deg, var(--globalColorPrimaryInmutable), #ef5350);
+}
+
+.support-detail-header > div,
+.support-create-header > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.support-detail-header small,
+.support-create-header small {
+    color: var(--globalColorTextMuted, #64748b);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+}
+
+.support-detail-header strong,
+.support-create-header strong {
+    max-width: 680px;
+    overflow: hidden;
+    color: var(--globalColorTextInput);
+    font-size: 0.98rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.support-detail-layout {
+    background: var(--globalColorBackground);
+}
+
+.ticket-progress-overview {
+    padding: 1.1rem 1.2rem;
+    border: 1px solid rgba(200, 50, 50, 0.18);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(200, 50, 50, 0.07), transparent);
+}
+
+.ticket-progress-overview-heading,
+.ticket-progress-overview-heading > div,
+.ticket-progress-steps {
+    display: flex;
+}
+
+.ticket-progress-overview-heading {
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.7rem;
+}
+
+.ticket-progress-overview-heading > div {
+    flex-direction: column;
+    gap: 0.12rem;
+}
+
+.ticket-progress-overview-heading small {
+    color: var(--globalColorTextMuted, #64748b);
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+.ticket-progress-overview-heading strong {
+    color: var(--globalColorTextInput);
+    font-size: 0.92rem;
+}
+
+.ticket-progress-overview-heading > span {
+    color: var(--globalColorPrimaryInmutable);
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.ticket-progress-steps {
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.ticket-progress-steps span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--globalColorTextMuted, #64748b);
+    font-size: 0.68rem;
+}
+
+.ticket-progress-steps span.completed {
+    color: #059669;
+    font-weight: 700;
+}
+
+.support-description-value {
+    white-space: pre-wrap;
+}
+
+.support-ticket-meta {
+    flex-wrap: wrap;
+}
+
+.support-status-select {
+    width: auto !important;
+    min-width: 150px;
+    padding: 0.35rem 2rem 0.35rem 0.7rem !important;
+    font-size: 0.75rem !important;
+}
+
+.support-creator-card {
+    grid-column: 1 / -1;
+}
+
+/* Create dialog */
+.support-create-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.3rem 1.4rem;
+}
+
+.support-form-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid rgba(59, 130, 246, 0.18);
+    border-radius: 11px;
+    color: #2563eb;
+    background: rgba(59, 130, 246, 0.07);
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+.support-create-form .field {
+    margin: 0;
+}
+
+.support-create-form label,
+.support-label-with-count {
+    display: flex;
+    align-items: center;
+}
+
+.support-create-form label {
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+    color: var(--globalColorTextInput);
+    font-size: 0.78rem;
+    font-weight: 750;
+}
+
+.support-create-form label i {
+    color: var(--globalColorPrimaryInmutable);
+}
+
+.support-label-with-count {
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.support-label-with-count small {
+    color: var(--globalColorTextMuted, #64748b);
+    font-size: 0.68rem;
+}
+
+@media (max-width: 1100px) {
+    .support-metrics {
+        grid-template-columns: repeat(2, minmax(150px, 1fr));
+    }
+}
+
+@media (max-width: 820px) {
+    .support-hero,
+    .support-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    :host ::ng-deep .support-primary-action.p-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .support-toolbar-filters {
+        flex-wrap: wrap;
+    }
+
+    .support-search-box {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+
+    .support-status-filter {
+        flex: 1;
+    }
+}
+
+@media (max-width: 560px) {
+    .support-container {
+        padding: 0.75rem;
+    }
+
+    .support-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .ticket-progress-steps {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
