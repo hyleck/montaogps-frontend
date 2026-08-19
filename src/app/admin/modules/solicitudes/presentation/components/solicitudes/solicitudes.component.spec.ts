@@ -78,6 +78,9 @@ describe('SolicitudesComponent scheduled date editing', () => {
                 users: [],
                 totalCount: 0,
             })),
+            getMainAccount: jasmine.createSpy('getMainAccount').and.returnValue(of({
+                account: { _id: 'main-account-id' },
+            })),
         };
         const targetsService = {
             getTargetByImei: jasmine.createSpy('getTargetByImei').and.resolveTo({}),
@@ -154,7 +157,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(component.selectedSolicitud.installations?.[0].sim_company).toBe('global-e');
     });
 
-    it('combines installed inventory with the selected client GPS for vehicle changes', async () => {
+    it('searches only the selected client objectives for vehicle changes', async () => {
         const { component, inventoryService, targetsService } = createComponent();
         targetsService.searchTargets.and.resolveTo({
             devices: [{ device_imei: '862667088436426', name: 'Vehículo actual' }],
@@ -168,9 +171,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
 
         await component.searchInventoryDevices({ query: '862667' }, 'current');
 
-        expect(inventoryService.searchAllDevices).toHaveBeenCalledWith(
-            '862667', undefined, 1, 12, 'installed',
-        );
+        expect(inventoryService.searchAllDevices).not.toHaveBeenCalled();
         expect(targetsService.searchTargets).toHaveBeenCalledWith('862667', 'client-id', 0, 12);
         expect(component.inventoryDeviceSuggestions).toEqual([
             jasmine.objectContaining({
@@ -180,7 +181,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
         ]);
     });
 
-    it('searches active GPS globally for a new client identified by WhatsApp', async () => {
+    it('searches the main account objectives for a new client identified by WhatsApp', async () => {
         const { component, inventoryService, targetsService } = createComponent();
         targetsService.getTargetByImei.and.resolveTo({
             device_imei: '862667088436426',
@@ -194,16 +195,66 @@ describe('SolicitudesComponent scheduled date editing', () => {
             installations: [{}],
         };
 
+        targetsService.searchTargets.and.resolveTo({
+            devices: [{ device_imei: '862667088436426', name: 'Vehículo actual' }],
+        });
+
         await component.searchInventoryDevices({ query: '862667' }, 'current');
 
-        expect(inventoryService.searchAllDevices).toHaveBeenCalledWith(
-            '862667', undefined, 1, 12, 'installed',
+        expect(inventoryService.searchAllDevices).not.toHaveBeenCalled();
+        expect(targetsService.searchTargets).toHaveBeenCalledWith(
+            '862667', 'main-account-id', 0, 12,
         );
-        expect(targetsService.searchTargets).not.toHaveBeenCalled();
         expect(targetsService.getTargetByImei).toHaveBeenCalledOnceWith('862667');
         expect(component.inventoryDeviceSuggestions).toEqual([
             jasmine.objectContaining({ IMEI: '862667088436426' }),
         ]);
+    });
+
+    (['chequeo', 'desinstalacion', 'cambio'] as const).forEach(type => {
+        it(`searches only objectives for a ${type} device`, async () => {
+            const { component, inventoryService, targetsService } = createComponent();
+            targetsService.searchTargets.and.resolveTo({
+                devices: [{ device_imei: '863874080943669', name: 'Vehículo del cliente' }],
+            });
+            component.selectedSolicitud = {
+                type,
+                status: 'pendiente',
+                client_id: 'client-id',
+                installations: [{}],
+            };
+
+            await component.searchInventoryDevices({ query: '863874' }, 'current');
+
+            expect(inventoryService.searchAllDevices).not.toHaveBeenCalled();
+            expect(targetsService.searchTargets).toHaveBeenCalledOnceWith(
+                '863874', 'client-id', 0, 12,
+            );
+            expect(component.inventoryDeviceSuggestions).toEqual([
+                jasmine.objectContaining({ IMEI: '863874080943669' }),
+            ]);
+        });
+    });
+
+    it('uses the mixed process type to search only objectives', async () => {
+        const { component, inventoryService, targetsService } = createComponent();
+        targetsService.searchTargets.and.resolveTo({
+            devices: [{ device_imei: '863874080943669', name: 'Vehículo del cliente' }],
+        });
+        component.selectedSolicitud = {
+            type: 'mixta',
+            status: 'pendiente',
+            client_id: 'client-id',
+            installations: [{ process_type: 'chequeo' }],
+        };
+        component.editingInstallationIndex = 0;
+
+        await component.searchInventoryDevices({ query: '863874' }, 'current');
+
+        expect(inventoryService.searchAllDevices).not.toHaveBeenCalled();
+        expect(targetsService.searchTargets).toHaveBeenCalledOnceWith(
+            '863874', 'client-id', 0, 12,
+        );
     });
 
     it('offers a GPS from another owner so the confirmation can decide its transfer', async () => {

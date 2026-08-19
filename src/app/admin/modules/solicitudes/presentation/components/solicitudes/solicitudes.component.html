@@ -2716,9 +2716,9 @@
                             [forceSelection]="selectedSolicitud.type === 'cambio_vehiculo'"
                             [dropdown]="true"
                             [minLength]="2"
-                            emptyMessage="No se encontraron GPS con ese IMEI"
+                            [emptyMessage]="getCurrentDeviceSearchEmptyMessage()"
                             appendTo="body"
-                            [placeholder]="selectedSolicitud.type === 'cambio_vehiculo' ? 'Seleccionar GPS instalado del cliente' : 'Buscar IMEI en inventario'"
+                            [placeholder]="getCurrentDeviceSearchPlaceholder()"
                             inputStyleClass="sol-device-autocomplete-input"
                             styleClass="sol-device-autocomplete">
                             <ng-template let-device pTemplate="item">

@@ -131,6 +131,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     private clientEmailSearchSequence = 0;
     private inventoryDeviceSearchSequence = 0;
+    private mainAccountIdPromise?: Promise<string>;
     private readonly loadedModelBrandIds = new Set<string>();
     items: MenuItem[] = [{ label: 'Solicitudes' }];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
@@ -3014,8 +3015,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     async searchInventoryDevices(event: { query: string }, target: 'current' | 'new' = 'current'): Promise<void> {
-        const activeSolicitudType = this.selectedSolicitud?.type || this.solicitudToInstall?.type;
+        const activeSolicitudType = this.getDeviceSearchProcessType(target);
         const isVehicleChange = activeSolicitudType === 'cambio_vehiculo' && target === 'current';
+        const searchesInstalledObjective = target === 'current'
+            && this.isDeviceRequiredForProcess(activeSolicitudType || '');
         const query = (event.query || '').trim();
         const requestSequence = ++this.inventoryDeviceSearchSequence;
         if (!query || query.length < 2) {
@@ -3047,12 +3050,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }
 
         try {
-            if (isVehicleChange) {
-                const devices = await this.searchVehicleChangeDevices(
-                    query,
-                    selectedClientId,
-                    12,
-                );
+            if (searchesInstalledObjective) {
+                const devices = isVehicleChange
+                    ? await this.searchVehicleChangeDevices(query, selectedClientId, 12)
+                    : await this.searchObjectiveDevices(query, selectedClientId, 12);
                 if (requestSequence !== this.inventoryDeviceSearchSequence) return;
                 this.inventoryDeviceSuggestions = devices;
                 return;
@@ -3110,21 +3111,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         const shouldSearchLegacyTargets = normalizedQuery
             .replace(/[^a-zA-Z0-9]/g, '')
             .length >= 6;
-        const [inventoryResult, clientTargetsResult, globalTargetResult] = await Promise.allSettled([
-            firstValueFrom(this.inventoryService.searchAllDevices(
-                normalizedQuery,
-                undefined,
-                1,
-                limit,
-                'installed',
-            )),
-            normalizedClientId
-                ? this.targetsService.searchTargets(
-                    normalizedQuery,
-                    normalizedClientId,
-                    0,
-                    limit,
-                )
+        const parentId = await this.resolveObjectiveSearchParentId(normalizedClientId);
+        const [clientTargetsResult, globalTargetResult] = await Promise.allSettled([
+            parentId
+                ? this.targetsService.searchTargets(normalizedQuery, parentId, 0, limit)
                 : Promise.resolve({ devices: [] }),
             shouldSearchLegacyTargets
                 ? this.targetsService.getTargetByImei(normalizedQuery)
@@ -3132,9 +3122,6 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 : Promise.resolve({ devices: [] }),
         ]);
 
-        const inventoryDevices = inventoryResult.status === 'fulfilled'
-            ? (inventoryResult.value.data || [])
-            : [];
         const clientTargets = clientTargetsResult.status === 'fulfilled'
             ? (clientTargetsResult.value.devices || [])
             : [];
@@ -3143,13 +3130,64 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             : [];
 
         return this.mergeDeviceSuggestions(
-            inventoryDevices,
+            [],
             [...clientTargets, ...globalTargets],
         ).filter(device => (
             device?.canceled !== true
             && device?.deleted !== true
             && device?.status !== false
         ));
+    }
+
+    private getDeviceSearchProcessType(target: 'current' | 'new' = 'current'): string {
+        if (target === 'new') return 'instalacion';
+        if (this.selectedSolicitud?.type === 'mixta') {
+            const installation = this.selectedSolicitud.installations?.[this.editingInstallationIndex];
+            return this.getProcessTypeForSolicitud(this.selectedSolicitud, installation);
+        }
+        return this.selectedSolicitud?.type || this.solicitudToInstall?.type || '';
+    }
+
+    getCurrentDeviceSearchPlaceholder(): string {
+        return this.isDeviceRequiredForProcess(this.getDeviceSearchProcessType('current'))
+            ? 'Buscar GPS en objetivos'
+            : 'Buscar IMEI en inventario';
+    }
+
+    getCurrentDeviceSearchEmptyMessage(): string {
+        return this.isDeviceRequiredForProcess(this.getDeviceSearchProcessType('current'))
+            ? 'No se encontraron objetivos con ese IMEI'
+            : 'No se encontraron GPS con ese IMEI';
+    }
+
+    private async searchObjectiveDevices(
+        query: string,
+        selectedClientId = '',
+        limit = 12,
+    ): Promise<any[]> {
+        const parentId = await this.resolveObjectiveSearchParentId(selectedClientId);
+        if (!parentId) return [];
+        const result = await this.targetsService.searchTargets(query, parentId, 0, limit);
+        return this.mergeDeviceSuggestions([], result?.devices || []).filter(device => (
+            device?.canceled !== true
+            && device?.deleted !== true
+            && device?.status !== false
+        ));
+    }
+
+    private async resolveObjectiveSearchParentId(selectedClientId = ''): Promise<string> {
+        const normalizedClientId = String(selectedClientId || '').trim();
+        if (normalizedClientId) return normalizedClientId;
+
+        if (!this.mainAccountIdPromise) {
+            this.mainAccountIdPromise = firstValueFrom(this.userService.getMainAccount())
+                .then(response => String(response?.account?._id || '').trim())
+                .catch(error => {
+                    this.mainAccountIdPromise = undefined;
+                    throw error;
+                });
+        }
+        return this.mainAccountIdPromise;
     }
 
     onInventoryDeviceSelect(event: { value: InventoryItem | string }, index?: number, target: 'current' | 'new' = 'current'): void {
@@ -3360,10 +3398,13 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.checkingExistingGpsTargetByInstallation[index] = true;
         try {
             const clientId = String(this.selectedSolicitud.client_id || '').trim();
-            const isVehicleChange = this.selectedSolicitud.type === 'cambio_vehiculo';
+            const processType = this.getProcessTypeForSolicitud(this.selectedSolicitud, inst);
+            const isVehicleChange = processType === 'cambio_vehiculo';
             let devices: any[];
             if (isVehicleChange) {
                 devices = await this.searchVehicleChangeDevices(imei, clientId, 10);
+            } else if (this.isDeviceRequiredForProcess(processType)) {
+                devices = await this.searchObjectiveDevices(imei, clientId, 10);
             } else {
                 const inventory = await firstValueFrom(this.inventoryService.searchAllDevices(
                     imei,
