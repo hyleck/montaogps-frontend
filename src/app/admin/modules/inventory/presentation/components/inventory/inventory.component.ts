@@ -14,12 +14,27 @@ import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { Protocol } from 'src/app/core/interfaces/protocol.interface';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { UserService } from 'src/app/core/services/user.service';
+import { SystemService } from 'src/app/core/services/system.service';
 import { User } from 'src/app/core/interfaces/user.interface';
 import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as QRCode from 'qrcode';
+import { firstValueFrom } from 'rxjs';
 import { formatConduceSimcardCode } from './conduce-simcard-code.util';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
+
+interface ShippingLabelForm {
+  recipient: string;
+  recipientPhone: string;
+  destination: string;
+  sender: string;
+  senderPhone: string;
+}
+
+type ShippingLabelSocialNetwork = 'instagram' | 'facebook' | 'whatsapp' | 'website';
+type ShippingLabelSocialQrs = Record<ShippingLabelSocialNetwork, HTMLImageElement | null>;
+type ShippingLabelSocialIcons = Record<ShippingLabelSocialNetwork, HTMLImageElement | null>;
 
 @Component({
   selector: 'app-inventory',
@@ -118,6 +133,13 @@ export class InventoryComponent implements OnInit, OnDestroy {
   conducesTotalItems = 0;
   conduceDetailsDialogVisible = false;
   selectedConduceDetails: any = null;
+  conducePrintDialogVisible = false;
+  shippingLabelDialogVisible = false;
+  selectedConduceForPrint: Conduce | null = null;
+  shippingLabelFormTouched = false;
+  isGeneratingShippingLabelPdf = false;
+  private officialCompanyPhone = '';
+  shippingLabelForm: ShippingLabelForm = this.createEmptyShippingLabelForm();
   shippingDialogVisible = false;
   shippingDestinationWarehouse: string | null = null;
   shippingDescription: string = '';
@@ -161,6 +183,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     private translate: TranslateService,
     private authService: AuthService,
     private userService: UserService,
+    private systemService: SystemService,
     private router: Router,
   ) { }
 
@@ -181,6 +204,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.loadProtocols();
     this.loadPackages();
     this.loadWarehouses();
+    this.loadOfficialCompanyPhone();
   }
 
   ngOnDestroy(): void {
@@ -944,7 +968,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   editWarehouse(warehouse: Warehouse): void {
     this.selectedWarehouse = { ...warehouse };
-    this.selectedWarehouseAccessUsers = this.getWarehouseAccessUsers(warehouse).map(email => ({
+    this.selectedWarehouseAccessUsers = this.getWarehouseAccessUsers(warehouse).slice(0, 1).map(email => ({
       _id: email,
       name: '',
       last_name: '',
@@ -965,7 +989,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.selectedWarehouse.access_users = this.getSelectedWarehouseAccessEmails();
+    this.selectedWarehouse.access_users = this.getSelectedWarehouseAccessEmails().slice(0, 1);
     this.selectedWarehouse.assigned_user = this.selectedWarehouse.access_users[0] || '';
 
     const request = this.isEditWarehouseMode
@@ -1032,11 +1056,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
     const users = Array.isArray(warehouse?.access_users) ? warehouse.access_users : [];
     return Array.from(
       new Set(
-        [...users, warehouse?.assigned_user]
+        [warehouse?.assigned_user, ...users]
           .map((value: string) => String(value || '').trim().toLowerCase())
           .filter(Boolean)
       )
-    );
+    ).slice(0, 1);
   }
 
   getWarehouseAccessUsersLabel(warehouse: Warehouse): string {
@@ -1088,13 +1112,13 @@ export class InventoryComponent implements OnInit, OnDestroy {
     if (this.isWarehouseAccessUserSelected(user)) {
       this.messageService.add({
         severity: 'info',
-        summary: 'Usuario ya agregado',
-        detail: 'Ese usuario ya tiene acceso al almacén'
+        summary: 'Usuario ya vinculado',
+        detail: 'Ese usuario ya está vinculado al almacén'
       });
       return;
     }
 
-    this.selectedWarehouseAccessUsers = [...this.selectedWarehouseAccessUsers, user];
+    this.selectedWarehouseAccessUsers = [user];
     this.closeWarehouseUserSearchDialog();
   }
 
@@ -1118,7 +1142,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   private getSelectedWarehouseAccessEmails(): string[] {
     return Array.from(
       new Set(
-        this.selectedWarehouseAccessUsers
+        this.selectedWarehouseAccessUsers.slice(0, 1)
           .map(user => this.normalizeWarehouseAccessEmail(user?.email))
           .filter(Boolean)
       )
@@ -1633,6 +1657,548 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.loadConduces(page, limit);
   }
 
+  openConducePrintDialog(conduce: Conduce): void {
+    this.selectedConduceForPrint = conduce;
+    this.conducePrintDialogVisible = true;
+  }
+
+  hideConducePrintDialog(): void {
+    this.conducePrintDialogVisible = false;
+    if (!this.shippingLabelDialogVisible) {
+      this.selectedConduceForPrint = null;
+    }
+  }
+
+  async printSelectedConduce(): Promise<void> {
+    if (!this.selectedConduceForPrint) return;
+
+    const conduce = this.selectedConduceForPrint;
+    this.conducePrintDialogVisible = false;
+    await this.generateConducePdf(conduce);
+    this.selectedConduceForPrint = null;
+  }
+
+  openShippingLabelForm(): void {
+    if (!this.selectedConduceForPrint) return;
+
+    const destinationWarehouse = this.resolveConduceDestinationWarehouse(this.selectedConduceForPrint);
+    const destinationName = String(destinationWarehouse?.name || '').trim();
+    const currentUserName = this.auditUserLabel(this.authService.getCurrentUser());
+
+    this.shippingLabelForm = {
+      recipient: destinationName,
+      recipientPhone: String(destinationWarehouse?.last_shipping_recipient_phone || '').trim(),
+      destination: String(destinationWarehouse?.last_shipping_destination || '').trim(),
+      sender: currentUserName === 'No registrado'
+        ? 'Montao GPS'
+        : `Montao GPS - ${currentUserName}`,
+      senderPhone: this.officialCompanyPhone,
+    };
+    this.shippingLabelFormTouched = false;
+    this.conducePrintDialogVisible = false;
+    this.shippingLabelDialogVisible = true;
+    this.loadOfficialCompanyPhone();
+  }
+
+  private getConduceDestinationWarehouseId(conduce: Conduce): string {
+    const destinationWarehouse = conduce.destination_warehouse;
+    return typeof destinationWarehouse === 'object'
+      ? String(destinationWarehouse?._id || '').trim()
+      : String(destinationWarehouse || '').trim();
+  }
+
+  private resolveConduceDestinationWarehouse(conduce: Conduce): Warehouse | null {
+    const destinationWarehouse = conduce.destination_warehouse;
+    if (destinationWarehouse && typeof destinationWarehouse === 'object') {
+      return destinationWarehouse as Warehouse;
+    }
+
+    const warehouseId = this.getConduceDestinationWarehouseId(conduce);
+    return this.warehouses.find(warehouse => String(warehouse._id || '') === warehouseId) || null;
+  }
+
+  private cacheWarehouseLastShippingDestination(
+    warehouseId: string,
+    updatedWarehouse: Warehouse,
+  ): void {
+    const lastShippingFields: Partial<Warehouse> = {
+      last_shipping_recipient_phone: updatedWarehouse.last_shipping_recipient_phone,
+      last_shipping_destination: updatedWarehouse.last_shipping_destination,
+      last_shipping_at: updatedWarehouse.last_shipping_at,
+    };
+
+    const applyToConduce = (conduce: Conduce | null): void => {
+      if (!conduce || this.getConduceDestinationWarehouseId(conduce) !== warehouseId) return;
+      if (conduce.destination_warehouse && typeof conduce.destination_warehouse === 'object') {
+        Object.assign(conduce.destination_warehouse, lastShippingFields);
+      }
+    };
+
+    applyToConduce(this.selectedConduceForPrint);
+    this.conducesList.forEach(conduce => applyToConduce(conduce));
+
+    this.warehouses = this.warehouses.map(warehouse =>
+      String(warehouse._id || '') === warehouseId
+        ? { ...warehouse, ...lastShippingFields }
+        : warehouse,
+    );
+
+    const cachedWarehouses = this.inventoryService.warehouses$.getValue();
+    this.inventoryService.warehouses$.next(cachedWarehouses.map(warehouse =>
+      String(warehouse._id || '') === warehouseId
+        ? { ...warehouse, ...lastShippingFields }
+        : warehouse,
+    ));
+  }
+
+  hideShippingLabelDialog(): void {
+    this.shippingLabelDialogVisible = false;
+    this.shippingLabelFormTouched = false;
+    this.shippingLabelForm = this.createEmptyShippingLabelForm();
+    if (!this.conducePrintDialogVisible) {
+      this.selectedConduceForPrint = null;
+    }
+  }
+
+  returnToConducePrintDialog(): void {
+    this.shippingLabelDialogVisible = false;
+    this.shippingLabelFormTouched = false;
+    this.conducePrintDialogVisible = true;
+  }
+
+  isShippingLabelFormValid(): boolean {
+    return Object.values(this.shippingLabelForm).every(value => String(value || '').trim().length > 0);
+  }
+
+  private createEmptyShippingLabelForm(): ShippingLabelForm {
+    return {
+      recipient: '',
+      recipientPhone: '',
+      destination: '',
+      sender: 'Montao GPS',
+      senderPhone: this.officialCompanyPhone,
+    };
+  }
+
+  private loadOfficialCompanyPhone(): void {
+    this.systemService.getPublic().subscribe({
+      next: (systems) => {
+        const phone = String(systems?.[0]?.phone || '').trim();
+        if (!phone) return;
+
+        const previousDefault = this.officialCompanyPhone;
+        this.officialCompanyPhone = phone;
+
+        const currentSenderPhone = this.shippingLabelForm.senderPhone.trim();
+        if (!currentSenderPhone || currentSenderPhone === previousDefault) {
+          this.shippingLabelForm.senderPhone = phone;
+        }
+      },
+      error: () => {
+        // Mantener el número de respaldo si la configuración no está disponible.
+      },
+    });
+  }
+
+  private async loadPdfImage(source: string): Promise<HTMLImageElement | null> {
+    const image = new Image();
+    image.src = source;
+
+    await new Promise<void>((resolve) => {
+      image.onload = () => resolve();
+      image.onerror = () => resolve();
+    });
+
+    return image.complete && image.naturalWidth > 0 ? image : null;
+  }
+
+  private loadPdfLogo(): Promise<HTMLImageElement | null> {
+    return this.loadPdfImage('logo/LOGO.png');
+  }
+
+  private async loadPdfSvgAsPng(
+    source: string,
+    monochrome = false,
+  ): Promise<HTMLImageElement | null> {
+    const svgImage = await this.loadPdfImage(source);
+    if (!svgImage) return null;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 144;
+    canvas.height = 144;
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(svgImage, 0, 0, canvas.width, canvas.height);
+
+    if (monochrome) {
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      for (let index = 0; index < imageData.data.length; index += 4) {
+        const gray = Math.round(
+          imageData.data[index] * 0.299
+          + imageData.data[index + 1] * 0.587
+          + imageData.data[index + 2] * 0.114,
+        );
+        imageData.data[index] = gray;
+        imageData.data[index + 1] = gray;
+        imageData.data[index + 2] = gray;
+      }
+      context.putImageData(imageData, 0, 0);
+    }
+
+    return this.loadPdfImage(canvas.toDataURL('image/png'));
+  }
+
+  private getCompanyWhatsAppUrl(phone: string): string {
+    const nationalNumber = phone.replace(/\D/g, '').slice(-10);
+    return `https://wa.me/1${nationalNumber}`;
+  }
+
+  private async createPdfQrImage(url: string): Promise<HTMLImageElement | null> {
+    try {
+      const dataUrl = await QRCode.toDataURL(url, {
+        errorCorrectionLevel: 'M',
+        margin: 1,
+        width: 220,
+        color: {
+          dark: '#111827',
+          light: '#FFFFFFFF',
+        },
+      });
+      return this.loadPdfImage(dataUrl);
+    } catch {
+      return null;
+    }
+  }
+
+  private drawFittedPdfText(
+    doc: jsPDF,
+    text: string,
+    x: number,
+    y: number,
+    maxWidth: number,
+    initialSize: number,
+    minSize = 7,
+  ): void {
+    let fontSize = initialSize;
+    doc.setFontSize(fontSize);
+
+    while (fontSize > minSize && doc.getTextWidth(text) > maxWidth) {
+      fontSize -= 0.5;
+      doc.setFontSize(fontSize);
+    }
+
+    doc.text(text, x, y);
+  }
+
+  private drawShippingLabelFlyer(
+    doc: jsPDF,
+    socialQrs: ShippingLabelSocialQrs,
+    socialIcons: ShippingLabelSocialIcons,
+    officialPhone: string,
+  ): void {
+    const flyerX = 20;
+    const flyerY = 132;
+    const flyerWidth = 170;
+    const flyerHeight = 140;
+    const dark = [30, 41, 59] as [number, number, number];
+    const muted = [100, 116, 139] as [number, number, number];
+    const border = [203, 213, 225] as [number, number, number];
+
+    // Low-ink layout: the flyer is intentionally white and uses only thin
+    // brand accents so it remains economical on office printers.
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(...border);
+    doc.setLineWidth(0.35);
+    doc.roundedRect(flyerX, flyerY, flyerWidth, flyerHeight, 4, 4, 'FD');
+
+    doc.setTextColor(...dark);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.text('MONTAO GPS', 29, 147.5);
+    doc.setTextColor(...muted);
+    doc.setFontSize(7.2);
+    doc.text('SEGURIDAD Y CONTROL EN CADA TRAYECTO', 29, 154.5);
+
+    doc.setDrawColor(...border);
+    doc.setLineWidth(0.25);
+    doc.line(29, 181, 181, 181);
+
+    doc.setTextColor(...dark);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text('CONECTA CON NOSOTROS', 29, 190);
+
+    const socialItems: Array<{
+      network: ShippingLabelSocialNetwork;
+      label: string;
+      value: string;
+      url: string;
+    }> = [
+      {
+        network: 'instagram',
+        label: 'Instagram',
+        value: '@montao.cloud',
+        url: 'https://www.instagram.com/montao.cloud/',
+      },
+      {
+        network: 'facebook',
+        label: 'Facebook',
+        value: 'Montao.cloud',
+        url: 'https://web.facebook.com/Montao.cloud/',
+      },
+      {
+        network: 'whatsapp',
+        label: 'WhatsApp',
+        value: officialPhone,
+        url: this.getCompanyWhatsAppUrl(officialPhone),
+      },
+      {
+        network: 'website',
+        label: 'Sitio web',
+        value: 'gps.montao.net',
+        url: 'https://gps.montao.net',
+      },
+    ];
+    const cardWidth = 73.5;
+    const cardHeight = 23;
+    const cardGap = 5;
+
+    socialItems.forEach((item, index) => {
+      const column = index % 2;
+      const row = Math.floor(index / 2);
+      const cardX = 29 + column * (cardWidth + cardGap);
+      const cardY = 193 + row * 26;
+      const qrSize = 18;
+      const qrX = cardX + cardWidth - qrSize - 2.5;
+      const qrY = cardY + 2.5;
+
+      doc.setDrawColor(...border);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(cardX, cardY, cardWidth, cardHeight, 2.5, 2.5, 'S');
+      const iconImage = socialIcons[item.network];
+      if (iconImage) {
+        doc.addImage(iconImage, 'PNG', cardX + 3.3, cardY + 3.7, 7.5, 7.5);
+      }
+
+      doc.setTextColor(...muted);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(5.4);
+      doc.text(item.label.toUpperCase(), cardX + 13, cardY + 5.7);
+      doc.setTextColor(...dark);
+      doc.setFontSize(7.2);
+      doc.text(item.value, cardX + 13, cardY + 11);
+      doc.setTextColor(...muted);
+      doc.setFontSize(4.8);
+      doc.text('ESCANEA PARA ABRIR', cardX + 13, cardY + 16.8);
+
+      const qrImage = socialQrs[item.network];
+      if (qrImage) {
+        doc.addImage(qrImage, 'PNG', qrX, qrY, qrSize, qrSize);
+      } else {
+        doc.setTextColor(...muted);
+        doc.setFontSize(7);
+        doc.text('QR', qrX + qrSize / 2, qrY + qrSize / 2, { align: 'center' });
+      }
+      doc.link(cardX, cardY, cardWidth, cardHeight, { url: item.url });
+    });
+
+    doc.setDrawColor(...dark);
+    doc.setLineWidth(0.45);
+    doc.line(29, 247.5, 181, 247.5);
+    doc.setTextColor(...dark);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.2);
+    doc.text('SEGURIDAD PARA TU VEHICULO, TRANQUILIDAD PARA TI.', 105, 253.5, { align: 'center' });
+  }
+
+  async generateShippingLabelPdf(): Promise<void> {
+    this.shippingLabelFormTouched = true;
+    if (!this.selectedConduceForPrint || !this.isShippingLabelFormValid()) return;
+
+    this.isGeneratingShippingLabelPdf = true;
+
+    try {
+      const conduce = this.selectedConduceForPrint;
+      const form = {
+        recipient: this.shippingLabelForm.recipient.trim(),
+        recipientPhone: this.shippingLabelForm.recipientPhone.trim(),
+        destination: this.shippingLabelForm.destination.trim(),
+        sender: this.shippingLabelForm.sender.trim(),
+        senderPhone: this.shippingLabelForm.senderPhone.trim(),
+      };
+      const destinationWarehouseId = this.getConduceDestinationWarehouseId(conduce);
+      if (!destinationWarehouseId) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo guardar el último envío',
+          detail: 'No se pudo identificar el almacén destino de este conduce.',
+        });
+        return;
+      }
+
+      try {
+        const updatedWarehouse = await firstValueFrom(
+          this.inventoryService.updateWarehouseLastShippingDestination(
+            destinationWarehouseId,
+            {
+              recipient_phone: form.recipientPhone,
+              destination: form.destination,
+            },
+          ),
+        );
+        this.cacheWarehouseLastShippingDestination(destinationWarehouseId, updatedWarehouse);
+      } catch (error) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo guardar el último envío',
+          detail: getApiErrorMessage(
+            error,
+            'No se pudieron guardar el teléfono y el destino del almacén.',
+          ),
+        });
+        return;
+      }
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const labelWidth = 152.4;
+      const labelHeight = 101.6;
+      const labelX = (pageWidth - labelWidth) / 2;
+      const labelY = 15;
+      const x = (value: number) => labelX + value;
+      const y = (value: number) => labelY + value;
+      const red = [189, 53, 53] as [number, number, number];
+      const redDark = [139, 35, 40] as [number, number, number];
+      const blue = [29, 91, 174] as [number, number, number];
+      const ink = [30, 41, 59] as [number, number, number];
+      const muted = [100, 116, 139] as [number, number, number];
+      const whatsappUrl = this.getCompanyWhatsAppUrl(form.senderPhone);
+      const [logo, instagramQr, facebookQr, whatsappQr, websiteQr] = await Promise.all([
+        this.loadPdfLogo(),
+        this.createPdfQrImage('https://www.instagram.com/montao.cloud/'),
+        this.createPdfQrImage('https://web.facebook.com/Montao.cloud/'),
+        this.createPdfQrImage(whatsappUrl),
+        this.createPdfQrImage('https://gps.montao.net'),
+      ]);
+      const socialQrs: ShippingLabelSocialQrs = {
+        instagram: instagramQr,
+        facebook: facebookQr,
+        whatsapp: whatsappQr,
+        website: websiteQr,
+      };
+      const [instagramIcon, facebookIcon, whatsappIcon, websiteIcon] = await Promise.all([
+        this.loadPdfSvgAsPng('logo/social/instagram.svg', true),
+        this.loadPdfSvgAsPng('logo/social/facebook.svg', true),
+        this.loadPdfSvgAsPng('logo/social/whatsapp.svg', true),
+        this.loadPdfSvgAsPng('logo/social/website.svg', true),
+      ]);
+      const socialIcons: ShippingLabelSocialIcons = {
+        instagram: instagramIcon,
+        facebook: facebookIcon,
+        whatsapp: whatsappIcon,
+        website: websiteIcon,
+      };
+
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(labelX, labelY, labelWidth, labelHeight, 'FD');
+
+      doc.setFillColor(...red);
+      doc.rect(labelX, labelY, labelWidth, 27, 'F');
+      doc.setFillColor(...redDark);
+      doc.rect(x(labelWidth - 4), labelY, 4, 27, 'F');
+
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(x(8), y(5), 36, 17, 2.5, 2.5, 'F');
+      if (logo) {
+        const logoWidth = 30;
+        const logoHeight = logoWidth * (logo.naturalHeight / logo.naturalWidth);
+        doc.addImage(logo, 'PNG', x(11), y(7.3), logoWidth, Math.min(12.5, logoHeight));
+      } else {
+        doc.setTextColor(...red);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('MONTAO GPS', x(12), y(15.5));
+      }
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('FICHA DE ENVIO', x(51), y(12.5));
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Conduce ${conduce.conduceNumber || 'sin numero'}`, x(51), y(18));
+      doc.text('Control de entrega y recepcion', x(51), y(22));
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(x(8), y(32), labelWidth - 16, 34, 3, 3, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...red);
+      doc.setFontSize(7);
+      doc.text('ENVIADO A', x(15), y(39));
+      doc.setTextColor(...ink);
+      doc.setFont('helvetica', 'bold');
+      this.drawFittedPdfText(doc, form.recipient, x(15), y(48), labelWidth - 30, 15, 9);
+
+      doc.setDrawColor(226, 232, 240);
+      doc.line(x(15), y(52), x(labelWidth - 15), y(52));
+
+      doc.setTextColor(...blue);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.text('TELEFONO', x(15), y(58));
+      doc.text('DESTINO', x(80), y(58));
+      doc.setTextColor(...blue);
+      doc.setFontSize(9);
+      this.drawFittedPdfText(doc, form.recipientPhone, x(34), y(58), 40, 9, 7);
+      this.drawFittedPdfText(doc, form.destination, x(96), y(58), labelWidth - 111, 9, 7);
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(x(8), y(71), labelWidth - 16, 19, 3, 3, 'FD');
+      doc.setFillColor(254, 242, 242);
+      doc.roundedRect(x(8), y(71), 72, 19, 3, 3, 'F');
+      doc.setTextColor(...red);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.text('REMITENTE', x(13), y(77.5));
+      doc.setTextColor(...ink);
+      this.drawFittedPdfText(doc, form.sender, x(13), y(84.5), 62, 9, 6.5);
+
+      doc.setTextColor(...muted);
+      doc.setFontSize(6.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text('TELEFONO DE CONTACTO', x(87), y(77.5));
+      doc.setTextColor(...ink);
+      this.drawFittedPdfText(doc, form.senderPhone, x(87), y(85), labelWidth - 95, 10, 7);
+
+      const generatedAt = new Date().toLocaleString('es-DO', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+      doc.setTextColor(...muted);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5.8);
+      doc.text(`Av. Franco Bido #135, Nibaje, Santiago R.D. | info@montao.net | ${this.officialCompanyPhone}`, x(8), y(labelHeight - 5));
+      doc.text(generatedAt, x(labelWidth - 8), y(labelHeight - 5), { align: 'right' });
+
+      this.drawShippingLabelFlyer(doc, socialQrs, socialIcons, form.senderPhone);
+
+      const safeConduceNumber = String(conduce.conduceNumber || Date.now()).replace(/[^a-zA-Z0-9_-]+/g, '_');
+      doc.save(`Ficha_envio_${safeConduceNumber}.pdf`);
+      this.shippingLabelDialogVisible = false;
+      this.selectedConduceForPrint = null;
+      this.shippingLabelFormTouched = false;
+      this.shippingLabelForm = this.createEmptyShippingLabelForm();
+    } finally {
+      this.isGeneratingShippingLabelPdf = false;
+    }
+  }
+
   async generateConducePdf(conduce: any): Promise<void> {
     const doc = new jsPDF();
     const marginX = 15;
@@ -1740,7 +2306,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
       const deviceRows = conduce.devices.map((d: any, index: number) => [
         index + 1,
         d.IMEI || d.imei || 'N/A',
-        this.getProtocolLabel(d.Protocol) || 'N/A',
+        Array.from(this.getProtocolLabel(d.Protocol) || 'N/A').reverse().join(''),
         formatConduceSimcardCode(
           d.SIM || d.sim,
           d.sim_company,
@@ -1760,7 +2326,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
       autoTable(doc, {
         startY: currentY + 5,
-        head: [['#', 'GPS', 'Modelo', 'Simcard', '#', 'GPS', 'Modelo', 'Simcard']],
+        head: [['#', 'GPS / Localizador', 'Modelo', 'Simcard', '#', 'GPS / Localizador', 'Modelo', 'Simcard']],
         body: combinedDeviceRows,
         theme: 'striped',
         headStyles: { fillColor: [189, 53, 53] },

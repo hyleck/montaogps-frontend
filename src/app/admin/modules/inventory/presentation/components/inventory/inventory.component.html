@@ -804,7 +804,7 @@
               <thead>
                 <tr>
                   <th>Almacén</th>
-                  <th>Usuarios con acceso</th>
+                  <th>Usuario vinculado</th>
                   <th class="warehouse-table__number">Mínimo</th>
                   <th class="warehouse-table__number">Equipos</th>
                   <th class="warehouse-table__number">SIM cards</th>
@@ -833,11 +833,11 @@
                   <td>
                     <span *ngIf="getWarehouseAccessUsers(warehouse).length; else noWarehouseUsers"
                       class="warehouse-table__users" [title]="getWarehouseAccessUsersLabel(warehouse)">
-                      <i class="pi pi-users"></i>
+                      <i class="pi pi-user"></i>
                       {{ getWarehouseAccessUsersLabel(warehouse) }}
                     </span>
                     <ng-template #noWarehouseUsers>
-                      <span class="warehouse-table__empty">Sin usuarios asignados</span>
+                      <span class="warehouse-table__empty">Sin usuario vinculado</span>
                     </ng-template>
                   </td>
                   <td class="warehouse-table__number">
@@ -931,10 +931,10 @@
         </div>
         <div class="field mb-3">
           <div class="warehouse-access-header">
-            <label class="font-bold">Usuarios con acceso</label>
+            <label class="font-bold">Usuario vinculado</label>
             <button type="button" class="warehouse-access-add-btn" (click)="openWarehouseUserSearchDialog()">
-              <i class="pi pi-plus"></i>
-              Agregar usuario
+              <i class="pi" [ngClass]="selectedWarehouseAccessUsers.length ? 'pi-user-edit' : 'pi-user-plus'"></i>
+              {{ selectedWarehouseAccessUsers.length ? 'Cambiar usuario' : 'Vincular usuario' }}
             </button>
           </div>
 
@@ -949,7 +949,7 @@
                 <small *ngIf="user.dni">Cédula: {{ user.dni }}</small>
               </div>
               <button type="button" class="warehouse-access-remove-btn" (click)="removeWarehouseAccessUser(user)"
-                title="Quitar acceso">
+                title="Desvincular usuario">
                 <i class="pi pi-times"></i>
               </button>
             </div>
@@ -957,8 +957,8 @@
 
           <ng-template #noWarehouseAccessUsers>
             <div class="warehouse-access-empty">
-              <i class="pi pi-users"></i>
-              <span>No hay usuarios con acceso todavía.</span>
+              <i class="pi pi-user"></i>
+              <span>No hay un usuario vinculado todavía.</span>
             </div>
           </ng-template>
         </div>
@@ -974,7 +974,7 @@
   </p-dialog>
 
   <p-dialog [(visible)]="warehouseUserSearchDialogVisible" [style]="{width: '520px'}"
-    header="Agregar usuario al almacén" [modal]="true" [resizable]="false" [draggable]="false"
+    header="Vincular usuario al almacén" [modal]="true" [resizable]="false" [draggable]="false"
     styleClass="app-dark-dialog warehouse-user-search-dialog" appendTo="body"
     (onHide)="closeWarehouseUserSearchDialog()">
     <ng-template pTemplate="content">
@@ -1003,7 +1003,7 @@
             </span>
             <span class="warehouse-user-result-status">
               <i class="pi" [ngClass]="isWarehouseAccessUserSelected(user) ? 'pi-check-circle' : 'pi-plus-circle'"></i>
-              {{ isWarehouseAccessUserSelected(user) ? 'Agregado' : 'Agregar' }}
+              {{ isWarehouseAccessUserSelected(user) ? 'Vinculado' : 'Seleccionar' }}
             </span>
           </button>
         </div>
@@ -1351,7 +1351,7 @@
             <th>Contenido</th>
             <th>Trazabilidad</th>
             <th>Estado</th>
-            <th class="conduces-history-table__actions-heading">PDF</th>
+            <th class="conduces-history-table__actions-heading">Impresión</th>
           </tr>
         </ng-template>
         <ng-template pTemplate="body" let-conduce>
@@ -1414,9 +1414,11 @@
             </td>
             <td>
               <div class="conduce-actions">
-                <button type="button" class="conduce-action conduce-action--pdf" (click)="generateConducePdf(conduce)"
-                  pTooltip="Exportar a PDF" tooltipPosition="top" aria-label="Exportar conduce a PDF">
-                  <i class="pi pi-file-pdf"></i>
+                <button type="button" class="conduce-print-button" (click)="openConducePrintDialog(conduce)"
+                  pTooltip="Opciones de impresión" tooltipPosition="top"
+                  [attr.aria-label]="'Imprimir ' + (conduce.conduceNumber || 'conduce')">
+                  <i class="pi pi-print"></i>
+                  <span>Imprimir</span>
                 </button>
               </div>
             </td>
@@ -1434,6 +1436,146 @@
           </tr>
         </ng-template>
       </p-table>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Conduce Print Options Dialog -->
+  <p-dialog [(visible)]="conducePrintDialogVisible" [modal]="true" appendTo="body"
+    [draggable]="false" [resizable]="false" [closable]="true"
+    [style]="{width: 'min(92vw, 620px)'}" styleClass="conduce-print-dialog"
+    (onHide)="hideConducePrintDialog()">
+    <ng-template pTemplate="header">
+      <div class="conduce-print-dialog__header">
+        <span><i class="pi pi-print"></i></span>
+        <div>
+          <small>Centro de impresión</small>
+          <strong>¿Qué deseas imprimir?</strong>
+          <em *ngIf="selectedConduceForPrint">{{ selectedConduceForPrint.conduceNumber || 'Conduce sin número' }}</em>
+        </div>
+      </div>
+    </ng-template>
+
+    <div class="conduce-print-options" *ngIf="selectedConduceForPrint">
+      <button type="button" class="conduce-print-option conduce-print-option--conduce"
+        (click)="printSelectedConduce()">
+        <span class="conduce-print-option__icon"><i class="pi pi-file-pdf"></i></span>
+        <span class="conduce-print-option__content">
+          <strong>Imprimir conduce</strong>
+          <small>Genera el documento completo con equipos, SIM cards, trazabilidad y firmas.</small>
+        </span>
+        <i class="pi pi-arrow-right conduce-print-option__arrow"></i>
+      </button>
+
+      <button type="button" class="conduce-print-option conduce-print-option--shipping"
+        (click)="openShippingLabelForm()">
+        <span class="conduce-print-option__icon"><i class="pi pi-send"></i></span>
+        <span class="conduce-print-option__content">
+          <strong>Imprimir ficha de envío</strong>
+          <small>Completa los datos del destinatario y crea una ficha lista para colocar en el paquete.</small>
+        </span>
+        <i class="pi pi-arrow-right conduce-print-option__arrow"></i>
+      </button>
+    </div>
+  </p-dialog>
+
+  <!-- Shipping Label Form Dialog -->
+  <p-dialog [(visible)]="shippingLabelDialogVisible" [modal]="true" appendTo="body"
+    [draggable]="false" [resizable]="false" [closable]="!isGeneratingShippingLabelPdf"
+    [closeOnEscape]="!isGeneratingShippingLabelPdf" [style]="{width: 'min(94vw, 700px)'}"
+    styleClass="shipping-label-dialog" (onHide)="hideShippingLabelDialog()">
+    <ng-template pTemplate="header">
+      <div class="shipping-label-dialog__header">
+        <span><i class="pi pi-send"></i></span>
+        <div>
+          <small>Documento para paquetería</small>
+          <strong>Ficha de envío</strong>
+          <em *ngIf="selectedConduceForPrint">Basada en {{ selectedConduceForPrint.conduceNumber || 'el conduce seleccionado' }}</em>
+        </div>
+      </div>
+    </ng-template>
+
+    <div class="shipping-label-form">
+      <div class="shipping-label-preview-banner">
+        <span><i class="pi pi-info-circle"></i></span>
+        <div>
+          <strong>Esta información aparecerá en la ficha impresa</strong>
+          <small>La ficha se colocará en la parte superior de una hoja A4, lista para imprimir y recortar.</small>
+        </div>
+      </div>
+
+      <section class="shipping-label-form__section">
+        <header>
+          <span><i class="pi pi-map-marker"></i></span>
+          <div>
+            <strong>Datos del destinatario</strong>
+            <small>El teléfono y el destino se recordarán para el próximo envío a este almacén.</small>
+          </div>
+        </header>
+
+        <div class="shipping-label-form__grid">
+          <div class="shipping-label-field shipping-label-field--wide">
+            <label for="shipping_label_recipient"><i class="pi pi-building"></i> Enviado a <em>Requerido</em></label>
+            <input id="shipping_label_recipient" type="text" maxlength="120"
+              [(ngModel)]="shippingLabelForm.recipient" name="shipping_label_recipient"
+              [disabled]="isGeneratingShippingLabelPdf" placeholder="Ej: Inversiones Ortega">
+          </div>
+          <div class="shipping-label-field">
+            <label for="shipping_label_recipient_phone"><i class="pi pi-phone"></i> Teléfono <em>Requerido</em></label>
+            <input id="shipping_label_recipient_phone" type="tel" maxlength="30"
+              [(ngModel)]="shippingLabelForm.recipientPhone" name="shipping_label_recipient_phone"
+              [disabled]="isGeneratingShippingLabelPdf" placeholder="Ej: (809) 555-0123">
+          </div>
+          <div class="shipping-label-field">
+            <label for="shipping_label_destination"><i class="pi pi-map"></i> Destino <em>Requerido</em></label>
+            <input id="shipping_label_destination" type="text" maxlength="100"
+              [(ngModel)]="shippingLabelForm.destination" name="shipping_label_destination"
+              [disabled]="isGeneratingShippingLabelPdf" placeholder="Ej: Nagua, María Trinidad Sánchez">
+          </div>
+        </div>
+      </section>
+
+      <section class="shipping-label-form__section shipping-label-form__section--sender">
+        <header>
+          <span><i class="pi pi-box"></i></span>
+          <div>
+            <strong>Datos del remitente</strong>
+            <small>Contacto de Montao responsable del envío.</small>
+          </div>
+        </header>
+
+        <div class="shipping-label-form__grid">
+          <div class="shipping-label-field">
+            <label for="shipping_label_sender"><i class="pi pi-user"></i> Remitente <em>Requerido</em></label>
+            <input id="shipping_label_sender" type="text" maxlength="120"
+              [(ngModel)]="shippingLabelForm.sender" name="shipping_label_sender"
+              [disabled]="isGeneratingShippingLabelPdf" placeholder="Ej: Montao GPS - Nombre">
+          </div>
+          <div class="shipping-label-field">
+            <label for="shipping_label_sender_phone"><i class="pi pi-phone"></i> Teléfono <em>Requerido</em></label>
+            <input id="shipping_label_sender_phone" type="tel" maxlength="30"
+              [(ngModel)]="shippingLabelForm.senderPhone" name="shipping_label_sender_phone"
+              [disabled]="isGeneratingShippingLabelPdf" placeholder="Número oficial configurado en el sistema">
+          </div>
+        </div>
+      </section>
+
+      <small *ngIf="shippingLabelFormTouched && !isShippingLabelFormValid()" class="shipping-label-form__error">
+        <i class="pi pi-exclamation-circle"></i> Completa todos los campos para generar la ficha de envío.
+      </small>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="shipping-label-dialog__footer">
+        <button type="button" class="shipping-label-dialog__back" [disabled]="isGeneratingShippingLabelPdf"
+          (click)="returnToConducePrintDialog()">
+          <i class="pi pi-arrow-left"></i> Volver
+        </button>
+        <button type="button" class="shipping-label-dialog__generate" [disabled]="isGeneratingShippingLabelPdf"
+          (click)="generateShippingLabelPdf()">
+          <i [class]="isGeneratingShippingLabelPdf ? 'pi pi-spin pi-spinner' : 'pi pi-file-pdf'"></i>
+          {{ isGeneratingShippingLabelPdf ? 'Generando...' : 'Generar PDF' }}
+        </button>
+      </div>
     </ng-template>
   </p-dialog>
 

@@ -453,10 +453,10 @@
                                         </div>
 
                                         <div class="target-form__field installation-registration-launch"
-                                            *ngIf="!getAdditionalInstallations().length && shouldShowInstallationRegistration()">
-                                            <label>{{ hasActiveOfficeReviewProcess() || canStartOfficeReviewProcess()
-                                                ? 'Instalación o revisión' : 'Instalación' }}</label>
-                                            <button *ngIf="currentUserAffiliationTypeId === 'empleado' && !hasRegisteredInstallationProcess()"
+                                            *ngIf="(!getAdditionalInstallations().length && shouldShowInstallationRegistration()) || canRegisterOfficeVehicleChange()">
+                                            <label>{{ !getAdditionalInstallations().length && shouldShowInstallationRegistration()
+                                                ? 'Instalación, revisión o cambio de vehículo' : 'Cambio de vehículo' }}</label>
+                                            <button *ngIf="!getAdditionalInstallations().length && currentUserAffiliationTypeId === 'empleado' && !hasRegisteredInstallationProcess()"
                                                 type="button" class="installation-registration-launch__button"
                                                 (click)="openInstallationRegistrationDialog()">
                                                 <span class="installation-registration-launch__icon">
@@ -468,7 +468,7 @@
                                                 </span>
                                                 <i class="pi pi-chevron-right"></i>
                                             </button>
-                                            <button *ngIf="!hasActiveOfficeReviewProcess() && canStartOfficeReviewProcess()" type="button"
+                                            <button *ngIf="!getAdditionalInstallations().length && shouldShowInstallationRegistration() && !hasActiveOfficeReviewProcess() && canStartOfficeReviewProcess()" type="button"
                                                 class="installation-registration-launch__button installation-registration-launch__button--review"
                                                 [disabled]="isUpdatingOfficeReview"
                                                 (click)="openOfficeReviewDialog()">
@@ -481,7 +481,7 @@
                                                 </span>
                                                 <i class="pi" [ngClass]="isUpdatingOfficeReview ? 'pi-spin pi-spinner' : 'pi-chevron-right'"></i>
                                             </button>
-                                            <button *ngIf="hasActiveOfficeReviewProcess()" type="button"
+                                            <button *ngIf="!getAdditionalInstallations().length && shouldShowInstallationRegistration() && hasActiveOfficeReviewProcess()" type="button"
                                                 class="installation-registration-launch__button installation-registration-launch__button--review-active"
                                                 [disabled]="isUpdatingOfficeReview"
                                                 (click)="completeOfficeReviewProcess()">
@@ -493,6 +493,19 @@
                                                     <small>Terminar las pruebas y devolver el GPS a disponible</small>
                                                 </span>
                                                 <i class="pi" [ngClass]="isUpdatingOfficeReview ? 'pi-spin pi-spinner' : 'pi-chevron-right'"></i>
+                                            </button>
+                                            <button *ngIf="canRegisterOfficeVehicleChange()" type="button"
+                                                class="installation-registration-launch__button installation-registration-launch__button--vehicle-change"
+                                                [disabled]="isRegisteringVehicleChange"
+                                                (click)="openVehicleChangeDialog()">
+                                                <span class="installation-registration-launch__icon">
+                                                    <i class="pi pi-car"></i>
+                                                </span>
+                                                <span>
+                                                    <strong>Registrar cambio de vehículo</strong>
+                                                    <small>Actualizar el vehículo sin cambiar el GPS asignado</small>
+                                                </span>
+                                                <i class="pi" [ngClass]="isRegisteringVehicleChange ? 'pi-spin pi-spinner' : 'pi-chevron-right'"></i>
                                             </button>
                                         </div>
 
@@ -2602,6 +2615,175 @@
                     <i [class]="isUpdatingOfficeReview ? 'pi pi-spin pi-spinner' : 'pi pi-search'"></i>
                     {{ isUpdatingOfficeReview ? 'Iniciando...' : 'Iniciar revisión' }}
                 </button>
+            </div>
+        </ng-template>
+    </p-dialog>
+
+    <p-dialog [(visible)]="displayVehicleChangeDialog" [modal]="true" appendTo="body"
+        [draggable]="false" [resizable]="false" [closable]="!isRegisteringVehicleChange"
+        [closeOnEscape]="!isRegisteringVehicleChange" styleClass="vehicle-change-dialog"
+        [style]="{width: 'min(94vw, 760px)'}" (onHide)="closeVehicleChangeDialog()">
+        <ng-template pTemplate="header">
+            <div class="vehicle-change-dialog__header">
+                <span><i class="pi pi-car"></i></span>
+                <div>
+                    <small class="vehicle-change-dialog__eyebrow">Gestión del objetivo</small>
+                    <strong>Registrar cambio de vehículo</strong>
+                    <small>Actualiza el vehículo vinculado sin reemplazar el equipo instalado.</small>
+                </div>
+            </div>
+        </ng-template>
+
+        <div class="vehicle-change-dialog__body">
+            <section class="vehicle-change-dialog__preserved">
+                <span class="vehicle-change-dialog__preserved-icon"><i class="pi pi-link"></i></span>
+                <div>
+                    <strong>El GPS y la SIM permanecerán vinculados</strong>
+                    <small>Este proceso solo reemplaza la información del vehículo.</small>
+                </div>
+                <div class="vehicle-change-dialog__preserved-values">
+                    <span><i class="pi pi-map-marker"></i> {{ target.device_imei || 'GPS no definido' }}</span>
+                    <span><i class="pi pi-credit-card"></i> {{ target.sim_card_number || 'SIM no definida' }}</span>
+                </div>
+            </section>
+
+            <section class="vehicle-change-dialog__current">
+                <header>
+                    <span><i class="pi pi-car"></i></span>
+                    <div>
+                        <small>Vehículo actualmente registrado</small>
+                        <strong>{{ target.name || 'Sin nombre' }}</strong>
+                    </div>
+                    <em>Actual</em>
+                </header>
+                <div class="vehicle-change-dialog__current-details">
+                    <div>
+                        <small>Placa</small>
+                        <strong>{{ target.target_plate_number || 'No definida' }}</strong>
+                    </div>
+                    <div>
+                        <small>Año</small>
+                        <strong>{{ target.target_year || 'No definido' }}</strong>
+                    </div>
+                    <div>
+                        <small>Chasis</small>
+                        <strong>{{ target.target_chassis_number || 'No definido' }}</strong>
+                    </div>
+                </div>
+            </section>
+
+            <section class="vehicle-change-dialog__new-vehicle">
+                <header class="vehicle-change-dialog__section-title">
+                    <span><i class="pi pi-pencil"></i></span>
+                    <div>
+                        <strong>Datos del nuevo vehículo</strong>
+                        <small>Modifica únicamente los campos que necesites reemplazar.</small>
+                    </div>
+                </header>
+
+                <div class="vehicle-change-dialog__form">
+                    <div class="vehicle-change-dialog__field vehicle-change-dialog__field--wide">
+                        <label for="vehicle_change_name">
+                            <span class="vehicle-change-dialog__field-label"><i class="pi pi-tag"></i> Nombre del vehículo</span>
+                            <em>Requerido</em>
+                        </label>
+                        <input id="vehicle_change_name" type="text" maxlength="180"
+                            [(ngModel)]="vehicleChangeForm.targetName" name="vehicle_change_name"
+                            [disabled]="isRegisteringVehicleChange"
+                            placeholder="Ej: Toyota Corolla 2024">
+                    </div>
+
+                    <div class="vehicle-change-dialog__field">
+                        <label for="vehicle_change_brand"><span class="vehicle-change-dialog__field-label"><i class="pi pi-building"></i> Marca</span></label>
+                        <select id="vehicle_change_brand" [(ngModel)]="vehicleChangeForm.targetBrandId"
+                            name="vehicle_change_brand" [disabled]="isRegisteringVehicleChange"
+                            (change)="onVehicleChangeBrandChange()">
+                            <option value="">Sin especificar</option>
+                            <option *ngFor="let brand of availableBrands" [value]="brand.value">{{ brand.label }}</option>
+                        </select>
+                    </div>
+
+                    <div class="vehicle-change-dialog__field">
+                        <label for="vehicle_change_model"><span class="vehicle-change-dialog__field-label"><i class="pi pi-car"></i> Modelo</span></label>
+                        <select id="vehicle_change_model" [(ngModel)]="vehicleChangeForm.targetModelId"
+                            name="vehicle_change_model" [disabled]="isRegisteringVehicleChange || !vehicleChangeForm.targetBrandId">
+                            <option value="">Sin especificar</option>
+                            <option *ngFor="let model of vehicleChangeModels" [value]="model.value">{{ model.label }}</option>
+                        </select>
+                    </div>
+
+                    <div class="vehicle-change-dialog__field">
+                        <label for="vehicle_change_year"><span class="vehicle-change-dialog__field-label"><i class="pi pi-calendar"></i> Año</span></label>
+                        <select id="vehicle_change_year" [(ngModel)]="vehicleChangeForm.targetYear"
+                            name="vehicle_change_year" [disabled]="isRegisteringVehicleChange">
+                            <option value="">Sin especificar</option>
+                            <option *ngFor="let year of availableYears" [value]="year.value">{{ year.label }}</option>
+                        </select>
+                    </div>
+
+                    <div class="vehicle-change-dialog__field">
+                        <label for="vehicle_change_color"><span class="vehicle-change-dialog__field-label"><i class="pi pi-palette"></i> Color</span></label>
+                        <div class="vehicle-change-dialog__color-control">
+                            <span [style.background-color]="vehicleChangeForm.targetColor || '#e2e8f0'"></span>
+                            <select id="vehicle_change_color" [(ngModel)]="vehicleChangeForm.targetColor"
+                                name="vehicle_change_color" [disabled]="isRegisteringVehicleChange">
+                                <option value="">Sin especificar</option>
+                                <option *ngFor="let color of availableColors" [value]="color.value">{{ color.label }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="vehicle-change-dialog__field">
+                        <label for="vehicle_change_plate"><span class="vehicle-change-dialog__field-label"><i class="pi pi-id-card"></i> Placa</span></label>
+                        <input id="vehicle_change_plate" type="text"
+                            [(ngModel)]="vehicleChangeForm.targetPlateNumber" name="vehicle_change_plate"
+                            [disabled]="isRegisteringVehicleChange" placeholder="Ej: G123456">
+                    </div>
+
+                    <div class="vehicle-change-dialog__field">
+                        <label for="vehicle_change_chassis"><span class="vehicle-change-dialog__field-label"><i class="pi pi-hashtag"></i> Chasis</span></label>
+                        <input id="vehicle_change_chassis" type="text"
+                            [(ngModel)]="vehicleChangeForm.targetChassisNumber" name="vehicle_change_chassis"
+                            [disabled]="isRegisteringVehicleChange" placeholder="Número de chasis">
+                    </div>
+
+                    <div class="vehicle-change-dialog__field vehicle-change-dialog__field--wide">
+                        <label for="vehicle_change_details">
+                            <span class="vehicle-change-dialog__field-label"><i class="pi pi-align-left"></i> Observación</span>
+                            <small>{{ vehicleChangeForm.details.length }}/500</small>
+                        </label>
+                        <textarea id="vehicle_change_details" rows="3" maxlength="500"
+                            [(ngModel)]="vehicleChangeForm.details" name="vehicle_change_details"
+                            [disabled]="isRegisteringVehicleChange"
+                            placeholder="Agrega algún detalle útil sobre el cambio realizado"></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <small *ngIf="vehicleChangeFormTouched && !vehicleChangeForm.targetName.trim()"
+                class="vehicle-change-dialog__error">Escribe el nombre del nuevo vehículo.</small>
+            <small *ngIf="vehicleChangeFormTouched && vehicleChangeForm.targetName.trim() && !hasVehicleChangeFormChanges()"
+                class="vehicle-change-dialog__error">Modifica al menos uno de los datos del vehículo.</small>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <div class="vehicle-change-dialog__footer">
+                <div class="vehicle-change-dialog__footer-note">
+                    <i class="pi pi-history"></i>
+                    <span>Se guardará el antes y después en el historial del objetivo.</span>
+                </div>
+                <div class="vehicle-change-dialog__footer-actions">
+                    <button type="button" class="vehicle-change-dialog__cancel"
+                        [disabled]="isRegisteringVehicleChange" (click)="closeVehicleChangeDialog()">
+                        Cancelar
+                    </button>
+                    <button type="button" class="vehicle-change-dialog__submit"
+                        [disabled]="isRegisteringVehicleChange || !isVehicleChangeFormValid()"
+                        (click)="registerOfficeVehicleChange()">
+                        <i [class]="isRegisteringVehicleChange ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
+                        {{ isRegisteringVehicleChange ? 'Registrando...' : 'Registrar cambio' }}
+                    </button>
+                </div>
             </div>
         </ng-template>
     </p-dialog>

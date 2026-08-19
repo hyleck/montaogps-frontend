@@ -681,9 +681,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         { label: 'Mixta', value: 'mixta' }
     ];
     readonly topFilterTypeOptions = this.typeOptions.slice(1);
-    readonly creationTypeOptions = this.typeOptions
-        .slice(1)
-        .filter(option => option.value !== 'cambio_vehiculo');
+    readonly creationTypeOptions = this.typeOptions.slice(1);
     readonly mixedProcessOptions = this.typeOptions.filter(option =>
         ['instalacion', 'reinstalacion', 'desinstalacion', 'chequeo', 'cambio'].includes(option.value)
     );

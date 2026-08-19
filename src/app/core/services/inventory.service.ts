@@ -91,6 +91,9 @@ export interface Warehouse {
   access_users?: string[];
   stock?: number;
   simcard_stock?: number;
+  last_shipping_recipient_phone?: string;
+  last_shipping_destination?: string;
+  last_shipping_at?: string;
   createdAt?: string;
   updatedAt?: string;
   created_by?: InventoryAuditUser | string;
@@ -303,6 +306,16 @@ export class InventoryService {
 
   updateWarehouse(id: string, warehouse: Warehouse): Observable<Warehouse> {
     return this.http.patch<Warehouse>(`${this.warehouseUrl}/${id}`, warehouse);
+  }
+
+  updateWarehouseLastShippingDestination(
+    id: string,
+    payload: { recipient_phone: string; destination: string },
+  ): Observable<Warehouse> {
+    return this.http.patch<Warehouse>(
+      `${this.warehouseUrl}/${id}/last-shipping-destination`,
+      payload,
+    );
   }
 
   deleteWarehouse(id: string): Observable<any> {

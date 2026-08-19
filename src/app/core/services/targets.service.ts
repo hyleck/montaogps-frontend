@@ -568,6 +568,25 @@ export class TargetsService {
     return await lastValueFrom(this.http.patch<{ ok: true }>(url, {}));
   }
 
+  async registerOfficeVehicleChange(
+    deviceId: string,
+    data: {
+      targetName: string;
+      targetBrandId?: string;
+      targetModelId?: string;
+      targetYear?: string;
+      targetColor?: string;
+      targetPlateNumber?: string;
+      targetChassisNumber?: string;
+      details?: string;
+    }
+  ): Promise<{ device: Target; process: ProcessResponse }> {
+    const url = `${environment.apiUrl}/process/office-vehicle-change/${encodeURIComponent(deviceId)}`;
+    return await lastValueFrom(
+      this.http.post<{ device: Target; process: ProcessResponse }>(url, data)
+    );
+  }
+
   async getProcessesByReference(reference: string): Promise<ProcessResponse[]> {
     const url = `${environment.apiUrl}/process/by-reference/${encodeURIComponent(reference)}`;
     const observable = this.http.get<ProcessResponse[]>(url);

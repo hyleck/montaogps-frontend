@@ -265,6 +265,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     displayOfficeReviewDialog: boolean = false;
     officeReviewReason: string = '';
     officeReviewReasonTouched: boolean = false;
+    displayVehicleChangeDialog: boolean = false;
+    isRegisteringVehicleChange: boolean = false;
+    vehicleChangeFormTouched: boolean = false;
+    vehicleChangeModels: SelectOption[] = [];
+    vehicleChangeForm = this.getEmptyVehicleChangeForm();
     installationRegistrationForm = this.getEmptyInstallationRegistrationForm();
     displayProcessesDialog: boolean = false;
     expandedProcessIndex: number | null = null;
@@ -4926,6 +4931,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return this.isEditMode && !!this.getCurrentTargetId();
     }
 
+    canRegisterOfficeVehicleChange(): boolean {
+        const isOfficeUser = ['empleado', 'admin'].includes(
+            String(this.currentUserAffiliationTypeId || '').trim().toLowerCase()
+        ) || this.currentUserIsRoot || this.currentUserIsDeveloper;
+        return this.isEditMode
+            && isOfficeUser
+            && !this.isTagTarget()
+            && !!this.getCurrentTargetId();
+    }
+
     private hasOfficeActionAuthorization(): boolean {
         const isOfficeUser = ['empleado', 'admin'].includes(
             String(this.currentUserAffiliationTypeId || '').trim().toLowerCase()
@@ -5031,6 +5046,137 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             });
         } finally {
             this.isUpdatingOfficeReview = false;
+        }
+    }
+
+    async openVehicleChangeDialog(): Promise<void> {
+        if (this.isRegisteringVehicleChange || !this.canRegisterOfficeVehicleChange()) return;
+        this.vehicleChangeFormTouched = false;
+        this.vehicleChangeForm = {
+            targetName: String(this.target.name || '').trim(),
+            targetBrandId: String(this.target.target_brand_id || '').trim(),
+            targetModelId: String(this.target.target_model_id || '').trim(),
+            targetYear: String(this.target.target_year || '').trim(),
+            targetColor: String(this.target.target_color || '').trim(),
+            targetPlateNumber: String(this.target.target_plate_number || '').trim(),
+            targetChassisNumber: String(this.target.target_chassis_number || '').trim(),
+            details: ''
+        };
+        this.vehicleChangeModels = [...this.availableModels];
+        this.displayVehicleChangeDialog = true;
+        await this.loadVehicleChangeModels(false);
+    }
+
+    closeVehicleChangeDialog(): void {
+        if (this.isRegisteringVehicleChange) return;
+        this.displayVehicleChangeDialog = false;
+        this.vehicleChangeFormTouched = false;
+        this.vehicleChangeModels = [];
+        this.vehicleChangeForm = this.getEmptyVehicleChangeForm();
+    }
+
+    async onVehicleChangeBrandChange(): Promise<void> {
+        this.vehicleChangeForm.targetModelId = '';
+        await this.loadVehicleChangeModels(true);
+    }
+
+    private async loadVehicleChangeModels(showError: boolean): Promise<void> {
+        const brandId = String(this.vehicleChangeForm.targetBrandId || '').trim();
+        if (!brandId) {
+            this.vehicleChangeModels = [];
+            return;
+        }
+        try {
+            const models = await this.vehicleBrandsService.getAllModelsByBrand(brandId);
+            this.vehicleChangeModels = (Array.isArray(models) ? models : [])
+                .map((model: any) => ({ label: model.nombre, value: model._id }))
+                .sort((a: SelectOption, b: SelectOption) => a.label.localeCompare(b.label));
+        } catch (error) {
+            this.vehicleChangeModels = [];
+            if (showError) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'No se cargaron los modelos',
+                    detail: 'Intenta seleccionar nuevamente la marca.'
+                });
+            }
+        }
+    }
+
+    isVehicleChangeFormValid(): boolean {
+        return !!String(this.vehicleChangeForm.targetName || '').trim()
+            && this.hasVehicleChangeFormChanges();
+    }
+
+    hasVehicleChangeFormChanges(): boolean {
+        const clean = (value: unknown) => String(value ?? '').trim();
+        const current = [
+            this.target.name,
+            this.target.target_brand_id,
+            this.target.target_model_id,
+            this.target.target_year,
+            this.target.target_color,
+            this.target.target_plate_number,
+            this.target.target_chassis_number
+        ].map(clean);
+        const requested = [
+            this.vehicleChangeForm.targetName,
+            this.vehicleChangeForm.targetBrandId,
+            this.vehicleChangeForm.targetModelId,
+            this.vehicleChangeForm.targetYear,
+            this.vehicleChangeForm.targetColor,
+            this.vehicleChangeForm.targetPlateNumber,
+            this.vehicleChangeForm.targetChassisNumber
+        ].map(clean);
+        return requested.some((value, index) => value !== current[index]);
+    }
+
+    async registerOfficeVehicleChange(): Promise<void> {
+        if (this.isRegisteringVehicleChange || !this.canRegisterOfficeVehicleChange()) return;
+        this.vehicleChangeFormTouched = true;
+        if (!this.isVehicleChangeFormValid()) return;
+        const targetId = this.getCurrentTargetId();
+        if (!targetId) return;
+
+        this.isRegisteringVehicleChange = true;
+        try {
+            const form = this.vehicleChangeForm;
+            const response = await this.targetsService.registerOfficeVehicleChange(targetId, {
+                targetName: form.targetName.trim(),
+                targetBrandId: form.targetBrandId.trim(),
+                targetModelId: form.targetModelId.trim(),
+                targetYear: form.targetYear.trim(),
+                targetColor: form.targetColor.trim(),
+                targetPlateNumber: form.targetPlateNumber.trim(),
+                targetChassisNumber: form.targetChassisNumber.trim(),
+                details: form.details.trim()
+            });
+            this.target = { ...this.target, ...(response.device as any) };
+            this.originalVehicleData = {
+                brand: this.target.target_brand_id || '',
+                model: this.target.target_model_id || '',
+                year: this.target.target_year || '',
+                color: this.target.target_color || ''
+            };
+            await this.syncVehicleCatalogDisplayAfterVerification();
+            await this.loadProcessesList(false);
+            this.displayVehicleChangeDialog = false;
+            this.vehicleChangeFormTouched = false;
+            this.vehicleChangeModels = [];
+            this.targetUpdatedWithoutClose.emit(this.target);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Cambio de vehículo registrado',
+                detail: 'Los datos del objetivo y el proceso tipo Cambio de vehículo fueron actualizados.'
+            });
+        } catch (error) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo registrar el cambio',
+                detail: getApiErrorMessage(error, 'Revisa los datos e intenta nuevamente.')
+            });
+        } finally {
+            this.isRegisteringVehicleChange = false;
         }
     }
 
@@ -5219,6 +5365,19 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             installationDetails: '',
             engineShutdown: 'No',
             ignitionSensor: 'No'
+        };
+    }
+
+    private getEmptyVehicleChangeForm() {
+        return {
+            targetName: '',
+            targetBrandId: '',
+            targetModelId: '',
+            targetYear: '',
+            targetColor: '',
+            targetPlateNumber: '',
+            targetChassisNumber: '',
+            details: ''
         };
     }
 
