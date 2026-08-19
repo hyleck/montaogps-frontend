@@ -300,6 +300,34 @@ export class AuthService {
     );
   }
 
+  startMobileSupportImpersonation(
+    targetUserId: string,
+    reason: string,
+  ): Observable<any> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser?.root || this.isSupportImpersonating()) {
+      throw new Error('Solo una sesión root normal puede iniciar el acceso de soporte.');
+    }
+
+    return this._httpClient.post<any>(
+      environment.apiUrl + '/auth/support/impersonate',
+      {
+        targetUserId,
+        reason: String(reason || '').trim(),
+        destination: 'mobile',
+      },
+    ).pipe(
+      map(response => {
+        if (!response?.mobile_handoff_code) {
+          throw new Error(
+            'El servidor no devolvió un acceso válido para la aplicación móvil.',
+          );
+        }
+        return response;
+      }),
+    );
+  }
+
   isSupportImpersonating(): boolean {
     const token = this.getToken();
     if (!token || !sessionStorage.getItem(this.SUPPORT_SESSION_KEY)) return false;

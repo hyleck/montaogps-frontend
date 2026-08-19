@@ -2,6 +2,7 @@ export const environment = {
     production: false,
     apiUrl: 'http://localhost:3000',
     montaoApiUrl: 'https://back-montao.dorhu.com',
+    mobileAppUrl: 'https://appgps.montao.net',
     firebase: {
         apiKey: 'AIzaSyBHM_Mr0u_B70uYPkeocLq-ReMgFUjLcuM',
         authDomain: 'montaogps-818c0.firebaseapp.com',

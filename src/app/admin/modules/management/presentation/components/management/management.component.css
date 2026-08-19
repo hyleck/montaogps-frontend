@@ -4525,6 +4525,92 @@ html.app-dark .management__transfer-user-found-content strong {
     font-size: .76rem;
 }
 
+.support-access-dialog__destination {
+    display: grid;
+    gap: 8px;
+}
+
+.support-access-dialog__destination > span {
+    font-size: .82rem;
+    font-weight: 700;
+}
+
+.support-access-dialog__destination-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.support-access-dialog__destination-options > button {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 9px;
+    padding: 12px;
+    border: 1px solid #3a4250;
+    border-radius: 10px;
+    background: #111419;
+    color: #d1d5db;
+    text-align: left;
+    cursor: pointer;
+}
+
+.support-access-dialog__destination-options > button > i:first-child {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #242a34;
+    color: #9ca3af;
+}
+
+.support-access-dialog__destination-options > button > span {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.support-access-dialog__destination-options strong {
+    color: inherit;
+    font-size: .84rem;
+}
+
+.support-access-dialog__destination-options small {
+    overflow: hidden;
+    color: #9ca3af;
+    font-size: .7rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.support-access-dialog__destination-check {
+    opacity: 0;
+    color: #f59e0b;
+}
+
+.support-access-dialog__destination-options > button.is-selected {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, .1);
+    color: #fbbf24;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, .08);
+}
+
+.support-access-dialog__destination-options > button.is-selected > i:first-child {
+    background: rgba(245, 158, 11, .16);
+    color: #fbbf24;
+}
+
+.support-access-dialog__destination-options > button.is-selected .support-access-dialog__destination-check {
+    opacity: 1;
+}
+
+.support-access-dialog__destination-options > button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
 .support-access-dialog__notice {
     display: flex;
     align-items: flex-start;
@@ -4636,6 +4722,32 @@ html.app-dark .management__transfer-user-found-content strong {
     color: #64748b;
 }
 
+:host-context(.app-light) .support-access-dialog__destination-options > button {
+    border-color: #cbd5e1;
+    background: #ffffff;
+    color: #334155;
+}
+
+:host-context(.app-light) .support-access-dialog__destination-options > button > i:first-child {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+:host-context(.app-light) .support-access-dialog__destination-options small {
+    color: #64748b;
+}
+
+:host-context(.app-light) .support-access-dialog__destination-options > button.is-selected {
+    border-color: #d97706;
+    background: #fffbeb;
+    color: #92400e;
+}
+
+:host-context(.app-light) .support-access-dialog__destination-options > button.is-selected > i:first-child {
+    background: #fef3c7;
+    color: #d97706;
+}
+
 :host-context(.app-light) .support-access-dialog__notice {
     border: 1px solid #93c5fd;
     background: #eff6ff;
@@ -4668,4 +4780,10 @@ html.app-dark .management__transfer-user-found-content strong {
 :host-context(.app-light) .support-access-dialog__cancel:disabled {
     color: #475569;
     opacity: .62;
+}
+
+@media (max-width: 520px) {
+    .support-access-dialog__destination-options {
+        grid-template-columns: 1fr;
+    }
 }

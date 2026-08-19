@@ -1381,10 +1381,36 @@
                         <small>{{ supportAccessTarget.email }}</small>
                     </div>
 
+                    <div class="support-access-dialog__destination">
+                        <span>¿Dónde deseas abrir la cuenta?</span>
+                        <div class="support-access-dialog__destination-options" role="radiogroup"
+                            aria-label="Destino del acceso de soporte">
+                            <button type="button" role="radio"
+                                [attr.aria-checked]="supportAccessDestination === 'desktop'"
+                                [class.is-selected]="supportAccessDestination === 'desktop'"
+                                [disabled]="startingSupportAccess"
+                                (click)="supportAccessDestination = 'desktop'">
+                                <i class="pi pi-desktop"></i>
+                                <span><strong>Escritorio</strong><small>Abrir el panel administrativo</small></span>
+                                <i class="pi pi-check-circle support-access-dialog__destination-check"></i>
+                            </button>
+                            <button type="button" role="radio"
+                                [attr.aria-checked]="supportAccessDestination === 'mobile'"
+                                [class.is-selected]="supportAccessDestination === 'mobile'"
+                                [disabled]="startingSupportAccess"
+                                (click)="supportAccessDestination = 'mobile'">
+                                <i class="pi pi-mobile"></i>
+                                <span><strong>App móvil</strong><small>Abrir appgps.montao.net</small></span>
+                                <i class="pi pi-check-circle support-access-dialog__destination-check"></i>
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="support-access-dialog__notice">
                         <i class="pi pi-shield"></i>
-                        <span>El acceso durará 15 minutos, no cambia la contraseña y todas las acciones quedarán
-                            registradas a tu nombre.</span>
+                        <span>El acceso durará 15 minutos, no cambia la contraseña y la actividad quedará
+                            registrada a tu nombre. <ng-container *ngIf="supportAccessDestination === 'mobile'">La cuenta
+                                se abrirá de forma segura en la app móvil.</ng-container></span>
                     </div>
 
                     <label class="support-access-dialog__reason">
@@ -1403,7 +1429,8 @@
                 <button type="button" class="support-access-dialog__confirm" (click)="confirmSupportAccess()"
                     [disabled]="supportAccessReason.trim().length < 10 || startingSupportAccess">
                     <i [class]="startingSupportAccess ? 'pi pi-spin pi-spinner' : 'pi pi-sign-in'"></i>
-                    <span>{{ startingSupportAccess ? 'Abriendo cuenta...' : 'Entrar por soporte' }}</span>
+                    <span>{{ startingSupportAccess ? 'Abriendo cuenta...' :
+                        (supportAccessDestination === 'mobile' ? 'Abrir app móvil' : 'Abrir escritorio') }}</span>
                 </button>
             </footer>
         </section>

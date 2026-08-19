@@ -45,6 +45,7 @@ import {
 } from './location-subject-privacy';
 import * as maplibregl from 'maplibre-gl';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
+import { environment } from '../../../../../../../environments/environment';
 
 @Component({
   selector: 'app-management',
@@ -214,6 +215,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   supportAccessDialogVisible: boolean = false;
   supportAccessTarget: User | null = null;
   supportAccessReason: string = '';
+  supportAccessDestination: 'desktop' | 'mobile' = 'desktop';
   startingSupportAccess: boolean = false;
 
   // Estado específico de carga de targets
@@ -1041,6 +1043,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (!this.canStartSupportAccess(user)) return;
     this.supportAccessTarget = user;
     this.supportAccessReason = '';
+    this.supportAccessDestination = 'desktop';
     this.supportAccessDialogVisible = true;
   }
 
@@ -1049,6 +1052,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.supportAccessDialogVisible = false;
     this.supportAccessTarget = null;
     this.supportAccessReason = '';
+    this.supportAccessDestination = 'desktop';
   }
 
   confirmSupportAccess(): void {
@@ -1058,8 +1062,21 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
     this.startingSupportAccess = true;
     try {
-      this.authService.startSupportImpersonation(targetId, reason).subscribe({
-        next: () => {
+      const accessRequest$ = this.supportAccessDestination === 'mobile'
+        ? this.authService.startMobileSupportImpersonation(targetId, reason)
+        : this.authService.startSupportImpersonation(targetId, reason);
+
+      accessRequest$.subscribe({
+        next: (response) => {
+          if (this.supportAccessDestination === 'mobile') {
+            const mobileUrl = new URL('/login', environment.mobileAppUrl);
+            mobileUrl.searchParams.set(
+              'supportCode',
+              String(response.mobile_handoff_code),
+            );
+            window.location.assign(mobileUrl.toString());
+            return;
+          }
           window.location.assign('/admin/dashboard');
         },
         error: (error) => {
@@ -4245,11 +4262,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const parentId = this.managementService.getCurrentUserId();
       const userEmail = this.selectedUser.email;
       const LIMIT = 9999; 
+      const activeSearchTerm = this.searchTargetsTerm.trim();
 
       let targetsPromise;
-      if (this.isSearchingTargets && this.searchTargetsTerm.trim() !== '') {
+      if (activeSearchTerm) {
         targetsPromise = this.targetsService.searchTargets(
-          this.searchTargetsTerm,
+          activeSearchTerm,
           parentId,
           0,
           LIMIT,
@@ -4269,7 +4287,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
         );
       }
 
-      const sharedPromise = userEmail ? this.targetsService.getSharedTargets(userEmail) : Promise.resolve([]);
+      const sharedPromise = !activeSearchTerm && userEmail
+        ? this.targetsService.getSharedTargets(userEmail)
+        : Promise.resolve([]);
       
       const [targetsResponse, sharedTargets] = await Promise.all([targetsPromise, sharedPromise]);
 
@@ -4344,11 +4364,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.loadingMoreTargets = true;
     try {
       let response;
-      if (this.isSearchingTargets && this.searchTargetsTerm.trim() !== '') {
+      const activeSearchTerm = this.searchTargetsTerm.trim();
+      if (activeSearchTerm) {
         // Si estamos en modo búsqueda, usar el endpoint de búsqueda
         const parentId = this.managementService.getCurrentUserId();
         response = await this.targetsService.searchTargets(
-          this.searchTargetsTerm,
+          activeSearchTerm,
           parentId,
           this.currentOffset,
           this.pageSize,
@@ -4563,6 +4584,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
   private async loadTargetsForUser(userId: string, resetPagination: boolean = true) {
     const requestId = ++this.targetsLoadRequestId;
+    const activeSearchTerm = this.searchTargetsTerm.trim();
     // Validar permisos antes de cargar targets/devices
     if (!this.canReadDevices()) {
       this.messageService.add({
@@ -4593,22 +4615,42 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const pageSizeForRequest = resetPagination ? this.initialPageSize : this.pageSize;
       const requestOffset = this.currentOffset;
 
-      const targetsPromise = this.targetsService.getTargetsByUserId(
-        userId,
-        parentId,
-        requestOffset,
-        pageSizeForRequest,
-        this.filterStatus,
-        this.filterTag || undefined,
-        this.filterSimCompany || undefined
-      );
-      const sharedPromise = userEmail ? this.targetsService.getSharedTargets(userEmail) : Promise.resolve([]);
+      // Toda recarga debe respetar el texto visible en el buscador. Esto cubre
+      // las recargas posteriores a editar, verificar o restaurar un objetivo,
+      // incluso si el flag de búsqueda todavía no fue actualizado por debounce.
+      this.isSearchingTargets = activeSearchTerm.length > 0;
+      const targetsPromise = activeSearchTerm
+        ? this.targetsService.searchTargets(
+            activeSearchTerm,
+            parentId,
+            requestOffset,
+            pageSizeForRequest,
+            this.filterStatus,
+            this.filterTag || undefined,
+            this.filterSimCompany || undefined
+          )
+        : this.targetsService.getTargetsByUserId(
+            userId,
+            parentId,
+            requestOffset,
+            pageSizeForRequest,
+            this.filterStatus,
+            this.filterTag || undefined,
+            this.filterSimCompany || undefined
+          );
+      // La búsqueda del backend ya representa el conjunto filtrado. No se
+      // deben anteponer objetivos compartidos sin filtrar porque volverían a
+      // aparecer GPS que no coinciden con el query.
+      const sharedPromise = !activeSearchTerm && userEmail
+        ? this.targetsService.getSharedTargets(userEmail)
+        : Promise.resolve([]);
 
       const [targetsResponse, sharedTargets] = await Promise.all([targetsPromise, sharedPromise]);
 
       if (
         requestId !== this.targetsLoadRequestId ||
-        this.selectedUser?._id !== userId
+        this.selectedUser?._id !== userId ||
+        activeSearchTerm !== this.searchTargetsTerm.trim()
       ) {
         return;
       }
@@ -4695,10 +4737,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
       this.tryOpenInventoryAssignedTarget();
 
-      // Check for pending initial search
-      if (this.pendingInitialSearchTerm && !this.initialSearchExecuted) {
+      // Si no había término al iniciar la carga, todavía puede existir una
+      // búsqueda diferida proveniente de la URL. Cuando sí había término, la
+      // consulta ya se ejecutó directamente arriba y no debe repetirse.
+      if (!activeSearchTerm && this.pendingInitialSearchTerm && !this.initialSearchExecuted) {
         console.log('🔍 Ejecutando búsqueda inicial diferida:', this.pendingInitialSearchTerm);
         this.searchTargetsSubject.next(this.pendingInitialSearchTerm);
+        this.pendingInitialSearchTerm = '';
+      }
+      if (activeSearchTerm) {
         this.pendingInitialSearchTerm = '';
       }
       // Always mark as executed after data load to prevent future auto-searches
