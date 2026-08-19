@@ -2335,6 +2335,23 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(component.solicitudes[0].unlocked_by_name).toBe('Usuario Root');
     });
 
+    it('exposes the blocking description only while the request is locked', () => {
+        const { component } = createComponent();
+        const solicitud: Solicitud = {
+            _id: 'request-with-lock-description',
+            type: 'instalacion',
+            status: 'pendiente',
+            locked: true,
+            lock_reason: '  Esperando autorización del cliente  ',
+        };
+
+        expect(component.getSolicitudLockDescription(solicitud))
+            .toBe('Esperando autorización del cliente');
+
+        solicitud.locked = false;
+        expect(component.getSolicitudLockDescription(solicitud)).toBe('');
+    });
+
     it('keeps a locked request inert until it is unlocked', async () => {
         const { component, solicitudesService, messageService } = createComponent();
         const installation = { device_imei: '868720064472750' };

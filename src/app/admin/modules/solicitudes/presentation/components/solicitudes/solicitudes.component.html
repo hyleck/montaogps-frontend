@@ -458,6 +458,10 @@
                         </small>
                     </div>
                 </div>
+                <div *ngIf="getSolicitudLockDescription(sol) as lockDescription" class="sol-request-lock-description">
+                    <i class="pi pi-info-circle"></i>
+                    <span>{{ lockDescription }}</span>
+                </div>
                 <div class="sol-kanban-content">
                     <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
                     <span class="sol-overdue-badge" *ngIf="isSolicitudOverdue(sol)">
@@ -596,6 +600,10 @@
                         <i class="pi pi-wrench" aria-hidden="true"></i>
                     </button>
                 </div>
+                <div *ngIf="getSolicitudLockDescription(sol) as lockDescription" class="sol-request-lock-description">
+                    <i class="pi pi-info-circle"></i>
+                    <span>{{ lockDescription }}</span>
+                </div>
                 <div class="sol-kanban-content">
                     <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
                     <span class="sol-overdue-badge" *ngIf="isSolicitudOverdue(sol)">
@@ -721,6 +729,10 @@
                             <i class="pi pi-user"></i> Creada por {{ creator }}
                         </small>
                     </div>
+                </div>
+                <div *ngIf="getSolicitudLockDescription(sol) as lockDescription" class="sol-request-lock-description">
+                    <i class="pi pi-info-circle"></i>
+                    <span>{{ lockDescription }}</span>
                 </div>
                 <div class="sol-kanban-content">
                     <span class="sol-kanban-date sol-kanban-date--finalized" *ngIf="getSolicitudFinalizedDateDisplay(sol) as finalizedDate">
@@ -857,6 +869,11 @@
                         <i class="pi pi-user"></i>
                         <span>Creada por {{ creator }}</span>
                     </small>
+                </div>
+
+                <div *ngIf="getSolicitudLockDescription(sol) as lockDescription" class="sol-request-lock-description">
+                    <i class="pi pi-info-circle"></i>
+                    <span>{{ lockDescription }}</span>
                 </div>
 
                 <div class="sol-closed-process">

@@ -1547,6 +1547,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         return solicitud?.locked === true;
     }
 
+    getSolicitudLockDescription(solicitud: Solicitud | null | undefined): string {
+        if (!this.isSolicitudLocked(solicitud)) return '';
+        return String(solicitud?.lock_reason || '').trim();
+    }
+
     getSolicitudLockTooltip(solicitud: Solicitud | null | undefined): string {
         const reason = String(solicitud?.lock_reason || '').trim();
         const actor = String(solicitud?.locked_by_name || '').trim();

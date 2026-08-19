@@ -5432,12 +5432,44 @@ html.app-dark .sol-process-activation-disclosure__copy small {
     border-color: rgba(63, 63, 70, 0.62) !important;
     background: color-mix(in srgb, var(--managementCardBackground) 88%, #d4d4d8) !important;
     box-shadow: inset 3px 0 0 #3f3f46;
-    filter: grayscale(1);
     cursor: default;
+}
+
+.sol-kanban-card--request-locked > :not(.sol-request-lock-description) {
+    filter: grayscale(1);
 }
 
 .sol-kanban-card--request-locked::after {
     pointer-events: none;
+}
+
+.sol-request-lock-description {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.38rem;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0.18rem 0 0.42rem;
+    padding: 0.42rem 0.58rem;
+    border-left: 3px solid #2563eb;
+    border-radius: 0 8px 8px 0;
+    background: rgba(37, 99, 235, 0.08);
+    color: #2563eb;
+    font-size: 0.74rem;
+    font-weight: 750;
+    line-height: 1.35;
+}
+
+.sol-request-lock-description i {
+    flex: 0 0 auto;
+    margin-top: 0.08rem;
+    color: currentColor;
+    font-size: 0.72rem;
+}
+
+.sol-request-lock-description span {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .sol-request-lock-action {
@@ -5648,6 +5680,12 @@ html.app-dark .sol-kanban-card--request-locked .sol-request-lock-badge {
     border-color: rgba(212, 212, 216, 0.34);
     background: rgba(212, 212, 216, 0.1);
     color: #e4e4e7;
+}
+
+html.app-dark .sol-request-lock-description {
+    border-left-color: #60a5fa;
+    background: rgba(59, 130, 246, 0.14);
+    color: #93c5fd;
 }
 
 html.app-dark .sol-request-unlocked-badge {
