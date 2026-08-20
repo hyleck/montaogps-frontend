@@ -4927,16 +4927,25 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         });
     }
 
+    private isOfficeManagementUser(): boolean {
+        return ['empleado', 'admin'].includes(
+            String(this.currentUserAffiliationTypeId || '').trim().toLowerCase()
+        ) || this.currentUserIsRoot || this.currentUserIsDeveloper;
+    }
+
     canStartOfficeReviewProcess(): boolean {
-        return this.isEditMode && !!this.getCurrentTargetId();
+        return this.isEditMode
+            && this.isOfficeManagementUser()
+            && !!this.getCurrentTargetId();
+    }
+
+    canShowOfficeReviewAction(): boolean {
+        return !this.isLoadingProcesses && this.canStartOfficeReviewProcess();
     }
 
     canRegisterOfficeVehicleChange(): boolean {
-        const isOfficeUser = ['empleado', 'admin'].includes(
-            String(this.currentUserAffiliationTypeId || '').trim().toLowerCase()
-        ) || this.currentUserIsRoot || this.currentUserIsDeveloper;
         return this.isEditMode
-            && isOfficeUser
+            && this.isOfficeManagementUser()
             && !this.isTagTarget()
             && !!this.getCurrentTargetId();
     }
@@ -4992,7 +5001,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     async registerOfficeReviewProcess(): Promise<void> {
-        if (this.isUpdatingOfficeReview || this.hasActiveOfficeReviewProcess()) return;
+        if (
+            this.isUpdatingOfficeReview
+            || this.hasActiveOfficeReviewProcess()
+            || !this.canStartOfficeReviewProcess()
+        ) return;
         this.officeReviewReasonTouched = true;
         if (!this.isOfficeReviewReasonValid()) return;
         const targetId = this.getCurrentTargetId();
@@ -5181,18 +5194,32 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     shouldShowInstallationRegistration(): boolean {
-        const isOfficeUser = ['empleado', 'admin'].includes(
-            String(this.currentUserAffiliationTypeId || '').trim().toLowerCase()
-        ) || this.currentUserIsRoot || this.currentUserIsDeveloper;
         const canRegisterInstallation = this.currentUserAffiliationTypeId === 'empleado'
             && !this.hasRegisteredInstallationProcess();
-        const canManageReview = this.hasActiveOfficeReviewProcess()
-            || this.canStartOfficeReviewProcess();
         return this.isEditMode
-            && isOfficeUser
+            && this.isOfficeManagementUser()
             && !this.isLoadingProcesses
             && !this.hasActiveInstallationAuthorization()
-            && (canRegisterInstallation || canManageReview);
+            && canRegisterInstallation;
+    }
+
+    getInstallationActionsLabel(): string {
+        const actions: string[] = [];
+        if (!this.getAdditionalInstallations().length && this.shouldShowInstallationRegistration()) {
+            actions.push('instalación');
+        }
+        if (this.canShowOfficeReviewAction()) {
+            actions.push('revisión');
+        }
+        if (this.canRegisterOfficeVehicleChange()) {
+            actions.push('cambio de vehículo');
+        }
+
+        if (!actions.length) return 'Acciones del objetivo';
+        const label = actions.length === 1
+            ? actions[0]
+            : `${actions.slice(0, -1).join(', ')} o ${actions[actions.length - 1]}`;
+        return label.charAt(0).toUpperCase() + label.slice(1);
     }
 
     openInstallationRegistrationDialog(): void {

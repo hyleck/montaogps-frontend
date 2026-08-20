@@ -81,6 +81,29 @@ describe('TargetFormComponent office review flow', () => {
     expect(component.getOfficeReviewDeviceStatusLabel()).toBe('En línea');
   });
 
+  it('keeps office review available for an already installed GPS', () => {
+    const { component } = buildComponent();
+    component.target.mechanic_id = '507f1f77bcf86cd799439099';
+    component.processList = [{
+      type: 1,
+      target: { mechanic_id: '507f1f77bcf86cd799439099' },
+    }] as any;
+
+    expect(component.hasActiveInstallationAuthorization()).toBeTrue();
+    expect(component.shouldShowInstallationRegistration()).toBeFalse();
+    expect(component.canShowOfficeReviewAction()).toBeTrue();
+  });
+
+  it('keeps office review available when the target has additional installations', () => {
+    const { component } = buildComponent();
+    component.target.instalaciones_adicionales = [
+      { device_imei: '868000000000043' },
+    ] as any;
+
+    expect(component.getAdditionalInstallations().length).toBe(1);
+    expect(component.canShowOfficeReviewAction()).toBeTrue();
+  });
+
   it('does not create a review without a description', async () => {
     const { component, targetsService } = buildComponent();
     component.officeReviewReason = '   ';

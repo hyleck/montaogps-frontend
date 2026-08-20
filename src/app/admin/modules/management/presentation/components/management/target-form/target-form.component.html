@@ -453,9 +453,8 @@
                                         </div>
 
                                         <div class="target-form__field installation-registration-launch"
-                                            *ngIf="(!getAdditionalInstallations().length && shouldShowInstallationRegistration()) || canRegisterOfficeVehicleChange()">
-                                            <label>{{ !getAdditionalInstallations().length && shouldShowInstallationRegistration()
-                                                ? 'Instalación, revisión o cambio de vehículo' : 'Cambio de vehículo' }}</label>
+                                            *ngIf="(!getAdditionalInstallations().length && shouldShowInstallationRegistration()) || canShowOfficeReviewAction() || canRegisterOfficeVehicleChange()">
+                                            <label>{{ getInstallationActionsLabel() }}</label>
                                             <button *ngIf="!getAdditionalInstallations().length && currentUserAffiliationTypeId === 'empleado' && !hasRegisteredInstallationProcess()"
                                                 type="button" class="installation-registration-launch__button"
                                                 (click)="openInstallationRegistrationDialog()">
@@ -468,7 +467,7 @@
                                                 </span>
                                                 <i class="pi pi-chevron-right"></i>
                                             </button>
-                                            <button *ngIf="!getAdditionalInstallations().length && shouldShowInstallationRegistration() && !hasActiveOfficeReviewProcess() && canStartOfficeReviewProcess()" type="button"
+                                            <button *ngIf="canShowOfficeReviewAction() && !hasActiveOfficeReviewProcess()" type="button"
                                                 class="installation-registration-launch__button installation-registration-launch__button--review"
                                                 [disabled]="isUpdatingOfficeReview"
                                                 (click)="openOfficeReviewDialog()">
@@ -481,7 +480,7 @@
                                                 </span>
                                                 <i class="pi" [ngClass]="isUpdatingOfficeReview ? 'pi-spin pi-spinner' : 'pi-chevron-right'"></i>
                                             </button>
-                                            <button *ngIf="!getAdditionalInstallations().length && shouldShowInstallationRegistration() && hasActiveOfficeReviewProcess()" type="button"
+                                            <button *ngIf="canShowOfficeReviewAction() && hasActiveOfficeReviewProcess()" type="button"
                                                 class="installation-registration-launch__button installation-registration-launch__button--review-active"
                                                 [disabled]="isUpdatingOfficeReview"
                                                 (click)="completeOfficeReviewProcess()">
