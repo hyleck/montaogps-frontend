@@ -4156,6 +4156,59 @@ html.app-dark .sol-process-device-warning {
     color: #fbbf24;
 }
 
+.sol-vehicle-change-office-review {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(217, 119, 6, 0.35);
+    border-radius: 14px;
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--managementColorTextUser);
+}
+
+.sol-vehicle-change-office-review > i {
+    color: #d97706;
+    font-size: 1.25rem;
+}
+
+.sol-vehicle-change-office-review strong,
+.sol-vehicle-change-office-review p,
+.sol-vehicle-change-office-review small {
+    display: block;
+}
+
+.sol-vehicle-change-office-review p {
+    margin: 0.22rem 0;
+    color: #b45309;
+    font-weight: 750;
+}
+
+.sol-vehicle-change-office-review small {
+    opacity: 0.72;
+}
+
+html.app-dark .sol-vehicle-change-office-review {
+    border-color: rgba(251, 191, 36, 0.38);
+    background: rgba(245, 158, 11, 0.12);
+}
+
+html.app-dark .sol-vehicle-change-office-review > i,
+html.app-dark .sol-vehicle-change-office-review p {
+    color: #fbbf24;
+}
+
+@media (max-width: 760px) {
+    .sol-vehicle-change-office-review {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .sol-vehicle-change-office-review button {
+        grid-column: 1 / -1;
+    }
+}
+
 .sol-process-main-details {
     display: flex;
     flex-direction: column;
@@ -6065,17 +6118,20 @@ html.app-dark .sol-reassignment-summary > .pi {
 
 /* Dedicated irreversible-completion confirmation. */
 .sol-cancellation-dialog .p-dialog-header,
+.sol-deletion-dialog .p-dialog-header,
 .sol-completion-confirm-dialog .p-dialog-header {
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--managementFieldsBorder);
 }
 
 .sol-cancellation-dialog .p-dialog-content,
+.sol-deletion-dialog .p-dialog-content,
 .sol-completion-confirm-dialog .p-dialog-content {
     padding-top: 1.15rem;
 }
 
 .sol-cancellation-dialog .p-dialog-footer,
+.sol-deletion-dialog .p-dialog-footer,
 .sol-completion-confirm-dialog .p-dialog-footer {
     padding-top: 0.85rem;
     border-top: 1px solid var(--managementFieldsBorder);
@@ -6320,6 +6376,265 @@ html.app-dark .sol-reassignment-summary > .pi {
 
 .sol-cancellation__approve:disabled,
 .sol-cancellation__actions .sol-btn:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+.sol-rollback-warning {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0.35rem 0 0.65rem;
+    border: 1px solid rgba(245, 158, 11, 0.48);
+    border-radius: 14px;
+    padding: 0.9rem;
+    background: rgba(245, 158, 11, 0.08);
+    color: var(--managementColorTextUser);
+}
+
+.sol-rollback-warning__heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+}
+
+.sol-rollback-warning__icon {
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border-radius: 11px;
+    background: rgba(245, 158, 11, 0.15);
+    color: #d97706;
+}
+
+.sol-rollback-warning__eyebrow {
+    display: block;
+    margin-bottom: 0.16rem;
+    color: #d97706;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.sol-rollback-warning h3 {
+    margin: 0;
+    color: var(--managementColorTitleUser);
+    font-size: 0.92rem;
+    line-height: 1.35;
+}
+
+.sol-rollback-warning__process {
+    display: grid;
+    gap: 0.4rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 11px;
+    padding: 0.68rem 0.75rem;
+    background: var(--managementFieldsBackground);
+}
+
+.sol-rollback-warning__process > strong {
+    color: var(--managementColorTitleUser);
+    font-size: 0.78rem;
+}
+
+.sol-rollback-warning__process ul {
+    display: grid;
+    gap: 0.38rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sol-rollback-warning__process li {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: 0.45rem;
+    align-items: start;
+    font-size: 0.76rem;
+    line-height: 1.42;
+}
+
+.sol-rollback-warning__process li i {
+    margin-top: 0.12rem;
+    color: #d97706;
+    font-size: 0.75rem;
+}
+
+.sol-rollback-warning__note {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.sol-rollback-decision {
+    display: grid;
+    gap: 0.48rem;
+    padding-top: 0.15rem;
+}
+
+.sol-rollback-decision > strong {
+    color: var(--managementColorTitleUser);
+    font-size: 0.78rem;
+}
+
+.sol-rollback-decision__options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.sol-rollback-decision__option {
+    position: relative;
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 0.55rem;
+    align-items: start;
+    min-width: 0;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 11px;
+    padding: 0.68rem;
+    background: var(--managementFieldsBackground);
+    color: var(--managementColorTextUser);
+    text-align: left;
+    cursor: pointer;
+}
+
+.sol-rollback-decision__option > i {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: rgba(148, 163, 184, 0.14);
+    color: var(--managementColorTextUser);
+}
+
+.sol-rollback-decision__option > span {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.sol-rollback-decision__option strong {
+    color: var(--managementColorTitleUser);
+    font-size: 0.76rem;
+}
+
+.sol-rollback-decision__option small {
+    font-size: 0.68rem;
+    line-height: 1.35;
+    opacity: 0.76;
+}
+
+.sol-rollback-decision__option em {
+    position: absolute;
+    top: 0.42rem;
+    right: 0.48rem;
+    border-radius: 999px;
+    padding: 0.15rem 0.38rem;
+    background: rgba(37, 99, 235, 0.12);
+    color: #2563eb;
+    font-size: 0.56rem;
+    font-style: normal;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.sol-rollback-decision__option--active {
+    border-color: #2563eb;
+    background: rgba(37, 99, 235, 0.09);
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.2);
+}
+
+.sol-rollback-decision__option--active > i {
+    background: #2563eb;
+    color: #fff;
+}
+
+.sol-rollback-decision__option:last-child.sol-rollback-decision__option--active {
+    border-color: #d97706;
+    background: rgba(217, 119, 6, 0.09);
+    box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.2);
+}
+
+.sol-rollback-decision__option:last-child.sol-rollback-decision__option--active > i {
+    background: #d97706;
+}
+
+.sol-rollback-decision__option:disabled {
+    cursor: wait;
+    opacity: 0.62;
+}
+
+.sol-deletion {
+    display: grid;
+    gap: 0.9rem;
+    color: var(--managementColorTextUser);
+}
+
+.sol-deletion__intro {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 13px;
+    padding: 0.85rem;
+    background: rgba(239, 68, 68, 0.07);
+}
+
+.sol-deletion__intro > i {
+    margin-top: 0.12rem;
+    color: #dc2626;
+}
+
+.sol-deletion__intro h3,
+.sol-deletion__intro p {
+    margin: 0;
+}
+
+.sol-deletion__intro h3 {
+    color: var(--managementColorTitleUser);
+    font-size: 0.98rem;
+}
+
+.sol-deletion__intro p {
+    margin-top: 0.3rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+.sol-deletion__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    width: 100%;
+}
+
+.sol-deletion__approve {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 42px;
+    border: 1px solid #dc2626;
+    border-radius: 9px;
+    padding: 0.62rem 1rem;
+    background: #dc2626;
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.sol-deletion__approve:hover:not(:disabled) {
+    background: #b91c1c;
+}
+
+.sol-deletion__approve:disabled,
+.sol-deletion__actions .sol-btn:disabled {
     cursor: wait;
     opacity: 0.6;
 }
@@ -6834,6 +7149,9 @@ html.app-dark .sol-reassignment-summary > .pi {
     .sol-cancellation-dialog .p-dialog-header,
     .sol-cancellation-dialog .p-dialog-content,
     .sol-cancellation-dialog .p-dialog-footer,
+    .sol-deletion-dialog .p-dialog-header,
+    .sol-deletion-dialog .p-dialog-content,
+    .sol-deletion-dialog .p-dialog-footer,
     .sol-completion-confirm-dialog .p-dialog-header,
     .sol-completion-confirm-dialog .p-dialog-content,
     .sol-completion-confirm-dialog .p-dialog-footer {
@@ -6842,6 +7160,7 @@ html.app-dark .sol-reassignment-summary > .pi {
     }
 
     .sol-cancellation__actions,
+    .sol-deletion__actions,
     .sol-completion-confirm__actions {
         flex-direction: column-reverse;
         align-items: stretch;
@@ -6851,12 +7170,18 @@ html.app-dark .sol-reassignment-summary > .pi {
         grid-template-columns: 1fr;
     }
 
+    .sol-rollback-decision__options {
+        grid-template-columns: 1fr;
+    }
+
     .sol-cancellation__choice {
         min-height: 0;
     }
 
     .sol-cancellation__actions .sol-btn,
     .sol-cancellation__approve,
+    .sol-deletion__actions .sol-btn,
+    .sol-deletion__approve,
     .sol-completion-confirm__actions .sol-btn,
     .sol-completion-confirm__approve {
         width: 100%;

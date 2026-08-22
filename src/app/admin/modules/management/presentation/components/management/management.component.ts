@@ -39,6 +39,7 @@ import {
   getDeviceCancellationReasonLabel,
 } from '@core/constants/device-cancellation-reasons.constant';
 import { MapUtils, type MapProvider } from '@shared/helpers/map.helper';
+import { getGpsDisplayConnectionStatus } from '@shared/helpers/device-connection-status.helper';
 import {
   isEmployeeLocationSubjectValue,
   sanitizeManagementLocationSubject,
@@ -431,33 +432,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
         : 'No localizado';
     }
 
-    if (rawStatus === 'online' || rawStatus === 'Localizado' || rawStatus === 'No localizado') {
-      return rawStatus;
-    }
-
-    const offlineMinutes = this.getOfflineDurationInMinutes(target);
-    if (offlineMinutes !== null && offlineMinutes <= 10) {
-      return 'online';
-    }
-
-    if (offlineMinutes !== null && offlineMinutes > 10 && offlineMinutes <= 60) {
-      return 'Señal débil';
-    }
-
-    return rawStatus;
-  }
-
-  private getOfflineDurationInMinutes(target: any): number | null {
     const lastUpdate = target?.traccarInfo?.lastUpdate || target?.originalTarget?.traccarInfo?.lastUpdate;
-    if (!lastUpdate) return null;
-
-    const lastUpdateDate = new Date(lastUpdate);
-    if (isNaN(lastUpdateDate.getTime())) return null;
-
-    const diffMs = Date.now() - lastUpdateDate.getTime();
-    if (diffMs < 0) return null;
-
-    return Math.floor(diffMs / (1000 * 60));
+    return getGpsDisplayConnectionStatus(rawStatus, lastUpdate);
   }
 
   private normalizeConnectionStatus(status?: string | null): string {

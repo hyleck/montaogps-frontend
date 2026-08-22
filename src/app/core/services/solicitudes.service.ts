@@ -23,6 +23,8 @@ export interface InstallationDetail {
     previous_color?: string;
     previous_plate?: string;
     previous_chassis?: string;
+    vehicle_change_requires_office_review?: boolean;
+    vehicle_change_office_review_reason?: string;
     device_imei?: string;
     new_device_imei?: string;
     sim_card_number?: string;
@@ -142,6 +144,7 @@ export interface Solicitud {
     description?: string;
     notes?: string;
     cancellation_reason?: string;
+    restore_applied_changes?: boolean;
     deinstallation_reason?: string;
     post_uninstall_disposition?: 'return_to_company' | 'retained_by_client' | 'not_recovered';
     contacts?: string;
@@ -222,6 +225,33 @@ export interface SolicitudCompletionPreview {
         } | null;
     };
     actions: SolicitudCompletionPreviewAction[];
+}
+
+export type SolicitudRollbackPreviewActionKind =
+    | 'restore_gps'
+    | 'release_gps'
+    | 'restore_sim'
+    | 'release_sim'
+    | 'restore_vehicle';
+
+export interface SolicitudRollbackPreviewAction {
+    kind: SolicitudRollbackPreviewActionKind;
+    value: string;
+    detail: string;
+}
+
+export interface SolicitudRollbackPreviewItem {
+    installation_index: number;
+    process_type: string;
+    target_name: string;
+    actions: SolicitudRollbackPreviewAction[];
+}
+
+export interface SolicitudRollbackPreview {
+    solicitud_id: string;
+    status: string;
+    will_restore: boolean;
+    items: SolicitudRollbackPreviewItem[];
 }
 
 export interface SolicitudesRealtimeState {
@@ -486,6 +516,12 @@ export class SolicitudesService {
         );
     }
 
+    getRollbackPreview(solicitudId: string): Observable<SolicitudRollbackPreview> {
+        return this.http.get<SolicitudRollbackPreview>(
+            `${this.apiUrl}/${encodeURIComponent(solicitudId)}/rollback-preview`,
+        );
+    }
+
     checkTechnicianScheduleConflict(
         mechanicId: string,
         scheduledDate: string | Date,
@@ -530,9 +566,12 @@ export class SolicitudesService {
         return this.http.patch<Solicitud>(`${this.apiUrl}/${id}`, solicitud);
     }
 
-    applyVehicleChange(id: string): Observable<Solicitud> {
+    applyVehicleChange(id: string, installationIndex?: number): Observable<Solicitud> {
+        const path = installationIndex == null
+            ? `${this.apiUrl}/${encodeURIComponent(id)}/apply-vehicle-change`
+            : `${this.apiUrl}/${encodeURIComponent(id)}/installations/${installationIndex}/apply-vehicle-change`;
         return this.http.post<Solicitud>(
-            `${this.apiUrl}/${encodeURIComponent(id)}/apply-vehicle-change`,
+            path,
             {},
         );
     }
@@ -573,8 +612,14 @@ export class SolicitudesService {
         return `${environment.apiUrl}/vapi/call-recording/${encodeURIComponent(callId)}/audio`;
     }
 
-    delete(id: string): Observable<void> {
-        return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    delete(id: string, restoreAppliedChanges?: boolean): Observable<void> {
+        const params = restoreAppliedChanges === undefined
+            ? undefined
+            : new HttpParams().set(
+                'restore_applied_changes',
+                String(restoreAppliedChanges),
+            );
+        return this.http.delete<void>(`${this.apiUrl}/${id}`, { params });
     }
 
     completeInstall(solicitudId: string, deviceId: string, imei: string): Observable<any> {

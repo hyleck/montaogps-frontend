@@ -29,6 +29,12 @@ describe('SolicitudesComponent scheduled date editing', () => {
                 }],
                 transfer: { mode: 'automatic', target_user: null },
             })),
+            getRollbackPreview: jasmine.createSpy('getRollbackPreview').and.returnValue(of({
+                solicitud_id: 'request-id',
+                status: 'en_progreso',
+                will_restore: false,
+                items: [],
+            })),
             create: jasmine.createSpy('create').and.returnValue(of({})),
             update: jasmine.createSpy('update').and.returnValue(of({})),
             correctInstallation: jasmine.createSpy('correctInstallation'),
@@ -398,6 +404,43 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(solicitudesService.applyVehicleChange).toHaveBeenCalledWith('vehicle-change-id');
         expect(messageService.add).toHaveBeenCalledWith(
             jasmine.objectContaining({ summary: 'Cambio aplicado' }),
+        );
+    });
+
+    it('offers vehicle change in mixed requests and retries the indexed process', async () => {
+        const {
+            component,
+            solicitudesService,
+        } = createComponent();
+        const solicitud: Solicitud = {
+            _id: 'mixed-vehicle-change-id',
+            __v: 3,
+            type: 'mixta',
+            status: 'por_confirmar',
+            installations: [{
+                process_type: 'chequeo',
+                completed: true,
+            }, {
+                process_type: 'cambio_vehiculo',
+                device_imei: '862667088436426',
+                completed: true,
+                vehicle_change_requires_office_review: true,
+            }],
+        };
+
+        expect(component.mixedProcessOptions.some(
+            option => option.value === 'cambio_vehiculo',
+        )).toBeTrue();
+        expect(component.canApplyVehicleChange(solicitud, 1)).toBeTrue();
+
+        component.applyVehicleChangeRequest(solicitud, undefined, 1);
+        component.cancelCompletionDeviceTransfer();
+        await component.approveSolicitudCompletion();
+        await Promise.resolve();
+
+        expect(solicitudesService.applyVehicleChange).toHaveBeenCalledWith(
+            'mixed-vehicle-change-id',
+            1,
         );
     });
 
@@ -902,6 +945,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
             /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/,
         );
         expect(component.selectedSolicitud?.scheduled_date).toMatch(/:\d0$/);
+        expect(component.selectedSolicitud?.confirmation_permission).toBe('no');
     });
 
     it('floors scheduled minutes to ten-minute blocks before saving', async () => {
@@ -923,6 +967,26 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(savedSolicitud.scheduled_date).toBe('2026-07-28T15:40');
         expect(savedSolicitud.installations?.[0]?.scheduled_date).toBe('2026-07-28T15:40');
         expect(savedSolicitud.installations?.[1]?.scheduled_date).toBe('2026-07-28T17:10');
+        expect(savedSolicitud.confirmation_permission).toBe('no');
+    });
+
+    it('never sends technician confirmation permission when updating a request', async () => {
+        const { component, solicitudesService } = createComponent();
+        component.isEditMode = true;
+        component.selectedSolicitud = {
+            _id: 'request-id',
+            __v: 4,
+            type: 'instalacion',
+            status: 'pendiente',
+            confirmation_permission: 'si',
+            scheduled_date: '2026-07-28T15:40',
+            installations: [{ device_type: 'gps' }],
+        };
+
+        await component.saveSolicitud();
+
+        const savedSolicitud = solicitudesService.update.calls.mostRecent().args[1] as Solicitud;
+        expect(savedSolicitud.confirmation_permission).toBe('no');
     });
 
     it('shows a newly created request immediately and refreshes without blocking the board', async () => {
@@ -1561,6 +1625,79 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(solicitudesService.update).not.toHaveBeenCalled();
     });
 
+    it('loads and keeps the exact rollback warning before cancelling', () => {
+        const { component, solicitudesService } = createComponent();
+        solicitudesService.getRollbackPreview.and.returnValue(of({
+            solicitud_id: 'request-cancel',
+            status: 'por_confirmar',
+            will_restore: true,
+            items: [{
+                installation_index: 0,
+                process_type: 'chequeo',
+                target_name: 'Vehículo de prueba',
+                actions: [
+                    {
+                        kind: 'restore_gps',
+                        value: '111111111111111',
+                        detail: 'Se volverá a asignar el GPS 111111111111111 a Vehículo de prueba.',
+                    },
+                    {
+                        kind: 'release_gps',
+                        value: '222222222222222',
+                        detail: 'El GPS 222222222222222 quedará disponible en inventario.',
+                    },
+                ],
+            }],
+        }));
+
+        component.cancelSolicitud({
+            _id: 'request-cancel',
+            type: 'chequeo',
+            status: 'por_confirmar',
+        });
+
+        expect(solicitudesService.getRollbackPreview).toHaveBeenCalledOnceWith('request-cancel');
+        expect(component.cancellationDialogVisible).toBeTrue();
+        expect(component.cancellationRollbackPreview?.will_restore).toBeTrue();
+        expect(component.cancellationRollbackPreview?.items[0].actions.length).toBe(2);
+    });
+
+    it('sends the decision to keep applied changes when cancelling', () => {
+        const { component, solicitudesService } = createComponent();
+        solicitudesService.getRollbackPreview.and.returnValue(of({
+            solicitud_id: 'request-cancel',
+            status: 'por_confirmar',
+            will_restore: true,
+            items: [{
+                installation_index: 0,
+                process_type: 'chequeo',
+                target_name: 'Vehículo de prueba',
+                actions: [{
+                    kind: 'restore_gps',
+                    value: '111111111111111',
+                    detail: 'Se restaurará el GPS anterior.',
+                }],
+            }],
+        }));
+
+        component.cancelSolicitud({
+            _id: 'request-cancel',
+            type: 'chequeo',
+            status: 'por_confirmar',
+        });
+        component.cancellationRestoreAppliedChanges = false;
+        component.cancellationReason = 'Conservar el cambio realizado.';
+        component.confirmSolicitudCancellation();
+
+        expect(solicitudesService.update).toHaveBeenCalledOnceWith(
+            'request-cancel',
+            jasmine.objectContaining({
+                status: 'cancelada',
+                restore_applied_changes: false,
+            }),
+        );
+    });
+
     it('keeps cancelled out of the normal status selector options', () => {
         const { component } = createComponent();
 
@@ -1724,6 +1861,41 @@ describe('SolicitudesComponent scheduled date editing', () => {
                 summary: 'Acceso restringido',
             }),
         );
+    });
+
+    it('shows the rollback detail before a root user deletes a request', () => {
+        const { component, solicitudesService } = createComponent();
+        solicitudesService.getRollbackPreview.and.returnValue(of({
+            solicitud_id: 'request-delete',
+            status: 'por_confirmar',
+            will_restore: true,
+            items: [{
+                installation_index: 0,
+                process_type: 'chequeo',
+                target_name: 'Vehículo de prueba',
+                actions: [{
+                    kind: 'restore_sim',
+                    value: '8090000001',
+                    detail: 'Se restaurará la SIM 8090000001 en el GPS 111111111111111.',
+                }],
+            }],
+        }));
+
+        component.deleteSolicitud({
+            _id: 'request-delete',
+            type: 'chequeo',
+            status: 'por_confirmar',
+        });
+
+        expect(solicitudesService.getRollbackPreview).toHaveBeenCalledOnceWith('request-delete');
+        expect(component.deletionDialogVisible).toBeTrue();
+        expect(component.deletionRollbackPreview?.items[0].actions[0].value).toBe('8090000001');
+
+        component.deletionRestoreAppliedChanges = false;
+        component.confirmSolicitudDeletion();
+
+        expect(solicitudesService.delete).toHaveBeenCalledOnceWith('request-delete', false);
+        expect(component.deletionDialogVisible).toBeFalse();
     });
 
     it('blocks any centralized completion path when a legacy deinstallation has no reason', () => {

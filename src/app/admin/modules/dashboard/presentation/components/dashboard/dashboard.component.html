@@ -19,6 +19,9 @@
                 <div class="filter-chip" [class.active]="filterOnline" (click)="toggleFilter('online')">
                     <span class="dot bg-online"></span> En Línea
                 </div>
+                <div class="filter-chip" [class.active]="filterWeakSignal" (click)="toggleFilter('weak-signal')">
+                    <span class="dot bg-weak-signal"></span> Señal débil
+                </div>
                 <div class="filter-chip" [class.active]="filterOffline" (click)="toggleFilter('offline')">
                     <span class="dot bg-offline"></span> Fuera de Línea
                 </div>

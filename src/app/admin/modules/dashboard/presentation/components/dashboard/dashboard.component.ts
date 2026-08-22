@@ -6,6 +6,7 @@ import { User } from '../../../../../../core/interfaces/user.interface';
 import { LocatedUser, UserLatestLocation, UserService } from '../../../../../../core/services/user.service';
 import { firstValueFrom } from 'rxjs';
 import * as maplibregl from 'maplibre-gl';
+import { getGpsDisplayConnectionStatus } from '../../../../../../shareds/helpers/device-connection-status.helper';
 
 @Component({
     selector: 'app-dashboard',
@@ -38,6 +39,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // ── Map Filtering State ──
     filterOnline = true;
+    filterWeakSignal = true;
     filterOffline = true;
     filterLocalizado = true;
     filterExpired = true;
@@ -264,6 +266,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
         if (!this.map.hasImage('pulsing-dot-online')) {
             this.map.addImage('pulsing-dot-online', this.createPulsingDot(34, 197, 94), { pixelRatio: 2 });     // Verde
+            this.map.addImage('pulsing-dot-weak-signal', this.createPulsingDot(132, 204, 22), { pixelRatio: 2 }); // Verde lima
             this.map.addImage('pulsing-dot-localizado', this.createPulsingDot(6, 182, 212), { pixelRatio: 2 }); // Verde azulado (Cyan)
             this.map.addImage('pulsing-dot-offline', this.createPulsingDot(156, 163, 175), { pixelRatio: 2 });  // Gris
             this.map.addImage('pulsing-dot-expired', this.createPulsingDot(239, 68, 68), { pixelRatio: 2 });    // Rojo
@@ -279,6 +282,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                     'case',
                     ['==', ['get', 'isExpired'], true], 'pulsing-dot-expired',
                     ['==', ['get', 'statusGroup'], 'localizado'], 'pulsing-dot-localizado',
+                    ['==', ['get', 'statusGroup'], 'weak-signal'], 'pulsing-dot-weak-signal',
                     ['==', ['get', 'statusGroup'], 'online'], 'pulsing-dot-online',
                     'pulsing-dot-offline'
                 ],
@@ -328,6 +332,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                     'icon-image': [
                         'case',
                         ['==', ['get', 'statusGroup'], 'online'], 'custom-marker',
+                        ['==', ['get', 'statusGroup'], 'weak-signal'], 'custom-marker',
                         ['==', ['get', 'statusGroup'], 'localizado'], 'custom-marker',
                         'custom-marker-offline'
                     ],
@@ -339,6 +344,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                     'icon-opacity': [
                         'case',
                         ['==', ['get', 'statusGroup'], 'online'], 1,
+                        ['==', ['get', 'statusGroup'], 'weak-signal'], 1,
                         ['==', ['get', 'statusGroup'], 'localizado'], 1,
                         0.6 // Translucidez para offline
                     ]
@@ -676,7 +682,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                 dataPackage.devices.forEach(d => {
                     const geo = d?.traccarInfo?.geolocation;
                     if (this.isCoordinateInAmericas(geo?.latitude, geo?.longitude)) {
-                        const status = d.traccarInfo?.status || d.status || 'offline';
+                        const status = getGpsDisplayConnectionStatus(
+                            d.traccarInfo?.status || d.status || 'offline',
+                            d.traccarInfo?.lastUpdate,
+                        );
                         features.push({
                             type: 'Feature',
                             geometry: { type: 'Point', coordinates: [geo.longitude, geo.latitude] },
@@ -695,7 +704,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.updateGeoJSONSource(features);
     }
 
-    private plotFullmapMarkers(devices: Array<{nombre: string, latitud: number, longitud: number, status?: string, isExpired?: boolean, expiration_date?: string | Date, expirationDate?: string | Date, expiration?: string | Date, expires_at?: string | Date}>) {
+    private plotFullmapMarkers(devices: Array<{nombre: string, latitud: number, longitud: number, status?: string, lastUpdate?: string | Date, isExpired?: boolean, expiration_date?: string | Date, expirationDate?: string | Date, expiration?: string | Date, expires_at?: string | Date}>) {
         if (!this.mapLoaded) {
             this.pendingData = devices;
             this.pendingDataType = 'fullmap';
@@ -705,7 +714,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         const features = (devices || [])
             .filter(d => this.isCoordinateInAmericas(d?.latitud, d?.longitud))
             .map(d => {
-                const status = d.status || 'offline';
+                const status = getGpsDisplayConnectionStatus(d.status || 'offline', d.lastUpdate);
                 return {
                     type: 'Feature',
                     geometry: {
@@ -751,8 +760,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.applyMapFilters();
     }
 
-    toggleFilter(type: 'online' | 'offline' | 'localizado' | 'expired' | 'technicians' | 'clients') {
+    toggleFilter(type: 'online' | 'weak-signal' | 'offline' | 'localizado' | 'expired' | 'technicians' | 'clients') {
         if (type === 'online') this.filterOnline = !this.filterOnline;
+        if (type === 'weak-signal') this.filterWeakSignal = !this.filterWeakSignal;
         if (type === 'offline') this.filterOffline = !this.filterOffline;
         if (type === 'localizado') this.filterLocalizado = !this.filterLocalizado;
         if (type === 'expired') this.filterExpired = !this.filterExpired;
@@ -773,7 +783,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     private applyMapFilters() {
         if (!this.map || !this.map.getLayer('pulsing-layer')) return;
 
-        const hasVisibleDeviceFilters = this.filterExpired || this.filterLocalizado || this.filterOnline || this.filterOffline;
+        const hasVisibleDeviceFilters = this.filterExpired || this.filterLocalizado || this.filterOnline || this.filterWeakSignal || this.filterOffline;
         const filter: any[] = ['any'];
 
         if (this.filterExpired) {
@@ -786,6 +796,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         
         if (this.filterOnline) {
             filter.push(['all', ['==', ['get', 'isExpired'], false], ['==', ['get', 'statusGroup'], 'online']]);
+        }
+
+        if (this.filterWeakSignal) {
+            filter.push(['all', ['==', ['get', 'isExpired'], false], ['==', ['get', 'statusGroup'], 'weak-signal']]);
         }
         
         if (this.filterOffline) {
@@ -890,14 +904,21 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                 return this.filterOnline;
             }
 
+            if (statusGroup === 'weak-signal') {
+                return this.filterWeakSignal;
+            }
+
             return this.filterOffline;
         });
     }
 
-    private getDeviceStatusGroup(status: any): 'online' | 'localizado' | 'offline' {
+    private getDeviceStatusGroup(status: any): 'online' | 'weak-signal' | 'localizado' | 'offline' {
         const value = String(status || '').trim().toLowerCase();
-        if (value === 'online' || value === 'en linea' || value === 'en línea' || value === 'senal debil' || value === 'señal debil' || value === 'señal débil') {
+        if (value === 'online' || value === 'en linea' || value === 'en línea') {
             return 'online';
+        }
+        if (value === 'senal debil' || value === 'señal debil' || value === 'señal débil') {
+            return 'weak-signal';
         }
         if (value === 'localizado' || value === 'localized' || value === 'located') {
             return 'localizado';

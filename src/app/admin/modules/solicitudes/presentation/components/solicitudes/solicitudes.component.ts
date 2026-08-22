@@ -13,6 +13,8 @@ import {
     SolicitudCompletionPreview,
     SolicitudCompletionPreviewAction,
     SolicitudCompletionTransferMode,
+    SolicitudRollbackPreview,
+    SolicitudRollbackPreviewAction,
     TechnicianRecommendation,
     TechnicianScheduleConflict,
     VapiCallDetails,
@@ -469,6 +471,14 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     cancellationReasonSubmitted = false;
     cancellingSolicitud = false;
     cancellationAction: SolicitudCancellationAction | null = null;
+    cancellationRollbackPreview: SolicitudRollbackPreview | null = null;
+    cancellationRestoreAppliedChanges = true;
+    rollbackPreviewLoadingSolicitudId: string | null = null;
+    deletionDialogVisible = false;
+    deletionSolicitud: Solicitud | null = null;
+    deletionRollbackPreview: SolicitudRollbackPreview | null = null;
+    deletionRestoreAppliedChanges = true;
+    deletingSolicitud = false;
     installationModalVisible = false;
     editingInstallationIndex: number = 0;
     existingGpsTargetByInstallation: Record<number, any> = {};
@@ -691,7 +701,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     readonly topFilterTypeOptions = this.typeOptions.slice(1);
     readonly creationTypeOptions = this.typeOptions.slice(1);
     readonly mixedProcessOptions = this.typeOptions.filter(option =>
-        ['instalacion', 'reinstalacion', 'desinstalacion', 'chequeo', 'cambio'].includes(option.value)
+        ['instalacion', 'reinstalacion', 'desinstalacion', 'chequeo', 'cambio', 'cambio_vehiculo'].includes(option.value)
     );
     readonly processDeviceTypeOptions = [
         { label: 'GPS', value: 'gps' },
@@ -1255,7 +1265,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 scheduled_date: this.getCurrentDateTimeLocalValue(),
                 installations: [{ device_type: 'gps' }],
                 type: 'instalacion',
-                status: status
+                status: status,
+                confirmation_permission: 'no',
             } as Solicitud;
         this.selectedSolicitud.idempotency_key = this.createSolicitudIdempotencyKey();
         this.availableModels = [];
@@ -1355,7 +1366,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             location_address: source.location_address,
             mechanic_id: source.mechanic_id,
             scheduled_date: scheduledDate,
-            confirmation_permission: source.confirmation_permission,
+            confirmation_permission: 'no',
             id_rent: source.id_rent,
         };
     }
@@ -1478,6 +1489,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     onInstallationProcessTypeChange(installation: InstallationDetail): void {
+        if (installation.process_type === 'cambio_vehiculo') {
+            installation.device_type = 'gps';
+        }
         if (installation.process_type !== 'desinstalacion') {
             installation.deinstallation_reason = undefined;
             installation.post_uninstall_disposition = undefined;
@@ -1491,34 +1505,67 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         return ['reinstalacion', 'chequeo', 'desinstalacion', 'cambio', 'cambio_vehiculo'].includes(type);
     }
 
-    canApplyVehicleChange(solicitud: Solicitud): boolean {
-        return solicitud.type === 'cambio_vehiculo'
+    canApplyVehicleChange(solicitud: Solicitud, installationIndex?: number): boolean {
+        const installation = installationIndex == null
+            ? solicitud.installations?.[0]
+            : solicitud.installations?.[installationIndex];
+        const isVehicleChange = solicitud.type === 'cambio_vehiculo'
+            || (
+                solicitud.type === 'mixta'
+                && installationIndex != null
+                && this.getProcessTypeForSolicitud(solicitud, installation) === 'cambio_vehiculo'
+                && installation?.vehicle_change_requires_office_review === true
+            );
+        return isVehicleChange
             && !this.isSolicitudLocked(solicitud)
             && !['completada', 'cancelada', 'rechazada'].includes(solicitud.status)
             && Boolean(solicitud._id);
     }
 
-    isApplyingVehicleChange(solicitud: Solicitud): boolean {
-        return Boolean(solicitud._id && this.applyingVehicleChangeIds.has(solicitud._id));
+    isApplyingVehicleChange(solicitud: Solicitud, installationIndex?: number): boolean {
+        const key = this.getVehicleChangeOperationKey(solicitud, installationIndex);
+        return Boolean(key && this.applyingVehicleChangeIds.has(key));
     }
 
-    applyVehicleChangeRequest(solicitud: Solicitud, event?: Event): void {
+    applyVehicleChangeRequest(
+        solicitud: Solicitud,
+        event?: Event,
+        installationIndex?: number,
+    ): void {
         event?.preventDefault();
         event?.stopPropagation();
         const solicitudId = String(solicitud._id || '').trim();
-        if (!solicitudId || !this.canApplyVehicleChange(solicitud)) return;
+        if (!solicitudId || !this.canApplyVehicleChange(solicitud, installationIndex)) return;
 
         this.confirmSolicitudCompletion(
             solicitud,
-            () => { void this.executeVehicleChangeRequest(solicitudId); },
+            () => { void this.executeVehicleChangeRequest(solicitud, installationIndex); },
         );
     }
 
-    private async executeVehicleChangeRequest(solicitudId: string): Promise<void> {
-        this.applyingVehicleChangeIds.add(solicitudId);
+    private getVehicleChangeOperationKey(
+        solicitud: Solicitud,
+        installationIndex?: number,
+    ): string {
+        const solicitudId = String(solicitud._id || '').trim();
+        if (!solicitudId) return '';
+        return installationIndex == null ? solicitudId : `${solicitudId}:${installationIndex}`;
+    }
+
+    private async executeVehicleChangeRequest(
+        solicitud: Solicitud,
+        installationIndex?: number,
+    ): Promise<void> {
+        const solicitudId = String(solicitud._id || '').trim();
+        const operationKey = this.getVehicleChangeOperationKey(solicitud, installationIndex);
+        if (!solicitudId || !operationKey) return;
+        this.applyingVehicleChangeIds.add(operationKey);
         try {
+            const request = installationIndex == null
+                ? this.solicitudesService.applyVehicleChange(solicitudId)
+                : this.solicitudesService.applyVehicleChange(solicitudId, installationIndex);
             const updated = await firstValueFrom(
-                this.solicitudesService.applyVehicleChange(solicitudId),
+                request,
             );
             this.upsertSolicitud(updated);
             this.messageService.add({
@@ -1533,7 +1580,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 detail: getApiErrorMessage(error, 'No se pudo actualizar el vehículo.'),
             });
         } finally {
-            this.applyingVehicleChangeIds.delete(solicitudId);
+            this.applyingVehicleChangeIds.delete(operationKey);
         }
     }
 
@@ -4017,6 +4064,7 @@ async initLocationMap(): Promise<void> {
         
         this.selectedSolicitud = {
             ...solicitud,
+            confirmation_permission: 'no',
             installations: solicitud.installations
                 ? solicitud.installations.map(installation => ({
                     ...installation,
@@ -4940,6 +4988,9 @@ async initLocationMap(): Promise<void> {
                 ['Estado reportado por el GPS', this.hasInstallationFinalDeviceStatus(installation)
                     ? installation.final_device_status
                     : ''],
+                ['Revisión pendiente en oficina', installation.vehicle_change_requires_office_review
+                    ? (installation.vehicle_change_office_review_reason || 'Sí')
+                    : ''],
                 ['Hora de la comprobación final', this.hasInstallationFinalDeviceStatus(installation)
                     ? this.formatProcessTimelineDate(installation.final_device_status_at)
                     : ''],
@@ -5328,7 +5379,13 @@ async initLocationMap(): Promise<void> {
 
         }
 
-        if (this.selectedSolicitud.type === 'cambio_vehiculo') {
+        const vehicleChangeIndexes = (this.selectedSolicitud.installations || [])
+            .map((installation, index) => ({ installation, index }))
+            .filter(({ installation }) =>
+                this.getInstallationProcessType(installation) === 'cambio_vehiculo'
+            )
+            .map(({ index }) => index);
+        if (vehicleChangeIndexes.length > 0) {
             const hasExistingClient = Boolean(
                 String(this.selectedSolicitud.client_id || '').trim(),
             );
@@ -5344,7 +5401,7 @@ async initLocationMap(): Promise<void> {
                 return;
             }
 
-            for (let index = 0; index < (this.selectedSolicitud.installations?.length || 0); index += 1) {
+            for (const index of vehicleChangeIndexes) {
                 await this.lookupExistingGpsTarget(index, false);
                 const installation = this.selectedSolicitud.installations?.[index];
                 const selectedDevice = this.existingGpsTargetByInstallation[index];
@@ -5394,13 +5451,16 @@ async initLocationMap(): Promise<void> {
         if (!this.selectedSolicitud || this.savingSolicitud) return;
         this.savingSolicitud = true;
 
+        this.selectedSolicitud.confirmation_permission = 'no';
+        const solicitudPayload: Solicitud = {
+            ...this.selectedSolicitud,
+            confirmation_permission: 'no',
+            installations: this.selectedSolicitud.installations?.map(
+                installation => ({ ...installation }),
+            ),
+        };
+
         if (this.isEditMode && this.selectedSolicitud._id) {
-            const solicitudPayload: Solicitud = {
-                ...this.selectedSolicitud,
-                installations: this.selectedSolicitud.installations?.map(
-                    installation => ({ ...installation }),
-                ),
-            };
             solicitudPayload.expected_version = this.selectedSolicitud.__v;
             this.restoreLockedSolicitudAssignment(solicitudPayload);
             delete solicitudPayload.gps_change;
@@ -5429,7 +5489,7 @@ async initLocationMap(): Promise<void> {
                 }
             });
         } else {
-            this.solicitudesService.create(this.selectedSolicitud).pipe(
+            this.solicitudesService.create(solicitudPayload).pipe(
                 timeout({ first: this.solicitudesLoadTimeoutMs }),
                 finalize(() => this.savingSolicitud = false),
             ).subscribe({
@@ -5853,24 +5913,62 @@ async initLocationMap(): Promise<void> {
             });
             return;
         }
+        if (!solicitud._id || this.rollbackPreviewLoadingSolicitudId) return;
 
-        this.confirmationService.confirm({
-            message: '¿Estás seguro de eliminar esta solicitud?',
-            header: 'Confirmar',
-            icon: 'pi pi-exclamation-triangle',
-            key: 'solicitudes-confirm',
-            accept: () => {
-                this.solicitudesService.delete(solicitud._id!).subscribe({
-                    next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Solicitud eliminada' });
-                        this.loadSolicitudes(false);
-                    },
-                    error: (error) => {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo eliminar') });
-                    }
-                });
-            }
+        this.rollbackPreviewLoadingSolicitudId = solicitud._id;
+        this.solicitudesService.getRollbackPreview(solicitud._id).pipe(
+            timeout({ first: this.solicitudesLoadTimeoutMs }),
+            finalize(() => this.rollbackPreviewLoadingSolicitudId = null),
+        ).subscribe({
+            next: preview => {
+                this.deletionSolicitud = solicitud;
+                this.deletionRollbackPreview = preview;
+                this.deletionRestoreAppliedChanges = true;
+                this.deletionDialogVisible = true;
+            },
+            error: error => this.showRollbackPreviewError(error, 'eliminar'),
         });
+    }
+
+    confirmSolicitudDeletion(): void {
+        const solicitudId = this.deletionSolicitud?._id;
+        if (!solicitudId || this.deletingSolicitud) return;
+
+        this.deletingSolicitud = true;
+        const restoreAppliedChanges = this.deletionRollbackPreview?.will_restore
+            ? this.deletionRestoreAppliedChanges
+            : undefined;
+        this.solicitudesService.delete(solicitudId, restoreAppliedChanges).pipe(
+            finalize(() => this.deletingSolicitud = false),
+        ).subscribe({
+            next: () => {
+                this.deletingSolicitud = false;
+                this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Solicitud eliminada' });
+                this.deletionDialogVisible = false;
+                this.resetSolicitudDeletion();
+                this.loadSolicitudes(false);
+            },
+            error: error => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: getApiErrorMessage(error, 'No se pudo eliminar'),
+                });
+            },
+        });
+    }
+
+    closeSolicitudDeletion(): void {
+        if (this.deletingSolicitud) return;
+        this.deletionDialogVisible = false;
+        this.resetSolicitudDeletion();
+    }
+
+    resetSolicitudDeletion(): void {
+        if (this.deletingSolicitud) return;
+        this.deletionSolicitud = null;
+        this.deletionRollbackPreview = null;
+        this.deletionRestoreAppliedChanges = true;
     }
 
     cancelSolicitud(solicitud: Solicitud): void {
@@ -5883,11 +5981,24 @@ async initLocationMap(): Promise<void> {
             return;
         }
 
-        this.cancellationSolicitud = solicitud;
-        this.cancellationReason = '';
-        this.cancellationReasonSubmitted = false;
-        this.cancellationAction = null;
-        this.cancellationDialogVisible = true;
+        if (!solicitud._id || this.rollbackPreviewLoadingSolicitudId) return;
+
+        this.rollbackPreviewLoadingSolicitudId = solicitud._id;
+        this.solicitudesService.getRollbackPreview(solicitud._id).pipe(
+            timeout({ first: this.solicitudesLoadTimeoutMs }),
+            finalize(() => this.rollbackPreviewLoadingSolicitudId = null),
+        ).subscribe({
+            next: preview => {
+                this.cancellationSolicitud = solicitud;
+                this.cancellationRollbackPreview = preview;
+                this.cancellationRestoreAppliedChanges = true;
+                this.cancellationReason = '';
+                this.cancellationReasonSubmitted = false;
+                this.cancellationAction = null;
+                this.cancellationDialogVisible = true;
+            },
+            error: error => this.showRollbackPreviewError(error, 'cancelar'),
+        });
     }
 
     confirmSolicitudCancellation(
@@ -5906,6 +6017,9 @@ async initLocationMap(): Promise<void> {
             cancellation_reason: reason,
             ...(solicitud.__v !== undefined
                 ? { expected_version: solicitud.__v }
+                : {}),
+            ...(this.cancellationRollbackPreview?.will_restore
+                ? { restore_applied_changes: this.cancellationRestoreAppliedChanges }
                 : {}),
         }).pipe(
             timeout({ first: this.solicitudesLoadTimeoutMs }),
@@ -5953,6 +6067,30 @@ async initLocationMap(): Promise<void> {
         this.cancellationReason = '';
         this.cancellationReasonSubmitted = false;
         this.cancellationAction = null;
+        this.cancellationRollbackPreview = null;
+        this.cancellationRestoreAppliedChanges = true;
+    }
+
+    getRollbackActionIcon(action: SolicitudRollbackPreviewAction): string {
+        switch (action.kind) {
+            case 'restore_gps': return 'pi-undo';
+            case 'release_gps': return 'pi-box';
+            case 'restore_sim': return 'pi-replay';
+            case 'release_sim': return 'pi-mobile';
+            case 'restore_vehicle': return 'pi-car';
+            default: return 'pi-check-circle';
+        }
+    }
+
+    private showRollbackPreviewError(error: unknown, action: 'cancelar' | 'eliminar'): void {
+        this.messageService.add({
+            severity: 'error',
+            summary: 'No se pudo verificar la reversión',
+            detail: getApiErrorMessage(
+                error,
+                `No se puede ${action} hasta confirmar qué cambios serían restaurados. Intente nuevamente.`,
+            ),
+        });
     }
 
     private showClosedSolicitudLockedFeedback(): void {

@@ -152,6 +152,7 @@
 }
 
 .bg-online { background-color: rgb(34, 197, 94); box-shadow: 0 0 5px rgba(34,197,94,0.5); }
+.bg-weak-signal { background-color: rgb(132, 204, 22); box-shadow: 0 0 5px rgba(132,204,22,0.55); }
 .bg-offline { background-color: rgb(156, 163, 175); box-shadow: 0 0 5px rgba(156,163,175,0.5); }
 .bg-localizado { background-color: rgb(6, 182, 212); box-shadow: 0 0 5px rgba(6,182,212,0.5); }
 .bg-expired { background-color: rgb(239, 68, 68); box-shadow: 0 0 5px rgba(239,68,68,0.5); }

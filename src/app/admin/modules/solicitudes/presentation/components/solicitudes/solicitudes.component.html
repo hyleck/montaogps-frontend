@@ -1665,6 +1665,22 @@
                     </div>
                 </section>
 
+                <section class="sol-vehicle-change-office-review"
+                    *ngIf="installation.vehicle_change_requires_office_review">
+                    <i class="pi pi-exclamation-triangle"></i>
+                    <div>
+                        <strong>El técnico finalizó; oficina debe resolver este cambio</strong>
+                        <p>{{ installation.vehicle_change_office_review_reason || 'No fue posible aplicar administrativamente el cambio al GPS.' }}</p>
+                        <small>Corrige la relación del GPS con el cliente y luego aplica nuevamente el cambio de vehículo.</small>
+                    </div>
+                    <button type="button" pButton pRipple
+                        icon="pi pi-refresh"
+                        label="Aplicar después de corregir"
+                        [loading]="isApplyingVehicleChange(sol, processDetailsIndex)"
+                        [disabled]="isApplyingVehicleChange(sol, processDetailsIndex)"
+                        (click)="applyVehicleChangeRequest(sol, $event, processDetailsIndex)"></button>
+                </section>
+
                 <div class="sol-process-main-details">
                 <div class="sol-closed-info__grid">
                     <section class="sol-info-card">
@@ -2674,15 +2690,7 @@
                         </div>
                     </div>
 
-                    <div class="sol-form-row sol-form-row-2">
-                        <div class="sol-form-field">
-                            <label>Permisos para Confirmar</label>
-                            <select [(ngModel)]="selectedSolicitud.confirmation_permission">
-                                <option *ngIf="!selectedSolicitud.confirmation_permission" [ngValue]="selectedSolicitud.confirmation_permission" disabled>Seleccionar permiso</option>
-                                <option value="no">No puede confirmar {{ getEntityName().toLowerCase() }}</option>
-                                <option value="si">Puede confirmar {{ getEntityName().toLowerCase() }}</option>
-                            </select>
-                        </div>
+                    <div class="sol-form-row">
                         <div class="sol-form-field">
                             <label>Fecha Programada</label>
                             <input
@@ -2905,14 +2913,14 @@
                 <div style="display: flex; align-items: center; gap: 0.6rem;">
                     <i class="pi pi-car" style="color: #6366f1;"></i>
                     <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">
-                        Datos del Vehículo {{ selectedSolicitud.type === 'cambio_vehiculo' ? '(Opcional; puede completarlos el técnico)' : '(Opcional)' }}
+                        Datos del Vehículo {{ getCurrentInstallationProcessType() === 'cambio_vehiculo' ? '(Opcional; puede completarlos el técnico)' : '(Opcional)' }}
                     </span>
                 </div>
                 <i class="pi" [ngClass]="showVehicleData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
             </div>
 
             <div *ngIf="showVehicleData" class="sol-collapsible-section" style="animation: fadein 0.2s; display: flex; flex-direction: column; gap: 0.85rem;">
-                <div *ngIf="selectedSolicitud.type === 'cambio_vehiculo'" class="sol-vehicle-change-current">
+                <div *ngIf="getCurrentInstallationProcessType() === 'cambio_vehiculo'" class="sol-vehicle-change-current">
                     <strong><i class="pi pi-history"></i> Vehículo actual</strong>
                     <span>{{ selectedSolicitud.installations[editingInstallationIndex].previous_target_name || '—' }}</span>
                     <small>
@@ -2926,11 +2934,11 @@
                 </div>
                 <div class="sol-form-field">
                     <label>
-                        {{ selectedSolicitud.type === 'cambio_vehiculo' ? 'Nombre del nuevo objetivo' : 'Nombre del objetivo' }} (opcional)
+                        {{ getCurrentInstallationProcessType() === 'cambio_vehiculo' ? 'Nombre del nuevo objetivo' : 'Nombre del objetivo' }} (opcional)
                     </label>
                     <input type="text"
                         [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].target_name"
-                        [placeholder]="selectedSolicitud.type === 'cambio_vehiculo' ? 'Ej. Toyota Corolla nuevo de Juan' : 'Ej. Toyota Corolla de Juan'" />
+                        [placeholder]="getCurrentInstallationProcessType() === 'cambio_vehiculo' ? 'Ej. Toyota Corolla nuevo de Juan' : 'Ej. Toyota Corolla de Juan'" />
                 </div>
                 <div class="sol-form-row sol-form-row-3">
                     <div class="sol-form-field">
@@ -3031,7 +3039,7 @@
                             (keydown.enter)="selectFirstInventoryDevice($event, editingInstallationIndex, 'current')"
                             optionLabel="IMEI"
                             optionValue="IMEI"
-                            [forceSelection]="selectedSolicitud.type === 'cambio_vehiculo'"
+                            [forceSelection]="getCurrentInstallationProcessType() === 'cambio_vehiculo'"
                             [dropdown]="true"
                             [minLength]="2"
                             [emptyMessage]="getCurrentDeviceSearchEmptyMessage()"
@@ -3655,6 +3663,67 @@
             Esta información quedará guardada en su historial.
         </p>
 
+        <section *ngIf="cancellationRollbackPreview?.will_restore"
+            class="sol-rollback-warning"
+            aria-labelledby="sol-cancellation-rollback-title">
+            <div class="sol-rollback-warning__heading">
+                <span class="sol-rollback-warning__icon" aria-hidden="true">
+                    <i class="pi pi-undo"></i>
+                </span>
+                <div>
+                    <span class="sol-rollback-warning__eyebrow">Cambios reversibles detectados</span>
+                    <h3 id="sol-cancellation-rollback-title">Decida qué hacer con estos cambios</h3>
+                </div>
+            </div>
+            <div class="sol-rollback-warning__process"
+                *ngFor="let item of cancellationRollbackPreview?.items">
+                <strong>{{ item.target_name }}</strong>
+                <ul>
+                    <li *ngFor="let action of item.actions">
+                        <i class="pi" [ngClass]="getRollbackActionIcon(action)" aria-hidden="true"></i>
+                        <span>{{ action.detail }}</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="sol-rollback-decision" role="radiogroup" aria-label="Decisión sobre los cambios aplicados">
+                <strong>Al cancelar:</strong>
+                <div class="sol-rollback-decision__options">
+                    <button type="button"
+                        class="sol-rollback-decision__option"
+                        role="radio"
+                        [attr.aria-checked]="cancellationRestoreAppliedChanges"
+                        [class.sol-rollback-decision__option--active]="cancellationRestoreAppliedChanges"
+                        [disabled]="cancellingSolicitud"
+                        (click)="cancellationRestoreAppliedChanges = true">
+                        <i class="pi pi-undo" aria-hidden="true"></i>
+                        <span>
+                            <strong>Restaurar cambios</strong>
+                            <small>Ejecuta todas las restauraciones indicadas arriba.</small>
+                        </span>
+                        <em>Recomendado</em>
+                    </button>
+                    <button type="button"
+                        class="sol-rollback-decision__option"
+                        role="radio"
+                        [attr.aria-checked]="!cancellationRestoreAppliedChanges"
+                        [class.sol-rollback-decision__option--active]="!cancellationRestoreAppliedChanges"
+                        [disabled]="cancellingSolicitud"
+                        (click)="cancellationRestoreAppliedChanges = false">
+                        <i class="pi pi-save" aria-hidden="true"></i>
+                        <span>
+                            <strong>Conservar cambios aplicados</strong>
+                            <small>Mantiene el GPS y la SIM actuales; no ejecuta la lista anterior.</small>
+                        </span>
+                    </button>
+                </div>
+            </div>
+            <p class="sol-rollback-warning__note">
+                {{ cancellationRestoreAppliedChanges
+                    ? 'La reversión se ejecutará al confirmar la cancelación.'
+                    : 'La solicitud se cancelará, pero los cambios aplicados permanecerán activos.' }}
+            </p>
+        </section>
+
         <label for="solicitud-cancellation-reason">
             Razón de cancelación <span aria-hidden="true">*</span>
         </label>
@@ -3737,6 +3806,116 @@
                 (click)="closeSolicitudCancellation()">
                 <i class="pi pi-times" aria-hidden="true"></i>
                 Volver
+            </button>
+        </div>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="deletionDialogVisible"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closable]="!deletingSolicitud"
+    [closeOnEscape]="!deletingSolicitud"
+    [style]="{width: '700px', maxWidth: '96vw'}"
+    [breakpoints]="{'640px': '94vw'}"
+    styleClass="app-dark-dialog sol-deletion-dialog"
+    (onHide)="resetSolicitudDeletion()">
+    <ng-template pTemplate="header">
+        <div class="sol-cancellation__header sol-cancellation__header--delete">
+            <span class="sol-cancellation__header-icon" aria-hidden="true">
+                <i class="pi pi-trash"></i>
+            </span>
+            <div>
+                <span class="sol-cancellation__eyebrow">Acción permanente</span>
+                <h2>Eliminar solicitud</h2>
+            </div>
+        </div>
+    </ng-template>
+
+    <div class="sol-deletion" role="document">
+        <div class="sol-deletion__intro">
+            <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+            <div>
+                <h3>¿Desea eliminar esta solicitud?</h3>
+                <p>El registro y su historial se eliminarán permanentemente.</p>
+            </div>
+        </div>
+
+        <section *ngIf="deletionRollbackPreview?.will_restore"
+            class="sol-rollback-warning"
+            aria-labelledby="sol-deletion-rollback-title">
+            <div class="sol-rollback-warning__heading">
+                <span class="sol-rollback-warning__icon" aria-hidden="true">
+                    <i class="pi pi-undo"></i>
+                </span>
+                <div>
+                    <span class="sol-rollback-warning__eyebrow">Cambios reversibles detectados</span>
+                    <h3 id="sol-deletion-rollback-title">Decida qué hacer antes de eliminar</h3>
+                </div>
+            </div>
+            <div class="sol-rollback-warning__process"
+                *ngFor="let item of deletionRollbackPreview?.items">
+                <strong>{{ item.target_name }}</strong>
+                <ul>
+                    <li *ngFor="let action of item.actions">
+                        <i class="pi" [ngClass]="getRollbackActionIcon(action)" aria-hidden="true"></i>
+                        <span>{{ action.detail }}</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="sol-rollback-decision" role="radiogroup" aria-label="Decisión sobre los cambios aplicados">
+                <strong>Al eliminar:</strong>
+                <div class="sol-rollback-decision__options">
+                    <button type="button"
+                        class="sol-rollback-decision__option"
+                        role="radio"
+                        [attr.aria-checked]="deletionRestoreAppliedChanges"
+                        [class.sol-rollback-decision__option--active]="deletionRestoreAppliedChanges"
+                        [disabled]="deletingSolicitud"
+                        (click)="deletionRestoreAppliedChanges = true">
+                        <i class="pi pi-undo" aria-hidden="true"></i>
+                        <span>
+                            <strong>Restaurar cambios</strong>
+                            <small>Ejecuta todas las restauraciones indicadas arriba.</small>
+                        </span>
+                        <em>Recomendado</em>
+                    </button>
+                    <button type="button"
+                        class="sol-rollback-decision__option"
+                        role="radio"
+                        [attr.aria-checked]="!deletionRestoreAppliedChanges"
+                        [class.sol-rollback-decision__option--active]="!deletionRestoreAppliedChanges"
+                        [disabled]="deletingSolicitud"
+                        (click)="deletionRestoreAppliedChanges = false">
+                        <i class="pi pi-save" aria-hidden="true"></i>
+                        <span>
+                            <strong>Conservar cambios aplicados</strong>
+                            <small>Mantiene el GPS y la SIM actuales; no ejecuta la lista anterior.</small>
+                        </span>
+                    </button>
+                </div>
+            </div>
+            <p class="sol-rollback-warning__note">
+                {{ deletionRestoreAppliedChanges
+                    ? 'Primero se restaurarán estos cambios y después se eliminará la solicitud.'
+                    : 'La solicitud se eliminará, pero los cambios aplicados permanecerán activos.' }}
+            </p>
+        </section>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="sol-deletion__actions">
+            <button type="button" class="sol-btn sol-btn-cancel"
+                [disabled]="deletingSolicitud"
+                (click)="closeSolicitudDeletion()">
+                Volver
+            </button>
+            <button type="button" class="sol-btn sol-deletion__approve"
+                [disabled]="deletingSolicitud"
+                (click)="confirmSolicitudDeletion()">
+                <i class="pi" [ngClass]="deletingSolicitud ? 'pi-spin pi-spinner' : 'pi-trash'" aria-hidden="true"></i>
+                {{ deletingSolicitud ? 'Eliminando...' : 'Sí, eliminar permanentemente' }}
             </button>
         </div>
     </ng-template>
