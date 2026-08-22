@@ -15,21 +15,29 @@
         </div>
     </div>
 
-    <!-- Loading State -->
-    <div *ngIf="loading" class="grid-container">
-        <div *ngFor="let i of [1,2,3,4,5,6]" class="empleado-card skeleton-card">
-            <div class="card-header">
-                <p-skeleton shape="circle" size="4rem"></p-skeleton>
-                <div class="card-title-skeleton">
-                    <p-skeleton width="80%" height="1.5rem" styleClass="mb-2"></p-skeleton>
-                    <p-skeleton width="50%" height="1rem"></p-skeleton>
-                </div>
-            </div>
-            <div class="card-body">
-                <p-skeleton width="100%" height="1rem" styleClass="mb-2"></p-skeleton>
-                <p-skeleton width="90%" height="1rem"></p-skeleton>
-            </div>
+    <section class="monitoring-summary" aria-label="Resumen de empleados">
+        <div class="summary-card">
+            <span class="summary-icon online"><i class="pi pi-circle-fill"></i></span>
+            <div><strong>{{ onlineEmployees }}</strong><span>En línea ahora</span></div>
         </div>
+        <div class="summary-card">
+            <span class="summary-icon recent"><i class="pi pi-history"></i></span>
+            <div><strong>{{ employeesWithRecentActivity }}</strong><span>Con actividad en la última hora</span></div>
+        </div>
+        <div class="summary-card">
+            <span class="summary-icon total"><i class="pi pi-users"></i></span>
+            <div><strong>{{ empleados.length }}</strong><span>Empleados registrados</span></div>
+        </div>
+    </section>
+
+    <div class="monitoring-notice">
+        <i class="pi pi-shield"></i>
+        <span>Monitoreo operativo: las sesiones se conservan por 24 horas. Contraseñas, tokens y datos de tarjetas quedan excluidos.</span>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="table-loading">
+        <p-skeleton *ngFor="let i of [1,2,3,4,5,6]" width="100%" height="4.5rem"></p-skeleton>
     </div>
 
     <!-- Empty State -->
@@ -39,56 +47,71 @@
         <p>Intenta con otros términos de búsqueda.</p>
     </div>
 
-    <div *ngIf="!loading && filteredEmpleados.length > 0" class="grid-container">
-        <div *ngFor="let empleado of filteredEmpleados" class="empleado-card" (click)="showCurriculum(empleado)" style="cursor: pointer;">
-            <div class="card-header">
-                <div class="empleado-avatar">
-                    <img *ngIf="empleado.photo" [src]="empleado.photo" [alt]="empleado.name">
-                    <div *ngIf="!empleado.photo" class="avatar-placeholder">
-                        {{empleado.name.charAt(0) || ''}}{{empleado.last_name ? empleado.last_name.charAt(0) : ''}}
-                    </div>
-                    <!-- Status Badge -->
-                    <span class="status-indicator" [ngClass]="empleado.status ? 'status-online' : 'status-offline'" [title]="empleado.status ? 'Activo' : 'Inactivo'"></span>
-                </div>
-                
-                <div class="empleado-info">
-                    <h3 class="empleado-name">{{ empleado.name | titlecase }} <span *ngIf="empleado.last_name">{{empleado.last_name | titlecase}}</span></h3>
-                    <p class="empleado-role" *ngIf="empleado.department_id">
-                        <i class="pi pi-building"></i> {{ empleado.department_id | titlecase }}
-                    </p>
-                    <p class="empleado-role" *ngIf="!empleado.department_id">
-                        <i class="pi pi-building"></i> Departamento sin definir
-                    </p>
-                </div>
-            </div>
-            
-            <div class="card-body">
-                <div class="info-row" *ngIf="empleado.email">
-                    <i class="pi pi-envelope"></i>
-                    <span>{{ empleado.email }}</span>
-                </div>
-                <div class="info-row" *ngIf="empleado.phone">
-                    <i class="pi pi-phone"></i>
-                    <span>{{ empleado.phone }}</span>
-                </div>
-                <div class="info-row" *ngIf="empleado.dni">
-                    <i class="pi pi-id-card"></i>
-                    <span>{{ empleado.dni }}</span>
-                </div>
-                <!-- Extra tags if needed -->
-
-                <!-- Barra de desempeño relativo -->
-                <div class="performance-indicator" style="margin-top: auto; padding-top: 0.5rem;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-color, var(--globalColorTextInput)); margin-bottom: 0.3rem;">
-                        <span style="opacity: 0.7; font-weight: 600; letter-spacing: 0.5px;">Desempeño</span>
-                        <span style="font-weight: bold; color: var(--globalColorPrimaryInmutable);">{{ getEmployeePerformance(empleado._id) }}%</span>
-                    </div>
-                    <div style="height: 6px; background: var(--surface-ground, rgba(0,0,0,0.06)); border-radius: 4px; overflow: hidden; width: 100%;">
-                        <div [style.width]="getEmployeePerformance(empleado._id) + '%'" style="background: var(--globalColorPrimaryInmutable); height: 100%; border-radius: 4px; transition: width 0.5s ease-in-out;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div *ngIf="!loading && filteredEmpleados.length > 0" class="employee-table-shell">
+        <p-table [value]="filteredEmpleados" [paginator]="filteredEmpleados.length > 12" [rows]="12" [rowsPerPageOptions]="[12, 25, 50]" responsiveLayout="scroll" styleClass="employee-monitoring-table">
+            <ng-template pTemplate="header">
+                <tr>
+                    <th>Empleado</th>
+                    <th>Departamento</th>
+                    <th>Estado</th>
+                    <th>Actividad actual</th>
+                    <th>Última conexión</th>
+                    <th class="numeric-column">Última hora</th>
+                    <th>Desempeño</th>
+                    <th class="actions-column">Acciones</th>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-empleado>
+                <tr class="employee-row" (click)="showCurriculum(empleado)">
+                    <td>
+                        <div class="table-employee">
+                            <div class="empleado-avatar table-avatar">
+                                <img *ngIf="empleado.photo" [src]="empleado.photo" [alt]="empleado.name">
+                                <div *ngIf="!empleado.photo" class="avatar-placeholder">
+                                    {{empleado.name.charAt(0) || ''}}{{empleado.last_name ? empleado.last_name.charAt(0) : ''}}
+                                </div>
+                                <span class="status-indicator" [ngClass]="isEmployeeOnline(empleado) ? 'status-online' : 'status-offline'"></span>
+                            </div>
+                            <div class="table-employee-copy">
+                                <strong>{{ empleado.name | titlecase }} {{ empleado.last_name | titlecase }}</strong>
+                                <span>{{ empleado.email }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="department-pill">{{ empleado.department_id || 'Sin definir' }}</span></td>
+                    <td>
+                        <span class="connection-pill" [class.online]="isEmployeeOnline(empleado)">
+                            <i class="pi pi-circle-fill"></i>
+                            {{ isEmployeeOnline(empleado) ? 'En línea' : 'Desconectado' }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="current-activity">
+                            <strong>{{ getCurrentScreen(empleado) }}</strong>
+                            <span *ngIf="getMonitoringStatus(empleado)?.current_route">{{ getMonitoringStatus(empleado)?.current_route }}</span>
+                        </div>
+                    </td>
+                    <td><span class="last-seen">{{ getLastSeenLabel(empleado) }}</span></td>
+                    <td class="numeric-column">
+                        <strong class="events-count">{{ getMonitoringStatus(empleado)?.events_last_hour || 0 }}</strong>
+                        <span class="events-label">eventos</span>
+                    </td>
+                    <td>
+                        <div class="table-performance">
+                            <div><span>{{ getEmployeeProcessCount(empleado._id) }} procesos</span><strong>{{ getEmployeePerformance(empleado._id) }}%</strong></div>
+                            <div class="performance-track"><span [style.width]="getEmployeePerformance(empleado._id) + '%'"></span></div>
+                        </div>
+                    </td>
+                    <td class="actions-column">
+                        <div class="row-actions">
+                            <button pButton type="button" icon="pi pi-eye" class="p-button-sm live-button" label="En vivo" [disabled]="!isEmployeeOnline(empleado)" (click)="openLiveReplay(empleado, $event)" pTooltip="Ver lo que está haciendo ahora"></button>
+                            <button pButton type="button" icon="pi pi-history" class="p-button-sm p-button-outlined history-button" label="Última hora" [disabled]="!(getMonitoringStatus(empleado)?.events_last_hour)" (click)="openLastHourReplay(empleado, $event)" pTooltip="Reproducir la actividad reciente"></button>
+                            <button pButton type="button" icon="pi pi-user" class="p-button-sm p-button-rounded p-button-text profile-button" (click)="$event.stopPropagation(); showCurriculum(empleado)" pTooltip="Abrir perfil"></button>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
     </div>
 </div>
 
@@ -236,4 +259,96 @@
     <ng-template pTemplate="footer">
         <button pButton icon="pi pi-times" label="Cerrar" class="p-button-text" (click)="displayModal = false"></button>
     </ng-template>
+</p-dialog>
+
+<!-- Visor de sesión del empleado -->
+<p-dialog [(visible)]="displayReplay" [modal]="true" [style]="{width: '96vw', height: '92vh'}" [breakpoints]="{'960px': '99vw'}" [draggable]="false" [resizable]="false" [closable]="true" (onHide)="closeReplay()" styleClass="employee-replay-dialog">
+    <ng-template pTemplate="header">
+        <div class="replay-dialog-header" *ngIf="replayEmployee">
+            <div class="replay-header-avatar">
+                <img *ngIf="replayEmployee.photo" [src]="replayEmployee.photo" [alt]="replayEmployee.name">
+                <span *ngIf="!replayEmployee.photo">{{ replayEmployee.name.charAt(0) }}{{ replayEmployee.last_name ? replayEmployee.last_name.charAt(0) : '' }}</span>
+            </div>
+            <div>
+                <h3>{{ replayEmployee.name | titlecase }} {{ replayEmployee.last_name | titlecase }}</h3>
+                <p>{{ replayMode === 'live' ? 'Supervisión en vivo' : 'Actividad de la última hora' }}</p>
+            </div>
+            <span class="replay-mode-pill" [class.live]="replayMode === 'live'">
+                <i class="pi" [ngClass]="replayMode === 'live' ? 'pi-circle-fill' : 'pi-history'"></i>
+                {{ replayMode === 'live' ? 'EN VIVO' : 'ÚLTIMA HORA' }}
+            </span>
+        </div>
+    </ng-template>
+
+    <div class="replay-workspace">
+        <main class="replay-main">
+            <div class="replay-toolbar">
+                <label class="session-picker">
+                    <span>Sesión</span>
+                    <select [(ngModel)]="selectedReplaySessionId" (change)="onReplaySessionChange()" [disabled]="replayLoading">
+                        <option *ngFor="let session of replaySessions" [value]="session.session_id">{{ formatReplaySession(session) }}</option>
+                    </select>
+                </label>
+                <div class="replay-controls">
+                    <button type="button" class="replay-control" (click)="toggleReplayPlayback()" [disabled]="!replayer && replayLoading">
+                        <i class="pi" [ngClass]="replayPlaying ? 'pi-pause' : 'pi-play'"></i>
+                        {{ replayPlaying ? 'Pausar' : 'Reproducir' }}
+                    </button>
+                    <button *ngIf="replayMode === 'live'" type="button" class="replay-control live-jump" (click)="goToLive()" [disabled]="!replayer">
+                        <i class="pi pi-bolt"></i> Ir al presente
+                    </button>
+                    <label class="speed-control">Velocidad
+                        <select [(ngModel)]="replaySpeed" (change)="updateReplaySpeed()">
+                            <option [ngValue]="0.5">0.5×</option>
+                            <option [ngValue]="1">1×</option>
+                            <option [ngValue]="2">2×</option>
+                            <option [ngValue]="4">4×</option>
+                        </select>
+                    </label>
+                    <label class="skip-control">
+                        <input type="checkbox" [(ngModel)]="replaySkipInactive" (change)="updateSkipInactive()">
+                        Saltar inactividad
+                    </label>
+                </div>
+            </div>
+
+            <section class="replay-stage" aria-label="Reproducción de pantalla">
+                <div #replayHost class="replay-host"></div>
+                <div *ngIf="replayLoading" class="replay-state">
+                    <i class="pi pi-spin pi-spinner"></i>
+                    <strong>Preparando la sesión…</strong>
+                </div>
+                <div *ngIf="!replayLoading && replayError" class="replay-state replay-empty">
+                    <i class="pi pi-desktop"></i>
+                    <strong>{{ replayError }}</strong>
+                    <span *ngIf="replayMode === 'live'">El visor se actualizará automáticamente.</span>
+                </div>
+            </section>
+        </main>
+
+        <aside class="activity-timeline">
+            <div class="timeline-header">
+                <div>
+                    <span>REGISTRO OPERATIVO</span>
+                    <h4>Acciones recientes</h4>
+                </div>
+                <span class="timeline-count">{{ replayActivities.length }}</span>
+            </div>
+            <div *ngIf="!replayActivities.length" class="timeline-empty">
+                <i class="pi pi-list"></i>
+                <p>No hay acciones puntuales registradas.</p>
+                <small>La reproducción visual puede contener actividad adicional.</small>
+            </div>
+            <div class="timeline-list" *ngIf="replayActivities.length">
+                <article *ngFor="let activity of replayActivities" class="timeline-item">
+                    <span class="timeline-dot"><i class="pi" [ngClass]="activity.type === 'screen' ? 'pi-window-maximize' : 'pi-bolt'"></i></span>
+                    <div>
+                        <time>{{ getActivityTime(activity) }}</time>
+                        <strong>{{ getActivityTitle(activity) }}</strong>
+                        <span *ngIf="activity.route">{{ activity.route }}</span>
+                    </div>
+                </article>
+            </div>
+        </aside>
+    </div>
 </p-dialog>

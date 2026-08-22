@@ -299,6 +299,21 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   chatInput: string = '';
   sendingMessage: boolean = false;
   sendingEsterReply: boolean = false;
+  improveResponseEnabled: boolean = false;
+  improvingResponse: boolean = false;
+  waitingToSendImprovedResponse: boolean = false;
+  improvedResponseSuggestion: string = '';
+  improveResponseStatus: string = '';
+  improveResponseError: string = '';
+  private improveResponseDebounceTimer?: ReturnType<typeof setTimeout>;
+  private improveResponseRequestId = 0;
+  private improvedResponseAnalyzedDraft = '';
+  private pendingImprovedSend: {
+    draft: string;
+    conversationId: number;
+    replyMsg: ChatMessage | null;
+  } | null = null;
+  private readonly IMPROVE_RESPONSE_DEBOUNCE_MS = 900;
   isRootUser = false;
   showEsterFeedbackModal = false;
   selectedEsterFeedbackMessage: ChatMessage | null = null;
@@ -575,6 +590,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.internalChatMutedSubscription?.unsubscribe();
     this.resetPlayableAudio();
     this.clearEsterLearningTimers();
+    this.clearImprovedResponseState();
   }
 
   // ============================
@@ -1693,6 +1709,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.hasOlderMessages = true;
     this.lastApiMessageId = null;
     this.chatInput = '';
+    this.clearImprovedResponseState();
     this.sendingEsterReply = false;
     this.sendingConversationReminder = false;
     this.replyingTo = null;
@@ -2761,6 +2778,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
                   if (wasAssignedToMe && !this.isConversationAssignedToMe(refreshedConversation)) {
                     this.replyingTo = null;
                     this.showStickerPicker = false;
+                    this.clearImprovedResponseState();
                     if (this.recordingVoice && this.recordingVoiceContext === 'chat') {
                       this.cancelVoiceRecording();
                     }
@@ -4017,11 +4035,62 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       || !this.selectedConversation
       || !this.isConversationAssignedToMe(this.selectedConversation)
       || this.sendingMessage
+      || this.waitingToSendImprovedResponse
     ) return;
 
-    const text = this.chatInput.trim();
-    const replyMsg = this.replyingTo;
-    const newMsg: ChatMessage = { from: 'me', text, parsedHtml: this.parseMessageContent(text), time: new Date() };
+    const draft = this.chatInput.trim();
+
+    if (!this.improveResponseEnabled) {
+      this.sendResolvedMessage(draft, this.replyingTo);
+      return;
+    }
+
+    if (this.improvedResponseAnalyzedDraft === draft) {
+      this.sendResolvedMessage(
+        this.improvedResponseSuggestion.trim() || draft,
+        this.replyingTo,
+      );
+      return;
+    }
+
+    this.pendingImprovedSend = {
+      draft,
+      conversationId: this.selectedConversation.id,
+      replyMsg: this.replyingTo,
+    };
+    this.waitingToSendImprovedResponse = true;
+    this.improveResponseError = '';
+    this.improveResponseStatus = 'Revisando el mensaje antes de enviarlo…';
+
+    // Si ya hay una revisión en curso para este borrador, su respuesta
+    // completará el envío. Si solo estaba pendiente el debounce, la
+    // ejecutamos de inmediato.
+    if (!this.improvingResponse) {
+      this.scheduleImprovedResponse(draft, 0, true);
+      this.improveResponseStatus = 'Revisando el mensaje antes de enviarlo…';
+    }
+  }
+
+  private sendResolvedMessage(text: string, replyMsg: ChatMessage | null): void {
+    const conversation = this.selectedConversation;
+    const outgoingText = this.removeMessageOpeningPunctuation(text);
+    if (
+      !outgoingText.trim()
+      || !conversation
+      || !this.isConversationAssignedToMe(conversation)
+      || this.sendingMessage
+    ) {
+      this.pendingImprovedSend = null;
+      this.waitingToSendImprovedResponse = false;
+      return;
+    }
+
+    const newMsg: ChatMessage = {
+      from: 'me',
+      text: outgoingText,
+      parsedHtml: this.parseMessageContent(outgoingText),
+      time: new Date(),
+    };
     this.enrichWithAppUrls(newMsg);
     if (replyMsg?.id) {
       newMsg.replyTo = {
@@ -4032,11 +4101,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       };
     }
     this.messages.push(newMsg);
-    
+
     // Incluye el nombre del agente en el mensaje saliente.
-    const finalApiText = `${this.getAgentSignature()}\n${text}`;
+    const finalApiText = `${this.getAgentSignature()}\n${outgoingText}`;
 
     this.chatInput = '';
+    this.clearImprovedResponseState();
     this.showChatEmojiPicker = false;
     this.stopConversationTyping();
     this.replyingTo = null;
@@ -4044,7 +4114,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.scrollToBottom();
 
     this.whatsappApi.sendConversationMessage(
-      this.selectedConversation.id,
+      conversation.id,
       finalApiText,
       replyMsg?.id,
       undefined,
@@ -4085,13 +4155,201 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }, 50);
   }
 
+  private removeMessageOpeningPunctuation(value: string): string {
+    return String(value || '').replace(/[¿¡]/g, '');
+  }
+
+  onImproveResponseToggle(enabled: boolean): void {
+    this.improveResponseEnabled = enabled;
+    this.clearImprovedResponseState();
+    if (enabled) {
+      this.scheduleImprovedResponse(this.chatInput, 150);
+    }
+  }
+
+  useImprovedResponse(): void {
+    if (this.waitingToSendImprovedResponse) return;
+
+    const suggestion = this.improvedResponseSuggestion.trim();
+    if (!suggestion) return;
+
+    this.chatInput = suggestion;
+    this.clearImprovedResponseState();
+    this.improveResponseStatus = 'Sugerencia aplicada. Puedes editarla antes de enviar.';
+    this.refocusInput();
+  }
+
+  private scheduleImprovedResponse(
+    value: string,
+    delay = this.IMPROVE_RESPONSE_DEBOUNCE_MS,
+    force = false,
+  ): void {
+    if (this.improveResponseDebounceTimer) {
+      clearTimeout(this.improveResponseDebounceTimer);
+      this.improveResponseDebounceTimer = undefined;
+    }
+
+    const requestId = ++this.improveResponseRequestId;
+    this.improvingResponse = false;
+    this.improvedResponseAnalyzedDraft = '';
+    this.improvedResponseSuggestion = '';
+    this.improveResponseStatus = '';
+    this.improveResponseError = '';
+
+    const draft = String(value || '').trim();
+    const conversation = this.selectedConversation;
+    if (
+      !this.improveResponseEnabled
+      || (!force && draft.length < 3)
+      || !conversation
+      || !this.isConversationAssignedToMe(conversation)
+      || this.sendingMessage
+    ) {
+      return;
+    }
+
+    const conversationId = conversation.id;
+    this.improveResponseDebounceTimer = setTimeout(() => {
+      this.improveResponseDebounceTimer = undefined;
+      if (
+        requestId !== this.improveResponseRequestId
+        || this.selectedConversation?.id !== conversationId
+        || this.chatInput.trim() !== draft
+      ) {
+        return;
+      }
+
+      this.improvingResponse = true;
+      this.whatsappApi
+        .improveEmployeeReply(conversationId, draft)
+        .pipe(timeout(45000))
+        .subscribe({
+          next: response => {
+            if (
+              requestId !== this.improveResponseRequestId
+              || this.selectedConversation?.id !== conversationId
+              || this.chatInput.trim() !== draft
+            ) {
+              return;
+            }
+
+            this.improvingResponse = false;
+            if (!response?.enabled) {
+              this.handleImprovedResponseFailure(
+                draft,
+                conversationId,
+                'La mejora de respuestas no está disponible.',
+              );
+              return;
+            }
+            if (!response?.success || !response.suggestion?.trim()) {
+              this.handleImprovedResponseFailure(
+                draft,
+                conversationId,
+                'No se pudo preparar una recomendación. Puedes enviar tu mensaje normalmente.',
+              );
+              return;
+            }
+
+            const suggestion = response.suggestion.trim();
+            this.improvedResponseAnalyzedDraft = draft;
+            if (response.changed === false || suggestion === draft) {
+              if (this.sendPendingImprovedResponse(draft, conversationId, draft)) {
+                return;
+              }
+              this.improveResponseStatus = 'No se detectaron errores en el mensaje.';
+              return;
+            }
+            if (this.sendPendingImprovedResponse(draft, conversationId, suggestion)) {
+              return;
+            }
+            this.improvedResponseSuggestion = suggestion;
+          },
+          error: () => {
+            if (
+              requestId !== this.improveResponseRequestId
+              || this.selectedConversation?.id !== conversationId
+            ) {
+              return;
+            }
+            this.improvingResponse = false;
+            this.handleImprovedResponseFailure(
+              draft,
+              conversationId,
+              'No se pudo preparar una recomendación. Puedes enviar tu mensaje normalmente.',
+            );
+          },
+        });
+    }, delay);
+  }
+
+  private sendPendingImprovedResponse(
+    draft: string,
+    conversationId: number,
+    resolvedText: string,
+  ): boolean {
+    const pending = this.pendingImprovedSend;
+    if (
+      !pending
+      || pending.draft !== draft
+      || pending.conversationId !== conversationId
+    ) {
+      return false;
+    }
+
+    this.pendingImprovedSend = null;
+    this.waitingToSendImprovedResponse = false;
+    this.sendResolvedMessage(resolvedText, pending.replyMsg);
+    return true;
+  }
+
+  private handleImprovedResponseFailure(
+    draft: string,
+    conversationId: number,
+    fallbackMessage: string,
+  ): void {
+    this.improvedResponseAnalyzedDraft = '';
+    this.improvedResponseSuggestion = '';
+    this.improveResponseStatus = '';
+
+    const pending = this.pendingImprovedSend;
+    if (
+      pending
+      && pending.draft === draft
+      && pending.conversationId === conversationId
+    ) {
+      this.pendingImprovedSend = null;
+      this.waitingToSendImprovedResponse = false;
+      this.improveResponseError = 'No se pudo analizar el mensaje y no fue enviado. Inténtalo nuevamente.';
+      this.refocusInput();
+      return;
+    }
+
+    this.improveResponseError = fallbackMessage;
+  }
+
+  private clearImprovedResponseState(): void {
+    if (this.improveResponseDebounceTimer) {
+      clearTimeout(this.improveResponseDebounceTimer);
+      this.improveResponseDebounceTimer = undefined;
+    }
+    this.improveResponseRequestId += 1;
+    this.improvingResponse = false;
+    this.waitingToSendImprovedResponse = false;
+    this.improvedResponseAnalyzedDraft = '';
+    this.pendingImprovedSend = null;
+    this.improvedResponseSuggestion = '';
+    this.improveResponseStatus = '';
+    this.improveResponseError = '';
+  }
+
   toggleChatEmojiPicker(): void {
-    if (this.sendingMessage) return;
+    if (this.sendingMessage || this.waitingToSendImprovedResponse) return;
     this.showChatEmojiPicker = !this.showChatEmojiPicker;
   }
 
   addChatEmoji(emoji: string): void {
-    if (!emoji || this.sendingMessage) return;
+    if (!emoji || this.sendingMessage || this.waitingToSendImprovedResponse) return;
 
     const input = this.messageInput?.nativeElement as HTMLTextAreaElement | undefined;
     const start = input?.selectionStart ?? this.chatInput.length;
@@ -5273,6 +5531,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   onChatInputChange(value: string): void {
+    this.scheduleImprovedResponse(value);
     if (
       !this.selectedConversation
       || !this.isConversationAssignedToMe(this.selectedConversation)

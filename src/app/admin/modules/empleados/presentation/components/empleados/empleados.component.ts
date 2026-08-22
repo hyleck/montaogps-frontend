@@ -1,10 +1,22 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Replayer } from '@rrweb/replay';
+import { firstValueFrom } from 'rxjs';
 import { UserService } from '../../../../../../core/services/user.service';
 import { MessageService } from 'primeng/api';
 import { User } from '../../../../../../core/interfaces';
 import { ProcessService } from '../../../../../../core/services/process.service';
 import { PROCESS_TYPE_LABELS } from '../../../../processes/presentation/services/processes.service';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
+import {
+  EmployeeMonitoringService,
+  EmployeeMonitoringStatus,
+  EmployeeReplayChunkResponse,
+  EmployeeReplaySession,
+} from '../../../../../../core/services/employee-monitoring.service';
+import {
+  UserActivity,
+  UserActivityService,
+} from '../../../../../../core/services/user-activity.service';
 
 @Component({
   selector: 'app-empleados',
@@ -13,7 +25,9 @@ import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util'
   providers: [MessageService],
   standalone: false
 })
-export class EmpleadosComponent implements OnInit {
+export class EmpleadosComponent implements OnInit, OnDestroy {
+
+  @ViewChild('replayHost') replayHost?: ElementRef<HTMLDivElement>;
 
   empleados: User[] = [];
   loading: boolean = true;
@@ -31,6 +45,26 @@ export class EmpleadosComponent implements OnInit {
   tempDepartmentId: string = '';
   savingDepartment: boolean = false;
 
+  monitoringStatuses = new Map<string, EmployeeMonitoringStatus>();
+  monitoringLoading = false;
+  displayReplay = false;
+  replayMode: 'live' | 'last_hour' = 'last_hour';
+  replayEmployee: User | null = null;
+  replaySessions: EmployeeReplaySession[] = [];
+  selectedReplaySessionId = '';
+  replayLoading = false;
+  replayError = '';
+  replayActivities: UserActivity[] = [];
+  replayPlaying = false;
+  replaySpeed = 1;
+  replaySkipInactive = true;
+
+  private monitoringPoll?: ReturnType<typeof setInterval>;
+  private liveReplayPoll?: ReturnType<typeof setInterval>;
+  replayer?: Replayer;
+  private replayCursor: string | null = null;
+  private replayPollBusy = false;
+
   departments: any[] = [
     { label: 'Administrativo', value: 'Administrativo' },
     { label: 'Cobros', value: 'Cobros' },
@@ -45,12 +79,19 @@ export class EmpleadosComponent implements OnInit {
   constructor(
     private userService: UserService,
     private messageService: MessageService,
-    private processService: ProcessService
+    private processService: ProcessService,
+    private employeeMonitoring: EmployeeMonitoringService,
+    private userActivityService: UserActivityService,
   ) { }
 
   ngOnInit(): void {
     this.loadEmpleados();
     this.loadStats();
+    this.loadMonitoringOverview();
+    this.monitoringPoll = setInterval(
+      () => this.loadMonitoringOverview(false),
+      8_000,
+    );
     
     const documentStyle = getComputedStyle(document.documentElement);
     const textColor = documentStyle.getPropertyValue('--text-color') || '#495057';
@@ -86,6 +127,11 @@ export class EmpleadosComponent implements OnInit {
             }
         }
     };
+  }
+
+  ngOnDestroy(): void {
+    if (this.monitoringPoll) clearInterval(this.monitoringPoll);
+    this.destroyReplay();
   }
 
   loadStats(): void {
@@ -125,6 +171,22 @@ export class EmpleadosComponent implements OnInit {
     });
   }
 
+  loadMonitoringOverview(showLoader = true): void {
+    if (showLoader) this.monitoringLoading = true;
+    this.employeeMonitoring.getOverview().subscribe({
+      next: (statuses) => {
+        this.monitoringStatuses = new Map(
+          statuses.map((status) => [status.user_id, status]),
+        );
+        this.monitoringLoading = false;
+      },
+      error: (err) => {
+        console.error('Error loading employee monitoring overview', err);
+        this.monitoringLoading = false;
+      },
+    });
+  }
+
   get filteredEmpleados(): User[] {
     let result = this.empleados;
     if (this.searchTerm) {
@@ -142,6 +204,328 @@ export class EmpleadosComponent implements OnInit {
       const perfB = this.getEmployeeProcessCount(b._id);
       return perfB - perfA;
     });
+  }
+
+  get onlineEmployees(): number {
+    return this.empleados.filter((employee) => this.isEmployeeOnline(employee)).length;
+  }
+
+  get employeesWithRecentActivity(): number {
+    return this.empleados.filter(
+      (employee) => (this.getMonitoringStatus(employee)?.events_last_hour || 0) > 0,
+    ).length;
+  }
+
+  getMonitoringStatus(employee: User): EmployeeMonitoringStatus | undefined {
+    return this.monitoringStatuses.get(employee._id);
+  }
+
+  isEmployeeOnline(employee: User): boolean {
+    return this.getMonitoringStatus(employee)?.online === true;
+  }
+
+  getCurrentScreen(employee: User): string {
+    const status = this.getMonitoringStatus(employee);
+    if (!status) return 'Sin actividad registrada';
+    return status.current_page_title || this.humanizeRoute(status.current_route) || 'Navegando';
+  }
+
+  getLastSeenLabel(employee: User): string {
+    const value = this.getMonitoringStatus(employee)?.last_seen;
+    if (!value) return 'Nunca';
+    const diffSeconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1_000));
+    if (diffSeconds < 30) return 'Ahora mismo';
+    if (diffSeconds < 60) return `Hace ${diffSeconds} s`;
+    const minutes = Math.floor(diffSeconds / 60);
+    if (minutes < 60) return `Hace ${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `Hace ${hours} h`;
+    return new Date(value).toLocaleString('es-DO');
+  }
+
+  async openLiveReplay(employee: User, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    const status = this.getMonitoringStatus(employee);
+    if (!status?.online || !status.current_session_id) return;
+    await this.openReplay(employee, 'live', status.current_session_id);
+  }
+
+  async openLastHourReplay(employee: User, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    await this.openReplay(employee, 'last_hour');
+  }
+
+  closeReplay(): void {
+    this.displayReplay = false;
+    this.destroyReplay();
+  }
+
+  async onReplaySessionChange(): Promise<void> {
+    await this.renderSelectedReplay();
+  }
+
+  toggleReplayPlayback(): void {
+    if (!this.replayer) return;
+    if (this.replayPlaying) {
+      this.replayer.pause();
+      this.replayPlaying = false;
+      return;
+    }
+    if (this.replayMode === 'live') {
+      this.replayer.startLive(Date.now() - 1_000);
+    } else {
+      this.replayer.play(this.replayer.getCurrentTime());
+    }
+    this.replayPlaying = true;
+  }
+
+  goToLive(): void {
+    if (!this.replayer) return;
+    this.replayer.startLive(Date.now() - 1_000);
+    this.replayPlaying = true;
+  }
+
+  updateReplaySpeed(): void {
+    this.replayer?.setConfig({ speed: Number(this.replaySpeed) || 1 });
+  }
+
+  updateSkipInactive(): void {
+    this.replayer?.setConfig({ skipInactive: this.replaySkipInactive });
+  }
+
+  formatReplaySession(session: EmployeeReplaySession): string {
+    const start = new Date(session.first_event_at).toLocaleTimeString('es-DO', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const end = new Date(session.last_event_at).toLocaleTimeString('es-DO', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return `${start} – ${end} · ${session.event_count} eventos`;
+  }
+
+  getActivityTitle(activity: UserActivity): string {
+    if (activity.action) return activity.action;
+    if (activity.screen) return `Visitó ${activity.screen}`;
+    return 'Actividad en la plataforma';
+  }
+
+  getActivityTime(activity: UserActivity): string {
+    return new Date(activity.occurred_at).toLocaleTimeString('es-DO', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  }
+
+  private async openReplay(
+    employee: User,
+    mode: 'live' | 'last_hour',
+    preferredSessionId?: string,
+  ): Promise<void> {
+    this.destroyReplay();
+    this.replayEmployee = employee;
+    this.replayMode = mode;
+    this.displayReplay = true;
+    this.replayLoading = true;
+    this.replayError = '';
+    this.replayActivities = [];
+
+    try {
+      const [sessions, activities] = await Promise.all([
+        firstValueFrom(this.employeeMonitoring.getSessions(employee._id, 1)),
+        firstValueFrom(this.userActivityService.getByUser(employee._id, 100)).catch(
+          () => ({ activities: [], totalCount: 0 }),
+        ),
+      ]);
+      this.replaySessions = sessions;
+      this.replayActivities = activities.activities || [];
+      this.selectedReplaySessionId =
+        preferredSessionId || sessions[0]?.session_id || '';
+
+      if (
+        preferredSessionId &&
+        !sessions.some((session) => session.session_id === preferredSessionId)
+      ) {
+        this.replaySessions = [
+          {
+            session_id: preferredSessionId,
+            platform: 'desktop',
+            route: this.getMonitoringStatus(employee)?.current_route || null,
+            page_title:
+              this.getMonitoringStatus(employee)?.current_page_title || null,
+            first_event_at: new Date().toISOString(),
+            last_event_at: new Date().toISOString(),
+            event_count: 0,
+            chunk_count: 0,
+          },
+          ...sessions,
+        ];
+      }
+
+      this.employeeMonitoring
+        .recordReplayAccess(employee._id, this.selectedReplaySessionId || null, mode)
+        .subscribe({ error: () => undefined });
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await this.renderSelectedReplay();
+    } catch (err) {
+      console.error('Error opening employee replay', err);
+      this.replayError = getApiErrorMessage(
+        err,
+        'No se pudo cargar la sesión del empleado',
+      );
+      this.replayLoading = false;
+    }
+  }
+
+  private async renderSelectedReplay(): Promise<void> {
+    this.destroyReplay(false);
+    this.replayLoading = true;
+    this.replayError = '';
+    this.replayCursor = null;
+
+    if (!this.replayEmployee || !this.selectedReplaySessionId) {
+      this.replayError = 'No hay actividad grabada durante la última hora.';
+      this.replayLoading = false;
+      return;
+    }
+
+    try {
+      const events = await this.loadAllReplayEvents(
+        this.replayEmployee._id,
+        this.selectedReplaySessionId,
+      );
+      const host = this.replayHost?.nativeElement;
+      if (!host) throw new Error('No se encontró el reproductor');
+      host.replaceChildren();
+
+      if (!events.length) {
+        this.replayError =
+          this.replayMode === 'live'
+            ? 'La sesión está conectada. Esperando la primera captura…'
+            : 'Esta sesión no tiene eventos disponibles.';
+        this.replayLoading = false;
+        if (this.replayMode === 'live') this.startLivePolling();
+        return;
+      }
+
+      this.replayer = new Replayer(events, {
+        root: host,
+        liveMode: this.replayMode === 'live',
+        speed: this.replaySpeed,
+        skipInactive: this.replaySkipInactive,
+        showWarning: false,
+        mouseTail: true,
+      });
+      this.replayLoading = false;
+
+      if (this.replayMode === 'live') {
+        this.replayer.startLive(Date.now() - 1_000);
+        this.replayPlaying = true;
+        this.startLivePolling();
+      } else {
+        this.replayer.play(0);
+        this.replayPlaying = true;
+      }
+    } catch (err) {
+      console.error('Error rendering employee replay', err);
+      this.replayError = getApiErrorMessage(
+        err,
+        'No se pudo reproducir esta sesión',
+      );
+      this.replayLoading = false;
+    }
+  }
+
+  private async loadAllReplayEvents(
+    userId: string,
+    sessionId: string,
+  ): Promise<any[]> {
+    const events: any[] = [];
+    let hasMore = true;
+    let cursor: string | null = null;
+
+    while (hasMore) {
+      const response: EmployeeReplayChunkResponse = await firstValueFrom(
+        this.employeeMonitoring.getSessionEvents(userId, sessionId, cursor, 100),
+      );
+      response.chunks.forEach((chunk) => events.push(...chunk.events));
+      cursor = response.cursor;
+      hasMore = response.has_more;
+    }
+
+    this.replayCursor = cursor;
+    return events.sort(
+      (left, right) => Number(left?.timestamp || 0) - Number(right?.timestamp || 0),
+    );
+  }
+
+  private startLivePolling(): void {
+    if (this.liveReplayPoll) clearInterval(this.liveReplayPoll);
+    this.liveReplayPoll = setInterval(() => this.pollLiveReplay(), 2_000);
+  }
+
+  private async pollLiveReplay(): Promise<void> {
+    if (
+      this.replayPollBusy ||
+      !this.displayReplay ||
+      this.replayMode !== 'live' ||
+      !this.replayEmployee ||
+      !this.selectedReplaySessionId
+    ) {
+      return;
+    }
+
+    this.replayPollBusy = true;
+    try {
+      const response = await firstValueFrom(
+        this.employeeMonitoring.getSessionEvents(
+          this.replayEmployee._id,
+          this.selectedReplaySessionId,
+          this.replayCursor,
+          100,
+        ),
+      );
+      this.replayCursor = response.cursor;
+      const newEvents = response.chunks.flatMap((chunk) => chunk.events || []);
+
+      if (!this.replayer && newEvents.length) {
+        await this.renderSelectedReplay();
+      } else {
+        newEvents.forEach((event) => this.replayer?.addEvent(event));
+      }
+    } catch (err) {
+      console.error('Error polling live employee replay', err);
+    } finally {
+      this.replayPollBusy = false;
+    }
+  }
+
+  private destroyReplay(clearDialogState = true): void {
+    if (this.liveReplayPoll) clearInterval(this.liveReplayPoll);
+    this.liveReplayPoll = undefined;
+    this.replayer?.destroy();
+    this.replayer = undefined;
+    this.replayPlaying = false;
+    this.replayCursor = null;
+    this.replayPollBusy = false;
+    this.replayHost?.nativeElement.replaceChildren();
+
+    if (clearDialogState) {
+      this.replaySessions = [];
+      this.selectedReplaySessionId = '';
+      this.replayActivities = [];
+      this.replayEmployee = null;
+      this.replayError = '';
+    }
+  }
+
+  private humanizeRoute(route?: string | null): string {
+    if (!route) return '';
+    const clean = route.split('?')[0].replace(/^\//, '').replace(/[-_/]+/g, ' ');
+    return clean ? clean.charAt(0).toUpperCase() + clean.slice(1) : 'Inicio';
   }
 
   showCurriculum(empleado: User): void {

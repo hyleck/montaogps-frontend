@@ -32,6 +32,8 @@
     "@ngx-translate/core": "^16.0.3",
     "@ngx-translate/http-loader": "^16.0.0",
     "@primeng/themes": "^19.0.10",
+    "@rrweb/record": "^2.1.1",
+    "@rrweb/replay": "^2.1.1",
     "@types/mapbox-gl": "^3.4.1",
     "@types/maplibre-gl": "^1.13.2",
     "chart.js": "^4.4.9",

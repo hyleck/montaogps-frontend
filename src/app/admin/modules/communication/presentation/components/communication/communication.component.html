@@ -647,21 +647,41 @@
                     </div>
                 </div>
 
+                <div class="comm-response-improver">
+                    <label class="comm-response-improver__toggle">
+                        <input type="checkbox"
+                            [ngModel]="improveResponseEnabled"
+                            (ngModelChange)="onImproveResponseToggle($event)"
+                            [disabled]="sendingMessage || waitingToSendImprovedResponse" />
+                        <span class="comm-response-improver__checkbox" aria-hidden="true">
+                            <i class="pi pi-check"></i>
+                        </span>
+                        <span class="comm-response-improver__label">
+                            <strong>Mejorar respuesta</strong>
+                            <small>Ester revisa estrictamente ortografía, tildes, puntuación, gramática, claridad y posibles datos incorrectos.</small>
+                        </span>
+                    </label>
+                    <span *ngIf="improvingResponse || waitingToSendImprovedResponse" class="comm-response-improver__loading">
+                        <i class="pi pi-spin pi-spinner"></i>
+                        {{ waitingToSendImprovedResponse ? 'Revisando y enviando…' : 'Analizando…' }}
+                    </span>
+                </div>
+
                 <div class="comm-chat__input">
-                    <button type="button" class="comm-attach-btn" (click)="attachMenu.toggle($event)" [disabled]="sendingMessage" title="Adjuntar archivo">
+                    <button type="button" class="comm-attach-btn" (click)="attachMenu.toggle($event)" [disabled]="sendingMessage || waitingToSendImprovedResponse" title="Adjuntar archivo">
                         <i class="pi pi-paperclip"></i>
                     </button>
                     <button type="button" class="comm-voice-btn"
                         [class.comm-voice-btn--recording]="recordingVoice && recordingVoiceContext === 'chat'"
                         (click)="toggleVoiceRecording('chat')"
-                        [disabled]="sendingMessage && !(recordingVoice && recordingVoiceContext === 'chat')"
+                        [disabled]="(sendingMessage || waitingToSendImprovedResponse) && !(recordingVoice && recordingVoiceContext === 'chat')"
                         [title]="recordingVoice && recordingVoiceContext === 'chat' ? 'Detener y enviar nota de voz' : 'Grabar nota de voz'">
                         <i class="pi" [ngClass]="recordingVoice && recordingVoiceContext === 'chat' ? 'pi-stop' : 'pi-microphone'"></i>
                     </button>
                     <button type="button" class="comm-emoji-btn"
                         [class.comm-emoji-btn--active]="showChatEmojiPicker"
                         (click)="toggleChatEmojiPicker()"
-                        [disabled]="sendingMessage"
+                        [disabled]="sendingMessage || waitingToSendImprovedResponse"
                         title="Agregar emoji"
                         aria-label="Agregar emoji">
                         <i class="pi pi-face-smile"></i>
@@ -677,10 +697,33 @@
                         rows="1"
                         (ngModelChange)="onChatInputChange($event)"
                         (keydown.enter)="$event.preventDefault(); sendMessage()"
-                        [disabled]="sendingMessage"></textarea>
+                        [disabled]="sendingMessage || waitingToSendImprovedResponse"></textarea>
                     <button type="button" class="comm-send-btn" (click)="sendMessage()"
-                        [disabled]="!chatInput.trim() || sendingMessage">
-                        <i class="pi pi-send"></i>
+                        [disabled]="!chatInput.trim() || sendingMessage || waitingToSendImprovedResponse">
+                        <i class="pi" [ngClass]="waitingToSendImprovedResponse ? 'pi-spin pi-spinner' : 'pi-send'"></i>
+                    </button>
+                </div>
+
+                <div *ngIf="improveResponseEnabled && (improvedResponseSuggestion || improveResponseStatus || improveResponseError)"
+                    class="comm-response-suggestion"
+                    [class.comm-response-suggestion--status]="!!improveResponseStatus"
+                    [class.comm-response-suggestion--error]="!!improveResponseError"
+                    aria-live="polite">
+                    <i class="pi"
+                        [ngClass]="improveResponseError
+                            ? 'pi-info-circle'
+                            : improveResponseStatus
+                                ? 'pi-check-circle'
+                                : 'pi-sparkles'"></i>
+                    <div class="comm-response-suggestion__content">
+                        <small *ngIf="improvedResponseSuggestion">Te recomiendo corregirlo así:</small>
+                        <span>{{ improvedResponseSuggestion || improveResponseStatus || improveResponseError }}</span>
+                    </div>
+                    <button *ngIf="improvedResponseSuggestion"
+                        type="button"
+                        [disabled]="waitingToSendImprovedResponse"
+                        (click)="useImprovedResponse()">
+                        Usar sugerencia
                     </button>
                 </div>
             </div>

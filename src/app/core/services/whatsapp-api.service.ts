@@ -10,6 +10,14 @@ export interface EmployeeEsterReplyResponse {
     error?: string;
 }
 
+export interface ImproveEmployeeReplyResponse {
+    success: boolean;
+    enabled: boolean;
+    suggestion: string;
+    changed?: boolean;
+    reason?: string;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -115,6 +123,19 @@ export class WhatsAppApiService {
             `${this.apiUrl}/conversation-ester-reply`,
             {
                 conversation_id: conversationId,
+            },
+        );
+    }
+
+    improveEmployeeReply(
+        conversationId: number,
+        message: string,
+    ): Observable<ImproveEmployeeReplyResponse> {
+        return this.http.post<ImproveEmployeeReplyResponse>(
+            `${this.apiUrl}/conversation-improve-reply`,
+            {
+                conversation_id: conversationId,
+                message,
             },
         );
     }
