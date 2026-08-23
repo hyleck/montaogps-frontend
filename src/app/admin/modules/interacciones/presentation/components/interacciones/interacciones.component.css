@@ -1056,8 +1056,313 @@
 
 .campaign-recipient-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 0.65rem;
+}
+
+.campaign-workspace-nav {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0.2rem 0 1rem;
+  padding: 0.35rem;
+  overflow-x: auto;
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  background: var(--surface-ground);
+}
+
+.campaign-workspace-nav button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: max-content;
+  padding: 0.65rem 0.85rem;
+  border: 0;
+  border-radius: 9px;
+  color: var(--text-color-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.campaign-workspace-nav button:hover {
+  color: var(--text-color);
+  background: color-mix(in srgb, var(--surface-card) 80%, transparent);
+}
+
+.campaign-workspace-nav button.active {
+  color: var(--primary-color);
+  background: var(--surface-card);
+  box-shadow: 0 1px 5px rgba(15, 23, 42, 0.1);
+}
+
+.campaign-workspace-nav strong {
+  min-width: 1.35rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  color: inherit;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-size: 0.68rem;
+}
+
+.campaign-objective-config {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(180px, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin-top: 0.85rem;
+}
+
+.campaign-objective-required {
+  min-height: 42px;
+  padding: 0 0.25rem;
+}
+
+.campaign-objectives-panel {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 14px;
+  background: var(--surface-card);
+}
+
+.campaign-templates-panel {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 14px;
+  background: var(--surface-card);
+}
+
+.campaign-template-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.campaign-template-gallery > article {
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  padding: 0.95rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  background: var(--surface-ground);
+}
+
+.campaign-template-gallery__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--primary-color);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.campaign-template-gallery > article > strong {
+  color: var(--text-color);
+}
+
+.campaign-template-gallery > article > p {
+  min-height: 2.5rem;
+  margin: 0;
+  color: var(--text-color-secondary);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.campaign-template-channels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.campaign-template-channels span {
+  padding: 0.18rem 0.4rem;
+  border-radius: 999px;
+  color: var(--text-color-secondary);
+  background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.campaign-objectives-empty {
+  display: grid;
+  place-items: center;
+  gap: 0.5rem;
+  min-height: 180px;
+  color: var(--text-color-secondary);
+}
+
+.campaign-objectives-empty i {
+  font-size: 2rem;
+  opacity: 0.55;
+}
+
+.campaign-objective-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.campaign-objective-cards article {
+  display: flex;
+  gap: 0.8rem;
+  padding: 0.9rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  background: var(--surface-ground);
+}
+
+.campaign-objective-index {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  border-radius: 9px;
+  color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+  font-weight: 750;
+}
+
+.campaign-objective-cards article > div {
+  min-width: 0;
+}
+
+.campaign-objective-cards strong {
+  color: var(--text-color);
+}
+
+.campaign-objective-cards p {
+  margin: 0.25rem 0 0.65rem;
+  color: var(--text-color-secondary);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.campaign-objective-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.campaign-objective-meta span {
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  color: var(--text-color-secondary);
+  font-size: 0.68rem;
+}
+
+.campaign-objective-meta span.required {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.campaign-conflict-option {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.campaign-conflict-option small,
+.campaign-field-help {
+  color: var(--text-color-secondary);
+  font-size: 0.75rem;
+}
+
+.campaign-recipient-objectives {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 190px;
+}
+
+.campaign-recipient-objectives label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--text-color-secondary);
+  font-size: 0.75rem;
+}
+
+.campaign-recipient-objectives label.completed {
+  color: #059669;
+  font-weight: 650;
+}
+
+.campaign-recipient-objectives label > i {
+  color: #a855f7;
+  font-size: 0.72rem;
+}
+
+.campaign-recipient-objectives label > .pi-info-circle {
+  margin-left: auto;
+  color: var(--text-color-secondary);
+}
+
+.campaign-audit {
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  background: var(--surface-card);
+}
+
+.campaign-audit summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  color: var(--text-color);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.campaign-audit summary::-webkit-details-marker {
+  display: none;
+}
+
+.campaign-audit-list {
+  display: grid;
+  gap: 0.55rem;
+  max-height: 230px;
+  padding: 0 1rem 1rem;
+  overflow-y: auto;
+}
+
+.campaign-audit-list article {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem;
+  border-radius: 9px;
+  background: var(--surface-ground);
+}
+
+.campaign-audit-list article > i {
+  color: var(--primary-color);
+}
+
+.campaign-audit-list article div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.campaign-audit-list article strong {
+  color: var(--text-color);
+  font-size: 0.8rem;
+}
+
+.campaign-audit-list article span {
+  color: var(--text-color-secondary);
+  font-size: 0.72rem;
 }
 
 .campaign-recipient-summary span {
@@ -1082,6 +1387,10 @@
 
   .campaign-recipient-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .campaign-objective-config {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -18,6 +18,25 @@ export interface ImproveEmployeeReplyResponse {
     reason?: string;
 }
 
+export interface ConversationObjective {
+    id: string;
+    title: string;
+    description?: string;
+    type: 'response' | 'data' | 'action' | 'result';
+    required: boolean;
+    completion_mode: 'automatic' | 'manual' | 'both';
+    status: 'pending' | 'completed' | 'archived';
+    created_by?: string;
+    created_by_name?: string;
+    created_at?: string;
+    updated_at?: string;
+    completed_by_name?: string;
+    completed_source?: 'ester_ai' | 'manual';
+    completed_at?: string | null;
+    evidence?: Record<string, unknown> | null;
+    history?: Array<Record<string, unknown>>;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -137,6 +156,68 @@ export class WhatsAppApiService {
                 conversation_id: conversationId,
                 message,
             },
+        );
+    }
+
+    getConversationObjectives(
+        conversationId: number,
+        includeArchived = false,
+    ): Observable<{
+        success: boolean;
+        objectives: ConversationObjective[];
+        summary?: Record<string, number>;
+    }> {
+        return this.http.get<{
+            success: boolean;
+            objectives: ConversationObjective[];
+            summary?: Record<string, number>;
+        }>(`${this.apiUrl}/conversation-objectives`, {
+            params: {
+                conversation_id: conversationId.toString(),
+                ...(includeArchived ? { include_archived: 'true' } : {}),
+            },
+        });
+    }
+
+    createConversationObjective(
+        conversationId: number,
+        objective: Partial<ConversationObjective>,
+    ): Observable<{ success: boolean; objective: ConversationObjective }> {
+        return this.http.post<{ success: boolean; objective: ConversationObjective }>(
+            `${this.apiUrl}/conversation-objectives`,
+            { conversation_id: conversationId, ...objective },
+        );
+    }
+
+    updateConversationObjective(
+        conversationId: number,
+        objectiveId: string,
+        objective: Partial<ConversationObjective>,
+    ): Observable<{ success: boolean; objective: ConversationObjective }> {
+        return this.http.patch<{ success: boolean; objective: ConversationObjective }>(
+            `${this.apiUrl}/conversation-objectives/${encodeURIComponent(objectiveId)}`,
+            { conversation_id: conversationId, ...objective },
+        );
+    }
+
+    setConversationObjectiveProgress(
+        conversationId: number,
+        objectiveId: string,
+        completed: boolean,
+    ): Observable<{ success: boolean; objective: ConversationObjective }> {
+        return this.http.post<{ success: boolean; objective: ConversationObjective }>(
+            `${this.apiUrl}/conversation-objectives/${encodeURIComponent(objectiveId)}/progress`,
+            { conversation_id: conversationId, completed },
+        );
+    }
+
+    archiveConversationObjective(
+        conversationId: number,
+        objectiveId: string,
+    ): Observable<{ success: boolean; objective: ConversationObjective }> {
+        return this.http.delete<{ success: boolean; objective: ConversationObjective }>(
+            `${this.apiUrl}/conversation-objectives/${encodeURIComponent(objectiveId)}`,
+            { params: { conversation_id: conversationId.toString() } },
         );
     }
 

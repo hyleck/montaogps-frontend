@@ -59,7 +59,7 @@ export interface UserList {
   external_count?: number;
   total_count?: number;
   notified_users?: NotifiedUser[];
-  objectives?: { id: string; title: string; description?: string }[];
+  objectives?: CampaignObjective[];
   archived?: boolean;
   notified_unique_count?: number;
   createdAt?: string;
@@ -72,6 +72,15 @@ export interface UserListUsersResponse {
 }
 
 export type CampaignChannel = 'whatsapp' | 'push' | 'vapi' | 'sms';
+export type CampaignConflictPolicy = 'skip' | 'queue' | 'replace';
+export interface CampaignObjective {
+  id: string;
+  title: string;
+  description?: string;
+  type?: 'response' | 'data' | 'action' | 'result';
+  required?: boolean;
+  completion_mode?: 'automatic' | 'manual' | 'both';
+}
 export type CampaignExecutionStatus =
   | 'scheduled'
   | 'queued'
@@ -93,7 +102,8 @@ export interface CampaignExecution {
   body: string;
   body_variant_b?: string;
   objective?: string;
-  objectives?: { id: string; title: string; description?: string }[];
+  objectives?: CampaignObjective[];
+  conversation_conflict_policy?: CampaignConflictPolicy;
   generated_by_ester?: boolean;
   assign_to_ester?: boolean;
   scheduled_at?: string;
@@ -114,6 +124,7 @@ export interface CampaignExecution {
     interested: number;
     converted: number;
     escalated: number;
+    objectives_completed?: number;
   };
   audience_snapshot?: {
     selected: number;
@@ -122,6 +133,7 @@ export interface CampaignExecution {
     autocontact_disabled: number;
     low_satisfaction: number;
     awaiting_employee_reply: number;
+    active_campaign_conflicts?: number;
     warnings: string[];
   };
   createdAt?: string;
@@ -137,7 +149,7 @@ export interface CampaignTemplate {
   body: string;
   objective?: string;
   follow_up_body?: string;
-  objectives?: { id: string; title: string; description?: string }[];
+  objectives?: CampaignObjective[];
   is_system?: boolean;
 }
 
@@ -269,6 +281,23 @@ export class InteraccionesService {
 
   cancelCampaignExecution(id: string): Observable<CampaignExecution> {
     return this.http.patch<CampaignExecution>(`${this.campaignsApi}/executions/${id}/cancel`, {});
+  }
+
+  updateCampaignObjectiveProgress(payload: {
+    list_id: string;
+    objective_id: string;
+    completed: boolean;
+    execution_id?: string;
+    recipient_id?: string;
+    user_id?: string;
+    external_contact_id?: string;
+    source?: 'manual' | 'ester_ai' | 'vapi' | 'system';
+    evidence?: Record<string, any>;
+  }): Observable<any> {
+    return this.http.patch<any>(
+      `${this.campaignsApi}/objective-progress`,
+      payload,
+    );
   }
 
   retryCampaignExecution(id: string): Observable<CampaignExecution> {

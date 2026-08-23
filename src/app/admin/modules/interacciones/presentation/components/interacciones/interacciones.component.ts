@@ -3,7 +3,9 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
 import {
   CampaignChannel,
+  CampaignConflictPolicy,
   CampaignExecution,
+  CampaignObjective,
   CampaignTemplate,
   InteraccionesService,
   UserList,
@@ -96,6 +98,36 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   showAdvancedCampaignOptions = false;
   private campaignPollTimer?: ReturnType<typeof setInterval>;
   focusedExecutionId: string | null = null;
+  activeCampaignTab: 'overview' | 'executions' | 'audience' | 'objectives' | 'templates' = 'overview';
+  conversationConflictPolicy: CampaignConflictPolicy = 'skip';
+  readonly conversationConflictOptions = [
+    {
+      label: 'Omitir contacto',
+      value: 'skip',
+      description: 'No interrumpe la campaña que ya está activa.'
+    },
+    {
+      label: 'Poner en cola',
+      value: 'queue',
+      description: 'Espera a que termine la campaña activa.'
+    },
+    {
+      label: 'Reemplazar campaña',
+      value: 'replace',
+      description: 'Cierra la campaña anterior y registra el reemplazo.'
+    }
+  ];
+  readonly objectiveTypeOptions = [
+    { label: 'Respuesta', value: 'response' },
+    { label: 'Dato confirmado', value: 'data' },
+    { label: 'Acción realizada', value: 'action' },
+    { label: 'Resultado', value: 'result' }
+  ];
+  readonly objectiveCompletionOptions = [
+    { label: 'Automático o manual', value: 'both' },
+    { label: 'Sólo automático', value: 'automatic' },
+    { label: 'Sólo manual', value: 'manual' }
+  ];
 
   // ── Historial de Usuario ────────────────────────────────────
   showHistoryModal = false;
@@ -326,6 +358,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   selectList(list: UserList) {
     this.selectedList = list;
     this.showForm = false;
+    this.activeCampaignTab = 'overview';
     this.listUsersPage = 0;
     this.loadListUsers();
     this.loadCampaignExecutions();
@@ -379,7 +412,14 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.formDescription = list.description || '';
     this.formFilters = { ...list.filters };
     this.formExternalContacts = list.external_contacts ? JSON.parse(JSON.stringify(list.external_contacts)) : [];
-    this.formObjectives = list.objectives ? JSON.parse(JSON.stringify(list.objectives)) : [];
+    this.formObjectives = list.objectives
+      ? JSON.parse(JSON.stringify(list.objectives)).map((objective: any) => ({
+          ...objective,
+          type: objective.type || 'result',
+          required: objective.required !== false,
+          completion_mode: objective.completion_mode || 'both'
+        }))
+      : [];
     this.formSystemContacts = [];
     if (this.formFilters.manual_user_ids?.length) {
       this.formFilters.manual_user_ids.forEach((id: string) => {
@@ -456,7 +496,13 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.savingForm = true;
     const validExternal = this.formExternalContacts.filter(c => c.name.trim() !== '');
     const validObjectives = this.formObjectives.filter(o => o.title.trim() !== '').map(o => {
-      const obj: any = { id: o.id || Math.random().toString(36).substr(2, 9), title: o.title.trim() };
+      const obj: any = {
+        id: o.id || Math.random().toString(36).substr(2, 9),
+        title: o.title.trim(),
+        type: o.type || 'result',
+        required: o.required !== false,
+        completion_mode: o.completion_mode || 'both'
+      };
       if (o.description && o.description.trim() !== '') obj.description = o.description.trim();
       return obj;
     });
@@ -637,6 +683,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.automaticFollowUp = false;
     this.excludeLowSatisfaction = false;
     this.excludeWaitingConversations = true;
+    this.conversationConflictPolicy = 'skip';
     this.selectedTemplateId = null;
     this.audiencePreview = null;
     this.previewCampaignAudience();
@@ -667,6 +714,16 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     if (template.objectives?.length && this.selectedList) {
       this.selectedList.objectives = template.objectives.map(objective => ({ ...objective }));
     }
+  }
+
+  launchCampaignTemplate(template: CampaignTemplate): void {
+    const channel = template.channels?.includes('whatsapp')
+      ? 'whatsapp'
+      : template.channels?.[0] || 'push';
+    this.interactionChannel = channel;
+    this.openPushModal();
+    this.selectedTemplateId = template._id;
+    this.applyCampaignTemplate();
   }
 
   previewCampaignAudience() {
@@ -751,7 +808,10 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
           this.selectedList.objectives = draft.objectives.map((objective: any, index: number) => ({
             id: `ester-${Date.now()}-${index}`,
             title: objective.title,
-            description: objective.description
+            description: objective.description,
+            type: 'result',
+            required: true,
+            completion_mode: 'both'
           }));
         }
         this.generatingCampaignDraft = false;
@@ -869,7 +929,8 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       information_requested: 'Pidió información',
       follow_up: 'En seguimiento',
       request_created: 'Solicitud creada',
-      escalated: 'Escalado'
+      escalated: 'Escalado',
+      superseded: 'Reemplazado por otra campaña'
     } as Record<string, string>)[value] || value;
   }
 
@@ -916,7 +977,8 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       allowed_start_hour: this.allowedStartHour,
       allowed_end_hour: this.allowedEndHour,
       timezone: 'America/Santo_Domingo',
-      delay_ms: this.interactionChannel === 'vapi' ? 30000 : 500
+      delay_ms: this.interactionChannel === 'vapi' ? 30000 : 500,
+      conversation_conflict_policy: this.conversationConflictPolicy
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: execution => {
         this.sendingPush = false;
@@ -961,7 +1023,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
 
   cancelExecution(execution: CampaignExecution) {
     this.confirmationService.confirm({
-      message: 'Se cancelarán únicamente los destinatarios que todavía no se hayan procesado.',
+      message: 'Se detendrán los envíos y seguimientos pendientes. Los chats abiertos por esta ejecución dejarán de mostrarse como campaña activa, pero el historial y los resultados se conservarán.',
       header: 'Cancelar ejecución',
       icon: 'pi pi-exclamation-triangle',
       acceptLabel: 'Cancelar ejecución',
@@ -1132,7 +1194,14 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   }
 
   addObjective() {
-    this.formObjectives.push({ id: Math.random().toString(36).substring(2, 11), title: '', description: '' });
+    this.formObjectives.push({
+      id: Math.random().toString(36).substring(2, 11),
+      title: '',
+      description: '',
+      type: 'result',
+      required: true,
+      completion_mode: 'both'
+    });
   }
 
   removeObjective(index: number) {
@@ -1147,12 +1216,6 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       if (!user.completed_objectives) user.completed_objectives = [];
       if (isChecked && !user.completed_objectives.includes(objectiveId)) user.completed_objectives.push(objectiveId);
       if (!isChecked) user.completed_objectives = user.completed_objectives.filter((id: string) => id !== objectiveId);
-
-      this.interaccionesService.toggleExternalInteractionProgress(this.selectedList._id, user._id, objectiveId, isChecked)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          error: (error) => this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo guardar el progreso') })
-        });
     } else {
       // Optimistic UI Update against User tracking logic
       if (!user.interaction_progress) user.interaction_progress = [];
@@ -1163,13 +1226,30 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       } else if (isChecked) {
         user.interaction_progress.push({ listId: this.selectedList._id, completed_objectives: [objectiveId] });
       }
-
-      this.userService.toggleInteractionProgress(user._id, this.selectedList._id, objectiveId, isChecked)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          error: (error) => this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo guardar el progreso') })
-        });
     }
+
+    this.interaccionesService.updateCampaignObjectiveProgress({
+      list_id: this.selectedList._id,
+      objective_id: objectiveId,
+      completed: isChecked,
+      user_id: user.is_external ? undefined : user._id,
+      external_contact_id: user.is_external ? user._id : undefined,
+      source: 'manual',
+      evidence: { source_screen: 'campaign_audience_checklist' }
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.loadCampaignExecutions(false);
+        this.loadCampaignMetrics();
+      },
+      error: (error) => {
+        this.loadListUsers();
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se guardó el progreso',
+          detail: getApiErrorMessage(error, 'Actualiza la audiencia e inténtalo nuevamente.')
+        });
+      }
+    });
 
     if (this.showChecklistModal && this.selectedChecklistUser?._id === user._id) {
       this.calculateChecklistStats();
@@ -1186,6 +1266,97 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     const listProgress = user.interaction_progress.find((p: any) => p.listId === this.selectedList?._id);
     if (!listProgress) return false;
     return listProgress.completed_objectives.includes(objectiveId);
+  }
+
+  isRecipientObjectiveCompleted(recipient: any, objectiveId: string): boolean {
+    return Array.isArray(recipient?.completed_objective_ids)
+      && recipient.completed_objective_ids.includes(objectiveId);
+  }
+
+  onExecutionObjectiveToggle(
+    recipient: any,
+    objective: CampaignObjective,
+    event: any,
+  ): void {
+    if (!this.selectedExecutionDetails || !this.selectedList) return;
+    const completed = event.checked === true;
+    const previous = [...(recipient.completed_objective_ids || [])];
+    recipient.completed_objective_ids = completed
+      ? Array.from(new Set([...previous, objective.id]))
+      : previous.filter((id: string) => id !== objective.id);
+    this.interaccionesService.updateCampaignObjectiveProgress({
+      list_id: this.selectedList._id,
+      execution_id: this.selectedExecutionDetails._id,
+      recipient_id: recipient._id,
+      objective_id: objective.id,
+      completed,
+      user_id: recipient.user_id || undefined,
+      external_contact_id: recipient.external_contact_id || undefined,
+      source: 'manual',
+      evidence: { source_screen: 'campaign_execution_detail' }
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: result => {
+        recipient.completed_objective_ids = result.completed_objective_ids || [];
+        this.loadCampaignExecutions(false);
+        this.loadCampaignMetrics();
+      },
+      error: error => {
+        recipient.completed_objective_ids = previous;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se actualizó el objetivo',
+          detail: getApiErrorMessage(error, 'Inténtalo nuevamente.')
+        });
+      }
+    });
+  }
+
+  objectiveTypeLabel(value?: string): string {
+    return ({
+      response: 'Respuesta',
+      data: 'Dato confirmado',
+      action: 'Acción',
+      result: 'Resultado'
+    } as Record<string, string>)[value || 'result'] || 'Resultado';
+  }
+
+  objectiveCompletionLabel(value?: string): string {
+    return ({
+      automatic: 'Automático',
+      manual: 'Manual',
+      both: 'Automático o manual'
+    } as Record<string, string>)[value || 'both'] || 'Automático o manual';
+  }
+
+  recipientObjectiveEvidenceLabel(recipient: any, objectiveId: string): string {
+    const history = Array.isArray(recipient?.objective_history)
+      ? [...recipient.objective_history].reverse()
+      : [];
+    const event = history.find((item: any) => item.objective_id === objectiveId);
+    if (!event) return 'Sin evidencia registrada todavía.';
+    const source = ({
+      manual: 'Empleado',
+      ester_ai: 'Ester',
+      vapi: 'Llamada IA',
+      system: 'Sistema'
+    } as Record<string, string>)[event.source] || event.source || 'Sistema';
+    const actor = event.actor_name ? ` · ${event.actor_name}` : '';
+    const date = event.recorded_at
+      ? ` · ${new Date(event.recorded_at).toLocaleString('es-DO')}`
+      : '';
+    return `${event.completed ? 'Completado' : 'Reabierto'} por ${source}${actor}${date}`;
+  }
+
+  campaignAuditActionLabel(action: string): string {
+    return ({
+      execution_created: 'Ejecución creada',
+      execution_cancelled: 'Ejecución cancelada',
+      execution_paused: 'Ejecución pausada',
+      execution_resumed: 'Ejecución reanudada',
+      failed_recipients_retried: 'Errores puestos en reintento',
+      objective_completed: 'Objetivo completado',
+      objective_reopened: 'Objetivo reabierto'
+    } as Record<string, string>)[action] || action;
   }
 
   openPersonalPushModal(user: any, channel: 'push' | 'whatsapp' | 'vapi' = 'push') {

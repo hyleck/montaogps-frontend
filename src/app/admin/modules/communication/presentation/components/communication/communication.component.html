@@ -233,6 +233,43 @@
                 </button>
             </section>
 
+            <section
+                *ngIf="conversationObjectives.length || isRootUser"
+                class="comm-objectives"
+                aria-label="Objetivos persistentes de la conversación">
+                <div class="comm-objectives__header">
+                    <div class="comm-objectives__title">
+                        <span class="comm-objectives__icon"><i class="pi pi-flag"></i></span>
+                        <div>
+                            <span>Objetivos de esta conversación</span>
+                        </div>
+                    </div>
+                    <div class="comm-objectives__actions">
+                        <span *ngIf="conversationObjectivesLoading" class="comm-objectives__loading-inline">
+                            <i class="pi pi-spin pi-spinner"></i>
+                        </span>
+                        <button
+                            *ngIf="!conversationObjectivesLoading"
+                            type="button"
+                            class="comm-objectives__view"
+                            [disabled]="!conversationObjectives.length"
+                            (click)="openConversationObjectivesModal()">
+                            <i class="pi pi-eye"></i>
+                            {{ conversationObjectives.length }} {{ conversationObjectives.length === 1 ? 'objetivo' : 'objetivos' }}
+                        </button>
+                        <button
+                            *ngIf="isRootUser"
+                            type="button"
+                            class="comm-objectives__add"
+                            (click)="openNewConversationObjective()"
+                            title="Agregar objetivo">
+                            <i class="pi pi-plus"></i>
+                            Agregar
+                        </button>
+                    </div>
+                </div>
+            </section>
+
             <!-- Messages -->
             <div class="comm-chat__messages" #messagesContainer (scroll)="onMessagesScroll($event)">
                 <div *ngIf="loadingMessages" class="comm-loading">
@@ -1504,6 +1541,73 @@
 </p-dialog>
 
 <p-dialog
+  [(visible)]="showConversationObjectivesModal"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  header="Objetivos de la conversación"
+  styleClass="comm-objectives-dialog"
+  [style]="{width: '680px', maxWidth: '94vw'}">
+  <div class="comm-objectives-modal">
+    <div class="comm-objectives-modal__summary">
+      <span><strong>{{ conversationObjectives.length }}</strong> en total</span>
+      <span><strong>{{ pendingConversationObjectivesCount }}</strong> pendientes</span>
+      <button *ngIf="isRootUser" type="button" (click)="openNewConversationObjective()">
+        <i class="pi pi-plus"></i> Agregar objetivo
+      </button>
+    </div>
+
+    <div *ngIf="conversationObjectivesLoading" class="comm-objectives-modal__loading">
+      <i class="pi pi-spin pi-spinner"></i>
+      Cargando objetivos
+    </div>
+
+    <div *ngIf="!conversationObjectivesLoading && conversationObjectives.length" class="comm-objectives-modal__list">
+      <article
+        *ngFor="let objective of conversationObjectives"
+        class="comm-objective"
+        [class.comm-objective--completed]="objective.status === 'completed'">
+        <button
+          type="button"
+          class="comm-objective__status"
+          [disabled]="!isRootUser"
+          (click)="toggleConversationObjective(objective)"
+          [title]="isRootUser ? (objective.status === 'completed' ? 'Reabrir objetivo' : 'Marcar como completado') : 'Solo lectura'">
+          <i [class]="objective.status === 'completed' ? 'pi pi-check' : 'pi pi-circle'"></i>
+        </button>
+        <div class="comm-objective__copy">
+          <strong>{{ objective.title }}</strong>
+          <small *ngIf="objective.description">{{ objective.description }}</small>
+          <div class="comm-objective__meta">
+            <span *ngIf="objective.completion_mode !== 'manual'">
+              <i class="pi pi-sparkles"></i> Ester puede completarlo
+            </span>
+            <span *ngIf="objective.completion_mode === 'manual'">
+              <i class="pi pi-lock"></i> Confirmación manual
+            </span>
+            <span *ngIf="objective.completed_source === 'ester_ai'">Completado por Ester</span>
+            <span *ngIf="objective.completed_source === 'manual'">Completado manualmente</span>
+          </div>
+        </div>
+        <div *ngIf="isRootUser" class="comm-objective__menu">
+          <button type="button" (click)="openEditConversationObjective(objective)" title="Editar">
+            <i class="pi pi-pencil"></i>
+          </button>
+          <button type="button" (click)="confirmArchiveConversationObjective(objective)" title="Archivar">
+            <i class="pi pi-archive"></i>
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <div *ngIf="!conversationObjectivesLoading && !conversationObjectives.length" class="comm-objectives-modal__empty">
+      <i class="pi pi-flag"></i>
+      <span>No hay objetivos en esta conversación.</span>
+    </div>
+  </div>
+</p-dialog>
+
+<p-dialog
     [(visible)]="showEsterFeedbackModal"
     [modal]="true"
     [draggable]="false"
@@ -1761,6 +1865,95 @@
             <p-button label="Iniciar conversación" icon="pi pi-send" styleClass="p-button-success" [loading]="sendingTemplate" [disabled]="!whatsappTemplateVars.name.trim() || !whatsappTemplateVars.body.trim()" (onClick)="sendTemplateMessage()"></p-button>
         </div>
     </div>
+</p-dialog>
+
+<p-dialog
+  [(visible)]="showConversationObjectiveDialog"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [dismissableMask]="!savingConversationObjective"
+  [header]="editingConversationObjective ? 'Editar objetivo de conversación' : 'Nuevo objetivo de conversación'"
+  styleClass="comm-objective-dialog"
+  [style]="{width: '560px', maxWidth: '94vw'}">
+  <div class="comm-objective-form">
+    <div class="comm-objective-form__intro">
+      <i class="pi pi-sparkles"></i>
+      <div>
+        <strong>Ester lo usará durante toda la conversación</strong>
+        <span>No depende de una campaña y conservará su propio historial.</span>
+      </div>
+    </div>
+
+    <label class="comm-objective-form__field">
+      <span>Objetivo <b>*</b></span>
+      <input
+        pInputText
+        [(ngModel)]="conversationObjectiveDraft.title"
+        maxlength="160"
+        placeholder="Ej. Confirmar cuántos vehículos desea instalar"
+        [disabled]="savingConversationObjective" />
+    </label>
+
+    <label class="comm-objective-form__field">
+      <span>Cómo reconocerlo <small>(opcional)</small></span>
+      <textarea
+        pInputTextarea
+        [(ngModel)]="conversationObjectiveDraft.description"
+        rows="3"
+        maxlength="700"
+        placeholder="Describe qué respuesta o evidencia permite considerarlo logrado."
+        [disabled]="savingConversationObjective"></textarea>
+    </label>
+
+    <div class="comm-objective-form__grid">
+      <label class="comm-objective-form__field">
+        <span>Tipo</span>
+        <p-dropdown
+          [options]="conversationObjectiveTypeOptions"
+          [(ngModel)]="conversationObjectiveDraft.type"
+          appendTo="body"
+          [disabled]="savingConversationObjective"></p-dropdown>
+      </label>
+      <label class="comm-objective-form__field">
+        <span>Quién puede completarlo</span>
+        <p-dropdown
+          [options]="conversationObjectiveModeOptions"
+          [(ngModel)]="conversationObjectiveDraft.completion_mode"
+          appendTo="body"
+          [disabled]="savingConversationObjective"></p-dropdown>
+      </label>
+    </div>
+
+    <label class="comm-objective-form__required">
+      <p-checkbox
+        [binary]="true"
+        [(ngModel)]="conversationObjectiveDraft.required"
+        [disabled]="savingConversationObjective"></p-checkbox>
+      <span>
+        <strong>Objetivo importante</strong>
+        <small>Se destacará como una prioridad pendiente.</small>
+      </span>
+    </label>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button
+      pButton
+      type="button"
+      label="Cancelar"
+      class="p-button-text p-button-secondary"
+      [disabled]="savingConversationObjective"
+      (click)="showConversationObjectiveDialog = false"></button>
+    <button
+      pButton
+      type="button"
+      [label]="editingConversationObjective ? 'Guardar cambios' : 'Agregar objetivo'"
+      icon="pi pi-check"
+      [loading]="savingConversationObjective"
+      [disabled]="conversationObjectiveDraft.title.trim().length < 3"
+      (click)="saveConversationObjective()"></button>
+  </ng-template>
 </p-dialog>
 
 <!-- ── Modal Checklist Interactivo (Comunicación) ────────────────────────────────────── -->

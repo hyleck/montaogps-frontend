@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef 
 import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
-import { WhatsAppApiService } from '@core/services/whatsapp-api.service';
+import { ConversationObjective, WhatsAppApiService } from '@core/services/whatsapp-api.service';
 import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
 import { TargetsService } from '@core/services/targets.service';
@@ -69,6 +69,7 @@ interface ChatConversation {
     description?: string;
   }>;
   campaign_active?: boolean;
+  conversation_objectives?: ConversationObjective[];
   translation_language?: string;
   translation_language_name?: string;
 }
@@ -315,6 +316,35 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   } | null = null;
   private readonly IMPROVE_RESPONSE_DEBOUNCE_MS = 900;
   isRootUser = false;
+  conversationObjectivesLoading = false;
+  savingConversationObjective = false;
+  showConversationObjectivesModal = false;
+  showConversationObjectiveDialog = false;
+  editingConversationObjective: ConversationObjective | null = null;
+  conversationObjectiveDraft: {
+    title: string;
+    description: string;
+    type: ConversationObjective['type'];
+    required: boolean;
+    completion_mode: ConversationObjective['completion_mode'];
+  } = {
+    title: '',
+    description: '',
+    type: 'result',
+    required: true,
+    completion_mode: 'both',
+  };
+  readonly conversationObjectiveTypeOptions = [
+    { label: 'Resultado', value: 'result' },
+    { label: 'Dato por obtener', value: 'data' },
+    { label: 'Respuesta esperada', value: 'response' },
+    { label: 'Acción por realizar', value: 'action' },
+  ];
+  readonly conversationObjectiveModeOptions = [
+    { label: 'Ester o root', value: 'both' },
+    { label: 'Automático por Ester', value: 'automatic' },
+    { label: 'Solo manual por root', value: 'manual' },
+  ];
   showEsterFeedbackModal = false;
   selectedEsterFeedbackMessage: ChatMessage | null = null;
   esterFeedbackText = '';
@@ -1718,6 +1748,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.showTranslationLanguageMenu = false;
     this.showContactInfo = false;
     this.gpsUser = null;
+    this.loadConversationObjectives(conv.id);
     this.startConversationPresenceSession();
     this.loadMessages();
     this.loadGpsUser(conv.contact.phone, conv.contact.user_id);
@@ -2794,7 +2825,147 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   private getConversationsFingerprint(convs: ChatConversation[]): string {
-    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.unread_count}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}:${c.reminder_eligible ? 1 : 0}:${c.reminder_waiting_since || ''}:${c.contact.satisfaction_level ?? ''}:${c.campaign_execution_id || ''}:${c.campaign_active ? 1 : 0}`).join('|');
+    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.unread_count}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}:${c.reminder_eligible ? 1 : 0}:${c.reminder_waiting_since || ''}:${c.contact.satisfaction_level ?? ''}:${c.campaign_execution_id || ''}:${c.campaign_active ? 1 : 0}:${(c.conversation_objectives || []).map(objective => `${objective.id}-${objective.status}-${objective.updated_at || ''}`).join(',')}`).join('|');
+  }
+
+  get conversationObjectives(): ConversationObjective[] {
+    return this.selectedConversation?.conversation_objectives || [];
+  }
+
+  get pendingConversationObjectivesCount(): number {
+    return this.conversationObjectives.filter(
+      objective => objective.status === 'pending',
+    ).length;
+  }
+
+  loadConversationObjectives(conversationId = this.selectedConversation?.id): void {
+    if (!conversationId) return;
+    this.conversationObjectivesLoading = true;
+    this.whatsappApi.getConversationObjectives(conversationId).subscribe({
+      next: response => {
+        if (this.selectedConversation?.id !== conversationId) return;
+        this.selectedConversation.conversation_objectives = response.objectives || [];
+        const listed = this.conversations.find(item => item.id === conversationId);
+        if (listed) listed.conversation_objectives = response.objectives || [];
+        this.conversationObjectivesLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        if (this.selectedConversation?.id === conversationId) {
+          this.conversationObjectivesLoading = false;
+        }
+      },
+    });
+  }
+
+  openNewConversationObjective(): void {
+    if (!this.isRootUser || !this.selectedConversation) return;
+    this.showConversationObjectivesModal = false;
+    this.editingConversationObjective = null;
+    this.conversationObjectiveDraft = {
+      title: '',
+      description: '',
+      type: 'result',
+      required: true,
+      completion_mode: 'both',
+    };
+    this.showConversationObjectiveDialog = true;
+  }
+
+  openEditConversationObjective(objective: ConversationObjective): void {
+    if (!this.isRootUser) return;
+    this.showConversationObjectivesModal = false;
+    this.editingConversationObjective = objective;
+    this.conversationObjectiveDraft = {
+      title: objective.title,
+      description: objective.description || '',
+      type: objective.type || 'result',
+      required: objective.required !== false,
+      completion_mode: objective.completion_mode || 'both',
+    };
+    this.showConversationObjectiveDialog = true;
+  }
+
+  openConversationObjectivesModal(): void {
+    if (!this.selectedConversation || !this.conversationObjectives.length) return;
+    this.showConversationObjectivesModal = true;
+  }
+
+  saveConversationObjective(): void {
+    const conversationId = this.selectedConversation?.id;
+    const title = this.conversationObjectiveDraft.title.trim();
+    if (!this.isRootUser || !conversationId || title.length < 3) return;
+    this.savingConversationObjective = true;
+    const payload = {
+      ...this.conversationObjectiveDraft,
+      title,
+      description: this.conversationObjectiveDraft.description.trim(),
+    };
+    const request = this.editingConversationObjective
+      ? this.whatsappApi.updateConversationObjective(
+          conversationId,
+          this.editingConversationObjective.id,
+          payload,
+        )
+      : this.whatsappApi.createConversationObjective(conversationId, payload);
+    request.pipe(finalize(() => {
+      this.savingConversationObjective = false;
+    })).subscribe({
+      next: () => {
+        this.showConversationObjectiveDialog = false;
+        this.loadConversationObjectives(conversationId);
+        this.messageService.add({
+          severity: 'success',
+          summary: this.editingConversationObjective ? 'Objetivo actualizado' : 'Objetivo agregado',
+          detail: 'Ester lo tendrá en cuenta en los próximos mensajes.',
+        });
+      },
+      error: error => this.messageService.add({
+        severity: 'error',
+        summary: 'No se pudo guardar',
+        detail: getApiErrorMessage(error, 'No se pudo guardar el objetivo.'),
+      }),
+    });
+  }
+
+  toggleConversationObjective(objective: ConversationObjective): void {
+    const conversationId = this.selectedConversation?.id;
+    if (!this.isRootUser || !conversationId || objective.status === 'archived') return;
+    const completed = objective.status !== 'completed';
+    this.whatsappApi
+      .setConversationObjectiveProgress(conversationId, objective.id, completed)
+      .subscribe({
+        next: () => this.loadConversationObjectives(conversationId),
+        error: error => this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo actualizar',
+          detail: getApiErrorMessage(error, 'No se pudo actualizar el objetivo.'),
+        }),
+      });
+  }
+
+  confirmArchiveConversationObjective(objective: ConversationObjective): void {
+    const conversationId = this.selectedConversation?.id;
+    if (!this.isRootUser || !conversationId) return;
+    this.confirmationService.confirm({
+      header: 'Archivar objetivo',
+      message: `Se ocultará “${objective.title}”, pero su historial se conservará.`,
+      icon: 'pi pi-archive',
+      acceptLabel: 'Archivar',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        this.whatsappApi.archiveConversationObjective(conversationId, objective.id)
+          .subscribe({
+            next: () => this.loadConversationObjectives(conversationId),
+            error: error => this.messageService.add({
+              severity: 'error',
+              summary: 'No se pudo archivar',
+              detail: getApiErrorMessage(error, 'No se pudo archivar el objetivo.'),
+            }),
+          });
+      },
+    });
   }
 
   openActiveCampaign(): void {

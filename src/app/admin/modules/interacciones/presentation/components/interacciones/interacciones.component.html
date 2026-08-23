@@ -6,7 +6,7 @@
   <aside class="inter-sidebar">
     <div class="inter-sidebar__header">
       <h2 class="inter-sidebar__title">
-        <i class="pi pi-share-alt"></i> Campañas
+        <i class="pi pi-users"></i> Audiencias
       </h2>
       <button type="button" class="btn-nueva" (click)="openNewForm()" pTooltip="Nueva campaña" aria-label="Crear nueva campaña">
         <i class="pi pi-plus"></i>
@@ -16,7 +16,7 @@
     <div class="inter-sidebar__search">
       <div class="search-wrapper">
         <i class="pi pi-search search-icon"></i>
-        <input type="text" placeholder="Buscar campaña..." [(ngModel)]="searchTerm" (input)="filterLists()" class="search-input" />
+        <input type="text" placeholder="Buscar audiencia..." [(ngModel)]="searchTerm" (input)="filterLists()" class="search-input" />
         <button type="button" *ngIf="searchTerm" class="search-clear" (click)="searchTerm=''; filterLists()" aria-label="Limpiar búsqueda">
           <i class="pi pi-times"></i>
         </button>
@@ -85,13 +85,13 @@
     <!-- ── FORMULARIO nueva/editar lista ── -->
     <div *ngIf="showForm" class="inter-form-panel">
       <div class="form-panel__header">
-        <h3>{{ isEditing ? 'Editar campaña' : 'Nueva campaña' }}</h3>
+        <h3>{{ isEditing ? 'Editar audiencia' : 'Nueva audiencia' }}</h3>
       </div>
 
       <div class="form-grid" style="margin-bottom: 1.5rem;">
         <!-- Nombre -->
         <div class="form-group form-group--full">
-          <label>Nombre de la campaña *</label>
+          <label>Nombre de la audiencia *</label>
           <input pInputText [(ngModel)]="formName" placeholder="Ej. Clientes Rent a Car activos" class="w-full" />
         </div>
 
@@ -317,10 +317,10 @@
         </p-accordionTab>
 
         <!-- ======================= OBJETIVOS ======================= -->
-        <p-accordionTab header="Objetivos (Checklist para Ejecutivos)">
+        <p-accordionTab header="Objetivos medibles">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-              <p style="margin: 0; font-size: 0.9rem; color: var(--text-color-secondary);">Metas que los agentes deben cumplir por cada usuario en esta campaña.</p>
+              <p style="margin: 0; font-size: 0.9rem; color: var(--text-color-secondary);">Define qué resultado debe quedar comprobado y quién puede marcarlo.</p>
               <button pButton icon="pi pi-plus" label="Añadir objetivo" class="p-button-sm p-button-outlined p-button-info" (click)="addObjective()"></button>
             </div>
             
@@ -338,6 +338,32 @@
                   <div class="form-group" style="margin-bottom: 0">
                     <label style="font-size: 0.8rem">Descripción del Objetivo (Opcional)</label>
                     <textarea pInputTextarea [(ngModel)]="obj.description" placeholder="Ej. El cliente debe enviar una foto de frente de su cédula..." rows="2" class="w-full"></textarea>
+                  </div>
+                  <div class="campaign-objective-config">
+                    <div class="form-group">
+                      <label>Tipo de resultado</label>
+                      <p-dropdown
+                        [options]="objectiveTypeOptions"
+                        [(ngModel)]="obj.type"
+                        optionLabel="label"
+                        optionValue="value"
+                        styleClass="w-full">
+                      </p-dropdown>
+                    </div>
+                    <div class="form-group">
+                      <label>Cómo se confirma</label>
+                      <p-dropdown
+                        [options]="objectiveCompletionOptions"
+                        [(ngModel)]="obj.completion_mode"
+                        optionLabel="label"
+                        optionValue="value"
+                        styleClass="w-full">
+                      </p-dropdown>
+                    </div>
+                    <div class="campaign-option-row campaign-objective-required">
+                      <p-checkbox [(ngModel)]="obj.required" [binary]="true" [inputId]="'objective-required-' + i"></p-checkbox>
+                      <label [for]="'objective-required-' + i">Requerido para completar</label>
+                    </div>
                   </div>
                 </div>
                 <button pButton icon="pi pi-trash" class="p-button-danger p-button-text p-button-sm" (click)="removeObjective(i)" style="margin-top: 1.25rem;"></button>
@@ -391,7 +417,7 @@
       <div class="form-actions">
         <button pButton label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="cancelForm()"></button>
         <button pButton
-          [label]="isEditing ? 'Actualizar campaña' : 'Guardar campaña'"
+          [label]="isEditing ? 'Actualizar audiencia' : 'Guardar audiencia'"
           icon="pi pi-save"
           [loading]="savingForm"
           (click)="saveList()">
@@ -438,7 +464,7 @@
       <div class="detail-stat" style="display: flex; gap: 15px; align-items: center;">
         <div>
           <i class="pi pi-users"></i>
-          <strong>{{ listUsersTotal }}</strong> perfiles en esta campaña 
+          <strong>{{ listUsersTotal }}</strong> perfiles en esta audiencia
           <span style="font-size: 0.85rem; color: #6c757d; margin-left: 6px;">
             ({{ selectedList.user_count || 0 }} sistema, {{ selectedList.external_count || 0 }} externos)
           </span>
@@ -449,7 +475,29 @@
         </div>
       </div>
 
-      <section class="campaign-dashboard" *ngIf="campaignMetrics">
+      <nav class="campaign-workspace-nav" aria-label="Secciones de campaña">
+        <button type="button" [class.active]="activeCampaignTab === 'overview'" (click)="activeCampaignTab = 'overview'">
+          <i class="pi pi-chart-bar"></i><span>Resumen</span>
+        </button>
+        <button type="button" [class.active]="activeCampaignTab === 'executions'" (click)="activeCampaignTab = 'executions'">
+          <i class="pi pi-history"></i><span>Ejecuciones</span>
+          <strong>{{ campaignExecutions.length }}</strong>
+        </button>
+        <button type="button" [class.active]="activeCampaignTab === 'audience'" (click)="activeCampaignTab = 'audience'">
+          <i class="pi pi-users"></i><span>Audiencia</span>
+          <strong>{{ listUsersTotal }}</strong>
+        </button>
+        <button type="button" [class.active]="activeCampaignTab === 'objectives'" (click)="activeCampaignTab = 'objectives'">
+          <i class="pi pi-check-square"></i><span>Objetivos</span>
+          <strong>{{ selectedList.objectives?.length || 0 }}</strong>
+        </button>
+        <button type="button" [class.active]="activeCampaignTab === 'templates'" (click)="activeCampaignTab = 'templates'">
+          <i class="pi pi-bookmark"></i><span>Plantillas</span>
+          <strong>{{ campaignTemplates.length }}</strong>
+        </button>
+      </nav>
+
+      <section class="campaign-dashboard" *ngIf="campaignMetrics && activeCampaignTab === 'overview'">
         <article class="campaign-kpi">
           <i class="pi pi-send"></i>
           <div><strong>{{ campaignMetrics.totals?.sent || 0 }}</strong><span>Enviados</span></div>
@@ -468,7 +516,58 @@
         </article>
       </section>
 
-      <section class="campaign-runs">
+      <section class="campaign-templates-panel" *ngIf="activeCampaignTab === 'templates'">
+        <div class="campaign-section-header">
+          <div>
+            <h4><i class="pi pi-bookmark"></i> Plantillas reutilizables</h4>
+            <p>Inicia una ejecución con contenido y objetivos ya preparados; podrás revisarlos antes de enviar.</p>
+          </div>
+        </div>
+        <div class="campaign-template-gallery">
+          <article *ngFor="let template of campaignTemplates">
+            <div class="campaign-template-gallery__head">
+              <span>{{ template.category }}</span>
+              <i *ngIf="template.is_system" class="pi pi-verified" pTooltip="Plantilla oficial"></i>
+            </div>
+            <strong>{{ template.name }}</strong>
+            <p>{{ template.description || template.objective || 'Plantilla de campaña.' }}</p>
+            <div class="campaign-template-channels">
+              <span *ngFor="let channel of template.channels">{{ channel | uppercase }}</span>
+            </div>
+            <button pButton label="Usar plantilla" icon="pi pi-play" class="p-button-outlined p-button-sm" (click)="launchCampaignTemplate(template)"></button>
+          </article>
+        </div>
+      </section>
+
+      <section class="campaign-objectives-panel" *ngIf="activeCampaignTab === 'objectives'">
+        <div class="campaign-section-header">
+          <div>
+            <h4><i class="pi pi-check-square"></i> Objetivos de la campaña</h4>
+            <p>El progreso manual, Ester y las llamadas IA se guarda en el mismo historial.</p>
+          </div>
+          <button pButton label="Editar objetivos" icon="pi pi-pencil" class="p-button-outlined p-button-sm" (click)="openEditForm(selectedList)"></button>
+        </div>
+        <div class="campaign-objectives-empty" *ngIf="!selectedList.objectives?.length">
+          <i class="pi pi-flag"></i>
+          <span>Esta audiencia todavía no tiene objetivos medibles.</span>
+        </div>
+        <div class="campaign-objective-cards" *ngIf="selectedList.objectives?.length">
+          <article *ngFor="let objective of selectedList.objectives; let i = index">
+            <span class="campaign-objective-index">{{ i + 1 }}</span>
+            <div>
+              <strong>{{ objective.title }}</strong>
+              <p>{{ objective.description || 'Sin descripción adicional.' }}</p>
+              <div class="campaign-objective-meta">
+                <span>{{ objectiveTypeLabel(objective.type) }}</span>
+                <span>{{ objectiveCompletionLabel(objective.completion_mode) }}</span>
+                <span [class.required]="objective.required !== false">{{ objective.required === false ? 'Opcional' : 'Requerido' }}</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="campaign-runs" *ngIf="activeCampaignTab === 'overview' || activeCampaignTab === 'executions'">
         <div class="campaign-section-header">
           <div>
             <h4><i class="pi pi-history"></i> Ejecuciones</h4>
@@ -518,7 +617,7 @@
       </section>
 
       <!-- Tabla de usuarios -->
-      <div class="detail-table-wrap">
+      <div class="detail-table-wrap" *ngIf="activeCampaignTab === 'audience'">
         <p-progressBar *ngIf="loadingListUsers" mode="indeterminate" styleClass="detail-progress"></p-progressBar>
 
         <p-table
@@ -731,6 +830,7 @@
           <span><strong>{{ audiencePreview.summary?.autocontact_disabled || 0 }}</strong> no autorizan contacto</span>
           <span><strong>{{ audiencePreview.summary?.low_satisfaction || 0 }}</strong> satisfacción baja</span>
           <span><strong>{{ audiencePreview.summary?.awaiting_employee_reply || 0 }}</strong> esperando empleado</span>
+          <span><strong>{{ audiencePreview.summary?.active_campaign_conflicts || 0 }}</strong> con campaña activa</span>
         </div>
         <ul *ngIf="audiencePreview?.summary?.warnings?.length">
           <li *ngFor="let warning of audiencePreview.summary.warnings">{{ warning }}</li>
@@ -844,6 +944,25 @@
           <label for="excludeWaitingConversations">No contactar chats que esperan respuesta de un empleado</label>
         </div>
         <div class="form-group form-group--full">
+          <label>Si el contacto ya tiene una campaña activa</label>
+          <p-dropdown
+            [options]="conversationConflictOptions"
+            [(ngModel)]="conversationConflictPolicy"
+            optionLabel="label"
+            optionValue="value"
+            styleClass="w-full">
+            <ng-template let-option pTemplate="item">
+              <div class="campaign-conflict-option">
+                <strong>{{ option.label }}</strong>
+                <small>{{ option.description }}</small>
+              </div>
+            </ng-template>
+          </p-dropdown>
+          <small class="campaign-field-help">
+            {{ conversationConflictPolicy === 'skip' ? 'Se protegerá la conversación existente.' : conversationConflictPolicy === 'queue' ? 'El envío quedará esperando sin gastar intentos.' : 'La campaña anterior se cerrará con trazabilidad antes de iniciar esta.' }}
+          </small>
+        </div>
+        <div class="form-group form-group--full">
           <label>Variante B opcional</label>
           <textarea pInputTextarea [(ngModel)]="campaignBodyVariantB" rows="3" class="w-full" placeholder="La mitad de la audiencia recibirá esta variante para comparar resultados."></textarea>
         </div>
@@ -934,6 +1053,7 @@
       <span><strong>{{ selectedExecutionDetails.totals?.sent || 0 }}</strong> enviados</span>
       <span><strong>{{ selectedExecutionDetails.totals?.replied || 0 }}</strong> respondieron</span>
       <span><strong>{{ selectedExecutionDetails.totals?.failed || 0 }}</strong> errores</span>
+      <span *ngIf="selectedExecutionDetails.objectives?.length"><strong>{{ selectedExecutionDetails.totals?.objectives_completed || 0 }}</strong> completaron objetivos</span>
     </div>
 
     <p-table
@@ -949,6 +1069,7 @@
           <th>Estado</th>
           <th>Resultado</th>
           <th>Detalle</th>
+          <th *ngIf="selectedExecutionDetails.objectives?.length">Objetivos</th>
           <th>Intentos</th>
           <th>Conversación</th>
         </tr>
@@ -962,6 +1083,21 @@
           <td>{{ recipientStatusLabel(recipient.status) }}</td>
           <td>{{ recipientOutcomeLabel(recipient.outcome) }}</td>
           <td>{{ recipient.outcome_reason || recipient.skip_reason || recipient.error || '—' }}</td>
+          <td *ngIf="selectedExecutionDetails.objectives?.length">
+            <div class="campaign-recipient-objectives">
+              <label *ngFor="let objective of selectedExecutionDetails.objectives" [class.completed]="isRecipientObjectiveCompleted(recipient, objective.id)">
+                <p-checkbox
+                  [binary]="true"
+                  [ngModel]="isRecipientObjectiveCompleted(recipient, objective.id)"
+                  [disabled]="objective.completion_mode === 'automatic'"
+                  (onChange)="onExecutionObjectiveToggle(recipient, objective, $event)">
+                </p-checkbox>
+                <span>{{ objective.title }}</span>
+                <i class="pi pi-info-circle" [pTooltip]="recipientObjectiveEvidenceLabel(recipient, objective.id)"></i>
+                <i *ngIf="objective.completion_mode === 'automatic'" class="pi pi-sparkles" pTooltip="Este objetivo sólo lo confirma la automatización"></i>
+              </label>
+            </div>
+          </td>
           <td>{{ recipient.attempts || 0 }}/{{ recipient.max_attempts || 0 }}</td>
           <td>
             <button
@@ -978,9 +1114,22 @@
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td colspan="6">No hay destinatarios registrados.</td></tr>
+        <tr><td [attr.colspan]="selectedExecutionDetails.objectives?.length ? 7 : 6">No hay destinatarios registrados.</td></tr>
       </ng-template>
     </p-table>
+
+    <details class="campaign-audit" *ngIf="selectedExecutionDetails.audit_events?.length">
+      <summary><i class="pi pi-shield"></i> Ver historial auditado</summary>
+      <div class="campaign-audit-list">
+        <article *ngFor="let event of selectedExecutionDetails.audit_events.slice().reverse()">
+          <i class="pi" [ngClass]="event.action === 'execution_cancelled' ? 'pi-times-circle' : event.action === 'execution_created' ? 'pi-play-circle' : 'pi-check-circle'"></i>
+          <div>
+            <strong>{{ campaignAuditActionLabel(event.action) }}</strong>
+            <span>{{ event.actor_name || (event.detail?.source === 'ester_ai' ? 'Ester' : event.detail?.source === 'vapi' ? 'Llamada IA' : 'Sistema') }} · {{ event.recorded_at | date:'medium' }}</span>
+          </div>
+        </article>
+      </div>
+    </details>
   </div>
 </p-dialog>
 
@@ -1119,7 +1268,7 @@
 
     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
       <div *ngFor="let obj of selectedList?.objectives" class="p-card" style="padding: 1rem; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px; display: flex; align-items: flex-start; gap: 1rem; transition: background-color 0.2s, color 0.2s;" [style.border-color]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? 'var(--primary-color)' : 'var(--surface-border)'" [style.background-color]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? 'var(--surface-hover)' : 'var(--surface-card)'">
-        <p-checkbox [binary]="true" [ngModel]="isObjectiveCompleted(selectedChecklistUser, obj.id)" (onChange)="onObjectiveToggle(selectedChecklistUser, obj.id, $event)" [inputId]="'modal_chk_'+selectedChecklistUser._id+'_'+obj.id" styleClass="mt-1"></p-checkbox>
+        <p-checkbox [binary]="true" [ngModel]="isObjectiveCompleted(selectedChecklistUser, obj.id)" [disabled]="obj.completion_mode === 'automatic'" (onChange)="onObjectiveToggle(selectedChecklistUser, obj.id, $event)" [inputId]="'modal_chk_'+selectedChecklistUser._id+'_'+obj.id" styleClass="mt-1"></p-checkbox>
         <div style="flex: 1; min-width: 0;">
           <label [for]="'modal_chk_'+selectedChecklistUser._id+'_'+obj.id" style="cursor: pointer; margin: 0; line-height: 1.4; color: var(--text-color); font-weight: 500; font-size: 1rem; display: block; user-select: none;" [style.text-decoration]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? 'line-through' : 'none'" [style.opacity]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? '0.7' : '1'">
             {{ obj.title }}
@@ -1127,6 +1276,7 @@
           <div *ngIf="obj.description" style="font-size: 0.85rem; color: var(--text-color-secondary); margin-top: 4px; line-height: 1.4; user-select: none;" [style.opacity]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? '0.7' : '1'">
             {{ obj.description }}
           </div>
+          <small *ngIf="obj.completion_mode === 'automatic'" style="display:block; margin-top:.35rem; color:#a855f7;"><i class="pi pi-sparkles"></i> Se confirma automáticamente</small>
         </div>
         <i class="pi pi-check-circle mt-1" *ngIf="isObjectiveCompleted(selectedChecklistUser, obj.id)" style="color: var(--primary-color); font-size: 1.2rem;"></i>
       </div>
