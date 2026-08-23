@@ -163,7 +163,7 @@ export class EmployeeMonitoringService {
         ].join(', '),
         maskInputOptions: { password: true },
         recordCanvas: false,
-        collectFonts: false,
+        collectFonts: true,
         inlineImages: false,
         mousemoveWait: 80,
       });

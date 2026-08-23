@@ -2944,24 +2944,31 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       });
   }
 
-  confirmArchiveConversationObjective(objective: ConversationObjective): void {
+  confirmDeleteConversationObjective(objective: ConversationObjective): void {
     const conversationId = this.selectedConversation?.id;
     if (!this.isRootUser || !conversationId) return;
     this.confirmationService.confirm({
-      header: 'Archivar objetivo',
-      message: `Se ocultará “${objective.title}”, pero su historial se conservará.`,
-      icon: 'pi pi-archive',
-      acceptLabel: 'Archivar',
+      header: 'Eliminar objetivo',
+      message: `Se eliminará “${objective.title}”. Ester dejará de tomarlo en cuenta en esta conversación.`,
+      icon: 'pi pi-trash',
+      acceptLabel: 'Eliminar',
       rejectLabel: 'Cancelar',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
-        this.whatsappApi.archiveConversationObjective(conversationId, objective.id)
+        this.whatsappApi.deleteConversationObjective(conversationId, objective.id)
           .subscribe({
-            next: () => this.loadConversationObjectives(conversationId),
+            next: () => {
+              this.loadConversationObjectives(conversationId);
+              this.messageService.add({
+                severity: 'success',
+                summary: 'Objetivo eliminado',
+                detail: 'Ester ya no lo tendrá en cuenta en esta conversación.',
+              });
+            },
             error: error => this.messageService.add({
               severity: 'error',
-              summary: 'No se pudo archivar',
-              detail: getApiErrorMessage(error, 'No se pudo archivar el objetivo.'),
+              summary: 'No se pudo eliminar',
+              detail: getApiErrorMessage(error, 'No se pudo eliminar el objetivo.'),
             }),
           });
       },

@@ -28,6 +28,7 @@ import {
 export class EmpleadosComponent implements OnInit, OnDestroy {
 
   @ViewChild('replayHost') replayHost?: ElementRef<HTMLDivElement>;
+  @ViewChild('replayStage') replayStage?: ElementRef<HTMLElement>;
 
   empleados: User[] = [];
   loading: boolean = true;
@@ -64,6 +65,8 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
   replayer?: Replayer;
   private replayCursor: string | null = null;
   private replayPollBusy = false;
+  private replayResizeObserver?: ResizeObserver;
+  private replayFitFrame?: number;
 
   departments: any[] = [
     { label: 'Administrativo', value: 'Administrativo' },
@@ -418,7 +421,9 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
         skipInactive: this.replaySkipInactive,
         showWarning: false,
         mouseTail: true,
+        insertStyleRules: this.getReplayFontStyleRules(),
       });
+      this.initializeReplayViewport();
       this.replayLoading = false;
 
       if (this.replayMode === 'live') {
@@ -506,6 +511,12 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
   private destroyReplay(clearDialogState = true): void {
     if (this.liveReplayPoll) clearInterval(this.liveReplayPoll);
     this.liveReplayPoll = undefined;
+    this.replayResizeObserver?.disconnect();
+    this.replayResizeObserver = undefined;
+    if (this.replayFitFrame !== undefined) {
+      cancelAnimationFrame(this.replayFitFrame);
+      this.replayFitFrame = undefined;
+    }
     this.replayer?.destroy();
     this.replayer = undefined;
     this.replayPlaying = false;
@@ -520,6 +531,98 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
       this.replayEmployee = null;
       this.replayError = '';
     }
+  }
+
+  private initializeReplayViewport(): void {
+    const stage = this.replayStage?.nativeElement;
+    if (!stage || !this.replayer) return;
+
+    this.replayResizeObserver?.disconnect();
+    this.replayResizeObserver = new ResizeObserver(() =>
+      this.scheduleReplayFit(),
+    );
+    this.replayResizeObserver.observe(stage);
+    this.replayer.on('resize', () => this.scheduleReplayFit());
+    this.replayer.on('fullsnapshot-rebuilded', () =>
+      this.scheduleReplayFit(),
+    );
+    this.scheduleReplayFit();
+  }
+
+  private scheduleReplayFit(): void {
+    if (this.replayFitFrame !== undefined) {
+      cancelAnimationFrame(this.replayFitFrame);
+    }
+    this.replayFitFrame = requestAnimationFrame(() => {
+      this.replayFitFrame = requestAnimationFrame(() => {
+        this.replayFitFrame = undefined;
+        this.fitReplayToStage();
+      });
+    });
+  }
+
+  private fitReplayToStage(): void {
+    const host = this.replayHost?.nativeElement;
+    const wrapper = this.replayer?.wrapper;
+    const iframe = this.replayer?.iframe;
+    if (!host || !wrapper || !iframe) return;
+
+    const replayWidth =
+      Number(iframe.getAttribute('width')) || iframe.offsetWidth;
+    const replayHeight =
+      Number(iframe.getAttribute('height')) || iframe.offsetHeight;
+    const availableWidth = host.clientWidth;
+    const availableHeight = host.clientHeight;
+    if (
+      replayWidth <= 0 ||
+      replayHeight <= 0 ||
+      availableWidth <= 0 ||
+      availableHeight <= 0
+    ) {
+      return;
+    }
+
+    const scale = Math.min(
+      availableWidth / replayWidth,
+      availableHeight / replayHeight,
+      1,
+    );
+    wrapper.style.setProperty('--replay-fit-scale', scale.toFixed(4));
+  }
+
+  private getReplayFontStyleRules(): string[] {
+    const fontRules = new Set<string>();
+    for (const stylesheet of Array.from(document.styleSheets)) {
+      let rules: CSSRuleList;
+      try {
+        rules = stylesheet.cssRules;
+      } catch {
+        continue;
+      }
+      const baseUrl = stylesheet.href || document.baseURI;
+      for (const rule of Array.from(rules)) {
+        if (rule.type !== CSSRule.FONT_FACE_RULE) continue;
+        fontRules.add(this.absolutizeCssUrls(rule.cssText, baseUrl));
+      }
+    }
+    return Array.from(fontRules);
+  }
+
+  private absolutizeCssUrls(cssText: string, baseUrl: string): string {
+    return cssText.replace(
+      /url\(\s*(['"]?)([^'")]+)\1\s*\)/gi,
+      (_match, _quote: string, rawUrl: string) => {
+        const value = rawUrl.trim();
+        if (/^(?:data:|blob:|https?:|\/\/)/i.test(value)) {
+          return `url("${value}")`;
+        }
+        try {
+          return `url("${new URL(value, baseUrl).href}")`;
+        } catch {
+          return `url("${value}")`;
+        }
+      },
+    );
   }
 
   private humanizeRoute(route?: string | null): string {

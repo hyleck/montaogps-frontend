@@ -262,7 +262,7 @@
 </p-dialog>
 
 <!-- Visor de sesión del empleado -->
-<p-dialog [(visible)]="displayReplay" [modal]="true" [style]="{width: '96vw', height: '92vh'}" [breakpoints]="{'960px': '99vw'}" [draggable]="false" [resizable]="false" [closable]="true" (onHide)="closeReplay()" styleClass="employee-replay-dialog">
+<p-dialog [(visible)]="displayReplay" [modal]="true" [style]="{width: '98vw', height: '96vh', maxWidth: 'none'}" [breakpoints]="{'960px': '100vw'}" [draggable]="false" [resizable]="false" [closable]="true" (onHide)="closeReplay()" styleClass="employee-replay-dialog">
     <ng-template pTemplate="header">
         <div class="replay-dialog-header" *ngIf="replayEmployee">
             <div class="replay-header-avatar">
@@ -312,7 +312,7 @@
                 </div>
             </div>
 
-            <section class="replay-stage" aria-label="Reproducción de pantalla">
+            <section #replayStage class="replay-stage" aria-label="Reproducción de pantalla">
                 <div #replayHost class="replay-host"></div>
                 <div *ngIf="replayLoading" class="replay-state">
                     <i class="pi pi-spin pi-spinner"></i>

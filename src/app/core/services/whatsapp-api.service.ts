@@ -211,7 +211,7 @@ export class WhatsAppApiService {
         );
     }
 
-    archiveConversationObjective(
+    deleteConversationObjective(
         conversationId: number,
         objectiveId: string,
     ): Observable<{ success: boolean; objective: ConversationObjective }> {
