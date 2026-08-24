@@ -67,6 +67,7 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
   private replayPollBusy = false;
   private replayResizeObserver?: ResizeObserver;
   private replayFitFrame?: number;
+  private replayStartedAt = 0;
 
   departments: any[] = [
     { label: 'Administrativo', value: 'Administrativo' },
@@ -275,17 +276,16 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
       return;
     }
     if (this.replayMode === 'live') {
-      this.replayer.startLive(Date.now() - 1_000);
+      this.playLiveReplayAtPresent();
     } else {
       this.replayer.play(this.replayer.getCurrentTime());
+      this.replayPlaying = true;
     }
-    this.replayPlaying = true;
   }
 
   goToLive(): void {
     if (!this.replayer) return;
-    this.replayer.startLive(Date.now() - 1_000);
-    this.replayPlaying = true;
+    this.playLiveReplayAtPresent();
   }
 
   updateReplaySpeed(): void {
@@ -423,12 +423,12 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
         mouseTail: true,
         insertStyleRules: this.getReplayFontStyleRules(),
       });
+      this.replayStartedAt = Number(events[0]?.timestamp) || Date.now();
       this.initializeReplayViewport();
       this.replayLoading = false;
 
       if (this.replayMode === 'live') {
-        this.replayer.startLive(Date.now() - 1_000);
-        this.replayPlaying = true;
+        this.playLiveReplayAtPresent();
         this.startLivePolling();
       } else {
         this.replayer.play(0);
@@ -520,6 +520,7 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
     this.replayer?.destroy();
     this.replayer = undefined;
     this.replayPlaying = false;
+    this.replayStartedAt = 0;
     this.replayCursor = null;
     this.replayPollBusy = false;
     this.replayHost?.nativeElement.replaceChildren();
@@ -547,6 +548,16 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
       this.scheduleReplayFit(),
     );
     this.scheduleReplayFit();
+  }
+
+  private playLiveReplayAtPresent(): void {
+    if (!this.replayer || !this.replayStartedAt) return;
+    const timeOffset = Math.max(
+      0,
+      Date.now() - this.replayStartedAt - 1_000,
+    );
+    this.replayer.play(timeOffset);
+    this.replayPlaying = true;
   }
 
   private scheduleReplayFit(): void {
