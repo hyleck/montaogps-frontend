@@ -2474,7 +2474,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         // Crear una copia del objeto target con los campos actuales
         const targetData: any = { ...this.target };
 
-        if (this.isTagTarget()) {
+        if (this.usesBasicTargetForm()) {
             targetData.target_category = targetData.target_category || 'unspecified';
             targetData.target_plate_number = '';
             targetData.target_chassis_number = '';
@@ -2619,7 +2619,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private validateForm(): boolean {
         // Validaciones según el tab activo
         if (this.activeTabIndex === 0) { // Tab de vehículo
-            const missingTargetFields = this.isTagTarget()
+            const missingTargetFields = this.usesBasicTargetForm()
                 ? !this.target.name?.trim() || !this.target.target_category
                 : !this.target.name || !this.target.target_plate_number;
             if (missingTargetFields) {
@@ -3768,20 +3768,33 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return !this.isTagTarget();
     }
 
+    usesBasicTargetForm(): boolean {
+        return this.getSelectedProtocolCompactName() === 'MTAGP';
+    }
+
     isTagTarget(): boolean {
         const protocol = this.selectedProtocol
             || this.resolveProtocolFromValue(this.target?.type)
             || (this.target?.protocol as Protocol | undefined);
         if (protocol?.isAirtag === true) return true;
 
-        const compactName = String(protocol?.name || '')
+        const compactName = this.getSelectedProtocolCompactName(protocol);
+        return compactName === 'MTAGA'
+            || compactName === 'MTAGP'
+            || compactName.includes('AIRTAG');
+    }
+
+    private getSelectedProtocolCompactName(protocol?: Protocol): string {
+        const selectedProtocol = protocol
+            || this.selectedProtocol
+            || this.resolveProtocolFromValue(this.target?.type)
+            || (this.target?.protocol as Protocol | undefined);
+
+        return String(selectedProtocol?.name || '')
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-z0-9]/gi, '')
             .toUpperCase();
-        return compactName === 'MTAGA'
-            || compactName === 'MTAGP'
-            || compactName.includes('AIRTAG');
     }
 
     // Método para obtener el nombre de visualización del tipo de SIM card
@@ -4946,7 +4959,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     canRegisterOfficeVehicleChange(): boolean {
         return this.isEditMode
             && this.isOfficeManagementUser()
-            && !this.isTagTarget()
+            && !this.usesBasicTargetForm()
             && !!this.getCurrentTargetId();
     }
 

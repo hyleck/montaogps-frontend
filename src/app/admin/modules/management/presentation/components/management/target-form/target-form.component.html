@@ -5,15 +5,15 @@
                 <p-tabView [activeIndex]="activeTabIndex" (activeIndexChange)="activeTabIndex = $event">
                     <p-tabPanel>
                         <ng-template pTemplate="header">
-                            <i class="tab-icon pi" [ngClass]="isTagTarget() ? 'pi-tag' : 'pi-car'"></i>
-                            <span class="tab-text">{{ isTagTarget() ? 'Información del objetivo' : translate(translations.vehicleInfo) }}</span>
+                            <i class="tab-icon pi" [ngClass]="usesBasicTargetForm() ? 'pi-tag' : 'pi-car'"></i>
+                            <span class="tab-text">{{ usesBasicTargetForm() ? 'Información del objetivo' : translate(translations.vehicleInfo) }}</span>
                         </ng-template>
                         <div style="position: relative;">
                             <div class="target-form__base">
                                 <!-- Mensaje informativo eliminado -->
 
                                 <form class="target-form__form" (ngSubmit)="onSubmit()" ngNativeValidate>
-                                    <div *ngIf="isTagTarget()" class="target-form__grid">
+                                    <div *ngIf="usesBasicTargetForm()" class="target-form__grid">
                                         <div class="target-form__column">
                                             <div class="target-form__field">
                                                 <label for="tag-target-name">Nombre del objetivo <span class="required-label">(Requerido)</span></label>
@@ -61,7 +61,7 @@
                                         </div>
                                     </div>
 
-                                    <ng-container *ngIf="!isTagTarget()">
+                                    <ng-container *ngIf="!usesBasicTargetForm()">
                                     <ng-container *ngIf="!isLinkedVehicleMode(); else linkedVehicleInfoCard">
                                     <ng-container *ngIf="!isVehicleFormSkeletonVisible(); else vehicleFormSkeleton">
                                     <div class="target-form__grid">

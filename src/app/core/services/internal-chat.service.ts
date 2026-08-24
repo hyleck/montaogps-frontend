@@ -39,6 +39,8 @@ export interface InternalChatGroup {
     lastName: string;
     email: string;
     photo: string;
+    phone: string;
+    phone2: string;
   };
 }
 

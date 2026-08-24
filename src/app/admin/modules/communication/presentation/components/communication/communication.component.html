@@ -1,19 +1,21 @@
 <div class="comm-container">
     <!-- Tab Bar -->
     <div *ngIf="!noInbox" class="comm-tabs">
-        <button class="comm-tabs__btn" [class.comm-tabs__btn--active]="activeTab === 'chat'" (click)="navigateToTab('chat')">
+        <button class="comm-tabs__btn"
+            [class.comm-tabs__btn--active]="activeTab === 'chat' && conversationFilter === 'all'"
+            (click)="showConversationFilter('all')">
             <i class="pi pi-comments"></i> Chat
         </button>
         <button class="comm-tabs__btn"
-            [class.comm-tabs__btn--active]="activeTab === 'grupo'"
+            [class.comm-tabs__btn--active]="activeTab === 'chat' && conversationFilter === 'team'"
             type="button"
-            (click)="navigateToTab('grupo')">
-            <i class="pi pi-users"></i>
-            Grupos
-            <span *ngIf="totalInternalUnreadCount > 0"
+            (click)="showConversationFilter('team')">
+            <i class="pi pi-address-book"></i>
+            Equipo
+            <span *ngIf="totalTeamUnreadCount > 0"
                 class="comm-tabs__unread-badge"
-                aria-label="Mensajes nuevos en grupos">
-                {{ totalInternalUnreadCount > 99 ? '99+' : totalInternalUnreadCount }}
+                aria-label="Mensajes nuevos del equipo">
+                {{ totalTeamUnreadCount > 99 ? '99+' : totalTeamUnreadCount }}
             </span>
         </button>
     </div>
@@ -33,8 +35,8 @@
     <div class="comm-sidebar" [class.comm-sidebar--hidden]="selectedConversation">
         <!-- Header -->
         <div class="comm-sidebar__header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="margin: 0;">Comunicación</h2>
-            <button pButton icon="pi pi-bolt" class="p-button-sm p-button-danger p-button-outlined p-button-rounded" pTooltip="Transferir conversaciones a Ester" tooltipPosition="bottom" (click)="transferAllToEster()"></button>
+            <h2 style="margin: 0;">{{ conversationFilter === 'team' ? 'Equipo' : 'Comunicación' }}</h2>
+            <button *ngIf="conversationFilter !== 'team'" pButton icon="pi pi-bolt" class="p-button-sm p-button-danger p-button-outlined p-button-rounded" pTooltip="Transferir conversaciones a Ester" tooltipPosition="bottom" (click)="transferAllToEster()"></button>
         </div>
 
         <!-- Search -->
@@ -42,7 +44,7 @@
             <div class="comm-search-box">
                 <i class="pi pi-search"></i>
                 <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="filterConversations()"
-                    placeholder="Buscar conversación..." />
+                    [placeholder]="conversationFilter === 'team' ? 'Buscar empleado...' : 'Buscar conversación...'" />
             </div>
         </div>
 
@@ -69,30 +71,32 @@
 
             <div *ngIf="!loadingConversations && filteredConversations.length === 0" class="comm-empty">
                 <i class="pi pi-inbox"></i>
-                <span>No hay conversaciones en la bandeja</span>
+                <span>{{ conversationFilter === 'team'
+                    ? 'No hay conversaciones de empleados'
+                    : 'No hay conversaciones en la bandeja' }}</span>
             </div>
 
             <div *ngFor="let conv of filteredConversations" class="comm-contact"
                 [hidden]="loadingConversations"
                 [class.comm-contact--active]="selectedConversation?.id === conv.id"
-                [class.comm-contact--ester]="!conv.assignee_id"
-                [class.comm-contact--mine]="isConversationAssignedToMe(conv)"
-                [class.comm-contact--employee]="!!conv.assignee_id && !isConversationAssignedToMe(conv)"
+                [class.comm-contact--ester]="!isInternalTeamConversation(conv) && !conv.assignee_id"
+                [class.comm-contact--mine]="!isInternalTeamConversation(conv) && isConversationAssignedToMe(conv)"
+                [class.comm-contact--employee]="!isInternalTeamConversation(conv) && !!conv.assignee_id && !isConversationAssignedToMe(conv)"
                 (click)="selectConversation(conv)">
                 <div class="comm-contact__avatar">
                     <img *ngIf="getUsableAvatarUrl(conv.contact.avatar) as avatarUrl"
                         [src]="avatarUrl" (error)="onAvatarImageError(avatarUrl)" alt="avatar" />
-                    <span *ngIf="!getUsableAvatarUrl(conv.contact.avatar)">{{ getInitials(conv.contact.name) }}</span>
+                    <span *ngIf="!getUsableAvatarUrl(conv.contact.avatar)">{{ getInitials(getConversationContactDisplayName(conv)) }}</span>
                 </div>
                 <div class="comm-contact__info">
                     <div class="comm-contact__top">
-                        <div class="comm-contact__name">{{ conv.contact.name }}</div>
+                        <div class="comm-contact__name">{{ getConversationDisplayName(conv) }}</div>
                         <div class="comm-contact__time">{{ getTimeAgo(conv.last_message_time) }}</div>
                     </div>
                     <div class="comm-contact__bottom">
                         <div class="comm-contact__preview">
                             <div class="comm-contact__last-msg">{{ getCleanPreview(conv.last_message) }}</div>
-                            <div class="comm-contact__assignee"
+                            <div *ngIf="!isInternalTeamConversation(conv)" class="comm-contact__assignee"
                                 [class.comm-contact__assignee--ester]="!conv.assignee_id"
                                 [class.comm-contact__assignee--ester-disabled]="isEsterAutoReplyDisabled(conv)"
                                 [class.comm-contact__assignee--mine]="isConversationAssignedToMe(conv)">
@@ -104,6 +108,10 @@
                                 {{ isConversationAssignedToMe(conv)
                                     ? 'Asignada a ti'
                                     : 'Asignada a ' + getConversationAssigneeLabel(conv) }}
+                            </div>
+                            <div *ngIf="isInternalTeamConversation(conv)" class="comm-contact__assignee">
+                                <i class="pi pi-users"></i>
+                                Chat compartido
                             </div>
                         </div>
                         <div *ngIf="conv.unread_count > 0" class="comm-contact__badge">{{ conv.unread_count }}</div>
@@ -134,11 +142,11 @@
                 <div class="comm-chat__header-avatar">
                     <img *ngIf="getSelectedConversationAvatarUrl() as avatarUrl"
                         [src]="avatarUrl" (error)="onAvatarImageError(avatarUrl)" alt="avatar" />
-                    <span *ngIf="!getSelectedConversationAvatarUrl()">{{ getInitials(gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name) }}</span>
+                    <span *ngIf="!getSelectedConversationAvatarUrl()">{{ getInitials(getSelectedContactDisplayName()) }}</span>
                 </div>
                 <div class="comm-chat__header-info">
                     <div class="comm-chat__header-name">
-                        <span>{{ gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name }}</span>
+                        <span>{{ getSelectedConversationDisplayName() }}</span>
                         <i *ngIf="gpsUser?.verificado === true" class="pi pi-check-circle comm-chat__verified" title="Usuario verificado"></i>
                         <button
                             *ngIf="gpsUser?._id"
@@ -197,7 +205,7 @@
                             </button>
                         </div>
                     </div>
-                    <button *ngIf="isConversationAssignedToMe(selectedConversation)"
+                    <button *ngIf="isConversationAssignedToMe(selectedConversation) && !isInternalTeamConversation(selectedConversation)"
                         class="comm-info-btn comm-action-btn" (click)="openTransferModal()" title="Transferir Conversación a otro Agente">
                         <i class="pi pi-sort-alt"></i>
                     </button>
@@ -263,7 +271,7 @@
                     [class.comm-message--deleted]="msg.status === 'deleted'"
                     [class.comm-message--has-reaction]="!!msg.reaction"
                     [class.comm-message--sticker-only]="isStickerOnlyMessage(msg)">
-                    <div *ngIf="msg.id && msg.from !== 'system' && isConversationAssignedToMe(selectedConversation)" class="comm-message__actions">
+                    <div *ngIf="msg.id && msg.from !== 'system' && canParticipateInConversation(selectedConversation)" class="comm-message__actions">
                         <button class="comm-reaction-btn"
                             [class.comm-reaction-btn--active]="reactionPickerMessageId === msg.id"
                             [disabled]="reactingMessageId === msg.id"
@@ -303,7 +311,7 @@
                         <!-- Reply quote -->
                         <div *ngIf="msg.replyTo" class="comm-reply-quote"
                             [class.comm-reply-quote--me]="msg.replyTo.from === 'me'">
-                            <span class="comm-reply-quote__label">{{ msg.replyTo.from === 'me' ? 'Tú' : selectedConversation!.contact.name }}</span>
+                            <span class="comm-reply-quote__label">{{ msg.replyTo.from === 'me' ? 'Tú' : getSelectedContactDisplayName() }}</span>
                             <span class="comm-reply-quote__text">{{ getReplyPreviewText(msg.replyTo) | slice:0:80 }}{{ getReplyPreviewText(msg.replyTo).length > 80 ? '...' : '' }}</span>
                         </div>
                         <!-- Attachments -->
@@ -543,7 +551,7 @@
                 <div class="comm-reply-preview__content">
                     <i class="pi pi-reply"></i>
                     <div class="comm-reply-preview__text">
-                        <span class="comm-reply-preview__label">Respondiendo a {{ replyingTo.from === 'me' ? 'ti' : selectedConversation!.contact.name }}</span>
+                        <span class="comm-reply-preview__label">Respondiendo a {{ replyingTo.from === 'me' ? 'ti' : getSelectedContactDisplayName() }}</span>
                         <span class="comm-reply-preview__msg">{{ getReplyPreviewText(replyingTo) | slice:0:60 }}{{ getReplyPreviewText(replyingTo).length > 60 ? '...' : '' }}</span>
                     </div>
                 </div>
@@ -600,7 +608,8 @@
 
             <div *ngIf="selectedConversation.assignee_id
                     && selectedConversation.assignee_typing
-                    && !isConversationAssignedToMe(selectedConversation)"
+                    && !isConversationAssignedToMe(selectedConversation)
+                    && !isInternalTeamConversation(selectedConversation)"
                 class="comm-typing-indicator"
                 role="status"
                 aria-live="polite">
@@ -628,8 +637,8 @@
                 </button>
             </div>
 
-            <!-- Input (Only shown if assigned AND inside 24h window) -->
-            <div class="comm-chat-composer" *ngIf="isConversationAssignedToMe(selectedConversation) && !isOutside24hWindow(selectedConversation)">
+            <!-- Shared team chats do not require assignment. -->
+            <div class="comm-chat-composer" *ngIf="canParticipateInConversation(selectedConversation) && !isOutside24hWindow(selectedConversation)">
                 <div *ngIf="showChatEmojiPicker" class="comm-chat-emoji-picker" role="dialog" aria-label="Seleccionar emoji">
                     <div class="comm-chat-emoji-picker__header">
                         <span>Emojis</span>
@@ -728,8 +737,8 @@
                 </div>
             </div>
 
-            <!-- WhatsApp Template Banner (Shown if assigned BUT >24h) -->
-            <div *ngIf="isConversationAssignedToMe(selectedConversation) && isOutside24hWindow(selectedConversation)"
+            <!-- WhatsApp Template Banner -->
+            <div *ngIf="canParticipateInConversation(selectedConversation) && isOutside24hWindow(selectedConversation)"
                 class="comm-template-banner">
                 <div class="comm-template-banner__content">
                     <span class="comm-template-banner__icon"><i class="pi pi-clock"></i></span>
@@ -741,7 +750,7 @@
             </div>
 
             <!-- Read-only banner when the conversation belongs to Ester or another employee -->
-            <div *ngIf="!isConversationAssignedToMe(selectedConversation)"
+            <div *ngIf="!canParticipateInConversation(selectedConversation)"
                 class="comm-managed-banner"
                 [class.comm-managed-banner--ester]="!selectedConversation.assignee_id"
                 [class.comm-managed-banner--ester-disabled]="isEsterAutoReplyDisabled(selectedConversation)"
@@ -755,14 +764,18 @@
                                 : 'pi pi-bolt'"></i>
                     </span>
                     <strong class="comm-managed-banner__title">
-                        {{ isEsterAutoReplyDisabled(selectedConversation)
+                        {{ isInternalTeamConversation(selectedConversation)
+                            ? 'Conversación interna sin asignar'
+                            : isEsterAutoReplyDisabled(selectedConversation)
                             ? 'Ester Assistant está desactivada'
                             : 'Gestionado por ' + getConversationManagerLabel(selectedConversation) }}
                     </strong>
                     <span class="comm-managed-banner__description">
                         {{ selectedConversation.assignee_id
                             ? 'Esta conversación está asignada a otro empleado.'
-                            : isEsterAutoReplyDisabled(selectedConversation)
+                            : isInternalTeamConversation(selectedConversation)
+                                ? 'Ester no responde conversaciones de empleados o técnicos.'
+                                : isEsterAutoReplyDisabled(selectedConversation)
                                 ? 'La conversación sigue asignada a Ester, pero no responderá automáticamente.'
                                 : 'Esta conversación está siendo atendida de forma automática.' }}
                     </span>
@@ -784,7 +797,9 @@
                     <button type="button" class="comm-managed-banner__action" (click)="assignToMe()">
                         <i class="pi pi-user-plus"></i>
                         <span>
-                            {{ isEsterAutoReplyDisabled(selectedConversation)
+                            {{ isInternalTeamConversation(selectedConversation)
+                                ? 'Tomar control de la conversación'
+                                : isEsterAutoReplyDisabled(selectedConversation)
                                 ? 'Ester está desactivada · Tomar control'
                                 : 'Tomar control de la conversación' }}
                         </span>
@@ -808,13 +823,13 @@
                 <img *ngIf="getSelectedConversationAvatarUrl() as avatarUrl"
                     [src]="avatarUrl" (error)="onAvatarImageError(avatarUrl)" alt="avatar" />
                 <span *ngIf="!getSelectedConversationAvatarUrl()" class="comm-contact-panel__initials">
-                    {{ getInitials(gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name) }}
+                    {{ getInitials(getSelectedContactDisplayName()) }}
                 </span>
             </div>
 
             <!-- Name -->
             <div class="comm-contact-panel__name">
-                {{ gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name }}
+                {{ getSelectedContactDisplayName() }}
             </div>
 
             <!-- GPS User Badge -->
@@ -946,18 +961,18 @@
     </div>
     </div>
 
-    <!-- ====== GRUPOS INTERNOS ====== -->
+    <!-- ====== EQUIPO: GRUPO ADMINISTRATIVO + WHATSAPP DE TÉCNICOS ====== -->
     <div *ngIf="activeTab === 'grupo' && !noInbox" class="comm-chat-row comm-groups-layout">
         <aside class="comm-sidebar comm-groups-sidebar"
             [class.comm-sidebar--hidden]="internalGroupChatOpen">
             <div class="comm-sidebar__header">
-                <h2>Grupos</h2>
+                <h2>Equipo</h2>
                 <button type="button"
                     class="comm-group-list-refresh"
-                    [disabled]="loadingInternalGroups"
-                    title="Actualizar grupos"
-                    aria-label="Actualizar grupos"
-                    (click)="loadInternalGroups(false, true)">
+                    [disabled]="loadingInternalGroups || loadingConversations"
+                    title="Actualizar conversaciones del equipo"
+                    aria-label="Actualizar conversaciones del equipo"
+                    (click)="refreshTeamEntries()">
                     <i class="pi" [ngClass]="loadingInternalGroups ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
                 </button>
             </div>
@@ -967,8 +982,8 @@
                     <i class="pi pi-search"></i>
                     <input type="text"
                         [(ngModel)]="internalGroupSearchTerm"
-                        placeholder="Buscar grupo..."
-                        aria-label="Buscar grupo" />
+                        placeholder="Buscar técnico o teléfono..."
+                        aria-label="Buscar técnico o teléfono" />
                 </div>
             </div>
 
@@ -988,8 +1003,8 @@
 
                 <div *ngIf="!loadingInternalGroups && filteredInternalGroups.length === 0"
                     class="comm-empty">
-                    <i class="pi pi-users"></i>
-                    <span>{{ internalGroupSearchTerm ? 'No se encontraron grupos' : 'No hay grupos disponibles' }}</span>
+                    <i class="pi pi-address-book"></i>
+                    <span>{{ internalGroupSearchTerm ? 'No se encontraron técnicos' : 'No hay contactos del equipo disponibles' }}</span>
                 </div>
 
                 <div *ngFor="let group of filteredInternalGroups"
@@ -997,37 +1012,44 @@
                     role="button"
                     tabindex="0"
                     [hidden]="loadingInternalGroups && internalGroups.length === 0"
-                    [class.comm-contact--active]="internalGroupChatOpen && group.id === selectedInternalGroupId"
+                    [class.comm-contact--active]="!isTechnicianWhatsAppEntry(group) && internalGroupChatOpen && group.id === selectedInternalGroupId"
+                    [class.comm-group-contact--whatsapp]="isTechnicianWhatsAppEntry(group)"
                     (click)="selectInternalGroup(group)"
                     (keydown.enter)="selectInternalGroup(group)"
                     (keydown.space)="$event.preventDefault(); selectInternalGroup(group)">
                     <div class="comm-contact__avatar comm-group-contact__avatar"
-                        [class.comm-group-contact__avatar--admin]="group.type === 'admin'">
+                        [class.comm-group-contact__avatar--admin]="group.type === 'admin'"
+                        [class.comm-group-contact__avatar--whatsapp]="isTechnicianWhatsAppEntry(group)">
                         <img *ngIf="getUsableAvatarUrl(group.technician?.photo) as avatarUrl"
                             [src]="avatarUrl"
                             (error)="onAvatarImageError(avatarUrl)"
                             [alt]="group.name" />
                         <i *ngIf="!getUsableAvatarUrl(group.technician?.photo)"
                             class="pi"
-                            [ngClass]="group.type === 'admin' ? 'pi-building' : 'pi-wrench'"></i>
+                            [ngClass]="isOpeningTechnicianConversation(group)
+                                ? 'pi-spin pi-spinner'
+                                : (group.type === 'admin'
+                                    ? 'pi-building'
+                                    : (isTechnicianWhatsAppEntry(group) ? 'pi-whatsapp' : 'pi-wrench'))"></i>
                     </div>
                     <div class="comm-contact__info">
                         <div class="comm-contact__top">
-                            <div class="comm-contact__name">{{ group.name }}</div>
+                            <div class="comm-contact__name">{{ getTeamEntryName(group) }}</div>
+                            <div *ngIf="getTeamEntryTime(group)" class="comm-contact__time">
+                                {{ getTeamEntryTime(group) }}
+                            </div>
                         </div>
                         <div class="comm-contact__bottom">
                             <div class="comm-contact__last-msg">
-                                {{ group.type === 'admin'
-                                    ? 'Empleados administrativos'
-                                    : 'Técnico y empleados administrativos' }}
+                                {{ getTeamEntrySubtitle(group) }}
                             </div>
                             <div class="comm-group-contact__actions">
-                                <span *ngIf="(group.unreadCount || 0) > 0"
+                                <span *ngIf="getTeamEntryUnreadCount(group) > 0"
                                     class="comm-contact__badge"
-                                    [attr.aria-label]="group.unreadCount + ' mensajes nuevos'">
-                                    {{ (group.unreadCount || 0) > 99 ? '99+' : group.unreadCount }}
+                                    [attr.aria-label]="getTeamEntryUnreadCount(group) + ' mensajes nuevos'">
+                                    {{ getTeamEntryUnreadCount(group) > 99 ? '99+' : getTeamEntryUnreadCount(group) }}
                                 </span>
-                                <button *ngIf="canClearInternalMessages"
+                                <button *ngIf="canClearInternalMessages && !isTechnicianWhatsAppEntry(group)"
                                     type="button"
                                     class="comm-group-contact__clean"
                                     [disabled]="!!clearingInternalGroupId"
@@ -1047,9 +1069,9 @@
         <div class="comm-internal" [class.comm-internal--visible]="internalGroupChatOpen">
             <div *ngIf="!internalGroupChatOpen" class="comm-chat__empty">
                 <div class="comm-chat__empty-content">
-                    <i class="pi pi-users"></i>
-                    <h3>Grupos</h3>
-                    <p>Selecciona un grupo para abrir la conversación</p>
+                    <i class="pi pi-address-book"></i>
+                    <h3>Equipo</h3>
+                    <p>Selecciona Montao GPS o un técnico para abrir la conversación</p>
                 </div>
             </div>
 
@@ -1057,7 +1079,7 @@
             <header class="comm-internal__header">
                 <div class="comm-internal__title">
                     <button class="comm-back-btn" type="button" (click)="showInternalGroupList()"
-                        aria-label="Volver al listado de grupos">
+                        aria-label="Volver al listado del equipo">
                         <i class="pi pi-arrow-left"></i>
                     </button>
                     <span class="comm-internal__icon">
@@ -1783,7 +1805,7 @@
 
         <div *ngIf="!loadingTransferAgents"
             class="comm-transfer__agents" role="list" aria-label="Agentes disponibles">
-            <button *ngIf="isConversationAssignedToMe(selectedConversation)" type="button"
+            <button *ngIf="isConversationAssignedToMe(selectedConversation) && !isInternalTeamConversation(selectedConversation)" type="button"
                 class="comm-transfer-agent comm-transfer-agent--ester" role="listitem"
                 (click)="selectEsterForTransfer()">
                 <span class="comm-transfer-agent__avatar comm-transfer-agent__avatar--ester">

@@ -370,7 +370,6 @@ export class ProfileComponent implements OnInit {
         const payload = {
             name: this.user.name,
             last_name: this.user.last_name,
-            email: this.user.email,
             phone: this.user.phone,
             phone2: this.user.phone2,
             dni: this.user.dni,
