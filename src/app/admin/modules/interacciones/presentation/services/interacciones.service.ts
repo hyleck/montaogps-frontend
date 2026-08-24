@@ -148,6 +148,7 @@ export interface CampaignTemplate {
   channels: CampaignChannel[];
   title?: string;
   body: string;
+  whatsapp_template_name?: 'simple' | 'simple_mensaje' | 'instagram';
   objective?: string;
   follow_up_body?: string;
   objectives?: CampaignObjective[];

@@ -866,6 +866,24 @@
       </div>
 
       <div class="form-group form-group--full">
+        <label>Plantilla oficial de WhatsApp</label>
+        <p-dropdown
+          [options]="whatsappTemplateOptions"
+          [(ngModel)]="selectedWhatsappTemplateName"
+          optionLabel="label"
+          optionValue="value"
+          [disabled]="sendingPush"
+          styleClass="w-full">
+          <ng-template pTemplate="item" let-template>
+            <div class="campaign-template-option">
+              <strong>{{ template.label }}</strong>
+              <small>{{ template.description }}</small>
+            </div>
+          </ng-template>
+        </p-dropdown>
+      </div>
+
+      <div class="form-group form-group--full" style="margin-top:.75rem">
         <label>{{ targetUserName ? 'Nombre del destinatario *' : 'Nombre dinámico del destinatario' }}</label>
         <input pInputText [(ngModel)]="whatsappTemplateVars.name" placeholder="Ej. Juan Pérez" class="w-full" [disabled]="sendingPush" />
       </div>

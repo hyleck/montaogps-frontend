@@ -19,6 +19,8 @@ import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
+type WhatsAppCampaignTemplateName = 'simple' | 'instagram';
+
 @Component({
   selector: 'app-interacciones',
   templateUrl: './interacciones.component.html',
@@ -127,6 +129,22 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     { label: 'Automático o manual', value: 'both' },
     { label: 'Sólo automático', value: 'automatic' },
     { label: 'Sólo manual', value: 'manual' }
+  ];
+  readonly whatsappTemplateOptions: Array<{
+    label: string;
+    value: WhatsAppCampaignTemplateName;
+    description: string;
+  }> = [
+    {
+      label: 'Mensaje simple',
+      value: 'simple',
+      description: 'Plantilla general para mensajes personalizados.',
+    },
+    {
+      label: 'Instagram',
+      value: 'instagram',
+      description: 'Plantilla oficial de WhatsApp para campañas de Instagram.',
+    },
   ];
 
   // ── Historial de Usuario ────────────────────────────────────
@@ -681,6 +699,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.whatsappTemplateVars.bodySaludos = this.getDominicanTimeGreeting();
     this.whatsappTemplateVars.name = '[Nombre del usuario]'; // Indicador dinámico
     this.whatsappTemplateVars.body = '';
+    this.selectedWhatsappTemplateName = 'simple';
     this.vapiQuery = '';
     this.campaignObjective = '';
     this.campaignBodyVariantB = '';
@@ -715,6 +734,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.campaignObjective = template.objective || '';
     this.followUpBody = template.follow_up_body || '';
     this.whatsappTemplateVars.body = template.body;
+    this.selectedWhatsappTemplateName = template.whatsapp_template_name === 'instagram'
+      ? 'instagram'
+      : 'simple';
     this.pushBody = template.body;
     this.vapiQuery = template.objective || template.body;
     this.campaignBodyVariantB = '';
@@ -859,6 +881,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       channels: [this.interactionChannel],
       title: this.pushTitle || undefined,
       body,
+      whatsapp_template_name: this.interactionChannel === 'whatsapp'
+        ? this.selectedWhatsappTemplateName
+        : undefined,
       objective: this.campaignObjective || undefined,
       follow_up_body: this.followUpBody || undefined,
       objectives: this.selectedList?.objectives || []
@@ -968,7 +993,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       title: this.pushTitle || this.selectedList.name,
       body,
       body_variant_b: this.campaignBodyVariantB || undefined,
-      template_name: 'simple',
+      template_name: this.interactionChannel === 'whatsapp'
+        ? this.selectedWhatsappTemplateName
+        : undefined,
       sender_name: this.whatsappTemplateVars.headerUser || 'Soporte',
       objective: this.campaignObjective || (this.interactionChannel === 'vapi' ? this.vapiQuery : ''),
       objectives: this.selectedList.objectives || [],
@@ -1133,6 +1160,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   targetUserIsExternal: boolean = false;
   targetUserAutocontact: boolean | null = null;
   interactionChannel: CampaignChannel = 'push';
+  selectedWhatsappTemplateName: WhatsAppCampaignTemplateName = 'simple';
 
   // WhatsApp Variables Mad-Libs style
   whatsappTemplateVars = { headerUser: '', bodySaludos: '', name: '', body: '' };
@@ -1375,6 +1403,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.targetUserIsExternal = !!user.is_external;
     this.targetUserAutocontact = user.autocontact !== undefined ? user.autocontact : null;
     this.interactionChannel = channel;
+    this.selectedWhatsappTemplateName = 'simple';
     this.pushTitle = '';
     this.pushBody = '';
     this.pushSentCount = 0;
@@ -1460,7 +1489,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
               console.log(`[WA-CAMPAIGN] Enviando a: "${phone}" | Usuario: ${user.name || user._id}`);
               const res = await this.interaccionesService.sendWhatsAppToUser({
                 phone: phone,
-                template_name: 'simple',
+                template_name: this.selectedWhatsappTemplateName,
                 // Template 'simple' (Utility): header (user) + body (saludos, name, body) = 4 params
                 variables: [
                   this.whatsappTemplateVars.headerUser,
@@ -1604,7 +1633,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
          if (!this.targetUserPhone) throw new Error('El usuario no tiene teléfono configurado');
          const res = await this.interaccionesService.sendWhatsAppToUser({
         phone: this.targetUserPhone,
-        template_name: 'simple',
+        template_name: this.selectedWhatsappTemplateName,
         variables: [
           this.whatsappTemplateVars.headerUser,
           this.whatsappTemplateVars.bodySaludos,
