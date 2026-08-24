@@ -215,6 +215,21 @@
               <input pInputText type="number" min="0" [(ngModel)]="formFilters.max_device_count" placeholder="Sin límite" class="w-full" (input)="onFilterChange()" />
             </div>
 
+            <div class="form-group form-group--full">
+              <label>Estado de todos los GPS</label>
+              <p-dropdown
+                [options]="deviceConnectivityOptions"
+                [(ngModel)]="formFilters.device_connectivity"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Cualquier estado"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                styleClass="w-full">
+              </p-dropdown>
+              <small>Incluye clientes con al menos un GPS activo y los excluye si cualquiera está fuera de línea o no localizado.</small>
+            </div>
+
             <div class="form-group">
               <label>Solicitud abierta</label>
               <p-dropdown

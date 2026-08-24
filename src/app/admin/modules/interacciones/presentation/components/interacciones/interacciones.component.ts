@@ -172,6 +172,13 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     { label: 'No', value: false },
   ];
 
+  deviceConnectivityOptions = [
+    {
+      label: 'Todos en línea o localizados',
+      value: 'all_online_or_located',
+    },
+  ];
+
   conversationAssignmentOptions = [
     { label: 'Todas', value: '' },
     { label: 'Gestionadas por Ester', value: 'ester' },
@@ -540,6 +547,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       'municipality',
       'request_status',
       'conversation_assignment',
+      'device_connectivity',
     ];
     simpleKeys.forEach(key => {
       const value = this.formFilters[key];
@@ -1692,6 +1700,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     if (list.filters?.profile_type_id) badges.push(list.filters.profile_type_id);
     if (list.filters?.status !== undefined && list.filters?.status !== null) {
       badges.push(list.filters.status ? 'Activo' : 'Inactivo');
+    }
+    if (list.filters?.device_connectivity === 'all_online_or_located') {
+      badges.push('GPS en línea o localizados');
     }
     if (list.filters?.exclude_notified) badges.push('No Notificados');
     if (list.filters?.force_empty) badges.push('Manual / Vacía');

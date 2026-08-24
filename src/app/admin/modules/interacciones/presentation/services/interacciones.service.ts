@@ -16,6 +16,7 @@ export interface UserListFilters {
   active_within_days?: number;
   min_device_count?: number;
   max_device_count?: number;
+  device_connectivity?: 'all_online_or_located';
   has_open_request?: boolean;
   request_status?: string;
   conversation_assignment?: 'ester' | 'assigned' | 'unassigned' | 'waiting';
@@ -218,6 +219,7 @@ export class InteraccionesService {
     if (filters.active_within_days) params.active_within_days = String(filters.active_within_days);
     if (filters.min_device_count !== undefined && filters.min_device_count !== null) params.min_device_count = String(filters.min_device_count);
     if (filters.max_device_count !== undefined && filters.max_device_count !== null) params.max_device_count = String(filters.max_device_count);
+    if (filters.device_connectivity) params.device_connectivity = filters.device_connectivity;
     if (filters.has_open_request !== undefined && filters.has_open_request !== null) params.has_open_request = String(filters.has_open_request);
     if (filters.request_status) params.request_status = filters.request_status;
     if (filters.conversation_assignment) params.conversation_assignment = filters.conversation_assignment;
