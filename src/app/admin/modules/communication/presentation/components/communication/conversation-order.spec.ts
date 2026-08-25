@@ -1,6 +1,46 @@
 import { orderConversationsByAttention } from './conversation-order';
 
 describe('orderConversationsByAttention', () => {
+  it('places urgent conversations before every other state', () => {
+    const ordered = orderConversationsByAttention([
+      {
+        id: 1,
+        priority_urgent: false,
+        waiting_for_reply: true,
+        unread_count: 1,
+        last_message_time: 300,
+      },
+      {
+        id: 2,
+        priority_urgent: true,
+        waiting_for_reply: false,
+        unread_count: 0,
+        last_message_time: 100,
+      },
+    ]);
+
+    expect(ordered.map(conversation => conversation.id)).toEqual([2, 1]);
+  });
+
+  it('places conversations waiting for a response before unread outbound chats', () => {
+    const ordered = orderConversationsByAttention([
+      {
+        id: 1,
+        last_message_type: 1,
+        unread_count: 1,
+        last_message_time: 300,
+      },
+      {
+        id: 2,
+        last_message_type: 0,
+        unread_count: 0,
+        last_message_time: 100,
+      },
+    ]);
+
+    expect(ordered.map(conversation => conversation.id)).toEqual([2, 1]);
+  });
+
   it('places conversations with unread messages before read conversations', () => {
     const ordered = orderConversationsByAttention([
       { id: 1, unread_count: 0, last_message_time: 300 },
@@ -18,6 +58,15 @@ describe('orderConversationsByAttention', () => {
     ]);
 
     expect(ordered.map(conversation => conversation.id)).toEqual([2, 3, 1]);
+  });
+
+  it('recognizes urgent labels when the explicit API flag is unavailable', () => {
+    const ordered = orderConversationsByAttention([
+      { id: 1, labels: [], last_message_time: 300 },
+      { id: 2, labels: ['prioridad-alta'], last_message_time: 100 },
+    ]);
+
+    expect(ordered.map(conversation => conversation.id)).toEqual([2, 1]);
   });
 
   it('orders read conversations by their latest available activity', () => {

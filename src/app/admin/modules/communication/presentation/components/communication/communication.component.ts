@@ -57,6 +57,9 @@ interface ChatConversation {
   last_message: string;
   last_message_time: number | null;
   unread_count: number;
+  has_unread?: boolean;
+  waiting_for_reply?: boolean;
+  priority_urgent?: boolean;
   inbox_id?: number;
   last_message_type?: number;
   labels?: string[];
@@ -1831,6 +1834,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.stopChatPolling();
     this.communicationNotifications.markWhatsAppConversationRead(conv.id);
     conv.unread_count = 0;
+    conv.has_unread = false;
     this.conversationsFingerprint = this.getConversationsFingerprint(
       this.conversations,
     );
@@ -2941,7 +2945,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   private getConversationsFingerprint(convs: ChatConversation[]): string {
-    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.unread_count}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}:${c.reminder_eligible ? 1 : 0}:${c.reminder_waiting_since || ''}:${c.contact.satisfaction_level ?? ''}:${c.campaign_execution_id || ''}:${c.campaign_active ? 1 : 0}:${(c.conversation_objectives || []).map(objective => `${objective.id}-${objective.status}-${objective.updated_at || ''}`).join(',')}`).join('|');
+    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.last_message_type ?? ''}:${c.unread_count}:${c.has_unread ? 1 : 0}:${c.waiting_for_reply ? 1 : 0}:${c.priority_urgent ? 1 : 0}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}:${c.reminder_eligible ? 1 : 0}:${c.reminder_waiting_since || ''}:${c.contact.satisfaction_level ?? ''}:${c.campaign_execution_id || ''}:${c.campaign_active ? 1 : 0}:${(c.conversation_objectives || []).map(objective => `${objective.id}-${objective.status}-${objective.updated_at || ''}`).join(',')}`).join('|');
   }
 
   get conversationObjectives(): ConversationObjective[] {
