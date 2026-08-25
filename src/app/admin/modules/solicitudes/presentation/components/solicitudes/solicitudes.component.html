@@ -2557,12 +2557,20 @@
                     </div>
                     <div class="sol-form-field">
                         <label>Destino del dispositivo *</label>
-                        <select [(ngModel)]="selectedSolicitud.post_uninstall_disposition" required>
+                        <select
+                            [(ngModel)]="selectedSolicitud.post_uninstall_disposition"
+                            (ngModelChange)="onPostUninstallDispositionChange()"
+                            [class.sol-field-invalid]="postUninstallDispositionError"
+                            required>
+                            <option [ngValue]="undefined" disabled>Selecciona destino</option>
                             <option *ngFor="let option of postUninstallDispositionOptions" [value]="option.value">
                                 {{ option.label }}
                             </option>
                         </select>
-                        <small>
+                        <small class="sol-field-error" *ngIf="postUninstallDispositionError">
+                            Debe seleccionar el destino del GPS antes de guardar.
+                        </small>
+                        <small *ngIf="selectedSolicitud.post_uninstall_disposition">
                             {{ selectedSolicitud.post_uninstall_disposition === 'retained_by_client'
                                 ? 'El GPS quedará reservado para esta cuenta y conservará su fecha de vencimiento.'
                                 : 'El GPS no volverá al inventario disponible hasta completar la revisión correspondiente.' }}
@@ -2862,12 +2870,19 @@
                                         <span>Destino del dispositivo</span>
                                         <select
                                             [(ngModel)]="install.post_uninstall_disposition"
+                                            (ngModelChange)="onPostUninstallDispositionChange()"
+                                            [class.sol-field-invalid]="postUninstallDispositionError && !hasValidPostUninstallDispositionValue(install.post_uninstall_disposition)"
                                             [disabled]="isSelectedSolicitudFinalized()"
                                             required>
+                                            <option [ngValue]="undefined" disabled>Selecciona destino</option>
                                             <option *ngFor="let option of postUninstallDispositionOptions" [value]="option.value">
                                                 {{ option.label }}
                                             </option>
                                         </select>
+                                        <small class="sol-field-error"
+                                            *ngIf="postUninstallDispositionError && !hasValidPostUninstallDispositionValue(install.post_uninstall_disposition)">
+                                            Debe seleccionar el destino del GPS.
+                                        </small>
                                     </label>
                                 </div>
                                 <p>Equipo, ubicación y detalles del proceso</p>

@@ -582,6 +582,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     missingClientChecking = false;
     private skipMissingClientCheckOnce = false;
     deinstallationReasonError = false;
+    postUninstallDispositionError = false;
     technicianScheduleChecking = false;
     technicianScheduleConflict: TechnicianScheduleConflict | null = null;
     technicianScheduleValidationError = '';
@@ -1278,6 +1279,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.selectedSolicitudOriginalStatus = '';
         this.selectedSolicitudAssignmentSnapshot = null;
         this.deinstallationReasonError = false;
+        this.postUninstallDispositionError = false;
         this.resetTechnicianScheduleValidation();
         this.resetTechnicianRecommendation();
         
@@ -1376,8 +1378,6 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         if (this.selectedSolicitud.type !== 'desinstalacion') {
             this.selectedSolicitud.deinstallation_reason = undefined;
             this.selectedSolicitud.post_uninstall_disposition = undefined;
-        } else {
-            this.selectedSolicitud.post_uninstall_disposition ||= 'return_to_company';
         }
         if (this.selectedSolicitud.type === 'mixta') {
             this.selectedSolicitud.installations?.forEach(installation => {
@@ -1394,6 +1394,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             }
         }
         this.deinstallationReasonError = false;
+        this.postUninstallDispositionError = false;
         this.onQuantityChange();
 
         if (this.isDeviceRequiredForSolicitud()) {
@@ -1403,6 +1404,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     onDeinstallationReasonChange(): void {
         this.deinstallationReasonError = false;
+    }
+
+    onPostUninstallDispositionChange(): void {
+        this.postUninstallDispositionError = false;
     }
 
     getDeinstallationReasonLabel(value?: string): string {
@@ -1436,6 +1441,31 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             }
             const selectedReason = String(installation.deinstallation_reason || '').trim();
             return this.deinstallationReasons.some(reason => reason.value === selectedReason);
+        });
+    }
+
+    hasValidPostUninstallDispositionValue(value?: string): boolean {
+        const selectedDisposition = String(value || '').trim();
+        return this.postUninstallDispositionOptions.some(
+            option => option.value === selectedDisposition,
+        );
+    }
+
+    private hasValidPostUninstallDisposition(solicitud: Solicitud): boolean {
+        if (solicitud.type === 'desinstalacion') {
+            return this.hasValidPostUninstallDispositionValue(
+                solicitud.post_uninstall_disposition,
+            );
+        }
+        if (solicitud.type !== 'mixta') return true;
+
+        return (solicitud.installations || []).every(installation => {
+            if (this.getProcessTypeForSolicitud(solicitud, installation) !== 'desinstalacion') {
+                return true;
+            }
+            return this.hasValidPostUninstallDispositionValue(
+                installation.post_uninstall_disposition,
+            );
         });
     }
 
@@ -1495,10 +1525,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         if (installation.process_type !== 'desinstalacion') {
             installation.deinstallation_reason = undefined;
             installation.post_uninstall_disposition = undefined;
-        } else {
-            installation.post_uninstall_disposition ||= 'return_to_company';
         }
         this.deinstallationReasonError = false;
+        this.postUninstallDispositionError = false;
     }
 
     private isDeviceRequiredForProcess(type: string): boolean {
@@ -5342,6 +5371,20 @@ async initLocationMap(): Promise<void> {
         }
         this.deinstallationReasonError = false;
 
+        if (
+            ['desinstalacion', 'mixta'].includes(this.selectedSolicitud.type)
+            && !this.hasValidPostUninstallDisposition(this.selectedSolicitud)
+        ) {
+            this.postUninstallDispositionError = true;
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Destino requerido',
+                detail: 'Debe seleccionar el destino del GPS antes de guardar.'
+            });
+            return;
+        }
+        this.postUninstallDispositionError = false;
+
         const includesReinstallation = this.selectedSolicitud.type === 'reinstalacion'
             || (
                 this.selectedSolicitud.type === 'mixta'
@@ -6136,6 +6179,19 @@ async initLocationMap(): Promise<void> {
             });
             return;
         }
+        if (
+            ['desinstalacion', 'mixta'].includes(solicitud.type)
+            && !this.hasValidPostUninstallDisposition(solicitud)
+        ) {
+            this.postUninstallDispositionError = true;
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Destino requerido',
+                detail: 'Seleccione el destino del GPS antes de completar y cancelar los dispositivos.'
+            });
+            return;
+        }
+        this.postUninstallDispositionError = false;
 
         this.completionSolicitud = solicitud;
         this.completionTransferMode = this.normalizeCompletionTransferMode(
@@ -6860,6 +6916,7 @@ async initLocationMap(): Promise<void> {
         this.selectedSolicitudOriginalStatus = '';
         this.selectedSolicitudAssignmentSnapshot = null;
         this.deinstallationReasonError = false;
+        this.postUninstallDispositionError = false;
         this.resetTechnicianScheduleValidation();
         this.resetTechnicianRecommendation();
     }

@@ -1540,8 +1540,8 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(solicitudesService.create).not.toHaveBeenCalled();
     });
 
-    it('creates a deinstallation after a valid reason is selected', async () => {
-        const { component, solicitudesService } = createComponent();
+    it('blocks a deinstallation until its GPS destination is selected', async () => {
+        const { component, solicitudesService, messageService } = createComponent();
         component.selectedSolicitud = {
             type: 'desinstalacion',
             status: 'pendiente',
@@ -1553,9 +1553,46 @@ describe('SolicitudesComponent scheduled date editing', () => {
         await component.saveSolicitud();
 
         expect(component.deinstallationReasonError).toBeFalse();
+        expect(component.postUninstallDispositionError).toBeTrue();
+        expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({
+            summary: 'Destino requerido',
+        }));
+        expect(solicitudesService.create).not.toHaveBeenCalled();
+    });
+
+    it('creates a deinstallation after a valid reason and destination are selected', async () => {
+        const { component, solicitudesService } = createComponent();
+        component.selectedSolicitud = {
+            type: 'desinstalacion',
+            status: 'pendiente',
+            quantity: 1,
+            deinstallation_reason: 'vehicle_sold',
+            post_uninstall_disposition: 'retained_by_client',
+            installations: [{ device_type: 'gps', device_imei: '111111111111111' }],
+        };
+
+        await component.saveSolicitud();
+
+        expect(component.deinstallationReasonError).toBeFalse();
+        expect(component.postUninstallDispositionError).toBeFalse();
         expect(solicitudesService.create).toHaveBeenCalled();
         const payload = solicitudesService.create.calls.mostRecent().args[0] as Solicitud;
         expect(payload.deinstallation_reason).toBe('vehicle_sold');
+        expect(payload.post_uninstall_disposition).toBe('retained_by_client');
+    });
+
+    it('keeps the destination empty when changing to deinstallation', () => {
+        const { component } = createComponent();
+        component.selectedSolicitud = {
+            type: 'desinstalacion',
+            status: 'pendiente',
+            quantity: 1,
+            installations: [{}],
+        };
+
+        component.onTypeChange();
+
+        expect(component.selectedSolicitud.post_uninstall_disposition).toBeUndefined();
     });
 
     it('clears the reason when changing away from deinstallation', () => {
@@ -1581,6 +1618,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
             quantity: 1,
             client_name: 'Cliente prueba',
             deinstallation_reason: 'device_damaged',
+            post_uninstall_disposition: 'return_to_company',
             installations: [{ device_type: 'gps', device_imei: '111111111111111' }],
         };
 
