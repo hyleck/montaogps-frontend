@@ -122,6 +122,7 @@ export interface EsterSelfLearningRule {
     conversation_id: number;
     message_id: number;
     submitted_by: string;
+    submitted_by_name?: string;
     applied_at: string;
     change_summary?: string;
   }>;
@@ -146,6 +147,7 @@ export interface EsterMessageFeedback {
   message_id: number;
   feedback: string;
   submitted_by: string;
+  submitted_by_name?: string;
   applied_at: string;
 }
 

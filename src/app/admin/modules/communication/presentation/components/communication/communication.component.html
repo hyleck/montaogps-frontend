@@ -605,7 +605,10 @@
                             class="comm-message__feedback-saved"
                             title="Este mensaje ya recibió feedback">
                             <i class="pi pi-check-circle"></i>
-                            <span><strong>Feedback dado:</strong> {{ savedFeedback.feedback }}</span>
+                            <span>
+                                <strong>Feedback dado por {{ savedFeedback.submitted_by_name || 'Usuario root' }}:</strong>
+                                {{ savedFeedback.feedback }}
+                            </span>
                         </div>
                         <span *ngIf="msg.reaction?.emoji"
                             class="comm-message__reaction"
