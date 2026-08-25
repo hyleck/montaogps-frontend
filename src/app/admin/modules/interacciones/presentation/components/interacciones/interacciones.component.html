@@ -883,14 +883,19 @@
         </p-dropdown>
       </div>
 
-      <div class="form-group form-group--full" style="margin-top:.75rem">
+      <div *ngIf="selectedWhatsappTemplateName === 'simple'" class="form-group form-group--full" style="margin-top:.75rem">
         <label>{{ targetUserName ? 'Nombre del destinatario *' : 'Nombre dinámico del destinatario' }}</label>
         <input pInputText [(ngModel)]="whatsappTemplateVars.name" placeholder="Ej. Juan Pérez" class="w-full" [disabled]="sendingPush" />
       </div>
 
-      <div class="form-group form-group--full" style="margin-top:.75rem">
+      <div *ngIf="selectedWhatsappTemplateName === 'simple'" class="form-group form-group--full" style="margin-top:.75rem">
         <label>Cuerpo del mensaje *</label>
         <textarea pInputTextarea [(ngModel)]="whatsappTemplateVars.body" placeholder="Escribe el cuerpo del mensaje aquí..." rows="4" class="w-full" [disabled]="sendingPush"></textarea>
+      </div>
+
+      <div *ngIf="selectedWhatsappTemplateName === 'instagram'" class="instagram-template-notice">
+        <i class="pi pi-info-circle"></i>
+        <span>Esta plantilla usa automáticamente el primer nombre de cada cliente. La imagen, el mensaje y el botón son los aprobados en Meta.</span>
       </div>
 
       <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
@@ -902,12 +907,22 @@
 
       <div class="whatsapp-preview" style="margin-top: 1.5rem; padding: 1.2rem; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px;">
         <h5 style="margin-top: 0; margin-bottom: 0.5rem; color: #10b981; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;"><i class="pi pi-whatsapp"></i> Previsualización del Mensaje</h5>
-        <div style="font-size: 0.95rem; line-height: 1.6; color: var(--text-color); background: var(--surface-card); padding: 1rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div *ngIf="selectedWhatsappTemplateName === 'simple'" class="whatsapp-preview__message">
           <strong style="font-size: 1.05rem; display: block; margin-bottom: 0.75rem;">{{ whatsappTemplateVars.headerUser || '[User]' }}:</strong>
           B{{ whatsappTemplateVars.bodySaludos || '[saludos]' }}, <strong>{{ whatsappTemplateVars.name || '[Nombre]' }}</strong>.<br>
           <span style="white-space: pre-wrap; display: block; margin-top: 0.25rem;">{{ whatsappTemplateVars.body || '[Cuerpo del mensaje]' }}</span><br>
           <span style="display: block; margin-top: 0.5rem;">Seguimos a tu orden por este número.</span>
           <span style="opacity: 0.5; font-size: 0.8rem; display: block; margin-top: 0.75rem;">Montao GPS</span>
+        </div>
+        <div *ngIf="selectedWhatsappTemplateName === 'instagram'" class="whatsapp-preview__message whatsapp-preview__message--instagram">
+          <img
+            class="whatsapp-preview__instagram-image"
+            [src]="instagramTemplateImageUrl"
+            alt="Perfil de Instagram de Montao GPS" />
+          <span class="whatsapp-preview__instagram-greeting">Hola, {{ getInstagramPreviewName() }}.</span>
+          <span class="whatsapp-preview__instagram-body">{{ instagramTemplateBody }}</span>
+          <span class="whatsapp-preview__instagram-footer">{{ instagramTemplateFooter }}</span>
+          <span class="whatsapp-preview__instagram-button"><i class="pi pi-external-link"></i> {{ instagramTemplateButtonLabel }}</span>
         </div>
       </div>
     </div>
@@ -1054,7 +1069,7 @@
       [label]="targetUserName ? (interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a usuario' : interactionChannel === 'vapi' ? 'Llamar usuario con IA' : 'Enviar push a usuario') : (scheduleCampaign ? 'Programar campaña' : 'Crear ejecución')"
       [icon]="scheduleCampaign ? 'pi pi-calendar' : interactionChannel === 'whatsapp' ? 'pi pi-whatsapp' : interactionChannel === 'vapi' ? 'pi pi-phone' : interactionChannel === 'sms' ? 'pi pi-mobile' : 'pi pi-send'"
       [loading]="sendingPush"
-      [disabled]="(interactionChannel === 'whatsapp' && ((targetUserName && whatsappQuota.available === 0) || !whatsappTemplateVars.name.trim() || !whatsappTemplateVars.body.trim())) || (interactionChannel === 'vapi' && !vapiQuery.trim()) || (interactionChannel === 'push' && (!pushTitle.trim() || !pushBody.trim())) || (interactionChannel === 'sms' && !pushBody.trim()) || (scheduleCampaign && !scheduledAt)"
+      [disabled]="(interactionChannel === 'whatsapp' && ((targetUserName && whatsappQuota.available === 0) || isWhatsappCampaignInvalid())) || (interactionChannel === 'vapi' && !vapiQuery.trim()) || (interactionChannel === 'push' && (!pushTitle.trim() || !pushBody.trim())) || (interactionChannel === 'sms' && !pushBody.trim()) || (scheduleCampaign && !scheduledAt)"
       (click)="sendPushToList()">
     </button>
   </ng-template>

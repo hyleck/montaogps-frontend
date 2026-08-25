@@ -146,6 +146,10 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       description: 'Plantilla oficial de WhatsApp para campañas de Instagram.',
     },
   ];
+  readonly instagramTemplateImageUrl = 'https://montao.net/assets/montao-instagram-open-graph.png';
+  readonly instagramTemplateBody = '¡Tenemos nueva cuenta de Instagram! 🎉\n\nSíguenos en 👉 @montao.cloud\n¡Te esperamos!';
+  readonly instagramTemplateFooter = 'Montao GPS';
+  readonly instagramTemplateButtonLabel = 'Seguir a Montao Cloud';
 
   // ── Historial de Usuario ────────────────────────────────────
   showHistoryModal = false;
@@ -1039,9 +1043,33 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   }
 
   getCampaignBody(): string {
-    if (this.interactionChannel === 'whatsapp') return this.whatsappTemplateVars.body;
+    if (this.interactionChannel === 'whatsapp') {
+      return this.selectedWhatsappTemplateName === 'instagram'
+        ? this.instagramTemplateBody
+        : this.whatsappTemplateVars.body;
+    }
     if (this.interactionChannel === 'vapi') return this.vapiQuery;
     return this.pushBody;
+  }
+
+  getInstagramPreviewName(): string {
+    const value = String(this.whatsappTemplateVars.name || this.targetUserName || '').trim();
+    if (!value || value === '[Nombre del usuario]') return '[Nombre del usuario]';
+    return this.toTitleCase(value.split(/\s+/)[0]);
+  }
+
+  getInstagramRenderedMessage(name?: string | null): string {
+    const firstName = this.toTitleCase(
+      String(name || this.targetUserName || this.whatsappTemplateVars.name || 'Cliente')
+        .trim()
+        .split(/\s+/)[0] || 'Cliente'
+    );
+    return `Hola, ${firstName}.\n\n${this.instagramTemplateBody}\n\n${this.instagramTemplateFooter}`;
+  }
+
+  isWhatsappCampaignInvalid(): boolean {
+    if (this.selectedWhatsappTemplateName === 'instagram') return false;
+    return !this.whatsappTemplateVars.name.trim() || !this.whatsappTemplateVars.body.trim();
   }
 
   pauseExecution(execution: CampaignExecution) {
@@ -1420,8 +1448,12 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
 
   async sendPushToList() {
     if (this.interactionChannel === 'whatsapp') {
-      if (!this.whatsappTemplateVars.name.trim() || !this.whatsappTemplateVars.body.trim()) {
-        this.messageService.add({ severity: 'warn', summary: 'Atención', detail: 'Debe rellenar todas las variables de la plantilla' });
+      if (this.isWhatsappCampaignInvalid()) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Atención',
+          detail: 'Debe rellenar todas las variables de la plantilla'
+        });
         return;
       }
     } else if (this.interactionChannel === 'vapi') {
@@ -1586,7 +1618,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
         let finalBody = this.pushBody;
         if (this.interactionChannel === 'whatsapp') {
           finalTitle = `Mensaje enviado por WhatsApp`;
-          finalBody = `B${this.whatsappTemplateVars.bodySaludos}, ${this.whatsappTemplateVars.name === '[Nombre del usuario]' ? 'Usuario' : this.whatsappTemplateVars.name}.\n${this.whatsappTemplateVars.body}\n\nSeguimos a tu orden por este número.\nMontao GPS`;
+          finalBody = this.selectedWhatsappTemplateName === 'instagram'
+            ? this.getInstagramRenderedMessage(this.whatsappTemplateVars.name)
+            : `B${this.whatsappTemplateVars.bodySaludos}, ${this.whatsappTemplateVars.name === '[Nombre del usuario]' ? 'Usuario' : this.whatsappTemplateVars.name}.\n${this.whatsappTemplateVars.body}\n\nSeguimos a tu orden por este número.\nMontao GPS`;
         }
         await this.interaccionesService.logCampaignUsers(this.selectedList!._id, {
           userIds: successIds,
@@ -1637,7 +1671,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
         variables: [
           this.whatsappTemplateVars.headerUser,
           this.whatsappTemplateVars.bodySaludos,
-          this.whatsappTemplateVars.name,
+          this.selectedWhatsappTemplateName === 'instagram'
+            ? this.getInstagramPreviewName()
+            : this.whatsappTemplateVars.name,
           this.whatsappTemplateVars.body
         ],
         agent_id: this.assignToEster ? undefined : (this.whatsappAgentId ? this.whatsappAgentId : undefined),
@@ -1679,7 +1715,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
           let callId: string | undefined;
           if (this.interactionChannel === 'whatsapp') {
             finalTitle = `Mensaje enviado por WhatsApp`;
-            finalBody = `B${this.whatsappTemplateVars.bodySaludos}, ${this.whatsappTemplateVars.name}.\n${this.whatsappTemplateVars.body}\n\nSeguimos a tu orden por este número.\nMontao GPS`;
+            finalBody = this.selectedWhatsappTemplateName === 'instagram'
+              ? this.getInstagramRenderedMessage(this.whatsappTemplateVars.name)
+              : `B${this.whatsappTemplateVars.bodySaludos}, ${this.whatsappTemplateVars.name}.\n${this.whatsappTemplateVars.body}\n\nSeguimos a tu orden por este número.\nMontao GPS`;
           } else if (this.interactionChannel === 'vapi') {
             finalTitle = `Llamada de IA (Ester) Iniciada`;
             finalBody = `Motivo: ${this.vapiQuery}`;

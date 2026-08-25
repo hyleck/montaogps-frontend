@@ -1508,6 +1508,77 @@
   color: var(--text-color-secondary);
 }
 
+.whatsapp-preview__message {
+  padding: 1rem;
+  border-radius: 8px;
+  background: var(--surface-card);
+  color: var(--text-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.whatsapp-preview__message--instagram {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+.whatsapp-preview__instagram-image {
+  display: block;
+  width: min(100%, 360px);
+  max-height: 360px;
+  margin: 0 auto;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.whatsapp-preview__instagram-body {
+  display: block;
+  white-space: pre-wrap;
+}
+
+.whatsapp-preview__instagram-greeting {
+  display: block;
+}
+
+.whatsapp-preview__instagram-footer {
+  color: var(--text-color-secondary);
+  font-size: 0.88rem;
+}
+
+.whatsapp-preview__instagram-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0 -1rem -1rem;
+  padding: 0.85rem 1rem;
+  border-top: 1px solid var(--surface-border);
+  color: #16a05d;
+  font-weight: 600;
+}
+
+.instagram-template-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--text-color-secondary);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.instagram-template-notice i {
+  margin-top: 0.15rem;
+  color: #3b82f6;
+}
+
 .campaign-ester-draft {
   display: flex;
   align-items: center;
