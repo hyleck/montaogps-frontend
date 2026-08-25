@@ -43,6 +43,17 @@ export function isTeamConversation(
   return TEAM_AFFILIATIONS.has(affiliation);
 }
 
+export function canViewConversationInTeamSection(
+  conversation: TeamFilterableConversation | null | undefined,
+  isRootUser: boolean,
+): boolean {
+  if (!isTeamConversation(conversation)) return false;
+  const affiliation = String(
+    conversation?.contact?.affiliation_type_id || '',
+  ).trim().toLowerCase();
+  return affiliation !== 'empleado' || isRootUser;
+}
+
 export function toTitleCaseName(value: unknown): string {
   return String(value || '')
     .trim()

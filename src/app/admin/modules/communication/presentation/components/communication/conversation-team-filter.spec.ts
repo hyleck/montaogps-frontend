@@ -1,4 +1,5 @@
 import {
+  canViewConversationInTeamSection,
   canParticipateInConversation,
   formatConversationContactName,
   formatConversationDisplayName,
@@ -72,6 +73,38 @@ describe('isTeamConversation', () => {
     expect(isTeamConversation(suspendedEmployee)).toBeFalse();
     expect(formatConversationDisplayName(suspendedEmployee))
       .toBe('Empleado Suspendido');
+  });
+});
+
+describe('canViewConversationInTeamSection', () => {
+  const administrativeEmployee = {
+    contact: {
+      affiliation_type_id: 'empleado',
+      status: true,
+    },
+  };
+
+  it('only shows non-technician employees to root users', () => {
+    expect(canViewConversationInTeamSection(
+      administrativeEmployee,
+      false,
+    )).toBeFalse();
+    expect(canViewConversationInTeamSection(
+      administrativeEmployee,
+      true,
+    )).toBeTrue();
+  });
+
+  it('continues showing technicians to non-root users', () => {
+    for (const affiliation of [
+      'tecnico',
+      'tecnico_empleado',
+      'tecnico_independiente',
+    ]) {
+      expect(canViewConversationInTeamSection({
+        contact: { affiliation_type_id: affiliation, status: true },
+      }, false)).toBeTrue();
+    }
   });
 });
 

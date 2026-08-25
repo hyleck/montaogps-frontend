@@ -38,6 +38,7 @@ import {
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 import {
   canParticipateInConversation as canParticipateInTeamAwareConversation,
+  canViewConversationInTeamSection,
   formatConversationContactName,
   formatConversationDisplayName,
   isTeamConversation,
@@ -785,7 +786,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (
       this.selectedConversation
       && filter === 'team'
-      && !isTeamConversation(this.selectedConversation)
+      && !canViewConversationInTeamSection(
+        this.selectedConversation,
+        this.isRootUser,
+      )
     ) {
       this.goBack();
     } else if (this.selectedConversation) {
@@ -1789,7 +1793,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   filterConversations(): void {
     this.filteredConversations = this.conversations.filter(c => {
-      if (this.conversationFilter === 'team' && !isTeamConversation(c)) {
+      if (
+        this.conversationFilter === 'team'
+        && !canViewConversationInTeamSection(c, this.isRootUser)
+      ) {
         return false;
       }
       return true;
