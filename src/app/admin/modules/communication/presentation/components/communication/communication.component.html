@@ -43,8 +43,23 @@
         <div class="comm-sidebar__search">
             <div class="comm-search-box">
                 <i class="pi pi-search"></i>
-                <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="filterConversations()"
-                    [placeholder]="conversationFilter === 'team' ? 'Buscar empleado...' : 'Buscar conversación...'" />
+                <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="onConversationSearchChange()"
+                    [placeholder]="conversationFilter === 'team' ? 'Buscar empleados o mensajes...' : 'Buscar contactos o mensajes...'"
+                    aria-label="Buscar contactos o mensajes" />
+                <button *ngIf="searchTerm" type="button" class="comm-search-box__clear"
+                    aria-label="Limpiar búsqueda" (click)="clearConversationSearch()">
+                    <i class="pi pi-times"></i>
+                </button>
+            </div>
+            <div class="comm-conversation-filters" role="group" aria-label="Filtrar conversaciones">
+                <button *ngFor="let filter of conversationAttentionFilters" type="button"
+                    class="comm-conversation-filter"
+                    [class.comm-conversation-filter--active]="conversationAttentionFilter === filter.id"
+                    [attr.aria-pressed]="conversationAttentionFilter === filter.id"
+                    (click)="setConversationAttentionFilter(filter.id)">
+                    <i class="pi" [ngClass]="filter.icon"></i>
+                    <span>{{ filter.label }}</span>
+                </button>
             </div>
         </div>
 
@@ -71,9 +86,7 @@
 
             <div *ngIf="!loadingConversations && filteredConversations.length === 0" class="comm-empty">
                 <i class="pi pi-inbox"></i>
-                <span>{{ conversationFilter === 'team'
-                    ? 'No hay conversaciones de empleados'
-                    : 'No hay conversaciones en la bandeja' }}</span>
+                <span>{{ getConversationEmptyMessage() }}</span>
             </div>
 
             <div *ngFor="let conv of filteredConversations" class="comm-contact"

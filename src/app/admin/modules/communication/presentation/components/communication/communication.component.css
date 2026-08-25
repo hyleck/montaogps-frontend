@@ -2186,6 +2186,78 @@
     color: rgba(255, 255, 255, 0.35);
 }
 
+.comm-search-box__clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex: 0 0 1.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: rgba(255, 255, 255, 0.55);
+    background: transparent;
+    cursor: pointer;
+}
+
+.comm-search-box__clear:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.comm-search-box__clear i {
+    color: inherit;
+    font-size: 0.75rem;
+}
+
+.comm-conversation-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.65rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.comm-conversation-filters::-webkit-scrollbar {
+    display: none;
+}
+
+.comm-conversation-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+    flex: 0 0 auto;
+    min-height: 1.85rem;
+    padding: 0.28rem 0.58rem;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.58);
+    background: rgba(255, 255, 255, 0.035);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.comm-conversation-filter:hover {
+    color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.comm-conversation-filter--active {
+    color: #fff;
+    border-color: rgba(239, 68, 68, 0.62);
+    background: rgba(220, 38, 38, 0.22);
+}
+
+.comm-conversation-filter i {
+    font-size: 0.68rem;
+}
+
 /* Contacts List */
 .comm-sidebar__contacts {
     flex: 1;
@@ -5540,6 +5612,12 @@
 :host-context(.app-light) .comm-search-box input { color: #000000; }
 :host-context(.app-light) .comm-search-box input::placeholder { color: #64748b; }
 :host-context(.app-light) .comm-search-box i { color: #64748b; }
+:host-context(.app-light) .comm-search-box__clear { color: #64748b; }
+:host-context(.app-light) .comm-search-box__clear:hover { color: #0f172a; background: #cbd5e1; }
+:host-context(.app-light) .comm-search-box__clear:hover i { color: #0f172a; }
+:host-context(.app-light) .comm-conversation-filter { color: #64748b; border-color: #cbd5e1; background: #f8fafc; }
+:host-context(.app-light) .comm-conversation-filter:hover { color: #0f172a; border-color: #94a3b8; }
+:host-context(.app-light) .comm-conversation-filter--active { color: #b91c1c; border-color: #fca5a5; background: #fee2e2; }
 :host-context(.app-light) .comm-contact__ester-badge { color: #dc2626; background: rgba(220, 38, 38, 0.05); }
 
 /* Main Chat Container */

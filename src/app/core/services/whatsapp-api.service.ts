@@ -82,7 +82,14 @@ export class WhatsAppApiService {
         return this.http.get(`${this.apiUrl}/messages`, { params });
     }
 
-    getConversations(inboxId?: number, page: number = 1, agentId?: string, includeAll: boolean = false): Observable<any> {
+    getConversations(
+        inboxId?: number,
+        page: number = 1,
+        agentId?: string,
+        includeAll: boolean = false,
+        search: string = '',
+        attention: 'all' | 'urgent' | 'waiting' | 'unread' = 'all',
+    ): Observable<any> {
         const params: any = { page: page.toString() };
         if (inboxId) {
             params.inbox_id = inboxId.toString();
@@ -92,6 +99,12 @@ export class WhatsAppApiService {
         }
         if (includeAll) {
             params.include_all = 'true';
+        }
+        if (search.trim()) {
+            params.search = search.trim();
+        }
+        if (attention !== 'all') {
+            params.attention = attention;
         }
         return this.http.get(`${this.apiUrl}/conversations`, { params });
     }

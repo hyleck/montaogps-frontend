@@ -19,6 +19,29 @@ describe('WhatsAppApiService', () => {
         httpController.verify();
     });
 
+    it('searches conversation contacts and messages with an attention filter', () => {
+        service.getConversations(
+            5,
+            1,
+            'employee-id',
+            true,
+            'batería baja',
+            'unread',
+        ).subscribe();
+
+        const request = httpController.expectOne(candidate => (
+            candidate.url === `${environment.apiUrl}/whatsapp/conversations`
+            && candidate.params.get('inbox_id') === '5'
+            && candidate.params.get('page') === '1'
+            && candidate.params.get('agent_id') === 'employee-id'
+            && candidate.params.get('include_all') === 'true'
+            && candidate.params.get('search') === 'batería baja'
+            && candidate.params.get('attention') === 'unread'
+        ));
+        expect(request.request.method).toBe('GET');
+        request.flush({ success: true, conversations: [] });
+    });
+
     it('requests an improved employee reply without sending the message', () => {
         service.improveEmployeeReply(202, 'ta bien vamos a revisarlo').subscribe(response => {
             expect(response).toEqual({

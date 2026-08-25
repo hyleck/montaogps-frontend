@@ -246,6 +246,14 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   sidebarDisplayed = true;
   activeTab: 'chat' | 'correo' | 'foro' | 'grupo' = 'chat';
   conversationFilter: 'all' | 'team' = 'all';
+  conversationAttentionFilter: 'all' | 'urgent' | 'waiting' | 'unread' = 'all';
+  readonly conversationAttentionFilters = [
+    { id: 'all' as const, label: 'Todos', icon: 'pi-inbox' },
+    { id: 'urgent' as const, label: 'Urgentes', icon: 'pi-exclamation-circle' },
+    { id: 'waiting' as const, label: 'Por responder', icon: 'pi-reply' },
+    { id: 'unread' as const, label: 'Sin leer', icon: 'pi-envelope' },
+  ];
+  private conversationSearchTimer: ReturnType<typeof setTimeout> | null = null;
   autoResponse: boolean = false;
   esterAutoReplyActive: boolean | null = null;
   showContactInfo: boolean = false;
@@ -651,6 +659,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.resetPlayableAudio();
     this.clearEsterLearningTimers();
     this.clearImprovedResponseState();
+    if (this.conversationSearchTimer) {
+      clearTimeout(this.conversationSearchTimer);
+    }
   }
 
   // ============================
@@ -1665,18 +1676,31 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   loadConversations(): void {
     this.refreshEsterAutoReplyStatus();
     const cacheKey = `whatsapp_convs_${this.userInboxId}_all`;
+    const querySignature = this.getConversationListQuerySignature();
     if (!this.conversations.length) {
       this.filteredConversations = [];
       this.selectedConversation = null;
     }
 
     this.loadingConversations = true;
-    this.whatsappApi.getConversations(this.userInboxId, 1, this.whatsappAgentId, true).subscribe({
+    this.whatsappApi.getConversations(
+      this.userInboxId,
+      1,
+      this.whatsappAgentId,
+      true,
+      this.searchTerm,
+      this.conversationAttentionFilter,
+    ).subscribe({
       next: (res: any) => {
+        if (querySignature !== this.getConversationListQuerySignature()) return;
         this.loadingConversations = false;
         if (res.success) {
           this.conversations = this.sortConversations(res.conversations || []);
-          if (this.userInboxId) {
+          if (
+            this.userInboxId
+            && !this.searchTerm.trim()
+            && this.conversationAttentionFilter === 'all'
+          ) {
             localStorage.setItem(cacheKey, JSON.stringify(this.conversations));
           }
           this.conversationsFingerprint = this.getConversationsFingerprint(this.conversations);
@@ -1706,25 +1730,63 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         }
       },
       error: () => {
+        if (querySignature !== this.getConversationListQuerySignature()) return;
         this.loadingConversations = false;
         this.noInbox = true;
       }
     });
   }
 
+  onConversationSearchChange(): void {
+    if (this.conversationSearchTimer) {
+      clearTimeout(this.conversationSearchTimer);
+    }
+    this.conversationSearchTimer = setTimeout(() => {
+      this.conversationSearchTimer = null;
+      this.loadConversations();
+    }, 300);
+  }
+
+  clearConversationSearch(): void {
+    if (!this.searchTerm) return;
+    this.searchTerm = '';
+    this.onConversationSearchChange();
+  }
+
+  setConversationAttentionFilter(
+    filter: 'all' | 'urgent' | 'waiting' | 'unread',
+  ): void {
+    if (this.conversationAttentionFilter === filter) return;
+    this.conversationAttentionFilter = filter;
+    this.loadConversations();
+  }
+
+  getConversationEmptyMessage(): string {
+    if (this.searchTerm.trim()) {
+      return 'No encontramos contactos ni mensajes con esa búsqueda';
+    }
+    if (this.conversationAttentionFilter !== 'all') {
+      return 'No hay conversaciones para este filtro';
+    }
+    return this.conversationFilter === 'team'
+      ? 'No hay conversaciones de empleados'
+      : 'No hay conversaciones en la bandeja';
+  }
+
   filterConversations(): void {
-    const term = this.searchTerm.toLowerCase().trim();
     this.filteredConversations = this.conversations.filter(c => {
       if (this.conversationFilter === 'team' && !isTeamConversation(c)) {
         return false;
       }
-      if (!term) return true;
-      return this.getConversationDisplayName(c).toLowerCase().includes(term)
-        || c.contact.name.toLowerCase().includes(term)
-        || c.contact.phone.includes(term)
-        || c.last_message.toLowerCase().includes(term)
-        || this.getConversationAssigneeLabel(c).toLowerCase().includes(term);
+      return true;
     });
+  }
+
+  private getConversationListQuerySignature(): string {
+    return [
+      this.searchTerm.trim().toLocaleLowerCase(),
+      this.conversationAttentionFilter,
+    ].join('|');
   }
 
   getConversationAssigneeLabel(conv: ChatConversation): string {
@@ -2908,8 +2970,18 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.stopConversationsPolling();
     this.conversationsPollingInterval = setInterval(() => {
       this.refreshEsterAutoReplyStatus();
-      this.whatsappApi.getConversations(this.userInboxId, 1, this.whatsappAgentId, true).subscribe({
+      if (this.searchTerm.trim()) return;
+      const querySignature = this.getConversationListQuerySignature();
+      this.whatsappApi.getConversations(
+        this.userInboxId,
+        1,
+        this.whatsappAgentId,
+        true,
+        this.searchTerm,
+        this.conversationAttentionFilter,
+      ).subscribe({
         next: (res: any) => {
+          if (querySignature !== this.getConversationListQuerySignature()) return;
           if (res.success) {
             const newConvs = this.sortConversations(res.conversations || []);
             const newFingerprint = this.getConversationsFingerprint(newConvs);
