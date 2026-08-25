@@ -4973,7 +4973,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.messageService.add({
             severity: 'warn',
             summary: 'Proceso requerido',
-            detail: 'Registra la instalación o inicia una revisión de oficina antes de activar el GPS o enviarle comandos.',
+            detail: 'Registra la instalación o inicia una revisión de oficina antes de activar el GPS o enviar otros comandos. Apagar y permitir encendido siempre están disponibles.',
             life: 6000
         });
         return false;
@@ -5037,7 +5037,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.messageService.add({
                 severity: 'success',
                 summary: 'Revisión iniciada',
-                detail: 'Ya puedes activar el GPS y enviarle comandos mientras la revisión esté en curso.'
+                detail: 'Ya puedes activar el GPS y enviar los demás comandos mientras la revisión esté en curso.'
             });
         } catch (error) {
             this.messageService.add({
@@ -5062,7 +5062,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.messageService.add({
                 severity: 'success',
                 summary: 'Revisión finalizada',
-                detail: 'El GPS ya no admite acciones de oficina sin una instalación o una nueva revisión.'
+                detail: 'La activación y los demás comandos vuelven a requerir una instalación o revisión. Apagar y permitir encendido continúan disponibles.'
             });
         } catch (error) {
             this.messageService.add({
@@ -5805,7 +5805,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Método para confirmar y enviar el comando
     async confirmSendCommand(): Promise<void> {
-        if (!this.hasOfficeActionAuthorization()) return;
         if (!this.target._id) {
             this.messageService.add({
                 severity: 'error',

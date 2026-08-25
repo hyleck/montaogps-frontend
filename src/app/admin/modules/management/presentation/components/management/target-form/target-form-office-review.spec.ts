@@ -22,6 +22,9 @@ describe('TargetFormComponent office review flow', () => {
     const messageService = {
       add: jasmine.createSpy('add'),
     };
+    const commandsService = {
+      createCommand: jasmine.createSpy('createCommand').and.resolveTo({}),
+    };
 
     Object.assign(component as any, {
       target: {
@@ -59,13 +62,19 @@ describe('TargetFormComponent office review flow', () => {
         details: '',
       },
       targetsService,
+      commandsService,
+      authService: {
+        getCurrentUser: jasmine.createSpy('getCurrentUser').and.returnValue({
+          id: 'employee-id',
+        }),
+      },
       messageService,
       targetUpdatedWithoutClose: { emit: jasmine.createSpy('emit') },
       loadProcessesList: jasmine.createSpy('loadProcessesList')
         .and.resolveTo(undefined),
     });
 
-    return { component, targetsService, messageService };
+    return { component, targetsService, commandsService, messageService };
   };
 
   it('allows opening the review dialog even when the GPS is online', () => {
@@ -160,5 +169,31 @@ describe('TargetFormComponent office review flow', () => {
     expect(messageService.add).toHaveBeenCalledWith(
       jasmine.objectContaining({ severity: 'success' }),
     );
+  });
+
+  ([
+    ['shutdown', 'Apagar Vehículo'],
+    ['ignition', 'Permitir Encendido'],
+  ] as const).forEach(([commandType, commandName]) => {
+    it(`allows ${commandName} without an installation or office review`, async () => {
+      const { component, commandsService, messageService } = buildComponent();
+      component.pendingCommandType = commandType;
+      component.commandObservationText = '';
+      component.processList = [];
+      spyOn(component, 'loadDeviceCommands').and.resolveTo(undefined);
+
+      await component.confirmSendCommand();
+
+      expect(commandsService.createCommand).toHaveBeenCalledOnceWith(
+        jasmine.objectContaining({
+          name: commandName,
+          targetId: '507f1f77bcf86cd799439042',
+          commandType,
+        }),
+      );
+      expect(messageService.add).not.toHaveBeenCalledWith(
+        jasmine.objectContaining({ summary: 'Proceso requerido' }),
+      );
+    });
   });
 });
