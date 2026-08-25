@@ -34,6 +34,7 @@ export interface BasicUser {
   company_type_id?: string;
   company_type?: string;
   root?: boolean;
+  parent_id?: string;
   developer?: boolean;
   privileges?: UserPrivilege[];
 }
@@ -73,6 +74,7 @@ export interface User {
   affiliation_type_id?: string;
   department_id?: string;
   root?: boolean;
+  parent_id?: string;
   developer?: boolean;
   status?: boolean;
   tag?: string;

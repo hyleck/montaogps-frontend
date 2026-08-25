@@ -42,6 +42,49 @@ describe('WhatsAppApiService', () => {
         request.flush({ success: true, conversations: [] });
     });
 
+    it('persists a custom internal team chat name', () => {
+        service.setConversationTeamName(202, 'Operaciones').subscribe();
+
+        const request = httpController.expectOne(
+            `${environment.apiUrl}/whatsapp/conversation-team-name`,
+        );
+        expect(request.request.method).toBe('POST');
+        expect(request.request.body).toEqual({
+            conversation_id: 202,
+            name: 'Operaciones',
+        });
+        request.flush({ success: true, team_chat_name: 'Operaciones' });
+    });
+
+    it('clears a conversation while preserving the chat', () => {
+        service.clearConversation(202).subscribe();
+
+        const request = httpController.expectOne(
+            `${environment.apiUrl}/whatsapp/conversation-clear`,
+        );
+        expect(request.request.method).toBe('POST');
+        expect(request.request.body).toEqual({ conversation_id: 202 });
+        request.flush({
+            success: true,
+            conversation_id: 202,
+            deleted_messages: 4,
+        });
+    });
+
+    it('deletes a conversation and its messages', () => {
+        service.deleteConversation(202).subscribe();
+
+        const request = httpController.expectOne(
+            `${environment.apiUrl}/whatsapp/conversation/202`,
+        );
+        expect(request.request.method).toBe('DELETE');
+        request.flush({
+            success: true,
+            conversation_id: 202,
+            deleted_messages: 4,
+        });
+    });
+
     it('requests an improved employee reply without sending the message', () => {
         service.improveEmployeeReply(202, 'ta bien vamos a revisarlo').subscribe(response => {
             expect(response).toEqual({

@@ -159,7 +159,40 @@
                 </div>
                 <div class="comm-chat__header-info">
                     <div class="comm-chat__header-name">
-                        <span>{{ getSelectedConversationDisplayName() }}</span>
+                        <ng-container *ngIf="!editingTeamChatName; else teamChatNameEditor">
+                            <span>{{ getSelectedConversationDisplayName() }}</span>
+                            <button
+                                *ngIf="isInternalTeamConversation(selectedConversation)"
+                                type="button"
+                                class="comm-team-name-edit"
+                                title="Cambiar nombre del grupo"
+                                aria-label="Cambiar nombre del grupo"
+                                (click)="startEditingTeamChatName($event)">
+                                <i class="pi pi-pencil"></i>
+                            </button>
+                        </ng-container>
+                        <ng-template #teamChatNameEditor>
+                            <div class="comm-team-name-editor">
+                                <span class="comm-team-name-editor__prefix">Grupo De</span>
+                                <input
+                                    type="text"
+                                    [(ngModel)]="teamChatNameDraft"
+                                    maxlength="80"
+                                    placeholder="Nombre del grupo"
+                                    aria-label="Nombre personalizado del grupo"
+                                    [disabled]="updatingTeamChatName"
+                                    (keydown.enter)="saveTeamChatName()"
+                                    (keydown.escape)="cancelEditingTeamChatName()" />
+                                <button type="button" title="Guardar nombre" aria-label="Guardar nombre"
+                                    [disabled]="updatingTeamChatName" (click)="saveTeamChatName()">
+                                    <i class="pi" [ngClass]="updatingTeamChatName ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+                                </button>
+                                <button type="button" title="Cancelar" aria-label="Cancelar"
+                                    [disabled]="updatingTeamChatName" (click)="cancelEditingTeamChatName()">
+                                    <i class="pi pi-times"></i>
+                                </button>
+                            </div>
+                        </ng-template>
                         <i *ngIf="gpsUser?.verificado === true" class="pi pi-check-circle comm-chat__verified" title="Usuario verificado"></i>
                         <button
                             *ngIf="gpsUser?._id"
@@ -218,6 +251,26 @@
                             </button>
                         </div>
                     </div>
+                    <button
+                        *ngIf="canManageConversationHistory"
+                        type="button"
+                        class="comm-info-btn comm-action-btn"
+                        [disabled]="managingConversationHistory"
+                        (click)="confirmClearSelectedConversation()"
+                        title="Vaciar mensajes y conservar el chat"
+                        aria-label="Vaciar mensajes y conservar el chat">
+                        <i class="pi" [ngClass]="managingConversationHistory ? 'pi-spin pi-spinner' : 'pi-times-circle'"></i>
+                    </button>
+                    <button
+                        *ngIf="canManageConversationHistory"
+                        type="button"
+                        class="comm-info-btn comm-action-btn"
+                        [disabled]="managingConversationHistory"
+                        (click)="confirmDeleteSelectedConversation()"
+                        title="Borrar chat definitivamente"
+                        aria-label="Borrar chat definitivamente">
+                        <i class="pi pi-trash"></i>
+                    </button>
                     <button *ngIf="isConversationAssignedToMe(selectedConversation) && !isInternalTeamConversation(selectedConversation)"
                         class="comm-info-btn comm-action-btn" (click)="openTransferModal()" title="Transferir Conversación a otro Agente">
                         <i class="pi pi-sort-alt"></i>

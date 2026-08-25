@@ -1,6 +1,7 @@
 export interface TeamFilterableConversation {
   assignee_id?: string | null;
   shared_team_conversation?: boolean;
+  team_chat_name?: string | null;
   contact?: {
     name?: string | null;
     affiliation_type_id?: string | null;
@@ -59,9 +60,13 @@ export function formatConversationDisplayName(
   conversation: TeamFilterableConversation | null | undefined,
 ): string {
   const name = formatConversationContactName(conversation);
-  return isTeamConversation(conversation)
-    ? `Grupo De ${name}`
-    : name;
+  if (!isTeamConversation(conversation)) return name;
+
+  const customName = toTitleCaseName(
+    String(conversation?.team_chat_name || '')
+      .replace(/^grupo\s+de\s+/i, ''),
+  );
+  return `Grupo De ${customName || name}`;
 }
 
 export function formatConversationContactName(

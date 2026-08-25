@@ -94,6 +94,20 @@ describe('conversation employee display names', () => {
     })).toBe('Grupo De Ana-María');
   });
 
+  it('uses a custom team chat name without modifying the employee name', () => {
+    const conversation = {
+      team_chat_name: 'GRUPO DE operaciones técnicas',
+      contact: {
+        name: 'AYLINE NACHELL MADERA MARTINEZ',
+        affiliation_type_id: 'empleado',
+      },
+    };
+
+    expect(formatConversationDisplayName(conversation))
+      .toBe('Grupo De Operaciones Técnicas');
+    expect(formatConversationContactName(conversation)).toBe('Ayline');
+  });
+
   it('formats regular contact names without adding the group prefix', () => {
     expect(toTitleCaseName('  mARÍA   pérez  ')).toBe('María Pérez');
     expect(formatConversationDisplayName({

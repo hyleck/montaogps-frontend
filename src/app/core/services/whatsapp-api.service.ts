@@ -309,6 +309,45 @@ export class WhatsAppApiService {
         );
     }
 
+    setConversationTeamName(
+        conversationId: number,
+        name: string,
+    ): Observable<{ success: boolean; team_chat_name: string }> {
+        return this.http.post<{ success: boolean; team_chat_name: string }>(
+            `${this.apiUrl}/conversation-team-name`,
+            {
+                conversation_id: conversationId,
+                name,
+            },
+        );
+    }
+
+    clearConversation(conversationId: number): Observable<{
+        success: boolean;
+        conversation_id: number;
+        deleted_messages: number;
+    }> {
+        return this.http.post<{
+            success: boolean;
+            conversation_id: number;
+            deleted_messages: number;
+        }>(`${this.apiUrl}/conversation-clear`, {
+            conversation_id: conversationId,
+        });
+    }
+
+    deleteConversation(conversationId: number): Observable<{
+        success: boolean;
+        conversation_id: number;
+        deleted_messages: number;
+    }> {
+        return this.http.delete<{
+            success: boolean;
+            conversation_id: number;
+            deleted_messages: number;
+        }>(`${this.apiUrl}/conversation/${conversationId}`);
+    }
+
     translateConversationMessages(
         conversationId: number,
         language: string,

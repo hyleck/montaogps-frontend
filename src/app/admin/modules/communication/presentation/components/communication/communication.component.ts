@@ -43,6 +43,7 @@ interface ChatConversation {
   id: number;
   status: string;
   shared_team_conversation?: boolean;
+  team_chat_name?: string;
   contact: {
     id: number | string;
     name: string;
@@ -257,6 +258,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   autoResponse: boolean = false;
   esterAutoReplyActive: boolean | null = null;
   showContactInfo: boolean = false;
+  editingTeamChatName = false;
+  teamChatNameDraft = '';
+  updatingTeamChatName = false;
+  canManageConversationHistory = false;
+  managingConversationHistory = false;
   gpsUser: any = null;
   showTranslationLanguageMenu = false;
   updatingConversationLanguage = false;
@@ -695,6 +701,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         const isDetailedRoot = user?.root === true
           || String(user?.root).toLowerCase() === 'true';
         this.isRootUser = this.isRootUser || isDetailedRoot;
+        this.canManageConversationHistory = isDetailedRoot
+          && !String(user?.parent_id || '').trim();
         this.canOpenTechnicianWhatsAppConversations =
           affiliation === 'empleado' || isDeveloper || this.isRootUser;
         
@@ -1902,6 +1910,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     );
     this.resetPlayableAudio();
     this.selectedConversation = conv;
+    this.editingTeamChatName = false;
+    this.teamChatNameDraft = '';
     if (navigate) {
       this.pendingFocusedMessageId = null;
     }
@@ -1939,6 +1949,224 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (this.updatingConversationLanguage) return;
     this.showTranslationLanguageMenu = !this.showTranslationLanguageMenu;
     this.showContactInfo = false;
+  }
+
+  startEditingTeamChatName(event?: MouseEvent): void {
+    event?.stopPropagation();
+    const conversation = this.selectedConversation;
+    if (!conversation || !this.isInternalTeamConversation(conversation)) return;
+
+    this.teamChatNameDraft = String(
+      conversation.team_chat_name || this.getSelectedContactDisplayName(),
+    )
+      .replace(/^grupo\s+de\s+/i, '')
+      .trim();
+    this.editingTeamChatName = true;
+    this.showTranslationLanguageMenu = false;
+    this.showContactInfo = false;
+  }
+
+  cancelEditingTeamChatName(): void {
+    if (this.updatingTeamChatName) return;
+    this.editingTeamChatName = false;
+    this.teamChatNameDraft = '';
+  }
+
+  saveTeamChatName(): void {
+    const conversation = this.selectedConversation;
+    if (
+      !conversation
+      || !this.isInternalTeamConversation(conversation)
+      || this.updatingTeamChatName
+    ) {
+      return;
+    }
+
+    const conversationId = conversation.id;
+    const name = String(this.teamChatNameDraft || '')
+      .replace(/^\s*grupo\s+de\s+/i, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    this.updatingTeamChatName = true;
+    this.whatsappApi.setConversationTeamName(conversationId, name)
+      .pipe(finalize(() => {
+        this.updatingTeamChatName = false;
+      }))
+      .subscribe({
+        next: response => {
+          const savedName = String(response?.team_chat_name || '').trim();
+          const listConversation = this.conversations.find(
+            item => item.id === conversationId,
+          );
+          if (listConversation) {
+            listConversation.team_chat_name = savedName;
+          }
+          if (this.selectedConversation?.id === conversationId) {
+            this.selectedConversation.team_chat_name = savedName;
+          }
+          this.conversationsFingerprint = this.getConversationsFingerprint(
+            this.conversations,
+          );
+          this.filterConversations();
+          this.editingTeamChatName = false;
+          this.teamChatNameDraft = '';
+          this.messageService.add({
+            severity: 'success',
+            summary: savedName ? 'Nombre actualizado' : 'Nombre restablecido',
+            detail: savedName
+              ? `Ahora se muestra como Grupo De ${toTitleCaseName(savedName)}`
+              : 'El chat volvió a usar el nombre del empleado.',
+          });
+        },
+        error: error => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'No se cambió el nombre',
+            detail: getApiErrorMessage(
+              error,
+              'No se pudo guardar el nombre de este chat',
+            ),
+          });
+        },
+      });
+  }
+
+  confirmClearSelectedConversation(): void {
+    const conversation = this.selectedConversation;
+    if (!this.canManageConversationHistory || !conversation) return;
+
+    this.confirmationService.confirm({
+      header: 'Vaciar chat',
+      message: `Se eliminarán permanentemente todos los mensajes de “${this.getSelectedConversationDisplayName()}”, pero el chat y el contacto se conservarán.`,
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Vaciar chat',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => this.clearSelectedConversation(conversation.id),
+    });
+  }
+
+  private clearSelectedConversation(conversationId: number): void {
+    if (
+      !this.canManageConversationHistory
+      || this.managingConversationHistory
+      || this.selectedConversation?.id !== conversationId
+    ) return;
+
+    this.managingConversationHistory = true;
+    this.stopChatPolling();
+    this.activeMessagesRequestId += 1;
+    this.whatsappApi.clearConversation(conversationId).pipe(
+      finalize(() => {
+        this.managingConversationHistory = false;
+      }),
+    ).subscribe({
+      next: response => {
+        if (this.selectedConversation?.id !== conversationId) return;
+        this.messages = [];
+        this.lastApiMessageId = null;
+        this.hasOlderMessages = false;
+        this.selectedConversation.last_message = '';
+        this.selectedConversation.last_message_time = null;
+        this.selectedConversation.last_message_type = undefined;
+        this.selectedConversation.unread_count = 0;
+        this.selectedConversation.has_unread = false;
+        this.selectedConversation.waiting_for_reply = false;
+        this.selectedConversation.priority_urgent = false;
+        this.conversationsFingerprint = this.getConversationsFingerprint(
+          this.conversations,
+        );
+        this.filterConversations();
+        this.startChatPolling();
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Chat vaciado',
+          detail: `${response?.deleted_messages || 0} mensajes eliminados. El contacto se conservó.`,
+        });
+      },
+      error: error => {
+        if (this.selectedConversation?.id === conversationId) {
+          this.startChatPolling();
+        }
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo vaciar el chat',
+          detail: getApiErrorMessage(error, 'No se pudo eliminar el historial de esta conversación.'),
+        });
+      },
+    });
+  }
+
+  confirmDeleteSelectedConversation(): void {
+    const conversation = this.selectedConversation;
+    if (!this.canManageConversationHistory || !conversation) return;
+
+    this.confirmationService.confirm({
+      header: 'Borrar chat',
+      message: `Se eliminarán permanentemente “${this.getSelectedConversationDisplayName()}” y todos sus mensajes. Esta acción no se puede deshacer.`,
+      icon: 'pi pi-trash',
+      acceptLabel: 'Borrar definitivamente',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => this.deleteSelectedConversation(conversation.id),
+    });
+  }
+
+  private deleteSelectedConversation(conversationId: number): void {
+    if (
+      !this.canManageConversationHistory
+      || this.managingConversationHistory
+      || this.selectedConversation?.id !== conversationId
+    ) return;
+
+    this.managingConversationHistory = true;
+    this.stopConversationPresenceSession();
+    this.stopChatPolling();
+    this.activeMessagesRequestId += 1;
+    this.whatsappApi.deleteConversation(conversationId).pipe(
+      finalize(() => {
+        this.managingConversationHistory = false;
+      }),
+    ).subscribe({
+      next: response => {
+        this.conversations = this.conversations.filter(
+          conversation => conversation.id !== conversationId,
+        );
+        this.filteredConversations = this.filteredConversations.filter(
+          conversation => conversation.id !== conversationId,
+        );
+        this.selectedConversation = null;
+        this.messages = [];
+        this.lastApiMessageId = null;
+        this.loadingOlderMessages = false;
+        this.hasOlderMessages = true;
+        this.conversationsFingerprint = this.getConversationsFingerprint(
+          this.conversations,
+        );
+        if (
+          this.currentUserId
+          && localStorage.getItem(`last_opened_chat_${this.currentUserId}`) === String(conversationId)
+        ) {
+          localStorage.removeItem(`last_opened_chat_${this.currentUserId}`);
+        }
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Chat eliminado',
+          detail: `${response?.deleted_messages || 0} mensajes y la conversación fueron eliminados.`,
+        });
+      },
+      error: error => {
+        if (this.selectedConversation?.id === conversationId) {
+          this.startConversationPresenceSession();
+          this.startChatPolling();
+        }
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo borrar el chat',
+          detail: getApiErrorMessage(error, 'No se pudo eliminar esta conversación.'),
+        });
+      },
+    });
   }
 
   getConversationLanguageLabel(
@@ -3017,7 +3245,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   private getConversationsFingerprint(convs: ChatConversation[]): string {
-    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.last_message_type ?? ''}:${c.unread_count}:${c.has_unread ? 1 : 0}:${c.waiting_for_reply ? 1 : 0}:${c.priority_urgent ? 1 : 0}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}:${c.reminder_eligible ? 1 : 0}:${c.reminder_waiting_since || ''}:${c.contact.satisfaction_level ?? ''}:${c.campaign_execution_id || ''}:${c.campaign_active ? 1 : 0}:${(c.conversation_objectives || []).map(objective => `${objective.id}-${objective.status}-${objective.updated_at || ''}`).join(',')}`).join('|');
+    return convs.map(c => `${c.id}:${c.team_chat_name || ''}:${c.last_message}:${c.last_message_time}:${c.last_message_type ?? ''}:${c.unread_count}:${c.has_unread ? 1 : 0}:${c.waiting_for_reply ? 1 : 0}:${c.priority_urgent ? 1 : 0}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}:${c.reminder_eligible ? 1 : 0}:${c.reminder_waiting_since || ''}:${c.contact.satisfaction_level ?? ''}:${c.campaign_execution_id || ''}:${c.campaign_active ? 1 : 0}:${(c.conversation_objectives || []).map(objective => `${objective.id}-${objective.status}-${objective.updated_at || ''}`).join(',')}`).join('|');
   }
 
   get conversationObjectives(): ConversationObjective[] {
@@ -6384,6 +6612,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const conversation = this.selectedConversation;
     if (!conversation) return 'Sin Nombre';
     return formatConversationDisplayName({
+      team_chat_name: conversation.team_chat_name,
       contact: {
         name: this.getSelectedContactDisplayName(),
         affiliation_type_id: conversation.contact.affiliation_type_id,
