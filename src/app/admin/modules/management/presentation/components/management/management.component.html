@@ -931,20 +931,22 @@
                                             <div style="display: flex; align-items: center; gap: 10px;">
                                                 <!-- Vehicle image -->
                                                 <div *ngIf="target.originalTarget?.target_model_id" style="position: relative; flex-shrink: 0; width: 48px; height: 48px;">
-                                                    <img *ngIf="getTargetImageUrl(target)"
+                                                    <img *ngIf="hasTargetImage(target)"
                                                         [src]="getTargetImageUrl(target)"
                                                         [alt]="getVehicleTypeByModelId(target.originalTarget.target_model_id)"
+                                                        (error)="handleImageLoadError(getTargetImageUrl(target))"
                                                         (click)="handleTargetClick(target, $event)"
                                                         style="width: 48px; height: 48px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); cursor: pointer;">
-                                                    <img *ngIf="!getTargetImageUrl(target) && getVehicleTypeImage(target.originalTarget.target_model_id)"
+                                                    <img *ngIf="!hasTargetImage(target) && isImageAvailable(getVehicleTypeImage(target.originalTarget.target_model_id))"
                                                         [src]="getVehicleTypeImage(target.originalTarget.target_model_id)"
                                                         [alt]="getVehicleTypeByModelId(target.originalTarget.target_model_id)"
+                                                        (error)="handleImageLoadError(getVehicleTypeImage(target.originalTarget.target_model_id))"
                                                         style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px; opacity: 0.7;">
-                                                    <i *ngIf="!getTargetImageUrl(target) && !getVehicleTypeImage(target.originalTarget.target_model_id)"
+                                                    <i *ngIf="!hasTargetImage(target) && !isImageAvailable(getVehicleTypeImage(target.originalTarget.target_model_id))"
                                                         class="pi pi-car" style="font-size: 1.5rem; color: #9ca3af; line-height: 48px; display: block; text-align: center;"></i>
                                                     
                                                     <!-- AI generate button overlay -->
-                                                    <button *ngIf="isCurrentUserRoot && !getTargetImageUrl(target) && target.originalTarget?.target_brand_id && target.originalTarget?.target_model_id && target.originalTarget?.target_year && target.originalTarget?.target_color && !generatingAITargets.has(target._id)"
+                                                    <button *ngIf="isCurrentUserRoot && !hasTargetImage(target) && target.originalTarget?.target_brand_id && target.originalTarget?.target_model_id && target.originalTarget?.target_year && target.originalTarget?.target_color && !generatingAITargets.has(target._id)"
                                                         (click)="generateAIImage(target); $event.stopPropagation()"
                                                         title="Generar imagen con IA"
                                                         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(99, 102, 241, 0.85); border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
@@ -1155,8 +1157,9 @@
                                                     <div class="target-linked-pair-card__target"
                                                         *ngFor="let linkedTarget of getLinkedCardTargets(target); let first = first; trackBy: trackTargetBy">
                                                         <div class="target-linked-pair-card__image">
-                                                            <img *ngIf="getTargetImageUrl(linkedTarget)" [src]="getTargetImageUrl(linkedTarget)" [alt]="linkedTarget.name">
-                                                            <i *ngIf="!getTargetImageUrl(linkedTarget)" class="pi pi-car"></i>
+                                                            <img *ngIf="hasTargetImage(linkedTarget)" [src]="getTargetImageUrl(linkedTarget)" [alt]="linkedTarget.name"
+                                                                (error)="handleImageLoadError(getTargetImageUrl(linkedTarget))">
+                                                            <i *ngIf="!hasTargetImage(linkedTarget)" class="pi pi-car"></i>
                                                         </div>
                                                         <div class="target-linked-pair-card__main">
                                                             <span (click)="handleTargetClick(linkedTarget, $event)"
@@ -1442,16 +1445,18 @@
             <div style="position: relative; width: 100%;">
                 <span>Configuración de objetivo</span>
                 <!-- AI generated image -->
-                <img *ngIf="getTargetFormImageUrl()" 
+                <img *ngIf="isImageAvailable(getTargetFormImageUrl())"
                      [src]="getTargetFormImageUrl()" 
                      alt="Imagen del vehículo"
                      class="target-form-vehicle-img"
+                     (error)="handleImageLoadError(getTargetFormImageUrl())"
                      (click)="targetFormFullImageUrl = getTargetFormImageUrl(true); showTargetFormImageModal = true"
                      style="position: absolute; top: -100px; right: 0; width: 130px; height: 130px; object-fit: cover; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.4); border: 3px solid var(--managementColorTextUser, #e74c3c); animation: slideInImage 0.5s ease-out; cursor: pointer;">
                 <!-- Fallback: vehicle type image when no AI image -->
-                <img *ngIf="!getTargetFormImageUrl() && targetFormRef?.target?.target_model_id && getVehicleTypeImage(targetFormRef.target.target_model_id)" 
+                <img *ngIf="!isImageAvailable(getTargetFormImageUrl()) && targetFormRef?.target?.target_model_id && isImageAvailable(getVehicleTypeImage(targetFormRef.target.target_model_id))"
                      [src]="getVehicleTypeImage(targetFormRef.target.target_model_id)" 
                      alt="Tipo de vehículo"
+                     (error)="handleImageLoadError(getVehicleTypeImage(targetFormRef.target.target_model_id))"
                      style="position: absolute; top: -80px; right: 10px; width: 100px; height: 100px; object-fit: contain; border-radius: 10px; opacity: 0.7; animation: slideInImage 0.5s ease-out;">
             </div>
         </ng-template>

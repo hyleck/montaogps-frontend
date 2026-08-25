@@ -64,6 +64,9 @@ import { environment } from '../../../../../../../environments/environment';
 })
 export class ManagementComponent implements OnInit, OnDestroy {
 
+  // Evita volver a renderizar URLs que ya fallaron y permite mostrar el fallback.
+  private readonly unavailableImageUrls = new Set<string>();
+
   // ====================================
   // PROPIEDADES PÚBLICAS - DATOS
   // ====================================
@@ -3110,6 +3113,20 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (!img) return null;
     if (img.startsWith('http')) return img;
     return `https://back-montao.dorhu.com${img}`;
+  }
+
+  public isImageAvailable(url: string | null | undefined): boolean {
+    return !!url && !this.unavailableImageUrls.has(url);
+  }
+
+  public hasTargetImage(target: any): boolean {
+    return this.isImageAvailable(this.getTargetImageUrl(target));
+  }
+
+  public handleImageLoadError(url: string | null | undefined): void {
+    if (url) {
+      this.unavailableImageUrls.add(url);
+    }
   }
 
   public getTargetFormImageUrl(fullSize: boolean = false): string | null {
