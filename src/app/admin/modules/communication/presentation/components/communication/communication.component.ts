@@ -29,6 +29,7 @@ import {
 } from './agent-signature';
 import { buildCustomerSignatureLabel } from './customer-signature';
 import { resolveConversationMessageTranslationLanguage } from './conversation-translation';
+import { orderConversationsByAttention } from './conversation-order';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 import {
   canParticipateInConversation as canParticipateInTeamAwareConversation,
@@ -1812,25 +1813,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   private sortConversations(conversations: ChatConversation[]): ChatConversation[] {
-    return [...conversations].sort((a, b) => {
-      const assignmentPriorityDifference =
-        Number(this.isConversationAssignedToMe(b))
-        - Number(this.isConversationAssignedToMe(a));
-
-      if (assignmentPriorityDifference !== 0) {
-        return assignmentPriorityDifference;
-      }
-
-      const aTime = Number(a.last_message_time || a.contact_last_seen_at || 0);
-      const bTime = Number(b.last_message_time || b.contact_last_seen_at || 0);
-      const activityDifference = bTime - aTime;
-
-      if (activityDifference !== 0) {
-        return activityDifference;
-      }
-
-      return Number(b.id || 0) - Number(a.id || 0);
-    });
+    return orderConversationsByAttention(conversations);
   }
 
   selectConversation(conv: ChatConversation, navigate: boolean = true): void {
@@ -1838,6 +1821,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.stopChatPolling();
     this.communicationNotifications.markWhatsAppConversationRead(conv.id);
     conv.unread_count = 0;
+    this.conversations = this.sortConversations(this.conversations);
+    this.conversationsFingerprint = this.getConversationsFingerprint(
+      this.conversations,
+    );
+    this.filterConversations();
     this.resetPlayableAudio();
     this.selectedConversation = conv;
     if (navigate) {
