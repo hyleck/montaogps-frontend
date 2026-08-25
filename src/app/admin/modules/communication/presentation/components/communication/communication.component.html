@@ -105,10 +105,28 @@
                     <div class="comm-contact__top">
                         <div class="comm-contact__name">{{ getConversationDisplayName(conv) }}</div>
                         <div class="comm-contact__time">{{ getTimeAgo(conv.last_message_time) }}</div>
-                    </div>
-                    <div class="comm-contact__bottom">
-                        <div class="comm-contact__preview">
-                            <div class="comm-contact__last-msg">{{ getCleanPreview(conv.last_message) }}</div>
+                        </div>
+                        <div class="comm-contact__bottom">
+                            <div class="comm-contact__preview">
+                            <ng-container *ngIf="getConversationListPreview(conv) as preview">
+                                <div class="comm-contact__last-msg"
+                                    [class.comm-contact__last-msg--audio]="preview.audio"
+                                    [class.comm-contact__last-msg--outgoing]="preview.direction === 'outgoing'">
+                                    <i *ngIf="preview.direction === 'outgoing'"
+                                        class="pi pi-send comm-contact__preview-direction"
+                                        title="Enviado por el equipo"
+                                        aria-label="Enviado por el equipo"></i>
+                                    <span *ngIf="preview.audio" class="comm-contact__audio-wave" aria-hidden="true">
+                                        <span></span><span></span><span></span><span></span>
+                                    </span>
+                                    <i *ngIf="!preview.audio && preview.kind !== 'text'"
+                                        class="pi comm-contact__preview-icon"
+                                        [ngClass]="preview.icon"
+                                        aria-hidden="true"></i>
+                                    <span *ngIf="preview.label" class="comm-contact__preview-label">{{ preview.label }}</span>
+                                    <span class="comm-contact__preview-text">{{ preview.text }}</span>
+                                </div>
+                            </ng-container>
                             <div *ngIf="!isInternalTeamConversation(conv)" class="comm-contact__assignee"
                                 [class.comm-contact__assignee--ester]="!conv.assignee_id"
                                 [class.comm-contact__assignee--ester-disabled]="isEsterAutoReplyDisabled(conv)"

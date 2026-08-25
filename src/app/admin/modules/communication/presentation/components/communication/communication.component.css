@@ -2355,9 +2355,76 @@
 .comm-contact__last-msg {
     color: rgba(255, 255, 255, 0.4);
     font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 0.3rem;
     white-space: nowrap;
     overflow: hidden;
+}
+
+.comm-contact__preview-text {
+    min-width: 0;
+    overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.comm-contact__preview-direction,
+.comm-contact__preview-icon {
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+}
+
+.comm-contact__preview-direction {
+    color: rgba(255, 255, 255, 0.52);
+    transform: scale(0.9);
+}
+
+.comm-contact__preview-label {
+    flex: 0 0 auto;
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.comm-contact__last-msg--audio {
+    width: fit-content;
+    max-width: 100%;
+    min-height: 24px;
+    padding: 0.18rem 0.48rem;
+    color: #bfdbfe;
+    background: rgba(59, 130, 246, 0.11);
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    border-radius: 999px;
+}
+
+.comm-contact__last-msg--audio .comm-contact__preview-label {
+    color: #93c5fd;
+}
+
+.comm-contact__audio-wave {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 2px;
+    height: 13px;
+}
+
+.comm-contact__audio-wave span {
+    display: block;
+    width: 2px;
+    height: 7px;
+    background: #60a5fa;
+    border-radius: 999px;
+}
+
+.comm-contact__audio-wave span:nth-child(2) { height: 12px; }
+.comm-contact__audio-wave span:nth-child(3) { height: 9px; }
+.comm-contact__audio-wave span:nth-child(4) { height: 5px; }
+
+.comm-contact__last-msg--outgoing:not(.comm-contact__last-msg--audio) .comm-contact__preview-text {
+    color: rgba(255, 255, 255, 0.52);
 }
 
 .comm-contact__preview {
@@ -5635,6 +5702,15 @@
 :host-context(.app-light) .comm-contact--active { background: #fee2e2 !important; border-left: 3px solid #dc2626 !important; }
 :host-context(.app-light) .comm-contact__name { color: #000000; }
 :host-context(.app-light) .comm-contact__last-msg { color: #64748b; }
+:host-context(.app-light) .comm-contact__preview-direction { color: #64748b; }
+:host-context(.app-light) .comm-contact__preview-label { color: #475569; }
+:host-context(.app-light) .comm-contact__last-msg--audio {
+    color: #1e40af;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+:host-context(.app-light) .comm-contact__last-msg--audio .comm-contact__preview-label { color: #1d4ed8; }
+:host-context(.app-light) .comm-contact__last-msg--outgoing:not(.comm-contact__last-msg--audio) .comm-contact__preview-text { color: #475569; }
 :host-context(.app-light) .comm-contact__assignee {
     color: #b91c1c;
     border-color: rgba(220, 38, 38, 0.34);

@@ -30,6 +30,11 @@ import {
 import { buildCustomerSignatureLabel } from './customer-signature';
 import { resolveConversationMessageTranslationLanguage } from './conversation-translation';
 import { orderConversationsByAttention } from './conversation-order';
+import {
+  buildConversationListPreview,
+  ConversationLastMessagePreview,
+  ConversationListPreviewView,
+} from './conversation-list-preview';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 import {
   canParticipateInConversation as canParticipateInTeamAwareConversation,
@@ -63,6 +68,7 @@ interface ChatConversation {
   priority_urgent?: boolean;
   inbox_id?: number;
   last_message_type?: number;
+  last_message_preview?: ConversationLastMessagePreview | null;
   labels?: string[];
   assignee_id?: string | null;
   assignee_name?: string;
@@ -3245,7 +3251,26 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   private getConversationsFingerprint(convs: ChatConversation[]): string {
-    return convs.map(c => `${c.id}:${c.team_chat_name || ''}:${c.last_message}:${c.last_message_time}:${c.last_message_type ?? ''}:${c.unread_count}:${c.has_unread ? 1 : 0}:${c.waiting_for_reply ? 1 : 0}:${c.priority_urgent ? 1 : 0}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}:${c.reminder_eligible ? 1 : 0}:${c.reminder_waiting_since || ''}:${c.contact.satisfaction_level ?? ''}:${c.campaign_execution_id || ''}:${c.campaign_active ? 1 : 0}:${(c.conversation_objectives || []).map(objective => `${objective.id}-${objective.status}-${objective.updated_at || ''}`).join(',')}`).join('|');
+    return convs.map(c => `${c.id}:${c.team_chat_name || ''}:${c.last_message}:${c.last_message_time}:${c.last_message_type ?? ''}:${this.getConversationPreviewFingerprint(c)}:${c.unread_count}:${c.has_unread ? 1 : 0}:${c.waiting_for_reply ? 1 : 0}:${c.priority_urgent ? 1 : 0}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}:${c.reminder_eligible ? 1 : 0}:${c.reminder_waiting_since || ''}:${c.contact.satisfaction_level ?? ''}:${c.campaign_execution_id || ''}:${c.campaign_active ? 1 : 0}:${(c.conversation_objectives || []).map(objective => `${objective.id}-${objective.status}-${objective.updated_at || ''}`).join(',')}`).join('|');
+  }
+
+  private getConversationPreviewFingerprint(conversation: ChatConversation): string {
+    const preview = conversation.last_message_preview;
+    if (!preview) return '';
+    return [
+      preview.id || '',
+      preview.type || '',
+      preview.direction || '',
+      preview.content || '',
+      preview.transcription || '',
+      preview.image_analysis || '',
+      preview.video_analysis || '',
+      preview.video_transcription || '',
+      preview.reaction?.emoji || '',
+      (preview.attachments || [])
+        .map(attachment => `${attachment.file_type || ''}-${attachment.content_type || ''}-${attachment.name || ''}`)
+        .join(','),
+    ].join('~');
   }
 
   get conversationObjectives(): ConversationObjective[] {
@@ -4320,6 +4345,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     // Opcionalmente quitar asteriscos para la vista previa
     clean = clean.replace(/\*(.*?)\*/g, '$1');
     return clean.replace(/\n/g, ' ').trim() || 'Sin mensajes';
+  }
+
+  getConversationListPreview(
+    conversation: ChatConversation,
+  ): ConversationListPreviewView {
+    return buildConversationListPreview(conversation);
   }
 
   private enrichWithAppUrls(msg: ChatMessage): ChatMessage {
