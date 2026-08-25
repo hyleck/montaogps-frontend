@@ -1813,7 +1813,17 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   private sortConversations(conversations: ChatConversation[]): ChatConversation[] {
-    return orderConversationsByAttention(conversations);
+    const selectedConversationId = this.selectedConversation?.id || null;
+    const selectedConversationIndex = selectedConversationId
+      ? this.conversations.findIndex(
+        conversation => conversation.id === selectedConversationId,
+      )
+      : -1;
+
+    return orderConversationsByAttention(conversations, {
+      pinnedConversationId: selectedConversationId,
+      pinnedIndex: selectedConversationIndex,
+    });
   }
 
   selectConversation(conv: ChatConversation, navigate: boolean = true): void {
@@ -1821,11 +1831,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.stopChatPolling();
     this.communicationNotifications.markWhatsAppConversationRead(conv.id);
     conv.unread_count = 0;
-    this.conversations = this.sortConversations(this.conversations);
     this.conversationsFingerprint = this.getConversationsFingerprint(
       this.conversations,
     );
-    this.filterConversations();
     this.resetPlayableAudio();
     this.selectedConversation = conv;
     if (navigate) {

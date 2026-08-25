@@ -40,4 +40,31 @@ describe('orderConversationsByAttention', () => {
 
     expect(conversations.map(conversation => conversation.id)).toEqual([1, 2]);
   });
+
+  it('keeps the selected conversation at its visible position after it is read', () => {
+    const ordered = orderConversationsByAttention([
+      { id: 1, unread_count: 1, last_message_time: 300 },
+      { id: 2, unread_count: 0, last_message_time: 100 },
+      { id: 3, unread_count: 1, last_message_time: 200 },
+    ], {
+      pinnedConversationId: 2,
+      pinnedIndex: 1,
+    });
+
+    expect(ordered.map(conversation => conversation.id)).toEqual([1, 2, 3]);
+  });
+
+  it('continues ordering the other conversations while the selected one is pinned', () => {
+    const ordered = orderConversationsByAttention([
+      { id: 1, unread_count: 1, last_message_time: 100 },
+      { id: 2, unread_count: 0, last_message_time: 50 },
+      { id: 3, unread_count: 1, last_message_time: 300 },
+      { id: 4, unread_count: 1, last_message_time: 200 },
+    ], {
+      pinnedConversationId: 2,
+      pinnedIndex: 1,
+    });
+
+    expect(ordered.map(conversation => conversation.id)).toEqual([3, 2, 4, 1]);
+  });
 });
