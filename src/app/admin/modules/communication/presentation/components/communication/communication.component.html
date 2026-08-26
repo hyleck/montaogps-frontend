@@ -345,7 +345,15 @@
                     <span>Escribe un mensaje para enviarlo por WhatsApp</span>
                 </div>
 
-                <div *ngFor="let msg of messages" class="comm-message"
+                <ng-container *ngFor="let msg of messages; let messageIndex = index">
+                <div *ngIf="shouldShowConversationDate(messageIndex)"
+                    class="comm-conversation-date"
+                    role="separator"
+                    [attr.aria-label]="formatConversationDate(msg.time)">
+                    <span>{{ formatConversationDate(msg.time) }}</span>
+                </div>
+
+                <div class="comm-message"
                     [attr.data-message-id]="msg.id || null"
                     [attr.tabindex]="-1"
                     [class.comm-message--focused]="focusedMessageId === msg.id"
@@ -617,6 +625,7 @@
                         </span>
                     </div>
                 </div>
+                </ng-container>
 
                 <div *ngIf="sendingMessage" class="comm-sending">
                     <i class="pi pi-spin pi-spinner"></i> Enviando...

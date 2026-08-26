@@ -3595,6 +3595,39 @@
     letter-spacing: 0.3px;
 }
 
+.comm-conversation-date {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.8rem 0 0.65rem;
+    color: rgba(226, 232, 240, 0.68);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-align: center;
+}
+
+.comm-conversation-date::before,
+.comm-conversation-date::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(148, 163, 184, 0.2);
+}
+
+.comm-conversation-date span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    padding: 0.25rem 0.8rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 999px;
+    background: rgba(30, 41, 59, 0.72);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    white-space: nowrap;
+}
+
 /* Message Bubbles */
 .comm-message {
     display: flex;
@@ -5820,6 +5853,14 @@
 :host-context(.app-light) .comm-chat__messages { background: #f1f5f9; } /* Light grey theme background */
 :host-context(.app-light) .comm-loading { color: #475569; }
 :host-context(.app-light) .comm-loading i { color: #dc2626; }
+:host-context(.app-light) .comm-conversation-date { color: #64748b; }
+:host-context(.app-light) .comm-conversation-date::before,
+:host-context(.app-light) .comm-conversation-date::after { background: #cbd5e1; }
+:host-context(.app-light) .comm-conversation-date span {
+    border-color: #dbe3ee;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
 :host-context(.app-light) .comm-older-loader {
     border-color: #dbe3ee;
     background: rgba(255, 255, 255, 0.96);

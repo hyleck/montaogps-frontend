@@ -4682,6 +4682,68 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     });
   }
 
+  shouldShowConversationDate(messageIndex: number): boolean {
+    const currentDateKey = this.getConversationDateKey(
+      this.messages[messageIndex]?.time,
+    );
+    if (!currentDateKey) return false;
+    if (messageIndex === 0) return true;
+
+    return currentDateKey !== this.getConversationDateKey(
+      this.messages[messageIndex - 1]?.time,
+    );
+  }
+
+  formatConversationDate(value: Date | string | number | null | undefined): string {
+    const date = this.toValidConversationDate(value);
+    if (!date) return 'Fecha desconocida';
+
+    const today = new Date();
+    const dayDifference = this.getLocalCalendarDayNumber(today)
+      - this.getLocalCalendarDayNumber(date);
+
+    if (dayDifference === 0) return 'Hoy';
+    if (dayDifference === 1) return 'Ayer';
+
+    const formatted = new Intl.DateTimeFormat('es-DO', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      ...(date.getFullYear() !== today.getFullYear() ? { year: 'numeric' } : {}),
+    }).format(date);
+
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  }
+
+  private getConversationDateKey(
+    value: Date | string | number | null | undefined,
+  ): string {
+    const date = this.toValidConversationDate(value);
+    if (!date) return '';
+
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0'),
+    ].join('-');
+  }
+
+  private toValidConversationDate(
+    value: Date | string | number | null | undefined,
+  ): Date | null {
+    if (value === null || value === undefined) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private getLocalCalendarDayNumber(date: Date): number {
+    return Math.floor(Date.UTC(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    ) / 86_400_000);
+  }
+
   getIncomingCustomerSignature(): string {
     return buildCustomerSignatureLabel(
       this.gpsUser,
