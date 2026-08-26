@@ -285,6 +285,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     { code: 'de', name: 'Alemán', shortName: 'DE' },
     { code: 'nl', name: 'Neerlandés', shortName: 'NL' },
     { code: 'zh', name: 'Chino mandarín', shortName: 'ZH' },
+    { code: 'ko', name: 'Coreano', shortName: 'KO' },
     { code: 'ar', name: 'Árabe', shortName: 'AR' },
   ];
   private readonly supportTranslationLanguage = 'es';
