@@ -623,6 +623,24 @@
     white-space: nowrap;
 }
 
+.current-activity .activity-platform {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    gap: 0.28rem;
+    margin-top: 0.2rem;
+    padding: 0.2rem 0.38rem;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    font-size: 0.64rem;
+    font-weight: 700;
+}
+
+.current-activity .activity-platform i {
+    font-size: 0.68rem;
+}
+
 .department-pill,
 .connection-pill {
     display: inline-flex;
@@ -822,6 +840,28 @@
     font-size: 0.48rem;
 }
 
+.replay-platform-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    padding: 0.36rem 0.58rem;
+    border-radius: 999px;
+    background: rgba(71, 85, 105, 0.12);
+    color: #475569;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.replay-platform-pill.mobile {
+    background: rgba(37, 99, 235, 0.12);
+    color: #2563eb;
+}
+
+.replay-platform-pill i {
+    font-size: 0.78rem;
+}
+
 .replay-workspace {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 290px;
@@ -922,6 +962,13 @@
     background-color: #111827;
     background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 1px, transparent 0);
     background-size: 18px 18px;
+}
+
+.replay-stage.mobile-session {
+    background-color: #0b1220;
+    background-image:
+        radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.16), transparent 42%),
+        radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 1px, transparent 0);
 }
 
 .replay-host {

@@ -50,4 +50,27 @@ describe('EmpleadosComponent live replay', () => {
     expect(replayer.pause).toHaveBeenCalledTimes(1);
     expect(component.replayPlaying).toBeFalse();
   });
+
+  it('identifies and labels a selected mobile session', () => {
+    const { component } = buildComponent();
+    Object.assign(component, {
+      selectedReplaySessionId: 'mobile-session',
+      replaySessions: [
+        {
+          session_id: 'mobile-session',
+          platform: 'mobile',
+          route: '/instalaciones',
+          page_title: 'Instalaciones',
+          first_event_at: '2026-08-26T12:00:00.000Z',
+          last_event_at: '2026-08-26T12:05:00.000Z',
+          event_count: 25,
+          chunk_count: 2,
+        },
+      ],
+    });
+
+    expect(component.getReplayPlatform()).toBe('mobile');
+    expect(component.formatReplaySession(component.replaySessions[0]))
+      .toContain('Teléfono');
+  });
 });

@@ -234,6 +234,29 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
     return status.current_page_title || this.humanizeRoute(status.current_route) || 'Navegando';
   }
 
+  getMonitoringPlatformLabel(employee: User): string {
+    return this.getMonitoringStatus(employee)?.platform === 'mobile'
+      ? 'Teléfono'
+      : 'Computadora';
+  }
+
+  getMonitoringPlatformIcon(employee: User): string {
+    return this.getMonitoringStatus(employee)?.platform === 'mobile'
+      ? 'pi-mobile'
+      : 'pi-desktop';
+  }
+
+  getReplayPlatform(): 'mobile' | 'desktop' {
+    const selectedSession = this.replaySessions.find(
+      (session) => session.session_id === this.selectedReplaySessionId,
+    );
+    return selectedSession?.platform ||
+      (this.replayEmployee
+        ? this.getMonitoringStatus(this.replayEmployee)?.platform
+        : null) ||
+      'desktop';
+  }
+
   getLastSeenLabel(employee: User): string {
     const value = this.getMonitoringStatus(employee)?.last_seen;
     if (!value) return 'Nunca';
@@ -305,7 +328,8 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
       hour: '2-digit',
       minute: '2-digit',
     });
-    return `${start} – ${end} · ${session.event_count} eventos`;
+    const platform = session.platform === 'mobile' ? 'Teléfono' : 'Computadora';
+    return `${platform} · ${start} – ${end} · ${session.event_count} eventos`;
   }
 
   getActivityTitle(activity: UserActivity): string {
@@ -351,10 +375,12 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
         preferredSessionId &&
         !sessions.some((session) => session.session_id === preferredSessionId)
       ) {
+        const currentPlatform =
+          this.getMonitoringStatus(employee)?.platform || 'desktop';
         this.replaySessions = [
           {
             session_id: preferredSessionId,
-            platform: 'desktop',
+            platform: currentPlatform,
             route: this.getMonitoringStatus(employee)?.current_route || null,
             page_title:
               this.getMonitoringStatus(employee)?.current_page_title || null,

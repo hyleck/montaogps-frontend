@@ -32,7 +32,7 @@
 
     <div class="monitoring-notice">
         <i class="pi pi-shield"></i>
-        <span>Monitoreo operativo: las sesiones se conservan por 24 horas. Contraseñas, tokens y datos de tarjetas quedan excluidos.</span>
+        <span>Monitoreo operativo web y móvil: las sesiones se conservan por 24 horas. Contraseñas, tokens y datos de tarjetas quedan excluidos.</span>
     </div>
 
     <!-- Loading State -->
@@ -89,6 +89,10 @@
                         <div class="current-activity">
                             <strong>{{ getCurrentScreen(empleado) }}</strong>
                             <span *ngIf="getMonitoringStatus(empleado)?.current_route">{{ getMonitoringStatus(empleado)?.current_route }}</span>
+                            <span *ngIf="getMonitoringStatus(empleado)?.platform" class="activity-platform">
+                                <i class="pi" [ngClass]="getMonitoringPlatformIcon(empleado)"></i>
+                                {{ getMonitoringPlatformLabel(empleado) }}
+                            </span>
                         </div>
                     </td>
                     <td><span class="last-seen">{{ getLastSeenLabel(empleado) }}</span></td>
@@ -277,6 +281,10 @@
                 <i class="pi" [ngClass]="replayMode === 'live' ? 'pi-circle-fill' : 'pi-history'"></i>
                 {{ replayMode === 'live' ? 'EN VIVO' : 'ÚLTIMA HORA' }}
             </span>
+            <span class="replay-platform-pill" [class.mobile]="getReplayPlatform() === 'mobile'">
+                <i class="pi" [ngClass]="getReplayPlatform() === 'mobile' ? 'pi-mobile' : 'pi-desktop'"></i>
+                {{ getReplayPlatform() === 'mobile' ? 'TELÉFONO' : 'COMPUTADORA' }}
+            </span>
         </div>
     </ng-template>
 
@@ -312,7 +320,7 @@
                 </div>
             </div>
 
-            <section #replayStage class="replay-stage" aria-label="Reproducción de pantalla">
+            <section #replayStage class="replay-stage" [class.mobile-session]="getReplayPlatform() === 'mobile'" aria-label="Reproducción de pantalla">
                 <div #replayHost class="replay-host"></div>
                 <div *ngIf="replayLoading" class="replay-state">
                     <i class="pi pi-spin pi-spinner"></i>
