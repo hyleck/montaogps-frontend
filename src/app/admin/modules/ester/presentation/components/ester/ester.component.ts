@@ -82,6 +82,9 @@ export class EsterComponent implements OnInit, OnDestroy {
   form: EsterKnowledgeForm = this.emptyForm();
   pendingMediaFile?: File;
   mediaPreviewUrl = '';
+  mediaViewerEntry?: EsterKnowledgeEntry;
+  mediaViewerVisible = false;
+  downloadingMediaId = '';
 
   constructor(
     private readonly esterService: EsterService,
@@ -478,6 +481,48 @@ export class EsterComponent implements OnInit, OnDestroy {
     this.form.mediaName = null;
     this.form.mediaMimeType = null;
     this.form.mediaSize = null;
+  }
+
+  openMediaViewer(entry: EsterKnowledgeEntry): void {
+    if (!entry.media_url || !entry.media_type) return;
+    this.mediaViewerEntry = entry;
+    this.mediaViewerVisible = true;
+  }
+
+  closeMediaViewer(): void {
+    this.mediaViewerVisible = false;
+    this.mediaViewerEntry = undefined;
+  }
+
+  downloadMedia(entry: EsterKnowledgeEntry): void {
+    if (!entry.media_url || !entry.media_type) return;
+    this.downloadingMediaId = entry._id;
+    this.esterService.downloadKnowledgeMedia(entry._id).subscribe({
+      next: blob => {
+        const objectUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = objectUrl;
+        anchor.download = entry.media_name
+          || `ester-conocimiento.${entry.media_type === 'image' ? 'jpg' : 'mp4'}`;
+        anchor.style.display = 'none';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        this.downloadingMediaId = '';
+        this.notify('success', 'Descarga iniciada.');
+      },
+      error: error => {
+        this.downloadingMediaId = '';
+        this.notify(
+          'error',
+          getApiErrorMessage(
+            error,
+            'No se pudo descargar el archivo de conocimiento',
+          ),
+        );
+      },
+    });
   }
 
   save(): void {

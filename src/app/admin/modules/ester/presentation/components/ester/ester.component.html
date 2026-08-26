@@ -167,10 +167,40 @@
             controls
             preload="metadata"
           ></video>
-          <span>
-            <i class="pi" [class.pi-image]="entry.media_type === 'image'" [class.pi-video]="entry.media_type === 'video'"></i>
-            {{ entry.media_type === 'image' ? 'Imagen disponible para Ester' : 'Video disponible para Ester' }}
-          </span>
+          <div class="knowledge-card__media-meta">
+            <span>
+              <i class="pi" [class.pi-image]="entry.media_type === 'image'" [class.pi-video]="entry.media_type === 'video'"></i>
+              {{ entry.media_type === 'image' ? 'Imagen disponible para Ester' : 'Video disponible para Ester' }}
+            </span>
+            <div class="knowledge-card__media-actions">
+              <button
+                type="button"
+                class="knowledge-card__media-action"
+                aria-label="Visualizar archivo"
+                title="Visualizar"
+                (click)="openMediaViewer(entry)"
+              >
+                <i class="pi pi-eye"></i>
+                Ver
+              </button>
+              <button
+                type="button"
+                class="knowledge-card__media-action"
+                aria-label="Descargar archivo"
+                title="Descargar"
+                [disabled]="downloadingMediaId === entry._id"
+                (click)="downloadMedia(entry)"
+              >
+                <i
+                  class="pi"
+                  [class.pi-download]="downloadingMediaId !== entry._id"
+                  [class.pi-spinner]="downloadingMediaId === entry._id"
+                  [class.pi-spin]="downloadingMediaId === entry._id"
+                ></i>
+                {{ downloadingMediaId === entry._id ? 'Descargando' : 'Descargar' }}
+              </button>
+            </div>
+          </div>
         </div>
 
         <footer class="knowledge-card__footer">
@@ -716,4 +746,73 @@
       </button>
     </div>
   </form>
+</p-dialog>
+
+<p-dialog
+  [(visible)]="mediaViewerVisible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: 'min(980px, 96vw)' }"
+  [contentStyle]="{ padding: '0', overflow: 'hidden' }"
+  styleClass="ester-media-dialog"
+  (onHide)="closeMediaViewer()"
+>
+  <ng-template pTemplate="header">
+    <div *ngIf="mediaViewerEntry as entry" class="media-viewer__header">
+      <span class="media-viewer__header-icon">
+        <i class="pi" [class.pi-image]="entry.media_type === 'image'" [class.pi-video]="entry.media_type === 'video'"></i>
+      </span>
+      <div>
+        <strong>{{ entry.title }}</strong>
+        <small>{{ entry.media_name || (entry.media_type === 'image' ? 'Imagen' : 'Video') }}</small>
+      </div>
+    </div>
+  </ng-template>
+
+  <div *ngIf="mediaViewerEntry as entry" class="media-viewer">
+    <img
+      *ngIf="entry.media_type === 'image'"
+      [src]="entry.media_url"
+      [alt]="entry.media_name || entry.title"
+    />
+    <video
+      *ngIf="entry.media_type === 'video'"
+      [src]="entry.media_url"
+      controls
+      autoplay
+      preload="metadata"
+    ></video>
+    <div class="media-viewer__details">
+      <span>
+        <i class="pi pi-file"></i>
+        {{ entry.media_name || 'Archivo de conocimiento' }}
+      </span>
+      <span *ngIf="entry.media_size">
+        {{ entry.media_size / 1048576 | number:'1.1-1' }} MB
+      </span>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div *ngIf="mediaViewerEntry as entry" class="media-viewer__footer">
+      <button type="button" class="ester__secondary-button" (click)="closeMediaViewer()">
+        Cerrar
+      </button>
+      <button
+        type="button"
+        class="ester__primary-button"
+        [disabled]="downloadingMediaId === entry._id"
+        (click)="downloadMedia(entry)"
+      >
+        <i
+          class="pi"
+          [class.pi-download]="downloadingMediaId !== entry._id"
+          [class.pi-spinner]="downloadingMediaId === entry._id"
+          [class.pi-spin]="downloadingMediaId === entry._id"
+        ></i>
+        {{ downloadingMediaId === entry._id ? 'Descargando...' : 'Descargar archivo' }}
+      </button>
+    </div>
+  </ng-template>
 </p-dialog>

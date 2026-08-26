@@ -192,6 +192,13 @@ export class EsterService {
     );
   }
 
+  downloadKnowledgeMedia(id: string): Observable<Blob> {
+    return this.http.get(
+      `${this.apiUrl}/${id}/media/download`,
+      { responseType: 'blob' },
+    );
+  }
+
   getWorkflowRuns(): Observable<EsterWorkflowRun[]> {
     return this.http.get<EsterWorkflowRun[]>(
       `${environment.apiUrl}/ester/workflow/runs`,
