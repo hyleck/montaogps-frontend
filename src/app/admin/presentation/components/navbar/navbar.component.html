@@ -3,6 +3,12 @@
     <div class="navbar">
 
         <div class="navbar__controls">
+            <button *ngIf="appUpdateAvailable" type="button"
+                class="navbar__update-button" (click)="applyAvailableAppUpdate()"
+                [disabled]="applyingAppUpdate" aria-live="polite">
+                <i [class]="applyingAppUpdate ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"></i>
+                <span>{{ (applyingAppUpdate ? 'navbar.applyingUpdate' : 'navbar.updateAvailable') | translate }}</span>
+            </button>
             <div class="navbar__selection-actions" *ngIf="hasSelectedTargets">
                 <p-menu #selectedActionsMenu [model]="selectedActionItems" [popup]="true"
                     styleClass="selected-actions-menu" />

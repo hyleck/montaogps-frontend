@@ -29,7 +29,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private communicationBadgeSubscription?: Subscription;
   private communicationAttentionSubscription?: Subscription;
   private inventoryCountSubscription?: Subscription;
+  private inventoryUnregisteredSimCountSubscription?: Subscription;
   private inspectionCountSubscription?: Subscription;
+  private inventoryLowStockCount = 0;
+  private inventoryUnregisteredSimCount = 0;
 
   sidaberOptions = {
     favoriteTitle: '',
@@ -87,12 +90,18 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
       // Check inventory stock
       if (this.authService.hasPrivilege('inventory', 'read') || this.isRootUser) {
-        this.inventoryService.checkLowStock();
         this.inventoryCountSubscription = this.inventoryService.lowStockCount$.subscribe((count: number) => {
-          this.updatePrincipalBadge('/admin/inventory', count);
-          this.updatePrincipalAttention('/admin/inventory', count > 0);
+          this.inventoryLowStockCount = Math.max(0, Number(count) || 0);
+          this.refreshInventoryBadge();
           this.cdr.detectChanges();
         });
+        this.inventoryUnregisteredSimCountSubscription = this.inventoryService.unregisteredSimAlertCount$.subscribe((count: number) => {
+          this.inventoryUnregisteredSimCount = Math.max(0, Number(count) || 0);
+          this.refreshInventoryBadge();
+          this.cdr.detectChanges();
+        });
+        this.inventoryService.checkLowStock();
+        this.inventoryService.checkUnregisteredSimAlerts();
         this.inventoryService.checkInspectionRequired();
         this.inspectionCountSubscription = this.inventoryService.inspectionRequiredCount$.subscribe((count: number) => {
           this.updatePrincipalBadge('/admin/revision', count);
@@ -124,6 +133,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.communicationBadgeSubscription?.unsubscribe();
     this.communicationAttentionSubscription?.unsubscribe();
     this.inventoryCountSubscription?.unsubscribe();
+    this.inventoryUnregisteredSimCountSubscription?.unsubscribe();
     this.inspectionCountSubscription?.unsubscribe();
   }
 
@@ -256,6 +266,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
     if (item) {
       (item as any).attention = attention;
     }
+  }
+
+  private refreshInventoryBadge(): void {
+    const totalAlerts = this.inventoryLowStockCount
+      + this.inventoryUnregisteredSimCount;
+    this.updatePrincipalBadge('/admin/inventory', totalAlerts);
+    this.updatePrincipalAttention('/admin/inventory', totalAlerts > 0);
   }
 
   hasAttention(item: unknown): boolean {

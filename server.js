@@ -2,15 +2,55 @@ const express = require('express');
 const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const app = express();
 app.use(compression());
 
 const PORT = process.env.PORT || 4200;
 const staticDir = path.join(__dirname, '/dist/montaogps-frontend/browser');
+const indexPath = path.join(staticDir, 'index.html');
 
 // Detectar si estamos sirviendo archivos de producción
-const isProductionBuild = fs.existsSync(path.join(staticDir, 'index.html'));
+const isProductionBuild = fs.existsSync(indexPath);
+
+function normalizeBuildAsset(resource) {
+  try {
+    const url = new URL(resource, 'https://montao.invalid/');
+    return /\.(?:js|css)$/i.test(url.pathname) ? url.pathname : '';
+  } catch {
+    return '';
+  }
+}
+
+function readAppVersionManifest() {
+  if (!fs.existsSync(indexPath)) {
+    return { version: 'development', assets: [] };
+  }
+
+  const indexContent = fs.readFileSync(indexPath, 'utf8');
+  const assetPatterns = [
+    /<script\b[^>]*\bsrc=["']([^"']+\.js(?:\?[^"']*)?)["'][^>]*>/gi,
+    /<link\b(?=[^>]*\brel=["'][^"']*\bstylesheet\b[^"']*["'])[^>]*\bhref=["']([^"']+\.css(?:\?[^"']*)?)["'][^>]*>/gi,
+  ];
+  const assets = assetPatterns.flatMap(pattern =>
+    Array.from(indexContent.matchAll(pattern), match =>
+      normalizeBuildAsset(match[1]),
+    ),
+  ).filter(Boolean);
+  const normalizedAssets = Array.from(new Set(assets)).sort();
+  const version = crypto
+    .createHash('sha256')
+    .update(JSON.stringify(normalizedAssets))
+    .digest('hex')
+    .slice(0, 20);
+
+  return {
+    version,
+    assets: normalizedAssets,
+    builtAt: fs.statSync(indexPath).mtime.toISOString(),
+  };
+}
 
 // Servir archivos estáticos de Angular controlando el cache
 const hashedAssetRegex = /-[A-F0-9]{8,}\.(?:js|css|png|jpe?g|webp|svg|woff2?)$/i;
@@ -84,10 +124,17 @@ app.get('/health', (req, res) => {
   });
 });
 
+app.get('/app-version', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.status(200).json(readAppVersionManifest());
+});
+
 // Todas las otras rutas deben devolver index.html (para SPA routing)
 app.get('*', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  res.sendFile(path.join(staticDir, 'index.html'));
+  res.sendFile(indexPath);
 });
 
 // Manejo de errores

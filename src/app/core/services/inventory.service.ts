@@ -163,6 +163,7 @@ export class InventoryService {
   private readonly conducesUrl = `${environment.apiUrl}/inventory/conduces`;
 
   public lowStockCount$ = new BehaviorSubject<number>(0);
+  public unregisteredSimAlertCount$ = new BehaviorSubject<number>(0);
   public inspectionRequiredCount$ = new BehaviorSubject<number>(0);
   public warehouses$ = new BehaviorSubject<Warehouse[]>([]);
 
@@ -223,7 +224,17 @@ export class InventoryService {
   ): Observable<UnregisteredInventorySimAlertResponse> {
     return this.http.get<UnregisteredInventorySimAlertResponse>(
       `${this.apiUrl}/alerts/unregistered-simcards?page=${page}&limit=${limit}`,
+    ).pipe(
+      tap(response => {
+        this.unregisteredSimAlertCount$.next(Number(response?.total || 0));
+      }),
     );
+  }
+
+  checkUnregisteredSimAlerts(): void {
+    this.getWarehouseDevicesWithUnregisteredSimcards(1, 1).subscribe({
+      error: () => this.unregisteredSimAlertCount$.next(0),
+    });
   }
 
   update(id: string, item: Partial<InventoryItem>): Observable<InventoryItem> {

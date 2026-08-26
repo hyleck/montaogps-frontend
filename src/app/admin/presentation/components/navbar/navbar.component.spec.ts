@@ -36,6 +36,11 @@ describe('NavbarComponent realtime links', () => {
         map_api1: { key: 'map-key' },
       }])),
     };
+    const appUpdateService = {
+      updateAvailable$: of(false),
+      applyingUpdate$: of(false),
+      applyUpdate: jasmine.createSpy('applyUpdate'),
+    };
     const component = new NavbarComponent(
       { getState: () => 'light' } as any,
       {} as any,
@@ -57,6 +62,7 @@ describe('NavbarComponent realtime links', () => {
       {} as any,
       { getAllProtocols: () => of([]) } as any,
       systemService as any,
+      appUpdateService as any,
     );
     return {
       component,
@@ -64,8 +70,17 @@ describe('NavbarComponent realtime links', () => {
       targetsService,
       messageService,
       systemService,
+      appUpdateService,
     };
   }
+
+  it('applies the available frontend update from the navbar', () => {
+    const { component, appUpdateService } = createComponent();
+
+    component.applyAvailableAppUpdate();
+
+    expect(appUpdateService.applyUpdate).toHaveBeenCalledTimes(1);
+  });
 
   it('opens realtime sharing for multiple selected targets', () => {
     const { component, messageService } = createComponent();

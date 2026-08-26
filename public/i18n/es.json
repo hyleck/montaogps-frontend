@@ -311,7 +311,9 @@
     "noProcesses": "No hay procesos registrados para este target",
     "myProfile": "Mi Perfil",
     "logout": "Cerrar sesión",
-    "support": "Soporte Técnico"
+    "support": "Soporte Técnico",
+    "updateAvailable": "Nueva actualización disponible",
+    "applyingUpdate": "Aplicando actualización..."
   },
   "support": {
     "title": "Soporte",

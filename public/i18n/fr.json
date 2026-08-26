@@ -154,7 +154,9 @@
     "processType": "Type",
     "noProcesses": "Aucun processus enregistré pour cette cible",
     "myProfile": "Mon Profil",
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "updateAvailable": "Nouvelle mise à jour disponible",
+    "applyingUpdate": "Mise à jour en cours..."
   },
   "maps": {
     "infoTitle": "Informations de l’objectif",

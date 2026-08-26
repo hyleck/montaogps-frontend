@@ -286,7 +286,9 @@
     "noProcesses": "No processes recorded for this target",
     "myProfile": "My Profile",
     "logout": "Logout",
-    "support": "Technical Support"
+    "support": "Technical Support",
+    "updateAvailable": "New update available",
+    "applyingUpdate": "Applying update..."
   },
   "support": {
     "title": "Support",

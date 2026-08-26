@@ -12,6 +12,7 @@ import { Target, CreateProcessDto, UpdateTargetDto } from '../../../../core/inte
 import { UserService } from '../../../../core/services/user.service';
 import { User } from '../../../../core/interfaces/user.interface';
 import { SystemService } from '../../../../core/services/system.service';
+import { AppUpdateService } from '../../../../core/services/app-update.service';
 import { ProtocolsService } from '../../../../core/services/protocols.service';
 import { SIM_CARD_TYPES } from '../../../../core/constants/sim-card-types.constant';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged, filter, firstValueFrom } from 'rxjs';
@@ -687,6 +688,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   // ... existing properties
   userPhotoUrl: string | null = null;
+  appUpdateAvailable = false;
+  applyingAppUpdate = false;
 
   constructor(
     private status: StatusService,
@@ -705,7 +708,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private firebaseNotificationsService: FirebaseNotificationsService,
     private supportService: SupportService,
     private protocolsService: ProtocolsService,
-    private systemService: SystemService
+    private systemService: SystemService,
+    private appUpdateService: AppUpdateService
   ) {
     this.currentTheme = status.getState('theme') as string;
     this.currentUser = this.authService.getCurrentUser();
@@ -745,6 +749,17 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.appUpdateService.updateAvailable$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(available => {
+        this.appUpdateAvailable = available;
+      });
+    this.appUpdateService.applyingUpdate$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(applying => {
+        this.applyingAppUpdate = applying;
+      });
+
     this.status.statusChanges$.subscribe((newStatus) => {
       if (newStatus && newStatus.theme) {
         this.currentTheme = newStatus.theme as string;
@@ -803,6 +818,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  applyAvailableAppUpdate(): void {
+    this.appUpdateService.applyUpdate();
   }
 
   /**
