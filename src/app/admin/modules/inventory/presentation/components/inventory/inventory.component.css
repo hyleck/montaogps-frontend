@@ -111,6 +111,186 @@
   border-color: rgba(245, 158, 11, 0.32);
 }
 
+.inventory-integrity-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.inventory-integrity-alert__summary {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  border-radius: 14px;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.inventory-integrity-alert__summary > div {
+  flex: 1;
+}
+
+.inventory-integrity-alert__summary strong {
+  color: var(--managementColorTitleUser);
+  font-size: 1rem;
+}
+
+.inventory-integrity-alert__summary p {
+  margin: 0.25rem 0 0;
+  color: var(--managementColorTextUser);
+  font-size: 0.82rem;
+}
+
+.inventory-integrity-alert__icon {
+  display: inline-grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.16);
+  color: #d97706;
+  font-size: 1.15rem;
+}
+
+.inventory-integrity-alert__refresh,
+.inventory-integrity-alert__search button {
+  border: 0;
+  background: transparent;
+  color: var(--managementColorTextUser);
+  cursor: pointer;
+}
+
+.inventory-integrity-alert__refresh {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+}
+
+.inventory-integrity-alert__refresh:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.14);
+  color: #d97706;
+}
+
+.inventory-integrity-alert__search {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(127, 127, 127, 0.18);
+  border-radius: 12px;
+  background: rgba(127, 127, 127, 0.04);
+}
+
+.inventory-integrity-alert__search > input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--managementColorTitleUser);
+}
+
+.inventory-integrity-alert__state {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  align-content: center;
+  gap: 0.65rem;
+  color: var(--managementColorTextUser);
+  text-align: center;
+}
+
+.inventory-integrity-alert__state > i {
+  font-size: 1.8rem;
+}
+
+.inventory-integrity-alert__state--success > i,
+.inventory-integrity-alert__state--success > strong {
+  color: #10b981;
+}
+
+.inventory-integrity-alert__table-wrap {
+  max-height: 56vh;
+  overflow: auto;
+  border: 1px solid rgba(127, 127, 127, 0.14);
+  border-radius: 12px;
+}
+
+.inventory-integrity-alert__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.inventory-integrity-alert__table th,
+.inventory-integrity-alert__table td {
+  padding: 0.8rem 0.85rem;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.12);
+  color: var(--managementColorTextUser);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.inventory-integrity-alert__table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--managementColorInputSearch, #fff);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.inventory-integrity-alert__table td strong {
+  color: var(--managementColorTitleUser);
+}
+
+.inventory-integrity-alert__table td code {
+  color: #d97706;
+  font-family: inherit;
+  font-weight: 700;
+}
+
+.inventory-integrity-alert__warehouse,
+.inventory-integrity-alert__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.inventory-integrity-alert__status {
+  padding: 0.3rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.1);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.inventory-integrity-alert__locate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid rgba(236, 67, 67, 0.25);
+  border-radius: 9px;
+  background: rgba(236, 67, 67, 0.07);
+  color: var(--managementColorTitleUser);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .inventory-integrity-alert__table-wrap {
+    overflow-x: auto;
+  }
+
+  .inventory-integrity-alert__table {
+    min-width: 760px;
+  }
+}
+
 .inventory-primary-button {
   border: 1px solid var(--managementColorTitleUser);
   background: var(--managementColorTitleUser);

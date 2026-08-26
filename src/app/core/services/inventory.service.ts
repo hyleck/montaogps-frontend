@@ -80,6 +80,17 @@ export interface InspectionRequiredResponse {
   lastPage: number;
 }
 
+export interface UnregisteredInventorySimAlert extends InventoryItem {
+  storage_id: string | { _id?: string; name?: string };
+}
+
+export interface UnregisteredInventorySimAlertResponse {
+  data: UnregisteredInventorySimAlert[];
+  total: number;
+  page: number;
+  lastPage: number;
+}
+
 export interface Package {
   _id?: string;
   title: string;
@@ -204,6 +215,15 @@ export class InventoryService {
     this.getInspectionRequired('', 1, 1).subscribe({
       error: () => this.inspectionRequiredCount$.next(0),
     });
+  }
+
+  getWarehouseDevicesWithUnregisteredSimcards(
+    page = 1,
+    limit = 500,
+  ): Observable<UnregisteredInventorySimAlertResponse> {
+    return this.http.get<UnregisteredInventorySimAlertResponse>(
+      `${this.apiUrl}/alerts/unregistered-simcards?page=${page}&limit=${limit}`,
+    );
   }
 
   update(id: string, item: Partial<InventoryItem>): Observable<InventoryItem> {

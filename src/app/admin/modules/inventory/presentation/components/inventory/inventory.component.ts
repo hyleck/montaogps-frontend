@@ -9,6 +9,7 @@ import {
   Package,
   Warehouse,
   Conduce,
+  UnregisteredInventorySimAlert,
 } from 'src/app/core/services/inventory.service';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { Protocol } from 'src/app/core/interfaces/protocol.interface';
@@ -110,6 +111,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
   selectedDevice: InventoryItem | null = null;
   deviceToInstall: InventoryItem | null = null;
   lowStockCount = 0;
+  unregisteredSimAlertCount = 0;
+  unregisteredSimAlerts: UnregisteredInventorySimAlert[] = [];
+  unregisteredSimAlertsDialogVisible = false;
+  loadingUnregisteredSimAlerts = false;
+  unregisteredSimAlertSearch = '';
   availableSimCardTypes = SIM_CARD_TYPES;
   availableApnNames = [
     { label: 'GigSky', value: 'gigsky-02' },
@@ -204,6 +210,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.loadProtocols();
     this.loadPackages();
     this.loadWarehouses();
+    this.loadUnregisteredSimAlerts(true);
     this.loadOfficialCompanyPhone();
   }
 
@@ -929,6 +936,97 @@ export class InventoryComponent implements OnInit, OnDestroy {
     }
   }
 
+  get filteredUnregisteredSimAlerts(): UnregisteredInventorySimAlert[] {
+    const query = this.normalizeWarehouseSearch(this.unregisteredSimAlertSearch);
+    if (!query) return this.unregisteredSimAlerts;
+
+    return this.unregisteredSimAlerts.filter((item) =>
+      this.normalizeWarehouseSearch([
+        item.IMEI || item.imei,
+        item.SIM || item.sim,
+        item.IDSIM || item.idsim,
+        this.getUnregisteredSimWarehouseName(item),
+        this.getInventoryAlertStatusLabel(item),
+      ].join(' ')).includes(query),
+    );
+  }
+
+  loadUnregisteredSimAlerts(showToast = false): void {
+    this.loadingUnregisteredSimAlerts = true;
+    this.inventoryService
+      .getWarehouseDevicesWithUnregisteredSimcards(1, 500)
+      .subscribe({
+        next: (response) => {
+          this.loadingUnregisteredSimAlerts = false;
+          this.unregisteredSimAlerts = response?.data || [];
+          this.unregisteredSimAlertCount = Number(response?.total || 0);
+
+          if (showToast && this.unregisteredSimAlertCount > 0) {
+            this.messageService.add({
+              severity: 'warn',
+              summary: 'GPS con SIM sin registrar',
+              detail: `${this.unregisteredSimAlertCount} ${this.unregisteredSimAlertCount === 1 ? 'GPS tiene' : 'GPS tienen'} una SIM que no existe en el inventario de SIM cards.`,
+              life: 6500,
+            });
+          }
+        },
+        error: (error) => {
+          this.loadingUnregisteredSimAlerts = false;
+          if (this.unregisteredSimAlertsDialogVisible) {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'No se pudieron cargar las alertas',
+              detail: getApiErrorMessage(
+                error,
+                'No se pudo validar el registro de las SIM cards del inventario.',
+              ),
+            });
+          }
+        },
+      });
+  }
+
+  openUnregisteredSimAlerts(): void {
+    this.unregisteredSimAlertsDialogVisible = true;
+    this.unregisteredSimAlertSearch = '';
+    this.loadUnregisteredSimAlerts(false);
+  }
+
+  getUnregisteredSimWarehouseName(item: UnregisteredInventorySimAlert): string {
+    const storage = item?.storage_id;
+    if (storage && typeof storage === 'object') {
+      return storage.name || 'Almacén sin nombre';
+    }
+    return this.warehouses.find((warehouse) => warehouse._id === storage)?.name
+      || 'Almacén asignado';
+  }
+
+  getUnregisteredSimWarehouseId(item: UnregisteredInventorySimAlert): string {
+    const storage = item?.storage_id;
+    return String(
+      storage && typeof storage === 'object' ? storage._id || '' : storage || '',
+    );
+  }
+
+  getInventoryAlertStatusLabel(item: InventoryItem): string {
+    switch (item.inventory_status) {
+      case 'available': return 'Disponible';
+      case 'reserved': return 'Reservado';
+      case 'installed': return 'Instalado';
+      case 'inspection': return 'En revisión';
+      default: return item.installed ? 'Instalado' : 'En almacén';
+    }
+  }
+
+  locateUnregisteredSimDevice(item: UnregisteredInventorySimAlert): void {
+    this.unregisteredSimAlertsDialogVisible = false;
+    this.currentView = 'devices';
+    this.globalSearchQuery = String(item.IMEI || item.imei || '').trim();
+    this.globalSearchStorageId = this.getUnregisteredSimWarehouseId(item) || null;
+    this.globalSearchStatus = '';
+    this.searchAllInventory(true);
+  }
+
   openWarehouses(): void {
     this.loadWarehouses();
     this.warehouseDialogVisible = true;
@@ -1243,6 +1341,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
         if (this.showingSearchResults && this.globalSearchQuery) {
           this.searchAllInventory();
         }
+        this.loadUnregisteredSimAlerts(false);
       },
       error: (err) => {
         this.messageService.add({
@@ -1282,6 +1381,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
               if (this.showingSearchResults && this.globalSearchQuery) {
                 this.searchAllInventory();
               }
+              this.loadUnregisteredSimAlerts(false);
             },
             error: (error) => {
               this.messageService.add({
@@ -1553,6 +1653,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
         }
 
         this.searchAllSimcards(true);
+        this.loadUnregisteredSimAlerts(false);
       },
       error: (err) => {
         this.messageService.add({
@@ -1588,6 +1689,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
                 detail: 'Simcard eliminada',
               });
               this.searchAllSimcards(true);
+              this.loadUnregisteredSimAlerts(false);
             },
             error: (error) => {
               this.messageService.add({

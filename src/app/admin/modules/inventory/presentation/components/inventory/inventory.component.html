@@ -37,6 +37,13 @@
         <span>Almacenes</span>
         <b *ngIf="lowStockCount > 0">{{ lowStockCount }}</b>
       </button>
+      <button type="button" class="inventory-tool-button"
+        [class.inventory-tool-button--warning]="unregisteredSimAlertCount > 0"
+        (click)="openUnregisteredSimAlerts()" [disabled]="loadingUnregisteredSimAlerts">
+        <i [class]="loadingUnregisteredSimAlerts ? 'pi pi-spin pi-spinner' : (unregisteredSimAlertCount > 0 ? 'pi pi-exclamation-triangle' : 'pi pi-id-card')"></i>
+        <span>SIM sin registrar</span>
+        <b *ngIf="unregisteredSimAlertCount > 0">{{ unregisteredSimAlertCount }}</b>
+      </button>
       <button type="button" class="inventory-tool-button" (click)="openConducesList()">
         <i class="pi pi-send"></i>
         <span>Conduces</span>
@@ -903,6 +910,85 @@
       </div>
 
 
+    </ng-template>
+  </p-dialog>
+
+  <p-dialog [(visible)]="unregisteredSimAlertsDialogVisible"
+    [style]="{width: '980px', maxWidth: '96vw'}" header="GPS con SIM sin registrar" [modal]="true"
+    styleClass="p-fluid app-dark-dialog inventory-integrity-dialog">
+    <ng-template pTemplate="content">
+      <section class="inventory-integrity-alert">
+        <div class="inventory-integrity-alert__summary">
+          <span class="inventory-integrity-alert__icon"><i class="pi pi-exclamation-triangle"></i></span>
+          <div>
+            <strong>{{ unregisteredSimAlertCount }} {{ unregisteredSimAlertCount === 1 ? 'GPS requiere' : 'GPS requieren' }} atención</strong>
+            <p>Solo aparecen equipos asignados a un almacén cuya SIM o ID SIM no coincide con ninguna SIM card registrada.</p>
+          </div>
+          <button type="button" class="inventory-integrity-alert__refresh"
+            (click)="loadUnregisteredSimAlerts(false)" [disabled]="loadingUnregisteredSimAlerts"
+            aria-label="Actualizar alertas" title="Actualizar alertas">
+            <i [class]="loadingUnregisteredSimAlerts ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"></i>
+          </button>
+        </div>
+
+        <div class="inventory-integrity-alert__search" *ngIf="unregisteredSimAlertCount > 0">
+          <i class="pi pi-search"></i>
+          <input type="search" [(ngModel)]="unregisteredSimAlertSearch"
+            placeholder="Buscar por IMEI, SIM, ID SIM o almacén..." />
+          <button *ngIf="unregisteredSimAlertSearch" type="button"
+            (click)="unregisteredSimAlertSearch = ''" aria-label="Limpiar búsqueda">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+
+        <div *ngIf="loadingUnregisteredSimAlerts" class="inventory-integrity-alert__state">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>Validando las SIM cards del inventario...</span>
+        </div>
+
+        <div *ngIf="!loadingUnregisteredSimAlerts && !unregisteredSimAlertCount"
+          class="inventory-integrity-alert__state inventory-integrity-alert__state--success">
+          <i class="pi pi-check-circle"></i>
+          <strong>Todos los GPS almacenados tienen su SIM registrada.</strong>
+        </div>
+
+        <div *ngIf="!loadingUnregisteredSimAlerts && unregisteredSimAlertCount > 0 && !filteredUnregisteredSimAlerts.length"
+          class="inventory-integrity-alert__state">
+          <i class="pi pi-search"></i>
+          <span>No hay alertas que coincidan con la búsqueda.</span>
+        </div>
+
+        <div *ngIf="!loadingUnregisteredSimAlerts && filteredUnregisteredSimAlerts.length"
+          class="inventory-integrity-alert__table-wrap">
+          <table class="inventory-integrity-alert__table">
+            <thead>
+              <tr>
+                <th>GPS</th>
+                <th>SIM</th>
+                <th>ID SIM</th>
+                <th>Almacén</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of filteredUnregisteredSimAlerts">
+                <td><strong>{{ item.IMEI || item.imei || 'Sin IMEI' }}</strong></td>
+                <td><code>{{ item.SIM || item.sim || '—' }}</code></td>
+                <td><code>{{ item.IDSIM || item.idsim || '—' }}</code></td>
+                <td><span class="inventory-integrity-alert__warehouse"><i class="pi pi-building"></i>{{ getUnregisteredSimWarehouseName(item) }}</span></td>
+                <td><span class="inventory-integrity-alert__status">{{ getInventoryAlertStatusLabel(item) }}</span></td>
+                <td>
+                  <button type="button" class="inventory-integrity-alert__locate"
+                    (click)="locateUnregisteredSimDevice(item)">
+                    <i class="pi pi-search"></i> Ver GPS
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </ng-template>
   </p-dialog>
 
