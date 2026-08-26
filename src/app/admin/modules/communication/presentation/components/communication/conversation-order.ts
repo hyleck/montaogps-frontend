@@ -16,6 +16,8 @@ export interface ConversationOrderOptions {
   pinnedIndex?: number | null;
 }
 
+export type ConversationOrderMode = 'attention' | 'recent';
+
 /**
  * Ordena el inbox por atención pendiente y actividad reciente.
  *
@@ -26,8 +28,13 @@ export interface ConversationOrderOptions {
 export function orderConversationsByAttention<T extends ConversationOrderCandidate>(
   conversations: T[],
   options: ConversationOrderOptions = {},
+  mode: ConversationOrderMode = 'attention',
 ): T[] {
   const ordered = [...conversations].sort((left, right) => {
+    if (mode === 'recent') {
+      return compareConversationActivity(left, right);
+    }
+
     const urgentPriorityDifference =
       Number(isUrgentConversation(right))
       - Number(isUrgentConversation(left));
@@ -52,19 +59,7 @@ export function orderConversationsByAttention<T extends ConversationOrderCandida
       return unreadPriorityDifference;
     }
 
-    const leftActivity = Number(
-      left.last_message_time || left.contact_last_seen_at || 0,
-    );
-    const rightActivity = Number(
-      right.last_message_time || right.contact_last_seen_at || 0,
-    );
-    const activityDifference = rightActivity - leftActivity;
-
-    if (activityDifference !== 0) {
-      return activityDifference;
-    }
-
-    return Number(right.id || 0) - Number(left.id || 0);
+    return compareConversationActivity(left, right);
   });
 
   const pinnedConversationId = Number(options.pinnedConversationId || 0);
@@ -83,6 +78,25 @@ export function orderConversationsByAttention<T extends ConversationOrderCandida
   const [pinnedConversation] = ordered.splice(orderedPinnedIndex, 1);
   ordered.splice(Math.min(pinnedIndex, ordered.length), 0, pinnedConversation);
   return ordered;
+}
+
+function compareConversationActivity(
+  left: ConversationOrderCandidate,
+  right: ConversationOrderCandidate,
+): number {
+  const leftActivity = Number(
+    left.last_message_time || left.contact_last_seen_at || 0,
+  );
+  const rightActivity = Number(
+    right.last_message_time || right.contact_last_seen_at || 0,
+  );
+  const activityDifference = rightActivity - leftActivity;
+
+  if (activityDifference !== 0) {
+    return activityDifference;
+  }
+
+  return Number(right.id || 0) - Number(left.id || 0);
 }
 
 function isUrgentConversation(

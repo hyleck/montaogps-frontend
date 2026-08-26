@@ -42,6 +42,24 @@ describe('WhatsAppApiService', () => {
         request.flush({ success: true, conversations: [] });
     });
 
+    it('requests conversations ordered by their most recent message', () => {
+        service.getConversations(
+            5,
+            1,
+            'employee-id',
+            true,
+            '',
+            'recent',
+        ).subscribe();
+
+        const request = httpController.expectOne(candidate => (
+            candidate.url === `${environment.apiUrl}/whatsapp/conversations`
+            && candidate.params.get('attention') === 'recent'
+        ));
+        expect(request.request.method).toBe('GET');
+        request.flush({ success: true, conversations: [] });
+    });
+
     it('persists a custom internal team chat name', () => {
         service.setConversationTeamName(202, 'Operaciones').subscribe();
 

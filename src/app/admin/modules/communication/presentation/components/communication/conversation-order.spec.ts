@@ -79,6 +79,42 @@ describe('orderConversationsByAttention', () => {
     expect(ordered.map(conversation => conversation.id)).toEqual([2, 3, 1]);
   });
 
+  it('orders exclusively by latest activity in recent mode', () => {
+    const ordered = orderConversationsByAttention([
+      {
+        id: 1,
+        priority_urgent: true,
+        unread_count: 3,
+        last_message_time: 100,
+      },
+      {
+        id: 2,
+        waiting_for_reply: true,
+        last_message_time: 200,
+      },
+      {
+        id: 3,
+        unread_count: 0,
+        last_message_time: 300,
+      },
+    ], {}, 'recent');
+
+    expect(ordered.map(conversation => conversation.id)).toEqual([3, 2, 1]);
+  });
+
+  it('keeps the selected conversation pinned in recent mode', () => {
+    const ordered = orderConversationsByAttention([
+      { id: 1, last_message_time: 100 },
+      { id: 2, last_message_time: 50 },
+      { id: 3, last_message_time: 300 },
+    ], {
+      pinnedConversationId: 2,
+      pinnedIndex: 1,
+    }, 'recent');
+
+    expect(ordered.map(conversation => conversation.id)).toEqual([3, 2, 1]);
+  });
+
   it('does not mutate the received list', () => {
     const conversations = [
       { id: 1, unread_count: 0, last_message_time: 100 },

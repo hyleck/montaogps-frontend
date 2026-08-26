@@ -51,15 +51,18 @@
                     <i class="pi pi-times"></i>
                 </button>
             </div>
-            <div class="comm-conversation-filters" role="group" aria-label="Filtrar conversaciones">
-                <button *ngFor="let filter of conversationAttentionFilters" type="button"
-                    class="comm-conversation-filter"
-                    [class.comm-conversation-filter--active]="conversationAttentionFilter === filter.id"
-                    [attr.aria-pressed]="conversationAttentionFilter === filter.id"
-                    (click)="setConversationAttentionFilter(filter.id)">
-                    <i class="pi" [ngClass]="filter.icon"></i>
-                    <span>{{ filter.label }}</span>
-                </button>
+            <div class="comm-conversation-filter-dropdown">
+                <i class="pi pi-filter" aria-hidden="true"></i>
+                <select
+                    class="comm-conversation-filter-select"
+                    [ngModel]="conversationAttentionFilter"
+                    (ngModelChange)="setConversationAttentionFilter($event)"
+                    aria-label="Filtrar y ordenar conversaciones">
+                    <option *ngFor="let filter of conversationAttentionFilters" [ngValue]="filter.id">
+                        {{ filter.label }}
+                    </option>
+                </select>
+                <i class="pi pi-chevron-down comm-conversation-filter-dropdown__chevron" aria-hidden="true"></i>
             </div>
         </div>
 

@@ -254,12 +254,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   sidebarDisplayed = true;
   activeTab: 'chat' | 'correo' | 'foro' | 'grupo' = 'chat';
   conversationFilter: 'all' | 'team' = 'all';
-  conversationAttentionFilter: 'all' | 'urgent' | 'waiting' | 'unread' = 'all';
+  conversationAttentionFilter: 'all' | 'recent' | 'urgent' | 'waiting' | 'unread' = 'all';
   readonly conversationAttentionFilters = [
-    { id: 'all' as const, label: 'Todos', icon: 'pi-inbox' },
-    { id: 'urgent' as const, label: 'Urgentes', icon: 'pi-exclamation-circle' },
-    { id: 'waiting' as const, label: 'Por responder', icon: 'pi-reply' },
-    { id: 'unread' as const, label: 'Sin leer', icon: 'pi-envelope' },
+    { id: 'all' as const, label: 'Todos' },
+    { id: 'recent' as const, label: 'Más recientes' },
+    { id: 'urgent' as const, label: 'Urgentes' },
+    { id: 'waiting' as const, label: 'Por responder' },
+    { id: 'unread' as const, label: 'Sin leer' },
   ];
   private conversationSearchTimer: ReturnType<typeof setTimeout> | null = null;
   autoResponse: boolean = false;
@@ -351,6 +352,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     replyMsg: ChatMessage | null;
   } | null = null;
   private readonly IMPROVE_RESPONSE_DEBOUNCE_MS = 900;
+  private readonly IMPROVE_RESPONSE_STORAGE_PREFIX =
+    'communication_improve_response_';
   isRootUser = false;
   conversationObjectivesLoading = false;
   savingConversationObjective = false;
@@ -688,6 +691,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       return;
     }
     this.currentUserId = currentUser.id;
+    this.restoreImproveResponsePreference();
     this.currentUserEmail = currentUser.email || '';
     this.isRootUser = currentUser.root === true
       || String(currentUser.root) === 'true';
@@ -1772,7 +1776,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   setConversationAttentionFilter(
-    filter: 'all' | 'urgent' | 'waiting' | 'unread',
+    filter: 'all' | 'recent' | 'urgent' | 'waiting' | 'unread',
   ): void {
     if (this.conversationAttentionFilter === filter) return;
     this.conversationAttentionFilter = filter;
@@ -1909,7 +1913,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return orderConversationsByAttention(conversations, {
       pinnedConversationId: selectedConversationId,
       pinnedIndex: selectedConversationIndex,
-    });
+    }, this.conversationAttentionFilter === 'recent' ? 'recent' : 'attention');
   }
 
   selectConversation(conv: ChatConversation, navigate: boolean = true): void {
@@ -5107,9 +5111,35 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   onImproveResponseToggle(enabled: boolean): void {
     this.improveResponseEnabled = enabled;
+    this.persistImproveResponsePreference();
     this.clearImprovedResponseState();
     if (enabled) {
       this.scheduleImprovedResponse(this.chatInput, 150);
+    }
+  }
+
+  private restoreImproveResponsePreference(): void {
+    if (!this.currentUserId) return;
+
+    try {
+      this.improveResponseEnabled = localStorage.getItem(
+        `${this.IMPROVE_RESPONSE_STORAGE_PREFIX}${this.currentUserId}`,
+      ) === 'true';
+    } catch {
+      this.improveResponseEnabled = false;
+    }
+  }
+
+  private persistImproveResponsePreference(): void {
+    if (!this.currentUserId) return;
+
+    try {
+      localStorage.setItem(
+        `${this.IMPROVE_RESPONSE_STORAGE_PREFIX}${this.currentUserId}`,
+        String(this.improveResponseEnabled),
+      );
+    } catch {
+      // Mantiene la selección durante la sesión si el navegador bloquea storage.
     }
   }
 

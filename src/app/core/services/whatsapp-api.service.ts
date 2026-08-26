@@ -88,7 +88,7 @@ export class WhatsAppApiService {
         agentId?: string,
         includeAll: boolean = false,
         search: string = '',
-        attention: 'all' | 'urgent' | 'waiting' | 'unread' = 'all',
+        attention: 'all' | 'recent' | 'urgent' | 'waiting' | 'unread' = 'all',
     ): Observable<any> {
         const params: any = { page: page.toString() };
         if (inboxId) {

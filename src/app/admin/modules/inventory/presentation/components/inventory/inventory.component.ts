@@ -1172,7 +1172,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
       idsim: device.IDSIM || device.idsim || '',
       protocol: typeof device.Protocol === 'object' ? device.Protocol._id : device.Protocol || device.protocol || '',
       package: typeof device.package === 'object' ? device.package._id : device.package,
-      storage_id: device.storage_id || null, // Map storage_id
+      storage_id: this.normalizeInventoryStorageId(device.storage_id),
       // packageId: device.packageId // Optional, if needed
     };
 
@@ -1224,7 +1224,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
       IDSIM: (this.selectedDevice.idsim || '').trim(),
       Protocol: this.selectedDevice.protocol,
       package: this.selectedDevice.package,
-      storage_id: this.selectedDevice.storage_id || null,
+      storage_id: this.normalizeInventoryStorageId(this.selectedDevice.storage_id),
     };
 
     const request = this.isEditDeviceMode && this.selectedDevice._id
@@ -1649,6 +1649,16 @@ export class InventoryComponent implements OnInit, OnDestroy {
         this.isLoadingConduces = false;
       }
     });
+  }
+
+  private normalizeInventoryStorageId(storage: unknown): string | null {
+    const storageId = storage && typeof storage === 'object'
+      ? (storage as { _id?: unknown })._id
+      : storage;
+
+    if (typeof storageId !== 'string') return null;
+    const normalizedStorageId = storageId.trim();
+    return normalizedStorageId || null;
   }
 
   loadConducesLazy(event: any): void {
