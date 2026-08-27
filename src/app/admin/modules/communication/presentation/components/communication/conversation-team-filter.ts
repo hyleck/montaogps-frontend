@@ -1,5 +1,6 @@
 export interface TeamFilterableConversation {
   assignee_id?: string | null;
+  shared_employee_conversation?: boolean;
   shared_team_conversation?: boolean;
   team_chat_name?: string | null;
   contact?: {
@@ -14,7 +15,7 @@ export function canParticipateInConversation(
   participantIds: Array<string | null | undefined> = [],
 ): boolean {
   if (!conversation) return false;
-  if (isTeamConversation(conversation)) return true;
+  if (isEmployeeConversation(conversation)) return true;
 
   const assigneeId = String(conversation.assignee_id || '').trim();
   if (!assigneeId) return false;
@@ -24,34 +25,25 @@ export function canParticipateInConversation(
     .includes(assigneeId);
 }
 
-const TEAM_AFFILIATIONS = new Set([
+const EMPLOYEE_AFFILIATIONS = new Set([
   'empleado',
   'tecnico',
   'tecnico_empleado',
   'tecnico_independiente',
 ]);
 
-export function isTeamConversation(
+export function isEmployeeConversation(
   conversation: TeamFilterableConversation | null | undefined,
 ): boolean {
   if (conversation?.contact?.status === false) return false;
-  if (conversation?.shared_team_conversation === false) return false;
-  if (conversation?.shared_team_conversation === true) return true;
+  if (
+    conversation?.shared_employee_conversation === true
+    || conversation?.shared_team_conversation === true
+  ) return true;
   const affiliation = String(
     conversation?.contact?.affiliation_type_id || '',
   ).trim().toLowerCase();
-  return TEAM_AFFILIATIONS.has(affiliation);
-}
-
-export function canViewConversationInTeamSection(
-  conversation: TeamFilterableConversation | null | undefined,
-  isRootUser: boolean,
-): boolean {
-  if (!isTeamConversation(conversation)) return false;
-  const affiliation = String(
-    conversation?.contact?.affiliation_type_id || '',
-  ).trim().toLowerCase();
-  return affiliation !== 'empleado' || isRootUser;
+  return EMPLOYEE_AFFILIATIONS.has(affiliation);
 }
 
 export function toTitleCaseName(value: unknown): string {
@@ -70,14 +62,7 @@ export function toTitleCaseName(value: unknown): string {
 export function formatConversationDisplayName(
   conversation: TeamFilterableConversation | null | undefined,
 ): string {
-  const name = formatConversationContactName(conversation);
-  if (!isTeamConversation(conversation)) return name;
-
-  const customName = toTitleCaseName(
-    String(conversation?.team_chat_name || '')
-      .replace(/^grupo\s+de\s+/i, ''),
-  );
-  return `Grupo De ${customName || name}`;
+  return formatConversationContactName(conversation);
 }
 
 export function formatConversationContactName(
@@ -86,8 +71,5 @@ export function formatConversationContactName(
   const rawName = String(
     conversation?.contact?.name || 'Sin nombre',
   ).replace(/^grupo\s+de\s+/i, '');
-  const name = toTitleCaseName(rawName) || 'Sin Nombre';
-  return isTeamConversation(conversation)
-    ? name.split(/\s+/)[0]
-    : name;
+  return toTitleCaseName(rawName) || 'Sin Nombre';
 }

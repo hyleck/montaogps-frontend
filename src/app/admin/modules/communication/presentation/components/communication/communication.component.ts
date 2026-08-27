@@ -38,16 +38,16 @@ import {
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 import {
   canParticipateInConversation as canParticipateInTeamAwareConversation,
-  canViewConversationInTeamSection,
   formatConversationContactName,
   formatConversationDisplayName,
-  isTeamConversation,
+  isEmployeeConversation,
   toTitleCaseName,
 } from './conversation-team-filter';
 
 interface ChatConversation {
   id: number;
   status: string;
+  shared_employee_conversation?: boolean;
   shared_team_conversation?: boolean;
   team_chat_name?: string;
   contact: {
@@ -253,7 +253,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   noInbox: boolean = false;
   sidebarDisplayed = true;
   activeTab: 'chat' | 'correo' | 'foro' | 'grupo' = 'chat';
-  conversationFilter: 'all' | 'team' = 'all';
   conversationAttentionFilter: 'all' | 'recent' | 'urgent' | 'waiting' | 'unread' = 'all';
   readonly conversationAttentionFilters = [
     { id: 'all' as const, label: 'Todos' },
@@ -266,9 +265,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   autoResponse: boolean = false;
   esterAutoReplyActive: boolean | null = null;
   showContactInfo: boolean = false;
-  editingTeamChatName = false;
-  teamChatNameDraft = '';
-  updatingTeamChatName = false;
   canManageConversationHistory = false;
   managingConversationHistory = false;
   gpsUser: any = null;
@@ -400,7 +396,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private esterFeedbackByMessageId = new Map<number, EsterMessageFeedback>();
   sendingConversationReminder: boolean = false;
   openingSharedContactPhone: string = '';
-  openingTechnicianGroupId: string | null = null;
   replyingTo: ChatMessage | null = null;
   readonly messageReactionOptions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
   reactionPickerMessageId: number | null = null;
@@ -494,16 +489,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   currentUserEmail: string = '';
   private lastApiMessageId: number | null = null;
   private conversationsFingerprint: string = '';
-  private technicianConversationIndexSource: ChatConversation[] | null = null;
-  private technicianConversationByPhone = new Map<string, ChatConversation>();
-  private technicianConversationByUserId = new Map<string, ChatConversation>();
   private pendingConversationId: number | null = null;
   private pendingFocusedMessageId: number | null = null;
   focusedMessageId: number | null = null;
   private whatsappAgentId: string = '';
   private currentUserName: string = '';
   private currentUserDepartment: string = '';
-  private canOpenTechnicianWhatsAppConversations = false;
   private playableAudioUrls = new Map<string, string>();
   private playableAudioLoading = new Set<string>();
   private playableAudioErrors = new Set<string>();
@@ -635,15 +626,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       }
     });
     this.route.queryParamMap.subscribe(params => {
-      const requestedConversationFilter = params.get('view') === 'team'
-        ? 'team'
-        : 'all';
-      if (
-        this.activeTab === 'chat'
-        && this.conversationFilter !== requestedConversationFilter
-      ) {
-        this.conversationFilter = requestedConversationFilter;
-        this.filterConversations();
+      if (params.get('view') === 'team' && this.activeTab === 'chat') {
+        this.navigateToTab('grupo');
+        return;
       }
       const messageId = Number(params.get('messageId') || 0);
       this.pendingFocusedMessageId = messageId > 0 ? messageId : null;
@@ -705,19 +690,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.whatsappAgentId = String(user?._id || user?.id || currentUser.id);
         this.currentUserName = user?.name || 'Agente';
         this.currentUserDepartment = this.normalizeAgentDepartment(user?.department_id);
-        const affiliation = String(user?.affiliation_type_id || '')
-          .trim()
-          .toLowerCase();
-        const isDeveloper = user?.developer === true
-          || String(user?.developer).toLowerCase() === 'true';
         const isDetailedRoot = user?.root === true
           || String(user?.root).toLowerCase() === 'true';
         this.isRootUser = this.isRootUser || isDetailedRoot;
         this.canManageConversationHistory = isDetailedRoot
           && !String(user?.parent_id || '').trim();
-        this.canOpenTechnicianWhatsAppConversations =
-          affiliation === 'empleado' || isDeveloper || this.isRootUser;
-        
+
         // WhatsApp usa una bandeja local única respaldada por Meta y MongoDB.
         this.userInboxId = 5;
         this.noInbox = false;
@@ -783,29 +761,20 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   showConversationFilter(filter: 'all' | 'team'): void {
+    if (filter === 'team') {
+      this.navigateToTab('grupo');
+      return;
+    }
     this.activeTab = 'chat';
-    this.conversationFilter = filter;
     this.stopInternalChatPolling();
     this.stopActiveEmployeesPolling();
 
-    if (
-      this.selectedConversation
-      && filter === 'team'
-      && !canViewConversationInTeamSection(
-        this.selectedConversation,
-        this.isRootUser,
-      )
-    ) {
-      this.goBack();
-    } else if (this.selectedConversation) {
+    if (this.selectedConversation) {
       this.startConversationPresenceSession();
     }
 
     this.filterConversations();
-    this.router.navigate(
-      ['/admin/communication', 'chat'],
-      { queryParams: filter === 'team' ? { view: 'team' } : {} },
-    );
+    this.router.navigate(['/admin/communication', 'chat']);
   }
 
   // ============================
@@ -1344,7 +1313,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   openTransferModal(): void {
     if (
       !this.isConversationAssignedToMe()
-      || this.isInternalTeamConversation()
+      || this.isSharedEmployeeConversation()
     ) return;
     this.showTransferModal = true;
     this.selectedTransferAgentId = null;
@@ -1419,7 +1388,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (
       this.isTransferring
       || !this.isConversationAssignedToMe()
-      || this.isInternalTeamConversation()
+      || this.isSharedEmployeeConversation()
     ) return;
 
     this.selectedTransferAgentId = this.esterTransferAgentId;
@@ -1447,7 +1416,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const transferToEster = this.selectedTransferAgentId === this.esterTransferAgentId;
     if (
       transferToEster
-      && this.isInternalTeamConversation(this.selectedConversation)
+      && this.isSharedEmployeeConversation(this.selectedConversation)
     ) {
       this.selectedTransferAgentId = null;
       return;
@@ -1538,7 +1507,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   transferAllToEster(): void {
     const activeConvs = this.conversations.filter(c =>
-      c.assignee_id !== null && !isTeamConversation(c)
+      c.assignee_id !== null && !isEmployeeConversation(c)
     );
     if (activeConvs.length === 0) {
       this.messageService.add({ severity: 'info', summary: 'Bandeja limpia', detail: 'No tienes conversaciones activas pendientes por devolver.' });
@@ -1737,13 +1706,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             const lastId = localStorage.getItem(`last_opened_chat_${this.currentUserId}`);
             if (lastId) {
               const lastConv = this.conversations.find(c => c.id === Number(lastId));
-              if (
-                lastConv
-                && (
-                  this.conversationFilter === 'all'
-                  || isTeamConversation(lastConv)
-                )
-              ) {
+              if (lastConv) {
                 this.selectConversation(lastConv, true);
               }
             }
@@ -1791,21 +1754,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (this.conversationAttentionFilter !== 'all') {
       return 'No hay conversaciones para este filtro';
     }
-    return this.conversationFilter === 'team'
-      ? 'No hay conversaciones de empleados'
-      : 'No hay conversaciones en la bandeja';
+    return 'No hay conversaciones en la bandeja';
   }
 
   filterConversations(): void {
-    this.filteredConversations = this.conversations.filter(c => {
-      if (
-        this.conversationFilter === 'team'
-        && !canViewConversationInTeamSection(c, this.isRootUser)
-      ) {
-        return false;
-      }
-      return true;
-    });
+    this.filteredConversations = [...this.conversations];
   }
 
   private getConversationListQuerySignature(): string {
@@ -1817,15 +1770,17 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   getConversationAssigneeLabel(conv: ChatConversation): string {
     if (!conv.assignee_id) {
-      return isTeamConversation(conv) ? 'Sin asignar' : 'Ester Assistant';
+      return isEmployeeConversation(conv)
+        ? 'Disponible para todos'
+        : 'Ester Assistant';
     }
     return (conv.assignee_name || conv.assignee_email || 'otro empleado').trim();
   }
 
-  isInternalTeamConversation(
+  isSharedEmployeeConversation(
     conv: ChatConversation | null = this.selectedConversation,
   ): boolean {
-    return isTeamConversation(conv);
+    return isEmployeeConversation(conv);
   }
 
   canParticipateInConversation(
@@ -1843,7 +1798,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return !!conv
       && !conv.assignee_id
       && (
-        isTeamConversation(conv)
+        isEmployeeConversation(conv)
         || this.esterAutoReplyActive === false
       );
   }
@@ -1894,7 +1849,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     conv: ChatConversation | null = this.selectedConversation,
   ): string {
     if (!conv?.assignee_id) {
-      return isTeamConversation(conv) ? 'Sin asignar' : 'Ester Assistant';
+      return isEmployeeConversation(conv)
+        ? 'Disponible para todos'
+        : 'Ester Assistant';
     }
     return String(
       conv.assignee_name
@@ -1928,8 +1885,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     );
     this.resetPlayableAudio();
     this.selectedConversation = conv;
-    this.editingTeamChatName = false;
-    this.teamChatNameDraft = '';
     if (navigate) {
       this.pendingFocusedMessageId = null;
     }
@@ -1956,10 +1911,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.loadMessages();
     this.loadGpsUser(conv.contact.phone, conv.contact.user_id);
     if (navigate) {
-      const filterQuery = this.conversationFilter === 'team'
-        ? '?view=team'
-        : '';
-      this.location.go(`/admin/communication/chat/${conv.id}${filterQuery}`);
+      this.location.go(`/admin/communication/chat/${conv.id}`);
     }
   }
 
@@ -1967,86 +1919,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (this.updatingConversationLanguage) return;
     this.showTranslationLanguageMenu = !this.showTranslationLanguageMenu;
     this.showContactInfo = false;
-  }
-
-  startEditingTeamChatName(event?: MouseEvent): void {
-    event?.stopPropagation();
-    const conversation = this.selectedConversation;
-    if (!conversation || !this.isInternalTeamConversation(conversation)) return;
-
-    this.teamChatNameDraft = String(
-      conversation.team_chat_name || this.getSelectedContactDisplayName(),
-    )
-      .replace(/^grupo\s+de\s+/i, '')
-      .trim();
-    this.editingTeamChatName = true;
-    this.showTranslationLanguageMenu = false;
-    this.showContactInfo = false;
-  }
-
-  cancelEditingTeamChatName(): void {
-    if (this.updatingTeamChatName) return;
-    this.editingTeamChatName = false;
-    this.teamChatNameDraft = '';
-  }
-
-  saveTeamChatName(): void {
-    const conversation = this.selectedConversation;
-    if (
-      !conversation
-      || !this.isInternalTeamConversation(conversation)
-      || this.updatingTeamChatName
-    ) {
-      return;
-    }
-
-    const conversationId = conversation.id;
-    const name = String(this.teamChatNameDraft || '')
-      .replace(/^\s*grupo\s+de\s+/i, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    this.updatingTeamChatName = true;
-    this.whatsappApi.setConversationTeamName(conversationId, name)
-      .pipe(finalize(() => {
-        this.updatingTeamChatName = false;
-      }))
-      .subscribe({
-        next: response => {
-          const savedName = String(response?.team_chat_name || '').trim();
-          const listConversation = this.conversations.find(
-            item => item.id === conversationId,
-          );
-          if (listConversation) {
-            listConversation.team_chat_name = savedName;
-          }
-          if (this.selectedConversation?.id === conversationId) {
-            this.selectedConversation.team_chat_name = savedName;
-          }
-          this.conversationsFingerprint = this.getConversationsFingerprint(
-            this.conversations,
-          );
-          this.filterConversations();
-          this.editingTeamChatName = false;
-          this.teamChatNameDraft = '';
-          this.messageService.add({
-            severity: 'success',
-            summary: savedName ? 'Nombre actualizado' : 'Nombre restablecido',
-            detail: savedName
-              ? `Ahora se muestra como Grupo De ${toTitleCaseName(savedName)}`
-              : 'El chat volvió a usar el nombre del empleado.',
-          });
-        },
-        error: error => {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'No se cambió el nombre',
-            detail: getApiErrorMessage(
-              error,
-              'No se pudo guardar el nombre de este chat',
-            ),
-          });
-        },
-      });
   }
 
   confirmClearSelectedConversation(): void {
@@ -2390,7 +2262,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.pendingFocusedMessageId = messageId > 0 ? messageId : null;
     this.focusedMessageId = null;
     this.activeTab = 'chat';
-    this.conversationFilter = 'all';
     this.stopInternalChatPolling();
     this.stopActiveEmployeesPolling();
 
@@ -3487,12 +3358,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.getTeamEntrySubtitle(group),
         group.type === 'admin'
           ? 'empleados administrativos'
-          : 'técnico whatsapp conversación teléfono',
+          : 'instalaciones técnico empleados administrativos',
         group.technician?.name,
         group.technician?.lastName,
         group.technician?.email,
-        group.technician?.phone,
-        group.technician?.phone2,
       ]
         .filter(Boolean)
         .join(' ');
@@ -3511,82 +3380,31 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   get totalInternalUnreadCount(): number {
     if (this.internalChatMuted) return 0;
     return this.internalGroups.reduce(
-      (total, group) => total + (
-        this.isTechnicianWhatsAppEntry(group)
-          ? 0
-          : Math.max(0, Number(group.unreadCount) || 0)
-      ),
+      (total, group) => total + Math.max(0, Number(group.unreadCount) || 0),
       0,
     );
-  }
-
-  get totalTeamUnreadCount(): number {
-    return this.conversations.reduce(
-      (total, conversation) => total + (
-        isTeamConversation(conversation)
-          ? Math.max(0, Number(conversation.unread_count) || 0)
-          : 0
-      ),
-      0,
-    );
-  }
-
-  isTechnicianWhatsAppEntry(group: InternalChatGroup): boolean {
-    return this.canOpenTechnicianWhatsAppConversations
-      && group?.type === 'installation';
   }
 
   getTeamEntryName(group: InternalChatGroup): string {
-    if (!this.isTechnicianWhatsAppEntry(group)) return group?.name || 'Grupo';
-
-    const technicianName = [
-      group.technician?.name,
-      group.technician?.lastName,
-    ].filter(Boolean).join(' ').trim();
-    return technicianName || group?.name || 'Técnico';
+    return group?.name || 'Grupo';
   }
 
   getTeamEntrySubtitle(group: InternalChatGroup): string {
-    if (!this.isTechnicianWhatsAppEntry(group)) {
-      return group?.type === 'admin'
-        ? 'Grupo interno · Empleados administrativos'
-        : 'Grupo interno · Técnico y empleados administrativos';
-    }
-
-    const phone = this.getTechnicianWhatsAppPhone(group);
-    const phoneLabel = phone
-      ? `WhatsApp ${this.formatWhatsAppPhone(phone)}`
-      : 'WhatsApp sin número configurado';
-    const conversation = this.getTechnicianWhatsAppConversation(group);
-    const preview = conversation
-      ? this.getCleanPreview(conversation.last_message)
-      : 'Iniciar conversación';
-    return `${phoneLabel} · ${preview}`;
+    return group?.type === 'admin'
+      ? 'Grupo interno · Empleados administrativos'
+      : 'Grupo de instalaciones · Técnico y empleados administrativos';
   }
 
-  getTeamEntryTime(group: InternalChatGroup): string {
-    if (!this.isTechnicianWhatsAppEntry(group)) return '';
-    return this.getTimeAgo(
-      this.getTechnicianWhatsAppConversation(group)?.last_message_time || null,
-    );
+  getTeamEntryTime(_group: InternalChatGroup): string {
+    return '';
   }
 
   getTeamEntryUnreadCount(group: InternalChatGroup): number {
-    const unreadCount = this.isTechnicianWhatsAppEntry(group)
-      ? this.getTechnicianWhatsAppConversation(group)?.unread_count
-      : group?.unreadCount;
-    return Math.max(0, Number(unreadCount) || 0);
-  }
-
-  isOpeningTechnicianConversation(group: InternalChatGroup): boolean {
-    return this.openingTechnicianGroupId === group?.id;
+    return Math.max(0, Number(group?.unreadCount) || 0);
   }
 
   refreshTeamEntries(): void {
     this.loadInternalGroups(false, true);
-    if (this.canOpenTechnicianWhatsAppConversations) {
-      this.loadConversations();
-    }
   }
 
   toggleInternalGroupMenu(): void {
@@ -3636,11 +3454,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   selectInternalGroup(group: InternalChatGroup): void {
     if (!group?.id) return;
 
-    if (this.isTechnicianWhatsAppEntry(group)) {
-      this.openTechnicianWhatsAppConversation(group);
-      return;
-    }
-
     this.showInternalGroupMenu = false;
     this.activeTab = 'grupo';
     this.internalGroupChatOpen = true;
@@ -3656,172 +3469,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       queryParams: { groupId: group.id },
     });
     this.loadInternalChat();
-  }
-
-  openTechnicianWhatsAppConversation(group: InternalChatGroup): void {
-    if (!this.isTechnicianWhatsAppEntry(group)) return;
-
-    const existingConversation = this.getTechnicianWhatsAppConversation(group);
-    if (existingConversation) {
-      this.activateTechnicianWhatsAppConversation(existingConversation);
-      return;
-    }
-
-    const phone = this.getTechnicianWhatsAppPhone(group);
-    if (!this.normalizeSharedContactPhone(phone)) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Técnico sin WhatsApp',
-        detail: 'Configura un número de teléfono válido en el perfil del técnico.',
-      });
-      return;
-    }
-    if (this.openingTechnicianGroupId) return;
-
-    this.openingTechnicianGroupId = group.id;
-    const contactName = this.getTeamEntryName(group);
-    this.whatsappApi.ensureConversation({
-      phone,
-      contact_name: contactName,
-      claim_if_unassigned: false,
-    }).pipe(
-      finalize(() => {
-        this.openingTechnicianGroupId = null;
-      }),
-    ).subscribe({
-      next: response => {
-        const ensured = response?.conversation;
-        if (!response?.success || !ensured?.id) {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'No se pudo abrir WhatsApp',
-            detail: response?.error || 'No se pudo preparar la conversación con el técnico.',
-          });
-          return;
-        }
-
-        const ensuredPhone = String(ensured.phone || phone).trim();
-        const existing = this.conversations.find(conversation => (
-          conversation.id === Number(ensured.id)
-          || this.normalizeSharedContactPhone(conversation.contact?.phone)
-            === this.normalizeSharedContactPhone(ensuredPhone)
-        ));
-        const sharedContact: WhatsAppSharedContact = {
-          name: contactName,
-          phones: [{ phone: ensuredPhone }],
-        };
-        const conversation = existing || this.buildSharedContactConversation(
-          sharedContact,
-          ensured,
-        );
-
-        conversation.assignee_id = ensured.assignee_id
-          ?? conversation.assignee_id
-          ?? null;
-        conversation.contact.name = String(
-          ensured.contact_name || contactName,
-        ).trim();
-        conversation.contact.phone = ensuredPhone;
-        conversation.contact.user_id = group.technicianId || null;
-        conversation.contact.affiliation_type_id = 'tecnico';
-
-        if (!existing) {
-          conversation.assignee_name = this.isConversationAssignedToMe(conversation)
-            ? this.currentUserName
-            : conversation.assignee_name;
-          this.conversations = this.sortConversations([
-            conversation,
-            ...this.conversations,
-          ]);
-          this.conversationsFingerprint = this.getConversationsFingerprint(
-            this.conversations,
-          );
-          this.filterConversations();
-        }
-
-        this.activateTechnicianWhatsAppConversation(conversation);
-      },
-      error: error => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'No se pudo abrir WhatsApp',
-          detail: error?.error?.error
-            || error?.error?.message
-            || 'No se pudo preparar la conversación con el técnico.',
-        });
-      },
-    });
-  }
-
-  private activateTechnicianWhatsAppConversation(
-    conversation: ChatConversation,
-  ): void {
-    this.showInternalGroupMenu = false;
-    this.internalGroupChatOpen = false;
-    this.stopInternalChatPolling();
-    this.stopActiveEmployeesPolling();
-    this.activeTab = 'chat';
-    this.conversationFilter = 'team';
-    this.selectConversation(conversation);
-  }
-
-  private getTechnicianWhatsAppConversation(
-    group: InternalChatGroup,
-  ): ChatConversation | undefined {
-    this.ensureTechnicianConversationIndex();
-    const technicianId = String(group?.technicianId || '').trim();
-    const byUserId = technicianId
-      ? this.technicianConversationByUserId.get(technicianId)
-      : undefined;
-    if (byUserId) return byUserId;
-
-    const phones = [group?.technician?.phone, group?.technician?.phone2]
-      .map(phone => this.normalizeSharedContactPhone(phone))
-      .filter(Boolean);
-    return phones
-      .map(phone => this.technicianConversationByPhone.get(phone))
-      .find((conversation): conversation is ChatConversation => !!conversation);
-  }
-
-  private ensureTechnicianConversationIndex(): void {
-    if (this.technicianConversationIndexSource === this.conversations) return;
-
-    this.technicianConversationIndexSource = this.conversations;
-    this.technicianConversationByPhone.clear();
-    this.technicianConversationByUserId.clear();
-    for (const conversation of this.conversations) {
-      const phone = this.normalizeSharedContactPhone(
-        conversation?.contact?.phone,
-      );
-      const userId = String(conversation?.contact?.user_id || '').trim();
-      if (phone && !this.technicianConversationByPhone.has(phone)) {
-        this.technicianConversationByPhone.set(phone, conversation);
-      }
-      if (userId && !this.technicianConversationByUserId.has(userId)) {
-        this.technicianConversationByUserId.set(userId, conversation);
-      }
-    }
-  }
-
-  private getTechnicianWhatsAppPhone(group: InternalChatGroup): string {
-    const conversationPhone = this.getTechnicianWhatsAppConversation(group)
-      ?.contact?.phone;
-    const candidates = [
-      group?.technician?.phone,
-      group?.technician?.phone2,
-      conversationPhone,
-    ].map(phone => String(phone || '').trim());
-    return candidates.find(phone => !!this.normalizeSharedContactPhone(phone))
-      || candidates.find(Boolean)
-      || '';
-  }
-
-  private formatWhatsAppPhone(value: unknown): string {
-    const phone = this.normalizeSharedContactPhone(value);
-    if (/^1\d{10}$/.test(phone)) {
-      return `+1 ${phone.slice(1, 4)}-${phone.slice(4, 7)}-${phone.slice(7)}`;
-    }
-    return phone ? `+${phone}` : '';
   }
 
   showInternalGroupList(): void {
@@ -4501,7 +4148,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return !!(
       conversation
       && this.isConversationAssignedToMe(conversation)
-      && !isTeamConversation(conversation)
+      && !isEmployeeConversation(conversation)
       && !this.isOutside24hWindow(conversation)
       && latestMessage?.from === 'incoming'
       && latestMessage.id
@@ -6230,7 +5877,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (
       !this.selectedConversation
       || !this.whatsappAgentId
-      || this.isInternalTeamConversation(this.selectedConversation)
+      || this.isSharedEmployeeConversation(this.selectedConversation)
     ) return;
 
     this.whatsappApi.assignAgentToConversation(this.selectedConversation.id, this.whatsappAgentId).subscribe({
@@ -6260,7 +5907,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const conversation = this.selectedConversation;
     if (
       !conversation?.reminder_eligible
-      || this.isInternalTeamConversation(conversation)
+      || this.isSharedEmployeeConversation(conversation)
       || !conversation.assignee_id
       || this.isConversationAssignedToMe(conversation)
       || this.sendingConversationReminder
@@ -6743,7 +6390,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const conversation = this.selectedConversation;
     if (!conversation) return 'Sin Nombre';
     return formatConversationDisplayName({
-      team_chat_name: conversation.team_chat_name,
       contact: {
         name: this.getSelectedContactDisplayName(),
         affiliation_type_id: conversation.contact.affiliation_type_id,

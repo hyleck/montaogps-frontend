@@ -1,14 +1,13 @@
 import {
-  canViewConversationInTeamSection,
   canParticipateInConversation,
   formatConversationContactName,
   formatConversationDisplayName,
-  isTeamConversation,
+  isEmployeeConversation,
   toTitleCaseName,
 } from './conversation-team-filter';
 
 describe('canParticipateInConversation', () => {
-  it('allows every user to participate in an internal team conversation', () => {
+  it('allows every employee to participate in an active employee WhatsApp chat', () => {
     expect(canParticipateInConversation({
       assignee_id: null,
       contact: { affiliation_type_id: 'empleado' },
@@ -39,25 +38,25 @@ describe('canParticipateInConversation', () => {
   });
 });
 
-describe('isTeamConversation', () => {
-  it('recognizes administrative employees and every technician affiliation', () => {
+describe('isEmployeeConversation', () => {
+  it('recognizes active employees and every technician affiliation', () => {
     for (const affiliation of [
       'empleado',
       'tecnico',
       'tecnico_empleado',
       'tecnico_independiente',
     ]) {
-      expect(isTeamConversation({
+      expect(isEmployeeConversation({
         contact: { affiliation_type_id: affiliation },
       })).toBeTrue();
     }
   });
 
   it('does not include customers or unlinked WhatsApp contacts', () => {
-    expect(isTeamConversation({
+    expect(isEmployeeConversation({
       contact: { affiliation_type_id: 'cliente' },
     })).toBeFalse();
-    expect(isTeamConversation({ contact: {} })).toBeFalse();
+    expect(isEmployeeConversation({ contact: {} })).toBeFalse();
   });
 
   it('treats suspended employees as normal contacts', () => {
@@ -70,64 +69,51 @@ describe('isTeamConversation', () => {
       },
     };
 
-    expect(isTeamConversation(suspendedEmployee)).toBeFalse();
+    expect(isEmployeeConversation(suspendedEmployee)).toBeFalse();
     expect(formatConversationDisplayName(suspendedEmployee))
       .toBe('Empleado Suspendido');
   });
-});
-
-describe('canViewConversationInTeamSection', () => {
-  const administrativeEmployee = {
-    contact: {
-      affiliation_type_id: 'empleado',
-      status: true,
-    },
-  };
-
-  it('only shows non-technician employees to root users', () => {
-    expect(canViewConversationInTeamSection(
-      administrativeEmployee,
-      false,
-    )).toBeFalse();
-    expect(canViewConversationInTeamSection(
-      administrativeEmployee,
-      true,
-    )).toBeTrue();
+  it('accepts the explicit shared employee marker without treating it as a group', () => {
+    expect(isEmployeeConversation({
+      shared_employee_conversation: true,
+      shared_team_conversation: false,
+      contact: { status: true },
+    })).toBeTrue();
   });
 
-  it('continues showing technicians to non-root users', () => {
-    for (const affiliation of [
-      'tecnico',
-      'tecnico_empleado',
-      'tecnico_independiente',
-    ]) {
-      expect(canViewConversationInTeamSection({
-        contact: { affiliation_type_id: affiliation, status: true },
-      }, false)).toBeTrue();
-    }
+  it('keeps legacy shared employee records writable during cache migration', () => {
+    expect(isEmployeeConversation({
+      shared_team_conversation: true,
+      contact: { status: true },
+    })).toBeTrue();
+    expect(formatConversationDisplayName({
+      shared_team_conversation: true,
+      team_chat_name: 'Operaciones',
+      contact: { name: 'MARÍA PÉREZ', status: true },
+    })).toBe('María Pérez');
   });
 });
 
 describe('conversation employee display names', () => {
-  it('prefixes team chats and formats the user name in title case', () => {
+  it('shows employee chats as normal full names in title case', () => {
     expect(formatConversationDisplayName({
       contact: {
         name: 'jUAN de la cruz',
         affiliation_type_id: 'empleado',
       },
-    })).toBe('Grupo De Juan');
+    })).toBe('Juan De La Cruz');
   });
 
-  it('does not duplicate an existing group prefix', () => {
+  it('removes a legacy group prefix without shortening the name', () => {
     expect(formatConversationDisplayName({
       contact: {
         name: 'GRUPO DE ANA-MARÍA O\'NEILL',
         affiliation_type_id: 'tecnico',
       },
-    })).toBe('Grupo De Ana-María');
+    })).toBe('Ana-María O\'Neill');
   });
 
-  it('uses a custom team chat name without modifying the employee name', () => {
+  it('ignores a legacy custom group name and keeps the employee identity', () => {
     const conversation = {
       team_chat_name: 'GRUPO DE operaciones técnicas',
       contact: {
@@ -137,8 +123,9 @@ describe('conversation employee display names', () => {
     };
 
     expect(formatConversationDisplayName(conversation))
-      .toBe('Grupo De Operaciones Técnicas');
-    expect(formatConversationContactName(conversation)).toBe('Ayline');
+      .toBe('Ayline Nachell Madera Martinez');
+    expect(formatConversationContactName(conversation))
+      .toBe('Ayline Nachell Madera Martinez');
   });
 
   it('formats regular contact names without adding the group prefix', () => {
@@ -148,12 +135,12 @@ describe('conversation employee display names', () => {
     })).toBe('María Pérez');
   });
 
-  it('shows only the first name when referring to an employee', () => {
+  it('shows the full employee name when referring to the contact', () => {
     expect(formatConversationContactName({
       contact: {
         name: 'AYLINE NACHELL MADERA MARTINEZ',
         affiliation_type_id: 'empleado',
       },
-    })).toBe('Ayline');
+    })).toBe('Ayline Nachell Madera Martinez');
   });
 });

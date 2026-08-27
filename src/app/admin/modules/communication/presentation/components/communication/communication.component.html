@@ -2,20 +2,20 @@
     <!-- Tab Bar -->
     <div *ngIf="!noInbox" class="comm-tabs">
         <button class="comm-tabs__btn"
-            [class.comm-tabs__btn--active]="activeTab === 'chat' && conversationFilter === 'all'"
+            [class.comm-tabs__btn--active]="activeTab === 'chat'"
             (click)="showConversationFilter('all')">
             <i class="pi pi-comments"></i> Chat
         </button>
         <button class="comm-tabs__btn"
-            [class.comm-tabs__btn--active]="activeTab === 'chat' && conversationFilter === 'team'"
+            [class.comm-tabs__btn--active]="activeTab === 'grupo'"
             type="button"
-            (click)="showConversationFilter('team')">
+            (click)="navigateToTab('grupo')">
             <i class="pi pi-address-book"></i>
             Equipo
-            <span *ngIf="totalTeamUnreadCount > 0"
+            <span *ngIf="totalInternalUnreadCount > 0"
                 class="comm-tabs__unread-badge"
                 aria-label="Mensajes nuevos del equipo">
-                {{ totalTeamUnreadCount > 99 ? '99+' : totalTeamUnreadCount }}
+                {{ totalInternalUnreadCount > 99 ? '99+' : totalInternalUnreadCount }}
             </span>
         </button>
     </div>
@@ -35,8 +35,8 @@
     <div class="comm-sidebar" [class.comm-sidebar--hidden]="selectedConversation">
         <!-- Header -->
         <div class="comm-sidebar__header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="margin: 0;">{{ conversationFilter === 'team' ? 'Equipo' : 'Comunicación' }}</h2>
-            <button *ngIf="conversationFilter !== 'team'" pButton icon="pi pi-bolt" class="p-button-sm p-button-danger p-button-outlined p-button-rounded" pTooltip="Transferir conversaciones a Ester" tooltipPosition="bottom" (click)="transferAllToEster()"></button>
+            <h2 style="margin: 0;">Comunicación</h2>
+            <button pButton icon="pi pi-bolt" class="p-button-sm p-button-danger p-button-outlined p-button-rounded" pTooltip="Transferir conversaciones a Ester" tooltipPosition="bottom" (click)="transferAllToEster()"></button>
         </div>
 
         <!-- Search -->
@@ -44,7 +44,7 @@
             <div class="comm-search-box">
                 <i class="pi pi-search"></i>
                 <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="onConversationSearchChange()"
-                    [placeholder]="conversationFilter === 'team' ? 'Buscar empleados o mensajes...' : 'Buscar contactos o mensajes...'"
+                    placeholder="Buscar contactos o mensajes..."
                     aria-label="Buscar contactos o mensajes" />
                 <button *ngIf="searchTerm" type="button" class="comm-search-box__clear"
                     aria-label="Limpiar búsqueda" (click)="clearConversationSearch()">
@@ -95,9 +95,9 @@
             <div *ngFor="let conv of filteredConversations" class="comm-contact"
                 [hidden]="loadingConversations"
                 [class.comm-contact--active]="selectedConversation?.id === conv.id"
-                [class.comm-contact--ester]="!isInternalTeamConversation(conv) && !conv.assignee_id"
-                [class.comm-contact--mine]="!isInternalTeamConversation(conv) && isConversationAssignedToMe(conv)"
-                [class.comm-contact--employee]="!isInternalTeamConversation(conv) && !!conv.assignee_id && !isConversationAssignedToMe(conv)"
+                [class.comm-contact--ester]="!isSharedEmployeeConversation(conv) && !conv.assignee_id"
+                [class.comm-contact--mine]="!isSharedEmployeeConversation(conv) && isConversationAssignedToMe(conv)"
+                [class.comm-contact--employee]="!isSharedEmployeeConversation(conv) && !!conv.assignee_id && !isConversationAssignedToMe(conv)"
                 (click)="selectConversation(conv)">
                 <div class="comm-contact__avatar">
                     <img *ngIf="getUsableAvatarUrl(conv.contact.avatar) as avatarUrl"
@@ -130,7 +130,7 @@
                                     <span class="comm-contact__preview-text">{{ preview.text }}</span>
                                 </div>
                             </ng-container>
-                            <div *ngIf="!isInternalTeamConversation(conv)" class="comm-contact__assignee"
+                            <div *ngIf="!isSharedEmployeeConversation(conv)" class="comm-contact__assignee"
                                 [class.comm-contact__assignee--ester]="!conv.assignee_id"
                                 [class.comm-contact__assignee--ester-disabled]="isEsterAutoReplyDisabled(conv)"
                                 [class.comm-contact__assignee--mine]="isConversationAssignedToMe(conv)">
@@ -143,9 +143,9 @@
                                     ? 'Asignada a ti'
                                     : 'Asignada a ' + getConversationAssigneeLabel(conv) }}
                             </div>
-                            <div *ngIf="isInternalTeamConversation(conv)" class="comm-contact__assignee">
-                                <i class="pi pi-users"></i>
-                                Chat compartido
+                            <div *ngIf="isSharedEmployeeConversation(conv)" class="comm-contact__assignee">
+                                <i class="pi pi-user"></i>
+                                Disponible para todos
                             </div>
                         </div>
                         <div *ngIf="conv.unread_count > 0" class="comm-contact__badge">{{ conv.unread_count }}</div>
@@ -180,40 +180,7 @@
                 </div>
                 <div class="comm-chat__header-info">
                     <div class="comm-chat__header-name">
-                        <ng-container *ngIf="!editingTeamChatName; else teamChatNameEditor">
-                            <span>{{ getSelectedConversationDisplayName() }}</span>
-                            <button
-                                *ngIf="isInternalTeamConversation(selectedConversation)"
-                                type="button"
-                                class="comm-team-name-edit"
-                                title="Cambiar nombre del grupo"
-                                aria-label="Cambiar nombre del grupo"
-                                (click)="startEditingTeamChatName($event)">
-                                <i class="pi pi-pencil"></i>
-                            </button>
-                        </ng-container>
-                        <ng-template #teamChatNameEditor>
-                            <div class="comm-team-name-editor">
-                                <span class="comm-team-name-editor__prefix">Grupo De</span>
-                                <input
-                                    type="text"
-                                    [(ngModel)]="teamChatNameDraft"
-                                    maxlength="80"
-                                    placeholder="Nombre del grupo"
-                                    aria-label="Nombre personalizado del grupo"
-                                    [disabled]="updatingTeamChatName"
-                                    (keydown.enter)="saveTeamChatName()"
-                                    (keydown.escape)="cancelEditingTeamChatName()" />
-                                <button type="button" title="Guardar nombre" aria-label="Guardar nombre"
-                                    [disabled]="updatingTeamChatName" (click)="saveTeamChatName()">
-                                    <i class="pi" [ngClass]="updatingTeamChatName ? 'pi-spin pi-spinner' : 'pi-check'"></i>
-                                </button>
-                                <button type="button" title="Cancelar" aria-label="Cancelar"
-                                    [disabled]="updatingTeamChatName" (click)="cancelEditingTeamChatName()">
-                                    <i class="pi pi-times"></i>
-                                </button>
-                            </div>
-                        </ng-template>
+                        <span>{{ getSelectedConversationDisplayName() }}</span>
                         <i *ngIf="gpsUser?.verificado === true" class="pi pi-check-circle comm-chat__verified" title="Usuario verificado"></i>
                         <button
                             *ngIf="gpsUser?._id"
@@ -292,7 +259,7 @@
                         aria-label="Borrar chat definitivamente">
                         <i class="pi pi-trash"></i>
                     </button>
-                    <button *ngIf="isConversationAssignedToMe(selectedConversation) && !isInternalTeamConversation(selectedConversation)"
+                    <button *ngIf="isConversationAssignedToMe(selectedConversation) && !isSharedEmployeeConversation(selectedConversation)"
                         class="comm-info-btn comm-action-btn" (click)="openTransferModal()" title="Transferir Conversación a otro Agente">
                         <i class="pi pi-sort-alt"></i>
                     </button>
@@ -708,7 +675,7 @@
             <div *ngIf="selectedConversation.assignee_id
                     && selectedConversation.assignee_typing
                     && !isConversationAssignedToMe(selectedConversation)
-                    && !isInternalTeamConversation(selectedConversation)"
+                    && !isSharedEmployeeConversation(selectedConversation)"
                 class="comm-typing-indicator"
                 role="status"
                 aria-live="polite">
@@ -863,7 +830,7 @@
                                 : 'pi pi-bolt'"></i>
                     </span>
                     <strong class="comm-managed-banner__title">
-                        {{ isInternalTeamConversation(selectedConversation)
+                        {{ isSharedEmployeeConversation(selectedConversation)
                             ? 'Conversación interna sin asignar'
                             : isEsterAutoReplyDisabled(selectedConversation)
                             ? 'Ester Assistant está desactivada'
@@ -872,7 +839,7 @@
                     <span class="comm-managed-banner__description">
                         {{ selectedConversation.assignee_id
                             ? 'Esta conversación está asignada a otro empleado.'
-                            : isInternalTeamConversation(selectedConversation)
+                            : isSharedEmployeeConversation(selectedConversation)
                                 ? 'Ester no responde conversaciones de empleados o técnicos.'
                                 : isEsterAutoReplyDisabled(selectedConversation)
                                 ? 'La conversación sigue asignada a Ester, pero no responderá automáticamente.'
@@ -896,7 +863,7 @@
                     <button type="button" class="comm-managed-banner__action" (click)="assignToMe()">
                         <i class="pi pi-user-plus"></i>
                         <span>
-                            {{ isInternalTeamConversation(selectedConversation)
+                            {{ isSharedEmployeeConversation(selectedConversation)
                                 ? 'Tomar control de la conversación'
                                 : isEsterAutoReplyDisabled(selectedConversation)
                                 ? 'Ester está desactivada · Tomar control'
@@ -1060,7 +1027,7 @@
     </div>
     </div>
 
-    <!-- ====== EQUIPO: GRUPO ADMINISTRATIVO + WHATSAPP DE TÉCNICOS ====== -->
+    <!-- ====== EQUIPO: GRUPOS INTERNOS COMPARTIDOS CON GPS-MOBILE ====== -->
     <div *ngIf="activeTab === 'grupo' && !noInbox" class="comm-chat-row comm-groups-layout">
         <aside class="comm-sidebar comm-groups-sidebar"
             [class.comm-sidebar--hidden]="internalGroupChatOpen">
@@ -1069,8 +1036,8 @@
                 <button type="button"
                     class="comm-group-list-refresh"
                     [disabled]="loadingInternalGroups || loadingConversations"
-                    title="Actualizar conversaciones del equipo"
-                    aria-label="Actualizar conversaciones del equipo"
+                    title="Actualizar grupos del equipo"
+                    aria-label="Actualizar grupos del equipo"
                     (click)="refreshTeamEntries()">
                     <i class="pi" [ngClass]="loadingInternalGroups ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
                 </button>
@@ -1081,8 +1048,8 @@
                     <i class="pi pi-search"></i>
                     <input type="text"
                         [(ngModel)]="internalGroupSearchTerm"
-                        placeholder="Buscar técnico o teléfono..."
-                        aria-label="Buscar técnico o teléfono" />
+                        placeholder="Buscar grupo o técnico..."
+                        aria-label="Buscar grupo o técnico" />
                 </div>
             </div>
 
@@ -1103,7 +1070,7 @@
                 <div *ngIf="!loadingInternalGroups && filteredInternalGroups.length === 0"
                     class="comm-empty">
                     <i class="pi pi-address-book"></i>
-                    <span>{{ internalGroupSearchTerm ? 'No se encontraron técnicos' : 'No hay contactos del equipo disponibles' }}</span>
+                    <span>{{ internalGroupSearchTerm ? 'No se encontraron grupos' : 'No hay grupos del equipo disponibles' }}</span>
                 </div>
 
                 <div *ngFor="let group of filteredInternalGroups"
@@ -1111,25 +1078,19 @@
                     role="button"
                     tabindex="0"
                     [hidden]="loadingInternalGroups && internalGroups.length === 0"
-                    [class.comm-contact--active]="!isTechnicianWhatsAppEntry(group) && internalGroupChatOpen && group.id === selectedInternalGroupId"
-                    [class.comm-group-contact--whatsapp]="isTechnicianWhatsAppEntry(group)"
+                    [class.comm-contact--active]="internalGroupChatOpen && group.id === selectedInternalGroupId"
                     (click)="selectInternalGroup(group)"
                     (keydown.enter)="selectInternalGroup(group)"
                     (keydown.space)="$event.preventDefault(); selectInternalGroup(group)">
                     <div class="comm-contact__avatar comm-group-contact__avatar"
-                        [class.comm-group-contact__avatar--admin]="group.type === 'admin'"
-                        [class.comm-group-contact__avatar--whatsapp]="isTechnicianWhatsAppEntry(group)">
+                        [class.comm-group-contact__avatar--admin]="group.type === 'admin'">
                         <img *ngIf="getUsableAvatarUrl(group.technician?.photo) as avatarUrl"
                             [src]="avatarUrl"
                             (error)="onAvatarImageError(avatarUrl)"
                             [alt]="group.name" />
                         <i *ngIf="!getUsableAvatarUrl(group.technician?.photo)"
                             class="pi"
-                            [ngClass]="isOpeningTechnicianConversation(group)
-                                ? 'pi-spin pi-spinner'
-                                : (group.type === 'admin'
-                                    ? 'pi-building'
-                                    : (isTechnicianWhatsAppEntry(group) ? 'pi-whatsapp' : 'pi-wrench'))"></i>
+                            [ngClass]="group.type === 'admin' ? 'pi-building' : 'pi-wrench'"></i>
                     </div>
                     <div class="comm-contact__info">
                         <div class="comm-contact__top">
@@ -1148,7 +1109,7 @@
                                     [attr.aria-label]="getTeamEntryUnreadCount(group) + ' mensajes nuevos'">
                                     {{ getTeamEntryUnreadCount(group) > 99 ? '99+' : getTeamEntryUnreadCount(group) }}
                                 </span>
-                                <button *ngIf="canClearInternalMessages && !isTechnicianWhatsAppEntry(group)"
+                                <button *ngIf="canClearInternalMessages"
                                     type="button"
                                     class="comm-group-contact__clean"
                                     [disabled]="!!clearingInternalGroupId"
@@ -1170,7 +1131,7 @@
                 <div class="comm-chat__empty-content">
                     <i class="pi pi-address-book"></i>
                     <h3>Equipo</h3>
-                    <p>Selecciona Montao GPS o un técnico para abrir la conversación</p>
+                    <p>Selecciona un grupo para abrir la conversación</p>
                 </div>
             </div>
 
@@ -1904,7 +1865,7 @@
 
         <div *ngIf="!loadingTransferAgents"
             class="comm-transfer__agents" role="list" aria-label="Agentes disponibles">
-            <button *ngIf="isConversationAssignedToMe(selectedConversation) && !isInternalTeamConversation(selectedConversation)" type="button"
+            <button *ngIf="isConversationAssignedToMe(selectedConversation) && !isSharedEmployeeConversation(selectedConversation)" type="button"
                 class="comm-transfer-agent comm-transfer-agent--ester" role="listitem"
                 (click)="selectEsterForTransfer()">
                 <span class="comm-transfer-agent__avatar comm-transfer-agent__avatar--ester">

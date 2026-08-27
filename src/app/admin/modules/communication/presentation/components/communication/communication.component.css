@@ -309,15 +309,6 @@
     background: rgba(52, 211, 153, 0.12);
 }
 
-.comm-group-contact__avatar--whatsapp {
-    color: #25d366;
-    background: rgba(37, 211, 102, 0.13);
-}
-
-.comm-group-contact--whatsapp:hover {
-    background: rgba(37, 211, 102, 0.07);
-}
-
 .comm-group-contact__avatar .pi {
     font-size: 1rem;
 }
@@ -2964,78 +2955,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.comm-team-name-edit {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.65rem;
-    height: 1.65rem;
-    flex: 0 0 1.65rem;
-    padding: 0;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 50%;
-    color: rgba(255, 255, 255, 0.62);
-    background: rgba(255, 255, 255, 0.05);
-    cursor: pointer;
-}
-
-.comm-team-name-edit:hover {
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.28);
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.comm-team-name-editor {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    min-width: 0;
-}
-
-.comm-chat__header-name .comm-team-name-editor__prefix {
-    flex: 0 0 auto;
-    overflow: visible;
-    font-size: 0.82rem;
-}
-
-.comm-team-name-editor input {
-    width: clamp(130px, 24vw, 280px);
-    min-width: 0;
-    height: 1.9rem;
-    padding: 0.3rem 0.55rem;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 7px;
-    outline: none;
-    color: #fff;
-    background: rgba(255, 255, 255, 0.07);
-    font: inherit;
-    font-size: 0.82rem;
-}
-
-.comm-team-name-editor input:focus {
-    border-color: rgba(239, 68, 68, 0.78);
-}
-
-.comm-team-name-editor > button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.75rem;
-    height: 1.75rem;
-    flex: 0 0 1.75rem;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    color: rgba(255, 255, 255, 0.72);
-    background: rgba(255, 255, 255, 0.07);
-    cursor: pointer;
-}
-
-.comm-team-name-editor > button:hover:not(:disabled) {
-    color: #fff;
-    background: rgba(220, 38, 38, 0.28);
 }
 
 .comm-chat__verified {
@@ -5811,11 +5730,6 @@
 /* Main Chat Header */
 :host-context(.app-light) .comm-chat__header { background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
 :host-context(.app-light) .comm-chat__header-name { color: #000000; }
-:host-context(.app-light) .comm-team-name-edit { color: #64748b; border-color: #cbd5e1; background: #f8fafc; }
-:host-context(.app-light) .comm-team-name-edit:hover { color: #0f172a; border-color: #94a3b8; background: #e2e8f0; }
-:host-context(.app-light) .comm-team-name-editor input { color: #0f172a; border-color: #cbd5e1; background: #ffffff; }
-:host-context(.app-light) .comm-team-name-editor > button { color: #475569; background: #e2e8f0; }
-:host-context(.app-light) .comm-team-name-editor > button:hover:not(:disabled) { color: #991b1b; background: #fee2e2; }
 :host-context(.app-light) .comm-chat__header-subtext { color: #16a34a; }
 :host-context(.app-light) .comm-chat__header-phone { color: #64748b; }
 :host-context(.app-light) .comm-info-btn { color: #64748b; }
