@@ -21,9 +21,10 @@ export type ConversationOrderMode = 'attention' | 'recent';
 /**
  * Ordena el inbox por atención pendiente y actividad reciente.
  *
- * Prioriza urgencia, respuesta humana pendiente, mensajes sin leer y, dentro
- * de cada grupo, la fecha de la última interacción. La cantidad de mensajes
- * pendientes no altera el orden.
+ * Prioriza primero los mensajes sin leer que componen el badge del sidebar;
+ * luego la urgencia y la respuesta humana pendiente. Dentro de cada grupo se
+ * usa la fecha de la última interacción. La cantidad de mensajes pendientes
+ * no altera el orden.
  */
 export function orderConversationsByAttention<T extends ConversationOrderCandidate>(
   conversations: T[],
@@ -33,6 +34,16 @@ export function orderConversationsByAttention<T extends ConversationOrderCandida
   const ordered = [...conversations].sort((left, right) => {
     if (mode === 'recent') {
       return compareConversationActivity(left, right);
+    }
+
+    // El badge de Comunicación cuenta estos mensajes. Por eso, al entrar al
+    // módulo, sus conversaciones siempre encabezan el listado.
+    const unreadPriorityDifference =
+      Number(hasUnreadMessages(right))
+      - Number(hasUnreadMessages(left));
+
+    if (unreadPriorityDifference !== 0) {
+      return unreadPriorityDifference;
     }
 
     const urgentPriorityDifference =
@@ -49,14 +60,6 @@ export function orderConversationsByAttention<T extends ConversationOrderCandida
 
     if (waitingReplyPriorityDifference !== 0) {
       return waitingReplyPriorityDifference;
-    }
-
-    const unreadPriorityDifference =
-      Number(hasUnreadMessages(right))
-      - Number(hasUnreadMessages(left));
-
-    if (unreadPriorityDifference !== 0) {
-      return unreadPriorityDifference;
     }
 
     return compareConversationActivity(left, right);

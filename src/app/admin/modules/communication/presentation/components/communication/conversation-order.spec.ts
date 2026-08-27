@@ -1,7 +1,7 @@
 import { orderConversationsByAttention } from './conversation-order';
 
 describe('orderConversationsByAttention', () => {
-  it('places urgent conversations before every other state', () => {
+  it('places unread conversations from the sidebar badge before every other state', () => {
     const ordered = orderConversationsByAttention([
       {
         id: 1,
@@ -19,10 +19,10 @@ describe('orderConversationsByAttention', () => {
       },
     ]);
 
-    expect(ordered.map(conversation => conversation.id)).toEqual([2, 1]);
+    expect(ordered.map(conversation => conversation.id)).toEqual([1, 2]);
   });
 
-  it('places conversations waiting for a response before unread outbound chats', () => {
+  it('places unread conversations before read chats waiting for a response', () => {
     const ordered = orderConversationsByAttention([
       {
         id: 1,
@@ -38,7 +38,7 @@ describe('orderConversationsByAttention', () => {
       },
     ]);
 
-    expect(ordered.map(conversation => conversation.id)).toEqual([2, 1]);
+    expect(ordered.map(conversation => conversation.id)).toEqual([1, 2]);
   });
 
   it('places conversations with unread messages before read conversations', () => {
