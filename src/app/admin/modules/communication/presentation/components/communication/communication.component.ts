@@ -253,7 +253,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   noInbox: boolean = false;
   sidebarDisplayed = true;
   activeTab: 'chat' | 'correo' | 'foro' | 'grupo' = 'chat';
-  conversationAttentionFilter: 'all' | 'recent' | 'urgent' | 'waiting' | 'unread' = 'all';
+  conversationAttentionFilter: 'all' | 'recent' | 'urgent' | 'waiting' | 'unread' = 'recent';
   readonly conversationAttentionFilters = [
     { id: 'all' as const, label: 'Todos' },
     { id: 'recent' as const, label: 'Más recientes' },
