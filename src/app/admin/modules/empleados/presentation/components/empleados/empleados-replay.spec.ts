@@ -73,4 +73,35 @@ describe('EmpleadosComponent live replay', () => {
     expect(component.formatReplaySession(component.replaySessions[0]))
       .toContain('Teléfono');
   });
+
+  it('limits the selected time range to the bounds of its session', () => {
+    const { component } = buildComponent();
+    const session = {
+      session_id: 'session-1',
+      platform: 'desktop' as const,
+      route: null,
+      page_title: null,
+      first_event_at: '2026-08-26T12:00:00.000Z',
+      last_event_at: '2026-08-26T13:00:00.000Z',
+      event_count: 25,
+      chunk_count: 2,
+    };
+    Object.assign(component as any, {
+      replaySessions: [session],
+      selectedReplaySessionId: session.session_id,
+      replayRangeStart: '2026-08-26T11:45',
+      replayRangeEnd: '2026-08-26T13:30',
+      replayActivities: [],
+      allReplayActivities: [],
+      messageService: { add: jasmine.createSpy('add') },
+    });
+
+    expect(component.applyReplayRange(false)).toBeTrue();
+    expect((component as any).replayRangeStart).toBe(
+      (component as any).toDateTimeLocalInput(session.first_event_at),
+    );
+    expect((component as any).replayRangeEnd).toBe(
+      (component as any).toDateTimeLocalInput(session.last_event_at),
+    );
+  });
 });

@@ -109,7 +109,7 @@
                     <td class="actions-column">
                         <div class="row-actions">
                             <button pButton type="button" icon="pi pi-eye" class="p-button-sm live-button" label="En vivo" [disabled]="!isEmployeeOnline(empleado)" (click)="openLiveReplay(empleado, $event)" pTooltip="Ver lo que está haciendo ahora"></button>
-                            <button pButton type="button" icon="pi pi-history" class="p-button-sm p-button-outlined history-button" label="Última hora" [disabled]="!(getMonitoringStatus(empleado)?.events_last_hour)" (click)="openLastHourReplay(empleado, $event)" pTooltip="Reproducir la actividad reciente"></button>
+                            <button pButton type="button" icon="pi pi-history" class="p-button-sm p-button-outlined history-button" label="Historial" [disabled]="monitoringLoading" (click)="openLastHourReplay(empleado, $event)" pTooltip="Ver sesiones guardadas de las últimas 24 horas"></button>
                             <button pButton type="button" icon="pi pi-user" class="p-button-sm p-button-rounded p-button-text profile-button" (click)="$event.stopPropagation(); showCurriculum(empleado)" pTooltip="Abrir perfil"></button>
                         </div>
                     </td>
@@ -265,6 +265,50 @@
     </ng-template>
 </p-dialog>
 
+<!-- Selección de sesión y rango del historial de 24 horas -->
+<p-dialog [(visible)]="displayReplaySessionPicker" [modal]="true" [style]="{width: '760px', maxWidth: '94vw'}" [draggable]="false" [resizable]="false" header="Historial de actividad" styleClass="employee-replay-picker-dialog">
+    <div class="replay-session-picker-dialog">
+        <p>Selecciona una sesión de las últimas 24 horas y luego el intervalo exacto que quieres revisar.</p>
+
+        <div *ngIf="replaySessionPickerLoading" class="replay-picker-state">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Cargando sesiones guardadas…</span>
+        </div>
+
+        <div *ngIf="!replaySessionPickerLoading && replaySessionPickerError" class="replay-picker-state error">
+            <i class="pi pi-exclamation-circle"></i>
+            <span>{{ replaySessionPickerError }}</span>
+        </div>
+
+        <div *ngIf="!replaySessionPickerLoading && !replaySessionPickerError" class="replay-session-options">
+            <button *ngFor="let session of replaySessions" type="button" class="replay-session-option" [class.selected]="session.session_id === selectedReplaySessionId" (click)="selectReplaySessionForRange(session)">
+                <i class="pi" [ngClass]="session.platform === 'mobile' ? 'pi-mobile' : 'pi-desktop'"></i>
+                <span>
+                    <strong>{{ session.platform === 'mobile' ? 'Teléfono' : 'Computadora' }}</strong>
+                    <small>{{ formatReplaySession(session) }}</small>
+                    <em *ngIf="session.route || session.page_title">{{ session.page_title || session.route }}</em>
+                </span>
+                <i *ngIf="session.session_id === selectedReplaySessionId" class="pi pi-check-circle"></i>
+            </button>
+        </div>
+
+        <div *ngIf="!replaySessionPickerLoading && !replaySessionPickerError && selectedReplaySessionId" class="replay-range-fields">
+            <label>
+                <span>Desde</span>
+                <input type="datetime-local" [(ngModel)]="replayRangeStart" [min]="getReplayRangeMin()" [max]="getReplayRangeMax()">
+            </label>
+            <label>
+                <span>Hasta</span>
+                <input type="datetime-local" [(ngModel)]="replayRangeEnd" [min]="getReplayRangeMin()" [max]="getReplayRangeMax()">
+            </label>
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <button pButton type="button" class="p-button-text" icon="pi pi-times" label="Cancelar" (click)="displayReplaySessionPicker = false"></button>
+        <button pButton type="button" icon="pi pi-play" label="Ver actividad" [disabled]="replaySessionPickerLoading || !selectedReplaySessionId" (click)="openSelectedReplayRange()"></button>
+    </ng-template>
+</p-dialog>
+
 <!-- Visor de sesión del empleado -->
 <p-dialog [(visible)]="displayReplay" [modal]="true" [style]="{width: '98vw', height: '96vh', maxWidth: 'none'}" [breakpoints]="{'960px': '100vw'}" [draggable]="false" [resizable]="false" [closable]="true" (onHide)="closeReplay()" styleClass="employee-replay-dialog">
     <ng-template pTemplate="header">
@@ -275,11 +319,11 @@
             </div>
             <div>
                 <h3>{{ replayEmployee.name | titlecase }} {{ replayEmployee.last_name | titlecase }}</h3>
-                <p>{{ replayMode === 'live' ? 'Supervisión en vivo' : 'Actividad de la última hora' }}</p>
+                <p>{{ replayMode === 'live' ? 'Supervisión en vivo' : 'Historial de las últimas 24 horas' }}</p>
             </div>
             <span class="replay-mode-pill" [class.live]="replayMode === 'live'">
                 <i class="pi" [ngClass]="replayMode === 'live' ? 'pi-circle-fill' : 'pi-history'"></i>
-                {{ replayMode === 'live' ? 'EN VIVO' : 'ÚLTIMA HORA' }}
+                {{ replayMode === 'live' ? 'EN VIVO' : 'HISTORIAL 24 H' }}
             </span>
             <span class="replay-platform-pill" [class.mobile]="getReplayPlatform() === 'mobile'">
                 <i class="pi" [ngClass]="getReplayPlatform() === 'mobile' ? 'pi-mobile' : 'pi-desktop'"></i>
@@ -297,6 +341,19 @@
                         <option *ngFor="let session of replaySessions" [value]="session.session_id">{{ formatReplaySession(session) }}</option>
                     </select>
                 </label>
+                <div *ngIf="replayMode !== 'live'" class="replay-inline-range">
+                    <label>
+                        <span>Desde</span>
+                        <input type="datetime-local" [(ngModel)]="replayRangeStart" [min]="getReplayRangeMin()" [max]="getReplayRangeMax()">
+                    </label>
+                    <label>
+                        <span>Hasta</span>
+                        <input type="datetime-local" [(ngModel)]="replayRangeEnd" [min]="getReplayRangeMin()" [max]="getReplayRangeMax()">
+                    </label>
+                    <button type="button" class="replay-control" (click)="applyReplayRange()" [disabled]="replayLoading">
+                        <i class="pi pi-filter"></i> Aplicar
+                    </button>
+                </div>
                 <div class="replay-controls">
                     <button type="button" class="replay-control" (click)="toggleReplayPlayback()" [disabled]="!replayer && replayLoading">
                         <i class="pi" [ngClass]="replayPlaying ? 'pi-pause' : 'pi-play'"></i>

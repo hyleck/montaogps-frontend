@@ -48,6 +48,9 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
 
   monitoringStatuses = new Map<string, EmployeeMonitoringStatus>();
   monitoringLoading = false;
+  displayReplaySessionPicker = false;
+  replaySessionPickerLoading = false;
+  replaySessionPickerError = '';
   displayReplay = false;
   replayMode: 'live' | 'last_hour' = 'last_hour';
   replayEmployee: User | null = null;
@@ -56,6 +59,9 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
   replayLoading = false;
   replayError = '';
   replayActivities: UserActivity[] = [];
+  private allReplayActivities: UserActivity[] = [];
+  replayRangeStart = '';
+  replayRangeEnd = '';
   replayPlaying = false;
   replaySpeed = 1;
   replaySkipInactive = true;
@@ -68,6 +74,7 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
   private replayResizeObserver?: ResizeObserver;
   private replayFitFrame?: number;
   private replayStartedAt = 0;
+  private replayRangePlaybackOffset = 0;
 
   departments: any[] = [
     { label: 'Administrativo', value: 'Administrativo' },
@@ -279,7 +286,64 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
 
   async openLastHourReplay(employee: User, event?: Event): Promise<void> {
     event?.stopPropagation();
-    await this.openReplay(employee, 'last_hour');
+    await this.openReplaySessionPicker(employee);
+  }
+
+  async openReplaySessionPicker(employee: User): Promise<void> {
+    this.destroyReplay();
+    this.replayEmployee = employee;
+    this.replayMode = 'last_hour';
+    this.displayReplaySessionPicker = true;
+    this.replaySessionPickerLoading = true;
+    this.replaySessionPickerError = '';
+
+    try {
+      this.replaySessions = await firstValueFrom(
+        this.employeeMonitoring.getSessions(employee._id, 24),
+      );
+      if (!this.replaySessions.length) {
+        this.replaySessionPickerError =
+          'No hay sesiones grabadas para este empleado durante las últimas 24 horas.';
+        return;
+      }
+      this.selectReplaySessionForRange(this.replaySessions[0]);
+    } catch (err) {
+      console.error('Error loading employee replay sessions', err);
+      this.replaySessionPickerError = getApiErrorMessage(
+        err,
+        'No se pudieron cargar las sesiones del empleado',
+      );
+    } finally {
+      this.replaySessionPickerLoading = false;
+    }
+  }
+
+  selectReplaySessionForRange(session: EmployeeReplaySession): void {
+    this.selectedReplaySessionId = session.session_id;
+    this.replayRangeStart = this.toDateTimeLocalInput(session.first_event_at);
+    this.replayRangeEnd = this.toDateTimeLocalInput(session.last_event_at);
+  }
+
+  async openSelectedReplayRange(): Promise<void> {
+    const session = this.getSelectedReplaySession();
+    if (!this.replayEmployee || !session) return;
+    if (!this.applyReplayRange(false)) return;
+
+    const employee = this.replayEmployee;
+    const sessions = this.replaySessions;
+    const selectedSessionId = this.selectedReplaySessionId;
+    const range = {
+      start: this.replayRangeStart,
+      end: this.replayRangeEnd,
+    };
+    this.displayReplaySessionPicker = false;
+    await this.openReplay(
+      employee,
+      'last_hour',
+      selectedSessionId,
+      sessions,
+      range,
+    );
   }
 
   closeReplay(): void {
@@ -288,7 +352,36 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
   }
 
   async onReplaySessionChange(): Promise<void> {
+    const session = this.getSelectedReplaySession();
+    if (session) this.selectReplaySessionForRange(session);
     await this.renderSelectedReplay();
+  }
+
+  applyReplayRange(render = true): boolean {
+    const session = this.getSelectedReplaySession();
+    if (!session) return false;
+    const sessionStart = new Date(session.first_event_at).getTime();
+    const sessionEnd = new Date(session.last_event_at).getTime();
+    const requestedStart = this.parseDateTimeLocalInput(this.replayRangeStart);
+    const requestedEnd = this.parseDateTimeLocalInput(this.replayRangeEnd);
+
+    if (!requestedStart || !requestedEnd || requestedStart > requestedEnd) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Rango inválido',
+        detail: 'Selecciona una hora de inicio anterior a la hora final.',
+      });
+      return false;
+    }
+
+    const start = Math.max(sessionStart, requestedStart);
+    const end = Math.min(sessionEnd, requestedEnd);
+    if (start > end) return false;
+    this.replayRangeStart = this.toDateTimeLocalInput(new Date(start));
+    this.replayRangeEnd = this.toDateTimeLocalInput(new Date(end));
+    this.updateReplayActivitiesForRange();
+    if (render) void this.renderSelectedReplay();
+    return true;
   }
 
   toggleReplayPlayback(): void {
@@ -320,16 +413,22 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
   }
 
   formatReplaySession(session: EmployeeReplaySession): string {
-    const start = new Date(session.first_event_at).toLocaleTimeString('es-DO', {
+    const startDate = new Date(session.first_event_at);
+    const endDate = new Date(session.last_event_at);
+    const date = startDate.toLocaleDateString('es-DO', {
+      day: '2-digit',
+      month: 'short',
+    });
+    const start = startDate.toLocaleTimeString('es-DO', {
       hour: '2-digit',
       minute: '2-digit',
     });
-    const end = new Date(session.last_event_at).toLocaleTimeString('es-DO', {
+    const end = endDate.toLocaleTimeString('es-DO', {
       hour: '2-digit',
       minute: '2-digit',
     });
     const platform = session.platform === 'mobile' ? 'Teléfono' : 'Computadora';
-    return `${platform} · ${start} – ${end} · ${session.event_count} eventos`;
+    return `${platform} · ${date}, ${start} – ${end} · ${session.event_count} eventos`;
   }
 
   getActivityTitle(activity: UserActivity): string {
@@ -350,6 +449,8 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
     employee: User,
     mode: 'live' | 'last_hour',
     preferredSessionId?: string,
+    preloadedSessions?: EmployeeReplaySession[],
+    preferredRange?: { start: string; end: string },
   ): Promise<void> {
     this.destroyReplay();
     this.replayEmployee = employee;
@@ -361,13 +462,15 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
 
     try {
       const [sessions, activities] = await Promise.all([
-        firstValueFrom(this.employeeMonitoring.getSessions(employee._id, 1)),
-        firstValueFrom(this.userActivityService.getByUser(employee._id, 100)).catch(
+        preloadedSessions
+          ? Promise.resolve(preloadedSessions)
+          : firstValueFrom(this.employeeMonitoring.getSessions(employee._id, mode === 'live' ? 1 : 24)),
+        firstValueFrom(this.userActivityService.getByUser(employee._id, 500)).catch(
           () => ({ activities: [], totalCount: 0 }),
         ),
       ]);
       this.replaySessions = sessions;
-      this.replayActivities = activities.activities || [];
+      this.allReplayActivities = activities.activities || [];
       this.selectedReplaySessionId =
         preferredSessionId || sessions[0]?.session_id || '';
 
@@ -393,6 +496,17 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
         ];
       }
 
+      const selectedSession = this.getSelectedReplaySession();
+      if (selectedSession && mode !== 'live') {
+        if (preferredRange?.start && preferredRange?.end) {
+          this.replayRangeStart = preferredRange.start;
+          this.replayRangeEnd = preferredRange.end;
+        } else {
+          this.selectReplaySessionForRange(selectedSession);
+        }
+      }
+      this.updateReplayActivitiesForRange();
+
       this.employeeMonitoring
         .recordReplayAccess(employee._id, this.selectedReplaySessionId || null, mode)
         .subscribe({ error: () => undefined });
@@ -416,16 +530,17 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
     this.replayCursor = null;
 
     if (!this.replayEmployee || !this.selectedReplaySessionId) {
-      this.replayError = 'No hay actividad grabada durante la última hora.';
+      this.replayError = 'No hay actividad grabada en el período seleccionado.';
       this.replayLoading = false;
       return;
     }
 
     try {
-      const events = await this.loadAllReplayEvents(
+      const allEvents = await this.loadAllReplayEvents(
         this.replayEmployee._id,
         this.selectedReplaySessionId,
       );
+      const events = this.getEventsForSelectedRange(allEvents);
       const host = this.replayHost?.nativeElement;
       if (!host) throw new Error('No se encontró el reproductor');
       host.replaceChildren();
@@ -457,7 +572,7 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
         this.playLiveReplayAtPresent();
         this.startLivePolling();
       } else {
-        this.replayer.play(0);
+        this.replayer.play(this.replayRangePlaybackOffset);
         this.replayPlaying = true;
       }
     } catch (err) {
@@ -491,6 +606,66 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
     return events.sort(
       (left, right) => Number(left?.timestamp || 0) - Number(right?.timestamp || 0),
     );
+  }
+
+  private getEventsForSelectedRange(events: any[]): any[] {
+    this.replayRangePlaybackOffset = 0;
+    if (this.replayMode === 'live' || !events.length) return events;
+
+    const start = this.parseDateTimeLocalInput(this.replayRangeStart);
+    const end = this.parseDateTimeLocalInput(this.replayRangeEnd);
+    if (!start || !end) return events;
+
+    const snapshotIndex = events.reduce(
+      (latestIndex, event, index) =>
+        event?.type === 2 && Number(event.timestamp) <= start ? index : latestIndex,
+      -1,
+    );
+    const firstIndex = snapshotIndex >= 0 ? snapshotIndex : events.findIndex(
+      (event) => Number(event?.timestamp) >= start,
+    );
+    const selectedEvents = events.slice(Math.max(0, firstIndex)).filter(
+      (event) => Number(event?.timestamp) <= end,
+    );
+    const firstTimestamp = Number(selectedEvents[0]?.timestamp) || start;
+    this.replayRangePlaybackOffset = Math.max(0, start - firstTimestamp);
+    return selectedEvents;
+  }
+
+  getSelectedReplaySession(): EmployeeReplaySession | undefined {
+    return this.replaySessions.find(
+      (session) => session.session_id === this.selectedReplaySessionId,
+    );
+  }
+
+  getReplayRangeMin(): string {
+    const session = this.getSelectedReplaySession();
+    return session ? this.toDateTimeLocalInput(session.first_event_at) : '';
+  }
+
+  getReplayRangeMax(): string {
+    const session = this.getSelectedReplaySession();
+    return session ? this.toDateTimeLocalInput(session.last_event_at) : '';
+  }
+
+  private updateReplayActivitiesForRange(): void {
+    const start = this.parseDateTimeLocalInput(this.replayRangeStart);
+    const end = this.parseDateTimeLocalInput(this.replayRangeEnd);
+    this.replayActivities = this.allReplayActivities.filter((activity) => {
+      const timestamp = new Date(activity.occurred_at).getTime();
+      return (!start || timestamp >= start) && (!end || timestamp <= end);
+    });
+  }
+
+  private toDateTimeLocalInput(value: string | Date): string {
+    const date = new Date(value);
+    const offset = date.getTimezoneOffset() * 60_000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+  }
+
+  private parseDateTimeLocalInput(value: string): number {
+    const timestamp = new Date(value).getTime();
+    return Number.isFinite(timestamp) ? timestamp : 0;
   }
 
   private startLivePolling(): void {
@@ -547,6 +722,7 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
     this.replayer = undefined;
     this.replayPlaying = false;
     this.replayStartedAt = 0;
+    this.replayRangePlaybackOffset = 0;
     this.replayCursor = null;
     this.replayPollBusy = false;
     this.replayHost?.nativeElement.replaceChildren();
@@ -555,6 +731,9 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
       this.replaySessions = [];
       this.selectedReplaySessionId = '';
       this.replayActivities = [];
+      this.allReplayActivities = [];
+      this.replayRangeStart = '';
+      this.replayRangeEnd = '';
       this.replayEmployee = null;
       this.replayError = '';
     }
