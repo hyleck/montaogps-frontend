@@ -745,7 +745,11 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.vapiQuery = template.objective || template.body;
     this.campaignBodyVariantB = '';
     this.campaignDraftGeneratedByEster = false;
-    if (template.objectives?.length && this.selectedList) {
+    if (
+      template.objectives?.length
+      && this.selectedList
+      && !this.selectedList.objectives?.length
+    ) {
       this.selectedList.objectives = template.objectives.map(objective => ({ ...objective }));
     }
   }
