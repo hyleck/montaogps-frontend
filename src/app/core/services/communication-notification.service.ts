@@ -46,6 +46,8 @@ export interface CommunicationFloatingMessage {
 })
 export class CommunicationNotificationService implements OnDestroy {
   private pendingCountSubject = new BehaviorSubject<number>(0);
+  // Este contador alimenta el badge del sidebar. Solo incluye WhatsApp,
+  // porque son las conversaciones que se muestran al abrir Comunicación.
   pendingCount$ = this.pendingCountSubject.asObservable();
   private esterPendingCountSubject = new BehaviorSubject<number>(0);
   esterPendingCount$ = this.esterPendingCountSubject.asObservable();
@@ -193,7 +195,7 @@ export class CommunicationNotificationService implements OnDestroy {
     this.pollingSubscription?.unsubscribe();
     this.pollingSubscription = undefined;
     this.whatsappPendingCount = 0;
-    this.pendingCountSubject.next(this.internalPendingCount);
+    this.pendingCountSubject.next(0);
   }
 
   private processConversations(conversations: WhatsAppConversationSummary[]): void {
@@ -274,7 +276,7 @@ export class CommunicationNotificationService implements OnDestroy {
 
     this.conversationState = nextState;
     this.whatsappPendingCount = totalPending;
-    this.emitTotalPendingCount();
+    this.emitWhatsAppPendingCount();
     this.esterPendingCountSubject.next(esterPending);
 
     if (!this.initialized) {
@@ -336,7 +338,6 @@ export class CommunicationNotificationService implements OnDestroy {
 
       this.internalPendingCount += incomingMessages.length;
       this.internalPendingCountSubject.next(this.internalPendingCount);
-      this.emitTotalPendingCount();
       this.emitInternalFloatingMessage(incomingMessages[incomingMessages.length - 1]);
       this.playInternalNotificationSound();
     });
@@ -351,7 +352,6 @@ export class CommunicationNotificationService implements OnDestroy {
   markInternalChatRead(): void {
     this.internalPendingCount = 0;
     this.internalPendingCountSubject.next(0);
-    this.emitTotalPendingCount();
   }
 
   markWhatsAppConversationRead(conversationId: number): void {
@@ -368,7 +368,7 @@ export class CommunicationNotificationService implements OnDestroy {
       fingerprint: currentState.fingerprint.replace(/\|[^|]*$/, '|0'),
     });
     this.whatsappPendingCount = Math.max(0, this.whatsappPendingCount - readCount);
-    this.emitTotalPendingCount();
+    this.emitWhatsAppPendingCount();
 
     if (currentState.esterAssigned) {
       this.esterPendingCountSubject.next(
@@ -382,7 +382,6 @@ export class CommunicationNotificationService implements OnDestroy {
       ? 0
       : Math.max(0, Number(count) || 0);
     this.internalPendingCountSubject.next(this.internalPendingCount);
-    this.emitTotalPendingCount();
   }
 
   isInternalChatMuted(): boolean {
@@ -409,8 +408,8 @@ export class CommunicationNotificationService implements OnDestroy {
     this.playNotificationSound();
   }
 
-  private emitTotalPendingCount(): void {
-    this.pendingCountSubject.next(this.whatsappPendingCount + this.internalPendingCount);
+  private emitWhatsAppPendingCount(): void {
+    this.pendingCountSubject.next(this.whatsappPendingCount);
   }
 
   private loadInternalChatMutePreference(userId: string): void {
@@ -420,7 +419,6 @@ export class CommunicationNotificationService implements OnDestroy {
     if (muted) {
       this.internalPendingCount = 0;
       this.internalPendingCountSubject.next(0);
-      this.emitTotalPendingCount();
     }
   }
 
