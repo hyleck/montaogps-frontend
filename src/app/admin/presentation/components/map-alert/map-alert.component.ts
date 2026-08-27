@@ -78,13 +78,14 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
     }
 
     private initializeDrawingManager(): void {
-        if (!google.maps.drawing) {
+        const DrawingManager = google.maps.drawing?.DrawingManager as any;
+        if (typeof DrawingManager !== 'function') {
             console.error('Google Maps Drawing library not loaded');
             return;
         }
 
         try {
-            this.drawingManager = new google.maps.drawing.DrawingManager({
+            this.drawingManager = new DrawingManager({
                 drawingMode: null,
                 drawingControl: false,
                 drawingControlOptions: {

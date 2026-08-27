@@ -9,7 +9,7 @@
         <div class="header-actions">
             <div class="p-input-icon-left search-input">
                 <i class="pi pi-search"></i>
-                <input type="text" pInputText [(ngModel)]="searchTerm" placeholder="Buscar empleado..." />
+                <input type="text" pInputText [(ngModel)]="searchTerm" (ngModelChange)="onEmployeeSearchChange()" placeholder="Buscar empleado..." />
             </div>
             <button pButton icon="pi pi-refresh" class="p-button-rounded p-button-text p-button-secondary" (click)="loadEmpleados()" [loading]="loading"></button>
         </div>
@@ -36,8 +36,16 @@
     </div>
 
     <!-- Loading State -->
-    <div *ngIf="loading" class="table-loading">
-        <p-skeleton *ngFor="let i of [1,2,3,4,5,6]" width="100%" height="4.5rem"></p-skeleton>
+    <div *ngIf="loading" class="employee-card-grid loading-cards">
+        <div *ngFor="let i of [1,2,3,4,5,6]" class="employee-card-skeleton">
+            <p-skeleton shape="circle" size="4rem"></p-skeleton>
+            <div class="employee-card-skeleton__copy">
+                <p-skeleton width="70%" height="1.1rem"></p-skeleton>
+                <p-skeleton width="90%" height="0.8rem"></p-skeleton>
+                <p-skeleton width="100%" height="4.5rem"></p-skeleton>
+                <p-skeleton width="100%" height="2.25rem"></p-skeleton>
+            </div>
+        </div>
     </div>
 
     <!-- Empty State -->
@@ -47,75 +55,79 @@
         <p>Intenta con otros términos de búsqueda.</p>
     </div>
 
-    <div *ngIf="!loading && filteredEmpleados.length > 0" class="employee-table-shell">
-        <p-table [value]="filteredEmpleados" [paginator]="filteredEmpleados.length > 12" [rows]="12" [rowsPerPageOptions]="[12, 25, 50]" responsiveLayout="scroll" styleClass="employee-monitoring-table">
-            <ng-template pTemplate="header">
-                <tr>
-                    <th>Empleado</th>
-                    <th>Departamento</th>
-                    <th>Estado</th>
-                    <th>Actividad actual</th>
-                    <th>Última conexión</th>
-                    <th class="numeric-column">Última hora</th>
-                    <th>Desempeño</th>
-                    <th class="actions-column">Acciones</th>
-                </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-empleado>
-                <tr class="employee-row" (click)="showCurriculum(empleado)">
-                    <td>
-                        <div class="table-employee">
-                            <div class="empleado-avatar table-avatar">
-                                <img *ngIf="empleado.photo" [src]="empleado.photo" [alt]="empleado.name">
-                                <div *ngIf="!empleado.photo" class="avatar-placeholder">
-                                    {{empleado.name.charAt(0) || ''}}{{empleado.last_name ? empleado.last_name.charAt(0) : ''}}
-                                </div>
-                                <span class="status-indicator" [ngClass]="isEmployeeOnline(empleado) ? 'status-online' : 'status-offline'"></span>
-                            </div>
-                            <div class="table-employee-copy">
-                                <strong>{{ empleado.name | titlecase }} {{ empleado.last_name | titlecase }}</strong>
-                                <span>{{ empleado.email }}</span>
-                            </div>
+    <div *ngIf="!loading && filteredEmpleados.length > 0" class="employee-cards-shell">
+        <div class="employee-card-grid">
+            <article *ngFor="let empleado of paginatedEmpleados" class="employee-monitoring-card"
+                [class.is-online]="isEmployeeOnline(empleado)" (click)="showCurriculum(empleado)">
+                <header class="employee-card-header">
+                    <div class="empleado-avatar card-avatar">
+                        <img *ngIf="empleado.photo" [src]="empleado.photo" [alt]="empleado.name">
+                        <div *ngIf="!empleado.photo" class="avatar-placeholder">
+                            {{empleado.name.charAt(0) || ''}}{{empleado.last_name ? empleado.last_name.charAt(0) : ''}}
                         </div>
-                    </td>
-                    <td><span class="department-pill">{{ empleado.department_id || 'Sin definir' }}</span></td>
-                    <td>
-                        <span class="connection-pill" [class.online]="isEmployeeOnline(empleado)">
-                            <i class="pi pi-circle-fill"></i>
-                            {{ isEmployeeOnline(empleado) ? 'En línea' : 'Desconectado' }}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="current-activity">
-                            <strong>{{ getCurrentScreen(empleado) }}</strong>
-                            <span *ngIf="getMonitoringStatus(empleado)?.current_route">{{ getMonitoringStatus(empleado)?.current_route }}</span>
-                            <span *ngIf="getMonitoringStatus(empleado)?.platform" class="activity-platform">
-                                <i class="pi" [ngClass]="getMonitoringPlatformIcon(empleado)"></i>
-                                {{ getMonitoringPlatformLabel(empleado) }}
+                        <span class="status-indicator" [ngClass]="isEmployeeOnline(empleado) ? 'status-online' : 'status-offline'"></span>
+                    </div>
+                    <div class="employee-card-identity">
+                        <h3>{{ empleado.name | titlecase }} {{ empleado.last_name | titlecase }}</h3>
+                        <span>{{ empleado.email }}</span>
+                        <div class="employee-card-badges">
+                            <span class="connection-pill" [class.online]="isEmployeeOnline(empleado)">
+                                <i class="pi pi-circle-fill"></i>
+                                {{ isEmployeeOnline(empleado) ? 'En línea' : 'Desconectado' }}
                             </span>
+                            <span class="department-pill">{{ empleado.department_id || 'Sin definir' }}</span>
                         </div>
-                    </td>
-                    <td><span class="last-seen">{{ getLastSeenLabel(empleado) }}</span></td>
-                    <td class="numeric-column">
-                        <strong class="events-count">{{ getMonitoringStatus(empleado)?.events_last_hour || 0 }}</strong>
-                        <span class="events-label">eventos</span>
-                    </td>
-                    <td>
-                        <div class="table-performance">
-                            <div><span>{{ getEmployeeProcessCount(empleado._id) }} procesos</span><strong>{{ getEmployeePerformance(empleado._id) }}%</strong></div>
-                            <div class="performance-track"><span [style.width]="getEmployeePerformance(empleado._id) + '%'"></span></div>
-                        </div>
-                    </td>
-                    <td class="actions-column">
-                        <div class="row-actions">
-                            <button pButton type="button" icon="pi pi-eye" class="p-button-sm live-button" label="En vivo" [disabled]="!isEmployeeOnline(empleado)" (click)="openLiveReplay(empleado, $event)" pTooltip="Ver lo que está haciendo ahora"></button>
-                            <button pButton type="button" icon="pi pi-history" class="p-button-sm p-button-outlined history-button" label="Historial" [disabled]="monitoringLoading" (click)="openLastHourReplay(empleado, $event)" pTooltip="Ver sesiones guardadas de las últimas 24 horas"></button>
-                            <button pButton type="button" icon="pi pi-user" class="p-button-sm p-button-rounded p-button-text profile-button" (click)="$event.stopPropagation(); showCurriculum(empleado)" pTooltip="Abrir perfil"></button>
-                        </div>
-                    </td>
-                </tr>
-            </ng-template>
-        </p-table>
+                    </div>
+                </header>
+
+                <div class="employee-card-activity">
+                    <div class="employee-card-section-title">
+                        <span><i class="pi pi-desktop"></i> Actividad actual</span>
+                        <span *ngIf="getMonitoringStatus(empleado)?.platform" class="activity-platform">
+                            <i class="pi" [ngClass]="getMonitoringPlatformIcon(empleado)"></i>
+                            {{ getMonitoringPlatformLabel(empleado) }}
+                        </span>
+                    </div>
+                    <strong>{{ getCurrentScreen(empleado) }}</strong>
+                    <span class="activity-route" *ngIf="getMonitoringStatus(empleado)?.current_route">{{ getMonitoringStatus(empleado)?.current_route }}</span>
+                </div>
+
+                <div class="employee-card-metrics">
+                    <div>
+                        <span>Última conexión</span>
+                        <strong>{{ getLastSeenLabel(empleado) }}</strong>
+                    </div>
+                    <div>
+                        <span>Última hora</span>
+                        <strong>{{ getMonitoringStatus(empleado)?.events_last_hour || 0 }} eventos</strong>
+                    </div>
+                </div>
+
+                <div class="card-performance">
+                    <div>
+                        <span>{{ getEmployeeProcessCount(empleado._id) }} procesos</span>
+                        <strong>{{ getEmployeePerformance(empleado._id) }}%</strong>
+                    </div>
+                    <div class="performance-track"><span [style.width]="getEmployeePerformance(empleado._id) + '%'"></span></div>
+                </div>
+
+                <footer class="employee-card-actions">
+                    <button pButton type="button" icon="pi pi-eye" class="p-button-sm live-button" label="En vivo"
+                        [disabled]="!isEmployeeOnline(empleado)" (click)="openLiveReplay(empleado, $event)"
+                        pTooltip="Ver lo que está haciendo ahora"></button>
+                    <button pButton type="button" icon="pi pi-history" class="p-button-sm p-button-outlined history-button" label="Historial"
+                        [disabled]="monitoringLoading" (click)="openLastHourReplay(empleado, $event)"
+                        pTooltip="Ver sesiones guardadas de las últimas 24 horas"></button>
+                    <button pButton type="button" icon="pi pi-user" class="p-button-sm p-button-rounded p-button-text profile-button"
+                        (click)="$event.stopPropagation(); showCurriculum(empleado)" pTooltip="Abrir perfil"></button>
+                </footer>
+            </article>
+        </div>
+
+        <p-paginator *ngIf="filteredEmpleados.length > employeePageRows" [first]="employeePageFirst"
+            [rows]="employeePageRows" [totalRecords]="filteredEmpleados.length"
+            [rowsPerPageOptions]="[12, 24, 48]" (onPageChange)="onEmployeePageChange($event)">
+        </p-paginator>
     </div>
 </div>
 
@@ -394,26 +406,65 @@
         <aside class="activity-timeline">
             <div class="timeline-header">
                 <div>
-                    <span>REGISTRO OPERATIVO</span>
-                    <h4>Acciones recientes</h4>
+                    <span>MONITOREO EN VIVO</span>
+                    <h4>{{ replaySidebarTab === 'activity' ? 'Acciones recientes' : 'Consola' }}</h4>
                 </div>
-                <span class="timeline-count">{{ replayActivities.length }}</span>
+                <span class="timeline-count">{{ replaySidebarTab === 'activity' ? replayActivities.length : replayConsoleLogs.length }}</span>
             </div>
-            <div *ngIf="!replayActivities.length" class="timeline-empty">
+            <div class="timeline-tabs">
+                <button type="button" [class.is-active]="replaySidebarTab === 'activity'"
+                    (click)="setReplaySidebarTab('activity')">
+                    <i class="pi pi-bolt"></i> Actividad
+                </button>
+                <button type="button" [class.is-active]="replaySidebarTab === 'console'"
+                    (click)="setReplaySidebarTab('console')">
+                    <i class="pi pi-code"></i> Consola
+                </button>
+            </div>
+            <div *ngIf="replaySidebarTab === 'activity' && !replayActivities.length" class="timeline-empty">
                 <i class="pi pi-list"></i>
                 <p>No hay acciones puntuales registradas.</p>
                 <small>La reproducción visual puede contener actividad adicional.</small>
             </div>
-            <div class="timeline-list" *ngIf="replayActivities.length">
+            <div class="timeline-list" *ngIf="replaySidebarTab === 'activity' && replayActivities.length">
                 <article *ngFor="let activity of replayActivities" class="timeline-item">
                     <span class="timeline-dot"><i class="pi" [ngClass]="activity.type === 'screen' ? 'pi-window-maximize' : 'pi-bolt'"></i></span>
                     <div>
                         <time>{{ getActivityTime(activity) }}</time>
                         <strong>{{ getActivityTitle(activity) }}</strong>
-                        <span *ngIf="activity.route">{{ activity.route }}</span>
+                        <span *ngIf="getActivityDetail(activity) as detail">{{ detail }}</span>
                     </div>
                 </article>
             </div>
+            <ng-container *ngIf="replaySidebarTab === 'console'">
+                <div class="console-toolbar">
+                    <label for="employee-console-level">Nivel</label>
+                    <select id="employee-console-level" [(ngModel)]="replayConsoleFilter"
+                        (ngModelChange)="onReplayConsoleFilterChange()">
+                        <option value="all">Todos</option>
+                        <option value="error">Errores</option>
+                        <option value="warn">Advertencias</option>
+                        <option value="info">Info</option>
+                        <option value="log">Logs</option>
+                        <option value="debug">Debug</option>
+                    </select>
+                </div>
+                <div *ngIf="!replayConsoleLogs.length" class="timeline-empty">
+                    <i class="pi pi-code"></i>
+                    <p>No hay mensajes de consola.</p>
+                    <small>Se conservan durante 24 horas.</small>
+                </div>
+                <div class="console-list" *ngIf="replayConsoleLogs.length">
+                    <article *ngFor="let log of replayConsoleLogs" class="console-entry" [attr.data-level]="log.level">
+                        <div class="console-entry__meta">
+                            <span>{{ getConsoleLevelLabel(log.level) }}</span>
+                            <time>{{ getConsoleLogTime(log) }}</time>
+                        </div>
+                        <pre>{{ log.message }}</pre>
+                        <small *ngIf="log.route">{{ log.route }}</small>
+                    </article>
+                </div>
+            </ng-container>
         </aside>
     </div>
 </p-dialog>

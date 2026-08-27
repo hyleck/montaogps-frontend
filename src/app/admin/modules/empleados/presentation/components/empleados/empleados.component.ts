@@ -17,6 +17,17 @@ import {
   UserActivity,
   UserActivityService,
 } from '../../../../../../core/services/user-activity.service';
+import {
+  UserConsoleLevel,
+  UserConsoleLog,
+  UserConsoleLogService,
+} from '../../../../../../core/services/user-console-log.service';
+import {
+  getEmployeeActivityDetail,
+  getEmployeeActivityTitle,
+  groupConsecutiveEmployeeActivities,
+  GroupedEmployeeActivity,
+} from './employee-activity-display';
 
 @Component({
   selector: 'app-empleados',
@@ -33,6 +44,8 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
   empleados: User[] = [];
   loading: boolean = true;
   searchTerm: string = '';
+  employeePageFirst = 0;
+  employeePageRows = 12;
   selectedEmpleado: User | null = null;
   displayModal: boolean = false;
   employeeStats: Map<string, any> = new Map();
@@ -58,8 +71,12 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
   selectedReplaySessionId = '';
   replayLoading = false;
   replayError = '';
-  replayActivities: UserActivity[] = [];
+  replayActivities: GroupedEmployeeActivity[] = [];
   private allReplayActivities: UserActivity[] = [];
+  replaySidebarTab: 'activity' | 'console' = 'activity';
+  replayConsoleFilter: UserConsoleLevel | 'all' = 'all';
+  replayConsoleLogs: UserConsoleLog[] = [];
+  private allReplayConsoleLogs: UserConsoleLog[] = [];
   replayRangeStart = '';
   replayRangeEnd = '';
   replayPlaying = false;
@@ -68,6 +85,8 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
 
   private monitoringPoll?: ReturnType<typeof setInterval>;
   private liveReplayPoll?: ReturnType<typeof setInterval>;
+  private observabilityPoll?: ReturnType<typeof setInterval>;
+  private observabilityPollBusy = false;
   replayer?: Replayer;
   private replayCursor: string | null = null;
   private replayPollBusy = false;
@@ -93,6 +112,7 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
     private processService: ProcessService,
     private employeeMonitoring: EmployeeMonitoringService,
     private userActivityService: UserActivityService,
+    private userConsoleLogService: UserConsoleLogService,
   ) { }
 
   ngOnInit(): void {
@@ -215,6 +235,22 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
       const perfB = this.getEmployeeProcessCount(b._id);
       return perfB - perfA;
     });
+  }
+
+  get paginatedEmpleados(): User[] {
+    return this.filteredEmpleados.slice(
+      this.employeePageFirst,
+      this.employeePageFirst + this.employeePageRows,
+    );
+  }
+
+  onEmployeeSearchChange(): void {
+    this.employeePageFirst = 0;
+  }
+
+  onEmployeePageChange(event: { first?: number; rows?: number }): void {
+    this.employeePageFirst = event.first || 0;
+    this.employeePageRows = event.rows || 12;
   }
 
   get onlineEmployees(): number {
@@ -431,10 +467,12 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
     return `${platform} · ${date}, ${start} – ${end} · ${session.event_count} eventos`;
   }
 
-  getActivityTitle(activity: UserActivity): string {
-    if (activity.action) return activity.action;
-    if (activity.screen) return `Visitó ${activity.screen}`;
-    return 'Actividad en la plataforma';
+  getActivityTitle(activity: UserActivity & { groupCount?: number }): string {
+    return getEmployeeActivityTitle(activity);
+  }
+
+  getActivityDetail(activity: UserActivity & { groupCount?: number }): string {
+    return getEmployeeActivityDetail(activity);
   }
 
   getActivityTime(activity: UserActivity): string {
@@ -443,6 +481,33 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
       minute: '2-digit',
       second: '2-digit',
     });
+  }
+
+  setReplaySidebarTab(tab: 'activity' | 'console'): void {
+    this.replaySidebarTab = tab;
+  }
+
+  onReplayConsoleFilterChange(): void {
+    this.updateReplayActivitiesForRange();
+  }
+
+  getConsoleLogTime(log: UserConsoleLog): string {
+    return new Date(log.occurred_at).toLocaleTimeString('es-DO', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  }
+
+  getConsoleLevelLabel(level: UserConsoleLevel): string {
+    const labels: Record<UserConsoleLevel, string> = {
+      log: 'Log',
+      info: 'Info',
+      warn: 'Advertencia',
+      error: 'Error',
+      debug: 'Debug',
+    };
+    return labels[level] || level;
   }
 
   private async openReplay(
@@ -459,18 +524,25 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
     this.replayLoading = true;
     this.replayError = '';
     this.replayActivities = [];
+    this.replayConsoleLogs = [];
+    this.replaySidebarTab = 'activity';
+    this.replayConsoleFilter = 'all';
 
     try {
-      const [sessions, activities] = await Promise.all([
+      const [sessions, activities, consoleLogs] = await Promise.all([
         preloadedSessions
           ? Promise.resolve(preloadedSessions)
           : firstValueFrom(this.employeeMonitoring.getSessions(employee._id, mode === 'live' ? 1 : 24)),
-        firstValueFrom(this.userActivityService.getByUser(employee._id, 500)).catch(
+        firstValueFrom(this.userActivityService.getByUser(employee._id, 5_000, this.getObservabilitySince())).catch(
           () => ({ activities: [], totalCount: 0 }),
+        ),
+        firstValueFrom(this.userConsoleLogService.getByUser(employee._id, 5000)).catch(
+          () => ({ logs: [], totalCount: 0 }),
         ),
       ]);
       this.replaySessions = sessions;
       this.allReplayActivities = activities.activities || [];
+      this.allReplayConsoleLogs = consoleLogs.logs || [];
       this.selectedReplaySessionId =
         preferredSessionId || sessions[0]?.session_id || '';
 
@@ -513,6 +585,7 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
 
       await new Promise((resolve) => setTimeout(resolve, 0));
       await this.renderSelectedReplay();
+      this.startObservabilityPolling();
     } catch (err) {
       console.error('Error opening employee replay', err);
       this.replayError = getApiErrorMessage(
@@ -651,10 +724,49 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
   private updateReplayActivitiesForRange(): void {
     const start = this.parseDateTimeLocalInput(this.replayRangeStart);
     const end = this.parseDateTimeLocalInput(this.replayRangeEnd);
-    this.replayActivities = this.allReplayActivities.filter((activity) => {
+    const activitiesInRange = this.allReplayActivities.filter((activity) => {
       const timestamp = new Date(activity.occurred_at).getTime();
       return (!start || timestamp >= start) && (!end || timestamp <= end);
     });
+    this.replayActivities = groupConsecutiveEmployeeActivities(activitiesInRange);
+    this.replayConsoleLogs = this.allReplayConsoleLogs.filter((log) => {
+      const timestamp = new Date(log.occurred_at).getTime();
+      const isInRange = (!start || timestamp >= start) && (!end || timestamp <= end);
+      const matchesLevel = this.replayConsoleFilter === 'all' || log.level === this.replayConsoleFilter;
+      return isInRange && matchesLevel;
+    });
+  }
+
+  private startObservabilityPolling(): void {
+    if (this.observabilityPoll) clearInterval(this.observabilityPoll);
+    this.observabilityPoll = setInterval(() => this.pollObservability(), 3_000);
+  }
+
+  private async pollObservability(): Promise<void> {
+    if (this.observabilityPollBusy || !this.displayReplay || !this.replayEmployee) return;
+    this.observabilityPollBusy = true;
+    try {
+      const activitySince = this.getNewestObservabilityTimestamp(this.allReplayActivities)
+        || this.getObservabilitySince();
+      const consoleSince = this.getNewestObservabilityTimestamp(this.allReplayConsoleLogs);
+      const [activityResponse, consoleResponse] = await Promise.all([
+        firstValueFrom(this.userActivityService.getByUser(this.replayEmployee._id, 5_000, activitySince)),
+        firstValueFrom(this.userConsoleLogService.getByUser(this.replayEmployee._id, 5000, 'all', consoleSince)),
+      ]);
+      this.allReplayActivities = this.mergeObservabilityRecords(
+        this.allReplayActivities,
+        activityResponse?.activities || [],
+      );
+      this.allReplayConsoleLogs = this.mergeObservabilityRecords(
+        this.allReplayConsoleLogs,
+        consoleResponse?.logs || [],
+      );
+      this.updateReplayActivitiesForRange();
+    } catch (err) {
+      console.error('Error actualizando actividad y consola del empleado', err);
+    } finally {
+      this.observabilityPollBusy = false;
+    }
   }
 
   private toDateTimeLocalInput(value: string | Date): string {
@@ -728,15 +840,48 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
     this.replayHost?.nativeElement.replaceChildren();
 
     if (clearDialogState) {
+      if (this.observabilityPoll) clearInterval(this.observabilityPoll);
+      this.observabilityPoll = undefined;
+      this.observabilityPollBusy = false;
       this.replaySessions = [];
       this.selectedReplaySessionId = '';
       this.replayActivities = [];
       this.allReplayActivities = [];
+      this.replayConsoleLogs = [];
+      this.allReplayConsoleLogs = [];
       this.replayRangeStart = '';
       this.replayRangeEnd = '';
       this.replayEmployee = null;
       this.replayError = '';
     }
+  }
+
+  private getObservabilitySince(): string {
+    return new Date(Date.now() - 24 * 60 * 60 * 1_000).toISOString();
+  }
+
+  private getNewestObservabilityTimestamp(records: Array<{ occurred_at: string | Date }>): string | undefined {
+    const timestamp = records.reduce((latest, record) => {
+      const value = new Date(record.occurred_at).getTime();
+      return Number.isFinite(value) ? Math.max(latest, value) : latest;
+    }, 0);
+    return timestamp ? new Date(timestamp).toISOString() : undefined;
+  }
+
+  private mergeObservabilityRecords<T extends { _id?: string; occurred_at: string | Date }>(
+    current: T[],
+    incoming: T[],
+  ): T[] {
+    const records = new Map<string, T>();
+    [...incoming, ...current].forEach((record) => {
+      const key = String(record._id || `${new Date(record.occurred_at).getTime()}-${JSON.stringify(record)}`);
+      if (!records.has(key)) records.set(key, record);
+    });
+    const since = Date.now() - 24 * 60 * 60 * 1_000;
+    return Array.from(records.values())
+      .filter((record) => new Date(record.occurred_at).getTime() >= since)
+      .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())
+      .slice(0, 5_000);
   }
 
   private initializeReplayViewport(): void {

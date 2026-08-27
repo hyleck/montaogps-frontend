@@ -11,6 +11,7 @@ import { CommunicationNotificationService } from './core/services/communication-
 import { UserActivityService } from './core/services/user-activity.service';
 import { DialogOverlayCleanupService } from './core/services/dialog-overlay-cleanup.service';
 import { EmployeeMonitoringService } from './core/services/employee-monitoring.service';
+import { UserConsoleLogService } from './core/services/user-console-log.service';
 
 @Component({
   selector: 'app-root',
@@ -33,6 +34,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private userActivityService: UserActivityService,
     private dialogOverlayCleanup: DialogOverlayCleanupService,
     private employeeMonitoring: EmployeeMonitoringService,
+    private userConsoleLogs: UserConsoleLogService,
   ) {
     // this.themes.setTheme('light');
   }
@@ -44,6 +46,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.monitorAuthentication();
     this.communicationNotifications.start();
     this.userActivityService.start();
+    this.userConsoleLogs.start();
     this.employeeMonitoring.start();
     this.firebaseNotifications.publicRegistrationCompleted$
       .pipe(takeUntil(this.destroy$))
@@ -60,6 +63,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.communicationNotifications.stop();
     this.employeeMonitoring.stop();
+    this.userActivityService.stop();
+    this.userConsoleLogs.stop();
     this.dialogOverlayCleanup.cleanupNow();
   }
 

@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { HttpBackend, HttpClient, HttpParams } from '@angular/common/http';
 import * as maplibregl from 'maplibre-gl';
+import type * as GeoJSON from 'geojson';
 import { firstValueFrom } from 'rxjs';
 import { MonitorUserResponse } from 'src/app/core/services/monitoring.service';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';

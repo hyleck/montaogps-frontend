@@ -2103,23 +2103,56 @@
         </div>
 
         <aside class="user-location-dialog__history">
-            <div class="user-location-dialog__history-header">
-                <strong>Historial</strong>
-                <span>{{ userLocationActivities.length }} eventos</span>
+            <div class="user-observability-dialog__tabs user-location-dialog__tabs">
+                <button type="button" [class.is-active]="userActivityMonitorTab === 'activity'"
+                    (click)="selectUserActivityMonitorTab('activity')">
+                    <i class="pi pi-bolt"></i>
+                    Actividad
+                    <span>{{ userActivityMonitorActivities.length }}</span>
+                </button>
+                <button type="button" [class.is-active]="userActivityMonitorTab === 'console'"
+                    (click)="selectUserActivityMonitorTab('console')">
+                    <i class="pi pi-code"></i>
+                    Consola
+                    <span>{{ userActivityMonitorConsoleLogs.length }}</span>
+                </button>
             </div>
 
-            <div *ngIf="userLocationActivityLoading" class="user-location-dialog__history-state">
+            <div class="user-observability-dialog__capture-setting user-location-dialog__capture-setting">
+                <div>
+                    <i class="pi pi-code"></i>
+                    <span>
+                        <strong>Guardar consola 24 h</strong>
+                        <small *ngIf="userConsoleCaptureStatusLoading">Consultando...</small>
+                        <small *ngIf="!userConsoleCaptureStatusLoading && userConsoleCaptureForced">Siempre activo para empleados.</small>
+                        <small *ngIf="!userConsoleCaptureStatusLoading && !userConsoleCaptureForced && userConsoleCaptureEnabled">Activo para este usuario.</small>
+                        <small *ngIf="!userConsoleCaptureStatusLoading && !userConsoleCaptureForced && !userConsoleCaptureEnabled">Desactivado para este usuario.</small>
+                    </span>
+                </div>
+                <button type="button" class="user-observability-dialog__switch"
+                    [class.is-active]="userConsoleCaptureEnabled"
+                    [disabled]="userConsoleCaptureUpdating || userConsoleCaptureStatusLoading || userConsoleCaptureForced"
+                    [attr.aria-pressed]="userConsoleCaptureEnabled"
+                    (click)="toggleUserConsoleCapture()">
+                    <i *ngIf="userConsoleCaptureUpdating || userConsoleCaptureStatusLoading" class="pi pi-spin pi-spinner"></i>
+                    <span></span>
+                </button>
+            </div>
+
+            <div *ngIf="userActivityMonitorLoading" class="user-location-dialog__history-state">
                 <i class="pi pi-spin pi-spinner"></i>
-                <span>Cargando historial...</span>
+                <span>Cargando monitoreo...</span>
             </div>
 
-            <div *ngIf="!userLocationActivityLoading && !userLocationActivities.length" class="user-location-dialog__history-state">
+            <div *ngIf="!userActivityMonitorLoading && userActivityMonitorTab === 'activity' && !userActivityMonitorGroupedActivities.length"
+                class="user-location-dialog__history-state">
                 <i class="pi pi-history"></i>
-                <span>No hay actividad registrada.</span>
+                <span>No hay actividad registrada durante las últimas 24 horas.</span>
             </div>
 
-            <div class="user-location-dialog__activity-list" *ngIf="!userLocationActivityLoading && userLocationGroupedActivities.length">
-                <div class="user-location-dialog__activity" *ngFor="let activity of userLocationGroupedActivities">
+            <div class="user-location-dialog__activity-list"
+                *ngIf="!userActivityMonitorLoading && userActivityMonitorTab === 'activity' && userActivityMonitorGroupedActivities.length">
+                <div class="user-location-dialog__activity" *ngFor="let activity of userActivityMonitorGroupedActivities">
                     <span class="user-location-dialog__activity-platform" [class.is-mobile]="activity.platform === 'mobile'">
                         {{ activity.platform === 'mobile' ? 'Mobile' : 'Desktop' }}
                     </span>
@@ -2130,6 +2163,38 @@
                     </div>
                 </div>
             </div>
+
+            <ng-container *ngIf="!userActivityMonitorLoading && userActivityMonitorTab === 'console'">
+                <div class="user-observability-dialog__console-toolbar user-location-dialog__console-toolbar">
+                    <label for="management-console-level">Nivel</label>
+                    <select id="management-console-level" [(ngModel)]="userActivityConsoleFilter"
+                        (ngModelChange)="onUserActivityConsoleFilterChange()">
+                        <option value="all">Todos</option>
+                        <option value="error">Errores</option>
+                        <option value="warn">Advertencias</option>
+                        <option value="info">Info</option>
+                        <option value="log">Logs</option>
+                        <option value="debug">Debug</option>
+                    </select>
+                </div>
+                <div *ngIf="!userActivityMonitorConsoleLogs.length" class="user-location-dialog__history-state">
+                    <i class="pi pi-code"></i>
+                    <span>No hay mensajes de consola durante las últimas 24 horas.</span>
+                </div>
+                <div class="user-observability-dialog__console-list user-location-dialog__console-list"
+                    *ngIf="userActivityMonitorConsoleLogs.length">
+                    <article class="user-observability-dialog__console-entry"
+                        *ngFor="let log of userActivityMonitorConsoleLogs" [attr.data-level]="log.level">
+                        <div>
+                            <span class="user-observability-dialog__console-level">{{ getConsoleLevelLabel(log.level) }}</span>
+                            <time>{{ getConsoleLogTime(log) }}</time>
+                            <span class="user-observability-dialog__console-platform">{{ log.platform === 'mobile' ? 'Mobile' : 'Desktop' }}</span>
+                        </div>
+                        <pre>{{ log.message }}</pre>
+                        <small *ngIf="log.route">{{ log.route }}</small>
+                    </article>
+                </div>
+            </ng-container>
         </aside>
     </div>
 </p-dialog>

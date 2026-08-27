@@ -5216,8 +5216,8 @@ async initLocationMap(): Promise<void> {
     private geocodeProcessLocation(address: string): Promise<{ lat: number; lng: number } | null> {
         return new Promise(resolve => {
             const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ address }, (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
-                if (status !== google.maps.GeocoderStatus.OK || !results?.[0]?.geometry?.location) {
+            geocoder.geocode({ address }, (results, status) => {
+                if (status !== 'OK' || !results?.[0]?.geometry?.location) {
                     resolve(null);
                     return;
                 }

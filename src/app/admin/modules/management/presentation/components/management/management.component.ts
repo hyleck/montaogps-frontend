@@ -32,6 +32,11 @@ import { ProtocolsService } from '@core/services/protocols.service';
 import { InventoryService, Warehouse, InventoryItem } from '@core/services/inventory.service';
 import { SolicitudesService } from '@core/services/solicitudes.service';
 import { UserActivity, UserActivityService } from '@core/services/user-activity.service';
+import {
+  UserConsoleLevel,
+  UserConsoleLog,
+  UserConsoleLogService,
+} from '@core/services/user-console-log.service';
 import { Protocol } from '@core/interfaces/protocol.interface';
 import { SIM_CARD_TYPES } from '@core/constants/sim-card-types.constant';
 import {
@@ -110,9 +115,19 @@ export class ManagementComponent implements OnInit, OnDestroy {
   userLocationDialogVisible: boolean = false;
   userLocationDialogLoading: boolean = false;
   userLocationDialogError: string = '';
-  userLocationActivityLoading: boolean = false;
-  userLocationActivities: UserActivity[] = [];
-  userLocationGroupedActivities: Array<UserActivity & { groupCount?: number }> = [];
+  userActivityMonitorLoading: boolean = false;
+  userActivityMonitorTab: 'activity' | 'console' = 'activity';
+  userActivityMonitorActivities: UserActivity[] = [];
+  userActivityMonitorGroupedActivities: Array<UserActivity & { groupCount?: number }> = [];
+  userActivityMonitorConsoleLogs: UserConsoleLog[] = [];
+  userActivityConsoleFilter: UserConsoleLevel | 'all' = 'all';
+  userConsoleCaptureEnabled: boolean = false;
+  userConsoleCaptureForced: boolean = false;
+  userConsoleCaptureUpdating: boolean = false;
+  userConsoleCaptureStatusLoading: boolean = false;
+  selectedActivityUser: User | null = null;
+  private userActivityMonitorPoll?: ReturnType<typeof setInterval>;
+  private userActivityMonitorBusy = false;
   private readonly targetMapViewRecordedAt = new Map<string, number>();
   mainAccountId: string = '';
   selectedLocationUser: User | null = null;
@@ -751,7 +766,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private protocolsService: ProtocolsService,
     private inventoryService: InventoryService,
     private solicitudesService: SolicitudesService,
-    private userActivityService: UserActivityService
+    private userActivityService: UserActivityService,
+    private userConsoleLogService: UserConsoleLogService
   ) { }
 
   // ====================================
@@ -922,6 +938,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopUserActivityMonitorPolling();
     this.userLocationMarker?.remove?.();
     this.userLocationMapInstance?.remove?.();
     this.cleanupSubscriptions();
@@ -5991,20 +6008,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.userLocationDialogVisible = true;
     this.userLocationDialogLoading = true;
     this.userLocationDialogError = '';
-    this.userLocationActivities = [];
-    this.userLocationGroupedActivities = [];
+    this.startUserActivityMonitor(user);
 
     setTimeout(() => this.renderUserLocationMap(position), 0);
-    this.loadUserLocationActivity(user);
   }
 
   closeUserLocationDialog(): void {
+    this.resetUserActivityMonitor();
     this.userLocationDialogVisible = false;
     this.userLocationDialogLoading = false;
     this.userLocationDialogError = '';
-    this.userLocationActivityLoading = false;
-    this.userLocationActivities = [];
-    this.userLocationGroupedActivities = [];
     this.selectedLocationUser = null;
     this.userLocationMarker?.remove?.();
     this.userLocationMarker = null;
@@ -6075,36 +6088,199 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async loadUserLocationActivity(user: User | any): Promise<void> {
-    if (!this.canViewSubjectLocation(user)) {
-      this.userLocationActivities = [];
-      this.userLocationGroupedActivities = [];
-      return;
-    }
-
-    const userId = String(user?._id || user?.id || '').trim();
-    if (!userId) return;
-
-    this.userLocationActivityLoading = true;
-    try {
-      const response = await lastValueFrom(this.userActivityService.getByUser(userId, 40));
-      this.userLocationActivities = response?.activities || [];
-      this.userLocationGroupedActivities = this.groupConsecutiveActivities(this.userLocationActivities);
-    } catch (error) {
-      console.error('Error cargando historial del usuario:', error);
-      this.userLocationActivities = [];
-      this.userLocationGroupedActivities = [];
-    } finally {
-      this.userLocationActivityLoading = false;
-    }
-  }
-
   isEmployeeLocationSubject(user: User | any): boolean {
     return isEmployeeLocationSubjectValue(user);
   }
 
   canViewSubjectLocation(user: User | any): boolean {
     return this.isLoggedEmployee() && this.isEmployeeLocationSubject(user);
+  }
+
+  canMonitorUserActivity(): boolean {
+    return this.isCurrentUserRoot || this.isLoggedEmployee();
+  }
+
+  private startUserActivityMonitor(user: User): void {
+    if (!this.canMonitorUserActivity()) return;
+    const userId = String(user?._id || '').trim();
+    if (!userId) return;
+
+    this.resetUserActivityMonitor();
+    this.selectedActivityUser = user;
+    this.userActivityMonitorTab = 'activity';
+    this.userActivityConsoleFilter = 'all';
+    this.userConsoleCaptureStatusLoading = true;
+    this.loadUserConsoleCaptureStatus();
+    this.loadUserActivityMonitor(true);
+    this.userActivityMonitorPoll = setInterval(() => this.loadUserActivityMonitor(false), 3_000);
+  }
+
+  private resetUserActivityMonitor(): void {
+    this.stopUserActivityMonitorPolling();
+    this.userActivityMonitorLoading = false;
+    this.userActivityMonitorActivities = [];
+    this.userActivityMonitorGroupedActivities = [];
+    this.userActivityMonitorConsoleLogs = [];
+    this.userConsoleCaptureEnabled = false;
+    this.userConsoleCaptureForced = false;
+    this.userConsoleCaptureUpdating = false;
+    this.userConsoleCaptureStatusLoading = false;
+    this.selectedActivityUser = null;
+  }
+
+  selectUserActivityMonitorTab(tab: 'activity' | 'console'): void {
+    this.userActivityMonitorTab = tab;
+  }
+
+  onUserActivityConsoleFilterChange(): void {
+    this.loadUserActivityMonitor(true);
+  }
+
+  async toggleUserConsoleCapture(): Promise<void> {
+    const userId = String(this.selectedActivityUser?._id || '').trim();
+    if (
+      !userId ||
+      this.userConsoleCaptureUpdating ||
+      this.userConsoleCaptureStatusLoading ||
+      this.userConsoleCaptureForced
+    ) return;
+
+    const enabled = !this.userConsoleCaptureEnabled;
+    this.userConsoleCaptureUpdating = true;
+    try {
+      const status = await lastValueFrom(this.userConsoleLogService.setCaptureStatus(userId, enabled));
+      this.userConsoleCaptureEnabled = status?.enabled === true;
+      this.userConsoleCaptureForced = status?.forced === true;
+      this.messageService.add({
+        severity: 'success',
+        summary: this.userConsoleCaptureEnabled ? 'Captura activada' : 'Captura desactivada',
+        detail: this.userConsoleCaptureEnabled
+          ? 'La consola de este usuario comenzará a guardarse durante 24 horas.'
+          : 'Los nuevos mensajes de consola de este usuario no se guardarán.',
+      });
+    } catch (error) {
+      console.error('Error actualizando captura de consola:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'No se pudo cambiar la captura',
+        detail: 'Inténtalo nuevamente.',
+      });
+    } finally {
+      this.userConsoleCaptureUpdating = false;
+    }
+  }
+
+  getConsoleLogTime(log: UserConsoleLog): string {
+    const date = new Date(log.occurred_at);
+    return Number.isNaN(date.getTime())
+      ? ''
+      : date.toLocaleString('es-DO', {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+  }
+
+  getConsoleLevelLabel(level: UserConsoleLevel): string {
+    const labels: Record<UserConsoleLevel, string> = {
+      log: 'Log',
+      info: 'Info',
+      warn: 'Advertencia',
+      error: 'Error',
+      debug: 'Debug',
+    };
+    return labels[level] || level;
+  }
+
+  private async loadUserActivityMonitor(showLoading: boolean): Promise<void> {
+    const userId = String(this.selectedActivityUser?._id || '').trim();
+    if (!userId || this.userActivityMonitorBusy) return;
+
+    this.userActivityMonitorBusy = true;
+    if (showLoading) this.userActivityMonitorLoading = true;
+    try {
+      const activitySince = showLoading
+        ? undefined
+        : this.getNewestObservabilityTimestamp(this.userActivityMonitorActivities);
+      const consoleSince = showLoading
+        ? undefined
+        : this.getNewestObservabilityTimestamp(this.userActivityMonitorConsoleLogs);
+      const [activityResponse, consoleResponse] = await Promise.all([
+        lastValueFrom(this.userActivityService.getByUser(userId, 5_000, activitySince || this.getObservabilitySince())),
+        lastValueFrom(this.userConsoleLogService.getByUser(userId, 5_000, this.userActivityConsoleFilter, consoleSince)),
+      ]);
+      this.userActivityMonitorActivities = showLoading
+        ? activityResponse?.activities || []
+        : this.mergeObservabilityRecords(this.userActivityMonitorActivities, activityResponse?.activities || []);
+      this.userActivityMonitorGroupedActivities = this.groupConsecutiveActivities(this.userActivityMonitorActivities);
+      this.userActivityMonitorConsoleLogs = showLoading
+        ? consoleResponse?.logs || []
+        : this.mergeObservabilityRecords(this.userActivityMonitorConsoleLogs, consoleResponse?.logs || []);
+    } catch (error) {
+      console.error('Error cargando actividad y consola del usuario:', error);
+      if (showLoading) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo cargar el monitoreo',
+          detail: 'Verifica la conexión e inténtalo nuevamente.',
+        });
+      }
+    } finally {
+      this.userActivityMonitorBusy = false;
+      this.userActivityMonitorLoading = false;
+    }
+  }
+
+  private async loadUserConsoleCaptureStatus(): Promise<void> {
+    const userId = String(this.selectedActivityUser?._id || '').trim();
+    if (!userId) return;
+    this.userConsoleCaptureStatusLoading = true;
+    try {
+      const status = await lastValueFrom(this.userConsoleLogService.getCaptureStatus(userId));
+      this.userConsoleCaptureEnabled = status?.enabled === true;
+      this.userConsoleCaptureForced = status?.forced === true;
+    } catch (error) {
+      console.error('Error consultando captura de consola:', error);
+      this.userConsoleCaptureEnabled = false;
+      this.userConsoleCaptureForced = false;
+    } finally {
+      this.userConsoleCaptureStatusLoading = false;
+    }
+  }
+
+  private stopUserActivityMonitorPolling(): void {
+    if (this.userActivityMonitorPoll) clearInterval(this.userActivityMonitorPoll);
+    this.userActivityMonitorPoll = undefined;
+  }
+
+  private getObservabilitySince(): string {
+    return new Date(Date.now() - 24 * 60 * 60 * 1_000).toISOString();
+  }
+
+  private getNewestObservabilityTimestamp(records: Array<{ occurred_at: string | Date }>): string | undefined {
+    const timestamp = records.reduce((latest, record) => {
+      const value = new Date(record.occurred_at).getTime();
+      return Number.isFinite(value) ? Math.max(latest, value) : latest;
+    }, 0);
+    return timestamp ? new Date(timestamp).toISOString() : undefined;
+  }
+
+  private mergeObservabilityRecords<T extends { _id?: string; occurred_at: string | Date }>(
+    current: T[],
+    incoming: T[],
+  ): T[] {
+    const records = new Map<string, T>();
+    [...incoming, ...current].forEach((record) => {
+      const key = String(record._id || `${new Date(record.occurred_at).getTime()}-${JSON.stringify(record)}`);
+      if (!records.has(key)) records.set(key, record);
+    });
+    const since = Date.now() - 24 * 60 * 60 * 1_000;
+    return Array.from(records.values())
+      .filter((record) => new Date(record.occurred_at).getTime() >= since)
+      .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())
+      .slice(0, 5_000);
   }
 
   private sanitizeManagementUsers(users: User[] | null | undefined): User[] {
@@ -6162,6 +6338,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   getActivitySubtitle(activity: UserActivity): string {
     const metadata = activity.metadata || {};
+    if (String(activity.action || '').toLowerCase() === 'click') {
+      return String(metadata['label'] || activity.element || '').trim();
+    }
     const target = this.getActivityTargetDetail(activity);
     if (target) return target;
 
@@ -6234,6 +6413,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (value === 'delete') return 'Eliminó';
     if (value === 'view') return 'Vio';
     if (value === 'search') return 'Buscó';
+    if (value === 'click') return 'Hizo clic';
+    if (value === 'navigation') return 'Cambió de pantalla';
     return rawValue || 'Registró una acción';
   }
 
