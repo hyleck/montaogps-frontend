@@ -45,6 +45,8 @@ export class ProfileComponent implements OnInit {
     items: MenuItem[] = [{ label: 'Perfil' }];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
     loading: boolean = true;
+    saving: boolean = false;
+    private savedProfile: any = null;
     user: any = {
         _id: '',
         name: '',
@@ -201,7 +203,7 @@ export class ProfileComponent implements OnInit {
                 console.log('📸 DEBUG - Setting user photo:', uploadedFile.location_cdn);
                 this.user.photo = uploadedFile.location_cdn;
                 this.userPhotoUrl = uploadedFile.location_cdn;
-                this.updateUserProfile({ photo: uploadedFile.location_cdn });
+                this.updateUserProfile({ photo: uploadedFile.location_cdn }, false);
                 this.cdr.detectChanges();
             } else {
                 console.warn('📸 DEBUG - location_cdn not found in response');
@@ -225,6 +227,7 @@ export class ProfileComponent implements OnInit {
 
     // Métodos Públicos
     onSubmit() {
+        if (this.loading || this.saving || !this.user?._id) return;
         const updateUserDto = this.prepareUpdateUserDto();
         this.updateUserProfile(updateUserDto);
     }
@@ -269,7 +272,7 @@ export class ProfileComponent implements OnInit {
     removePhoto() {
         this.user.photo = '';
         this.userPhotoUrl = null;
-        this.updateUserProfile({ photo: '' });
+        this.updateUserProfile({ photo: '' }, false);
     }
 
 
@@ -277,9 +280,9 @@ export class ProfileComponent implements OnInit {
     // Métodos Privados
     private loadCachedProfile() {
         const cachedProfile = this.status.getState<any>('profile');
-        if (cachedProfile) {
-            this.user = cachedProfile;
-            this.loading = false;
+        if (cachedProfile?._id && cachedProfile._id === this.authService.getCurrentUser()?.id) {
+            this.user = this.cloneProfile(cachedProfile);
+            this.savedProfile = this.cloneProfile(cachedProfile);
         }
     }
 
@@ -289,11 +292,9 @@ export class ProfileComponent implements OnInit {
         if (currentUser && currentUser.id) {
             this.userService.getById(currentUser.id).subscribe({
                 next: (userData: any) => {
-                    // 🔍 DEBUG: Usuario completo desde perfil
-                    console.log('🔍 DEBUG - USUARIO COMPLETO EN PERFIL:', userData);
                     const updatedUser = this.processUserData(userData);
-                    this.updateUserIfChanged(updatedUser);
-                    this.status.setState('profile', this.user);
+                    this.user = updatedUser;
+                    this.rememberSavedProfile(updatedUser);
                     this.loading = false;
                 },
                 error: (error) => {
@@ -308,8 +309,9 @@ export class ProfileComponent implements OnInit {
     }
 
     private processUserData(userData: any): any {
-        const userSettingsArray = userData.settings || [];
-        const userSettingsData = userSettingsArray.length > 0 ? userSettingsArray[0] : {};
+        const userSettingsData = (Array.isArray(userData.settings)
+            ? userData.settings[0]
+            : userData.settings) || {};
 
         if (userSettingsData.theme) {
             this.selectedTheme = userSettingsData.theme;
@@ -319,7 +321,6 @@ export class ProfileComponent implements OnInit {
         if (userSettingsData.language) {
             this.translate.use(userSettingsData.language);
             this.langService.setLanguage(userSettingsData.language);
-            this.user.settings.language = userSettingsData.language;
         }
 
         const userSettings = {
@@ -330,9 +331,7 @@ export class ProfileComponent implements OnInit {
         };
 
         // Set photo URL for display
-        if (userData.photo) {
-            this.userPhotoUrl = userData.photo;
-        }
+        this.userPhotoUrl = userData.photo || null;
 
         return {
             _id: userData._id,
@@ -353,17 +352,14 @@ export class ProfileComponent implements OnInit {
         };
     }
 
-    private updateUserIfChanged(updatedUser: any) {
-        if (JSON.stringify(this.user) !== JSON.stringify(updatedUser)) {
-            this.user = updatedUser;
-            if (!this.loading) {
-                this.messageService.add({
-                    severity: 'info',
-                    summary: this.translate.instant('profile.messages.update_success'),
-                    detail: this.translate.instant('profile.messages.profile_updated')
-                });
-            }
-        }
+    private cloneProfile(profile: any): any {
+        return JSON.parse(JSON.stringify(profile));
+    }
+
+    private rememberSavedProfile(profile: any): void {
+        // El borrador del formulario no debe compartir objetos con la caché.
+        this.savedProfile = this.cloneProfile(profile);
+        this.status.setState('profile', this.cloneProfile(profile));
     }
 
     private prepareUpdateUserDto() {
@@ -383,21 +379,43 @@ export class ProfileComponent implements OnInit {
             }]
         };
 
-        return this.normalizeUserPayload(payload);
+        const normalized = this.normalizeUserPayload(payload);
+        if (this.savedProfile && this.sanitizeString(this.user.dni) === this.sanitizeString(this.savedProfile.dni)) {
+            delete normalized.dni;
+        }
+        return normalized;
     }
 
-    private updateUserProfile(updateUserDto: any) {
+    private updateUserProfile(updateUserDto: any, replaceForm: boolean = true) {
         const normalizedDto = this.normalizeUserPayload(updateUserDto);
+        if (replaceForm) this.saving = true;
 
-        this.userService.update(this.user._id, normalizedDto).subscribe({
+        this.userService.update(this.user._id, normalizedDto).pipe(
+            finalize(() => { if (replaceForm) this.saving = false; })
+        ).subscribe({
             next: (updatedUser) => {
-                this.status.setState('profile', this.user);
-                this.showUpdateSuccessMessage();
+                const savedProfile = this.processUserData(updatedUser);
+                if (replaceForm) {
+                    this.user = this.cloneProfile(savedProfile);
+                } else {
+                    // Foto y preferencias se guardan por separado: no perder ni
+                    // dar por guardados los datos personales aún en edición.
+                    const changedFields = new Set([
+                        ...Object.keys(normalizedDto),
+                        ...(normalizedDto.clear_fields || [])
+                    ]);
+                    changedFields.delete('clear_fields');
+                    for (const field of changedFields) {
+                        this.user[field] = savedProfile[field];
+                    }
+                }
+                this.rememberSavedProfile(savedProfile);
                 this.updateAuthServiceUser(updatedUser);
+                this.showUpdateSuccessMessage();
             },
             error: (error) => {
                 console.error('Error al actualizar el usuario:', error);
-                this.showUpdateErrorMessage();
+                this.showUpdateErrorMessage(error);
             }
         });
     }
@@ -417,27 +435,7 @@ export class ProfileComponent implements OnInit {
             }]
         };
 
-        const normalizedDto = this.normalizeUserPayload(updateUserDto);
-
-        this.userService.update(this.user._id, normalizedDto).subscribe({
-            next: (updatedUser) => {
-                this.status.setState('profile', this.user);
-                this.showUpdateSuccessMessage();
-                // Persist settings to localStorage for immediate use by map components
-                try {
-                    const userStr = localStorage.getItem('user');
-                    const currentUser = userStr ? JSON.parse(userStr) : null;
-                    if (currentUser) {
-                        currentUser.settings = updatedUser.settings || normalizedDto.settings;
-                        localStorage.setItem('user', JSON.stringify(currentUser));
-                    }
-                } catch (_) { /* ignore */ }
-            },
-            error: (error) => {
-                console.error('Error al actualizar la configuración:', error);
-                this.showUpdateErrorMessage();
-            }
-        });
+        this.updateUserProfile(updateUserDto, false);
     }
 
     private updatePassword() {
@@ -464,13 +462,19 @@ export class ProfileComponent implements OnInit {
             const userStr = localStorage.getItem('user');
             const currentUser = userStr ? JSON.parse(userStr) : null;
 
-            if (currentUser) {
+            if (currentUser && String(currentUser.id || currentUser._id) === String(updatedUser._id)) {
                 // Update only the fields that changed, preserve everything else
                 const updatedUserData = {
                     ...currentUser,
                     name: updatedUser.name,
                     last_name: updatedUser.last_name,
                     email: updatedUser.email,
+                    dni: updatedUser.dni || '',
+                    phone: updatedUser.phone || '',
+                    phone2: updatedUser.phone2 || '',
+                    address: updatedUser.address || '',
+                    photo: updatedUser.photo || '',
+                    auto_response: updatedUser.auto_response || false,
                     settings: updatedUser.settings || currentUser.settings
                 };
 
@@ -489,11 +493,11 @@ export class ProfileComponent implements OnInit {
         });
     }
 
-    private showUpdateErrorMessage() {
+    private showUpdateErrorMessage(error: unknown) {
         this.messageService.add({
             severity: 'error',
             summary: this.translate.instant('profile.messages.update_error'),
-            detail: this.translate.instant('profile.messages.update_error_detail')
+            detail: getApiErrorMessage(error, this.translate.instant('profile.messages.update_error_detail'))
         });
     }
 
@@ -558,6 +562,15 @@ export class ProfileComponent implements OnInit {
 
     private normalizeUserPayload(payload: any): any {
         const sanitized: any = { ...payload };
+        const clearFields = new Set<string>(payload.clear_fields || []);
+
+        for (const field of ['phone2', 'address', 'photo']) {
+            if (field in payload && payload[field] !== undefined && !this.sanitizeString(payload[field])) {
+                clearFields.add(field);
+                delete sanitized[field];
+            }
+        }
+        if (clearFields.size) sanitized.clear_fields = [...clearFields];
 
         if ('name' in sanitized) sanitized.name = this.sanitizeString(sanitized.name);
         if ('last_name' in sanitized) sanitized.last_name = this.sanitizeString(sanitized.last_name);

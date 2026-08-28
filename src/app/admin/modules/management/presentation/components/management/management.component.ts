@@ -1666,8 +1666,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (createdUser?._id && createdUser._id === this.selectedUser?._id) {
+      // Al editar la cuenta abierta no basta con recargar sus hijos. Reemplazar
+      // la ficha con la respuesta también refleja los campos que se eliminaron.
+      this.selectedUser = this.sanitizeManagementUserLocation(createdUser);
+      this.loadUserPath(createdUser._id);
+    }
+
     if (this.selectedUser) {
-      this.loadUsersForUser(this.selectedUser._id);
+      await this.loadUsersForUser(this.selectedUser._id);
     }
   }
 

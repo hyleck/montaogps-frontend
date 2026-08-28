@@ -39,7 +39,7 @@
                                         <input type="file" id="photo-upload" accept="image/*"
                                             (change)="onPhotoSelected($event)" style="display: none;">
 
-                                        <button class="remove-photo-btn" *ngIf="userPhotoUrl" (click)="removePhoto()">
+                                        <button type="button" class="remove-photo-btn" *ngIf="userPhotoUrl" (click)="removePhoto()">
                                             <i class="pi pi-trash"></i>
                                             <span>{{ 'profile.settings.photo.remove' | translate }}</span>
                                         </button>
@@ -88,8 +88,8 @@
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="save-button">
-                            <i class="pi pi-save"></i>
+                        <button type="submit" class="save-button" [disabled]="saving">
+                            <i class="pi" [ngClass]="saving ? 'pi-spinner pi-spin' : 'pi-save'"></i>
                             {{ 'profile.personal_info.save_changes' | translate }}
                         </button>
                     </div>
