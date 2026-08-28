@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import {
   ExpenseReceipt,
   ExpenseReceiptAccountingCategory,
@@ -25,6 +25,8 @@ interface ReceiptDateGroup {
   standalone: false,
 })
 export class ComprobantesComponent implements OnInit, OnDestroy {
+  @ViewChild('receiptsPage') private receiptsPage?: ElementRef<HTMLElement>;
+
   receipts: ExpenseReceipt[] = [];
   total = 0;
   page = 1;
@@ -170,7 +172,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
     if (nextPage < 1 || nextPage > this.totalPages || nextPage === this.page) return;
     this.page = nextPage;
     this.loadReceipts();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.receiptsPage?.nativeElement.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   openReceipt(receipt: ExpenseReceipt): void {
