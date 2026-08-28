@@ -191,7 +191,8 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.userService.getEmployees().subscribe({
       next: (data) => {
-        this.empleados = data;
+        this.empleados = data.filter((employee) => employee.status !== false);
+        this.employeePageFirst = 0;
         this.loading = false;
       },
       error: (err) => {
