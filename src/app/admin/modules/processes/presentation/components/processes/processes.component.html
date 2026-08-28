@@ -173,7 +173,7 @@
             </div>
 
             <div class="filter-field">
-                <label>Desde</label>
+                <label>Registrado desde</label>
                 <p-calendar [(ngModel)]="dateFrom" dateFormat="dd/mm/yy"
                     placeholder="Fecha inicial" [showIcon]="true" [showTime]="true"
                     [hourFormat]="'24'" [showSeconds]="false" appendTo="body"
@@ -182,7 +182,7 @@
             </div>
 
             <div class="filter-field">
-                <label>Hasta</label>
+                <label>Registrado hasta</label>
                 <p-calendar [(ngModel)]="dateTo" dateFormat="dd/mm/yy"
                     placeholder="Fecha final" [showIcon]="true" [showTime]="true"
                     [hourFormat]="'24'" [showSeconds]="false" appendTo="body"
@@ -203,7 +203,7 @@
             <div>
                 <span class="section-kicker">Registro de actividad</span>
                 <h2>Historial de procesos</h2>
-                <p>{{ totalRecords | number }} resultados dentro del período seleccionado</p>
+                <p>{{ totalRecords | number }} registros creados dentro del período seleccionado</p>
             </div>
             <div class="list-legend">
                 <span><i class="legend-dot legend-dot--verified"></i>Verificado</span>
@@ -222,7 +222,7 @@
 
                 <ng-template pTemplate="header">
                     <tr>
-                        <th class="column-date">Fecha</th>
+                        <th class="column-date">Fecha del proceso</th>
                         <th class="column-process">Proceso</th>
                         <th class="column-target">Objetivo</th>
                         <th class="column-client">Cliente</th>
@@ -236,8 +236,7 @@
                     <tr [ngClass]="getProcessRowClass(process.verificationStatus)">
                         <td>
                             <div class="process-date">
-                                <strong>{{ process.createdAt | date:'dd MMM yyyy' }}</strong>
-                                <span><i class="pi pi-clock"></i>{{ process.createdAt | date:'HH:mm' }}</span>
+                                <strong>{{ getProcessDate(process) | date:'dd MMM yyyy' }}</strong>
                             </div>
                         </td>
                         <td>
@@ -345,7 +344,8 @@
                     <span class="detail-summary__eyebrow">Registro operativo</span>
                     <p>{{ (selectedProcess.description || 'Proceso registrado en el historial operativo.') | deviceLabel }}</p>
                     <div class="detail-summary__meta">
-                        <span><i class="pi pi-calendar"></i>{{ selectedProcess.createdAt | date:'dd/MM/yyyy · HH:mm:ss' }}</span>
+                        <span><i class="pi pi-calendar"></i>Fecha del proceso: {{ getProcessDate(selectedProcess) | date:'dd/MM/yyyy' }}</span>
+                        <span><i class="pi pi-clock"></i>Creado: {{ selectedProcess.createdAt | date:'dd/MM/yyyy · HH:mm:ss' }}</span>
                         <span><i class="pi pi-hashtag"></i>{{ selectedProcess.reference || selectedProcess._id }}</span>
                     </div>
                 </div>

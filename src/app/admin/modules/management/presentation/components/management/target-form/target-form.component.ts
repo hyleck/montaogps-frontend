@@ -34,6 +34,7 @@ import { Form } from 'src/app/core/interfaces/form.interface';
 import { InventoryService } from 'src/app/core/services/inventory.service';
 import { environment } from 'src/environments/environment';
 import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
+import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
 
 
 
@@ -5370,7 +5371,19 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             );
             updatedTarget = { ...updatedTarget, ...(officeRegistration.device || {}) };
 
-            this.target = { ...this.target, ...(updatedTarget as any) };
+            // activation_date is the persisted installation date; installation_date is the form alias.
+            // Refresh both only after registration succeeds so the old input cannot overwrite it later.
+            const installationDate = this.formatDateToInput(
+                officeRegistration.device?.activation_date
+                    || officeRegistration.process?.registrationDate
+                    || form.installationDate
+            );
+            this.target = {
+                ...this.target,
+                ...(updatedTarget as any),
+                activation_date: installationDate,
+                installation_date: installationDate
+            };
             await this.loadProcessesList(false);
             const vehicleWasVerified = this.isInstallationChassisVerified();
             this.clearPendingInstallationEvidence();
@@ -5462,12 +5475,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Método para formatear fecha
     formatDate(dateString: string): string {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('es-ES', {
+        const date = parseProcessDisplayDate(dateString);
+        return date?.toLocaleDateString('es-ES', {
             year: 'numeric',
             month: '2-digit',
             day: '2-digit'
-        });
+        }) || '';
     }
 
     // Método para formatear fecha y hora completa

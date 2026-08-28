@@ -42,6 +42,7 @@ export interface Target {
   color?: string;
   chassis?: string;
   installation_date?: string;
+  activation_date?: string;
   expiration_date?: string;
   pending_renewal_date?: string;
   pending_renewal_process_id?: string;

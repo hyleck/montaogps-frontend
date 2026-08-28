@@ -1194,7 +1194,15 @@
                     <span>Aún no hay mensajes en el grupo.</span>
                 </div>
 
-                <div *ngFor="let msg of internalMessages" class="comm-internal-message"
+                <ng-container *ngFor="let msg of internalMessages; let messageIndex = index">
+                <div *ngIf="shouldShowInternalDate(messageIndex)"
+                    class="comm-conversation-date"
+                    role="separator"
+                    [attr.aria-label]="formatConversationDate(msg.createdAt)">
+                    <span>{{ formatConversationDate(msg.createdAt) }}</span>
+                </div>
+
+                <div class="comm-internal-message"
                     [class.comm-internal-message--me]="isMyInternalMessage(msg)"
                     [class.comm-internal-message--sticker-only]="isInternalStickerOnlyMessage(msg)">
                     <div class="comm-internal-message__avatar">
@@ -1207,7 +1215,7 @@
                             <strong>{{ isMyInternalMessage(msg) ? 'Tú' : getInternalAuthorName(msg) }}</strong>
                             <span>{{ msg.createdAt | date:'HH:mm' }}</span>
                         </div>
-                        <div class="comm-internal-message__text" *ngIf="msg.text">{{ msg.text }}</div>
+                        <div class="comm-internal-message__text" *ngIf="msg.text">{{ msg.text | deviceLabel }}</div>
                         <button
                             *ngIf="msg.referenceConversationId"
                             type="button"
@@ -1253,6 +1261,7 @@
                         </div>
                     </div>
                 </div>
+                </ng-container>
             </div>
 
             <input type="file" #internalMediaFileInput (change)="onInternalMediaSelected($event)"

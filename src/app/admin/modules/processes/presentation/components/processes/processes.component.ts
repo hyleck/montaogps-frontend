@@ -14,6 +14,7 @@ import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import * as XLSX from 'xlsx-js-style';
 import { MessageService } from 'primeng/api';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
+import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
 
 @Component({
   selector: 'app-processes',
@@ -173,7 +174,7 @@ export class ProcessesComponent implements OnInit {
     const allProcesses = res?.data || [];
 
     const data = allProcesses.map(p => ({
-      'Fecha': new Date(p.createdAt).toLocaleString('es-DO'),
+      'Fecha': this.getProcessDate(p)?.toLocaleDateString('es-DO') || '',
       'Tipo': this.getTypeLabel(p.type),
       'Estado': this.getVerificationStatusLabel(p.verificationStatus),
       'Target': this.getTargetName(p.target),
@@ -336,6 +337,11 @@ export class ProcessesComponent implements OnInit {
 
   getVisibleStatusCount(status: ProcessVerificationStatus): number {
     return this.processes.filter(process => this.getVerificationStatus(process.verificationStatus) === status).length;
+  }
+
+  getProcessDate(process: ProcessItem): Date | null {
+    return parseProcessDisplayDate(process.registrationDate)
+      || parseProcessDisplayDate(process.createdAt);
   }
 
   getPeriodLabel(): string {
