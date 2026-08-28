@@ -68,6 +68,14 @@ export class InventoryLotsComponent implements OnChanges, OnDestroy {
   }
 
   label(category: string | undefined): string { return category === 'cables' ? 'Cables' : 'Relay'; }
+  get hasFilters(): boolean { return !!(this.query.trim() || this.storage || this.filterCategory); }
+  clearFilters(): void {
+    this.query = '';
+    this.storage = '';
+    this.filterCategory = '';
+    this.load(1);
+  }
+  trackRow(_index: number, row: LotRow): string { return row.key; }
   validQuantity(row: LotRow): boolean {
     const quantity = this.quantities[row.key];
     return Number.isSafeInteger(quantity) && quantity > 0 && quantity <= row.available && (!this.destination || this.destination !== row.source_warehouse);

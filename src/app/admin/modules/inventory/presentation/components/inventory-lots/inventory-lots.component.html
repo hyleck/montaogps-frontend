@@ -1,40 +1,146 @@
-<section class="lot-panel">
+<section class="lot-section" [class.lot-section--picker]="picker">
   <header class="lot-header">
-    <div><h2>{{ category ? label(category) : 'Relay y Cables' }}</h2><p>Inventario por lotes y unidades. No requiere código de barras por unidad.</p></div>
-    <button type="button" *ngIf="canCreate && !picker" (click)="openNew()"><i class="pi pi-plus"></i> Registrar lote</button>
+    <div class="lot-heading">
+      <span class="lot-icon" aria-hidden="true"><i [class]="category === 'cables' ? 'pi pi-link' : 'pi pi-bolt'"></i></span>
+      <div>
+        <span class="lot-kicker">Inventario por cantidad</span>
+        <h2>{{ category ? label(category) : 'Relay y Cables' }}</h2>
+        <p>Control de unidades por lote y almacén, sin códigos de barras individuales.</p>
+      </div>
+    </div>
+    <button type="button" class="lot-button lot-button--primary" *ngIf="canCreate && !picker" (click)="openNew()">
+      <i class="pi pi-plus" aria-hidden="true"></i><span>Registrar lote</span>
+    </button>
   </header>
-  <form class="lot-filters" (ngSubmit)="load(1)">
-    <label>Buscar lote<input name="q" [(ngModel)]="query" placeholder="Nombre o referencia del lote" maxlength="100"></label>
-    <label *ngIf="!category">Producto<select name="category" [(ngModel)]="filterCategory" (change)="load(1)"><option value="">Todos</option><option value="relay">Relay</option><option value="cables">Cables</option></select></label>
-    <label>Almacén<select name="storage" [(ngModel)]="storage" (change)="load(1)"><option value="">Todos los almacenes</option><option value="unassigned">Sin asignar</option><option *ngFor="let warehouse of warehouses" [value]="warehouse._id">{{ warehouse.name }}</option></select></label>
-    <button type="submit" [disabled]="loading">Buscar</button>
+
+  <form class="lot-filters" [class.lot-filters--with-category]="!category" (ngSubmit)="load(1)" aria-label="Filtrar lotes">
+    <label class="lot-field lot-field--search">
+      <span>Buscar lote</span>
+      <span class="lot-control lot-control--search">
+        <i class="pi pi-search" aria-hidden="true"></i>
+        <input name="q" [(ngModel)]="query" placeholder="Nombre o referencia del lote" maxlength="100">
+      </span>
+    </label>
+    <label class="lot-field" *ngIf="!category">
+      <span>Producto</span>
+      <span class="lot-control lot-control--select">
+        <select name="category" [(ngModel)]="filterCategory" (change)="load(1)">
+          <option value="">Todos los productos</option><option value="relay">Relay</option><option value="cables">Cables</option>
+        </select>
+        <i class="pi pi-chevron-down" aria-hidden="true"></i>
+      </span>
+    </label>
+    <label class="lot-field">
+      <span>Almacén</span>
+      <span class="lot-control lot-control--select">
+        <select name="storage" [(ngModel)]="storage" (change)="load(1)">
+          <option value="">Todos los almacenes</option><option value="unassigned">Sin asignar</option>
+          <option *ngFor="let warehouse of warehouses" [value]="warehouse._id">{{ warehouse.name }}</option>
+        </select>
+        <i class="pi pi-chevron-down" aria-hidden="true"></i>
+      </span>
+    </label>
+    <div class="lot-filter-actions">
+      <button type="submit" class="lot-button lot-button--search" [disabled]="loading">
+        <i [class]="loading ? 'pi pi-spin pi-spinner' : 'pi pi-search'" aria-hidden="true"></i><span>Buscar</span>
+      </button>
+      <button type="button" class="lot-button lot-button--icon" *ngIf="hasFilters" (click)="clearFilters()" aria-label="Limpiar filtros" title="Limpiar filtros">
+        <i class="pi pi-filter-slash" aria-hidden="true"></i>
+      </button>
+    </div>
   </form>
-  <p class="lot-summary" aria-live="polite">{{ totalQuantity }} unidades disponibles · {{ total }} lotes</p>
-  <p *ngIf="error" class="lot-error" role="alert">{{ error }}</p>
-  <p *ngIf="loading" role="status">Cargando lotes…</p>
-  <div class="lot-table-scroll" *ngIf="!loading && rows.length">
-    <table><thead><tr><th>Producto / lote</th><th>Almacén</th><th>Disponible</th><th *ngIf="canCreate">Cantidad a enviar</th><th *ngIf="canCreate">Acción</th></tr></thead>
-      <tbody><tr *ngFor="let row of rows">
-        <td><strong>{{ label(row.category) }} · {{ row.name }}</strong><small>Ingreso: {{ row.createdAt | date:'dd/MM/yyyy' }}</small></td>
-        <td>{{ row.source_name }}</td><td><b>{{ row.available }}</b> unidades</td>
-        <td *ngIf="canCreate"><input type="number" min="1" [max]="row.available" step="1" [(ngModel)]="quantities[row.key]" [attr.aria-label]="'Cantidad de ' + row.name + ' desde ' + row.source_name"></td>
-        <td *ngIf="canCreate"><button type="button" [disabled]="!validQuantity(row)" (click)="choose(row)">{{ picker ? 'Agregar' : (row.source_warehouse ? 'Enviar en conduce' : 'Asignar / enviar') }}</button></td>
-      </tr></tbody>
-    </table>
+
+  <div class="lot-panel" [attr.aria-busy]="loading">
+    <header class="lot-results-header">
+      <div><h3>{{ picker ? 'Seleccionar lotes' : 'Lotes registrados' }}</h3><p>Disponibilidad por almacén</p></div>
+      <div class="lot-summary" aria-live="polite" *ngIf="!loading && !error">
+        <span class="lot-summary-stock"><i class="pi pi-box" aria-hidden="true"></i><span><strong>{{ totalQuantity | number }}</strong> {{ totalQuantity === 1 ? 'unidad disponible' : 'unidades disponibles' }}</span></span>
+        <span class="lot-summary-count"><strong>{{ total | number }}</strong> {{ total === 1 ? 'lote' : 'lotes' }}</span>
+      </div>
+    </header>
+
+    <div *ngIf="error" class="lot-state lot-state--error" role="alert">
+      <span class="lot-state-icon" aria-hidden="true"><i class="pi pi-exclamation-circle"></i></span>
+      <strong>No se pudieron cargar los lotes</strong><p>{{ error }}</p>
+      <button type="button" class="lot-button" (click)="load(page)"><i class="pi pi-refresh" aria-hidden="true"></i><span>Reintentar</span></button>
+    </div>
+    <div *ngIf="loading" class="lot-state" role="status">
+      <span class="lot-state-icon" aria-hidden="true"><i class="pi pi-spin pi-spinner"></i></span>
+      <strong>Cargando lotes…</strong><p>Consultando las unidades disponibles.</p>
+    </div>
+
+    <div class="lot-table-scroll" *ngIf="!loading && !error && rows.length" tabindex="0" role="region" aria-label="Lotes y disponibilidad por almacén">
+      <table class="lot-table" [class.lot-table--readonly]="!canCreate">
+        <thead><tr>
+          <th scope="col">Producto / lote</th><th scope="col">Almacén</th><th scope="col">Disponible</th>
+          <th scope="col" *ngIf="canCreate">Cantidad a enviar</th><th scope="col" *ngIf="canCreate">Acción</th>
+        </tr></thead>
+        <tbody><tr *ngFor="let row of rows; trackBy: trackRow">
+          <td>
+            <div class="lot-identity">
+              <span class="lot-icon lot-icon--small" aria-hidden="true"><i [class]="row.category === 'cables' ? 'pi pi-link' : 'pi pi-bolt'"></i></span>
+              <div><span class="lot-product-label">{{ label(row.category) }}</span><strong>{{ row.name }}</strong>
+                <small>{{ row.createdAt ? 'Ingreso: ' + (row.createdAt | date:'dd/MM/yyyy') : 'Sin fecha de ingreso' }}</small>
+              </div>
+            </div>
+          </td>
+          <td><span class="lot-warehouse" [class.lot-warehouse--unassigned]="!row.source_warehouse">
+            <i [class]="row.source_warehouse ? 'pi pi-building' : 'pi pi-inbox'" aria-hidden="true"></i><span>{{ row.source_name }}</span>
+          </span></td>
+          <td><span class="lot-stock" [class.lot-stock--empty]="row.available === 0"><b>{{ row.available | number }}</b><small>{{ row.available === 1 ? 'unidad' : 'unidades' }}</small></span></td>
+          <td *ngIf="canCreate">
+            <input class="lot-quantity" type="number" min="1" [max]="row.available" step="1" [(ngModel)]="quantities[row.key]"
+              [disabled]="row.available === 0 || (!!destination && destination === row.source_warehouse)"
+              [attr.aria-label]="'Cantidad de ' + row.name + ' desde ' + row.source_name">
+            <small class="lot-quantity-hint">{{ destination && destination === row.source_warehouse ? 'Almacén de destino' : (row.available === 0 ? 'Sin unidades' : 'De 1 a ' + (row.available | number)) }}</small>
+          </td>
+          <td *ngIf="canCreate"><button type="button" class="lot-button lot-button--send" [disabled]="!validQuantity(row)" (click)="choose(row)">
+            <i [class]="picker ? 'pi pi-plus' : 'pi pi-send'" aria-hidden="true"></i>
+            <span>{{ picker ? 'Agregar' : (row.source_warehouse ? 'Enviar en conduce' : 'Asignar / enviar') }}</span>
+          </button></td>
+        </tr></tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!loading && !error && !rows.length" class="lot-state lot-empty">
+      <span class="lot-state-icon" aria-hidden="true"><i [class]="hasFilters ? 'pi pi-search' : (category === 'cables' ? 'pi pi-link' : 'pi pi-box')"></i></span>
+      <strong>{{ hasFilters ? 'No se encontraron lotes' : 'Aún no hay lotes registrados' }}</strong>
+      <p>{{ hasFilters ? 'Prueba con otra referencia o cambia el almacén seleccionado.' : (canCreate && !picker ? 'Registra tu primer lote de ' + (category ? label(category) : 'Relay o Cables') + ' para controlar sus unidades y asignarlas a un almacén.' : 'Los lotes registrados aparecerán aquí con sus unidades disponibles.') }}</p>
+      <button type="button" class="lot-button" *ngIf="hasFilters" (click)="clearFilters()"><i class="pi pi-filter-slash" aria-hidden="true"></i><span>Limpiar filtros</span></button>
+      <button type="button" class="lot-button" *ngIf="!hasFilters && canCreate && !picker" (click)="openNew()"><i class="pi pi-plus" aria-hidden="true"></i><span>Registrar lote</span></button>
+    </div>
+    <nav class="lot-pagination" aria-label="Páginas de lotes" *ngIf="!error && lastPage > 1">
+      <span>Página <strong>{{ page }}</strong> de {{ lastPage }}</span>
+      <div><button type="button" class="lot-button" [disabled]="loading || page <= 1" (click)="load(page - 1)"><i class="pi pi-chevron-left" aria-hidden="true"></i><span>Anterior</span></button>
+        <button type="button" class="lot-button" [disabled]="loading || page >= lastPage" (click)="load(page + 1)"><span>Siguiente</span><i class="pi pi-chevron-right" aria-hidden="true"></i></button></div>
+    </nav>
   </div>
-  <p *ngIf="!loading && !error && !rows.length" class="lot-empty">No se encontraron lotes. Registra uno nuevo o cambia los filtros.</p>
-  <nav class="lot-pagination" aria-label="Páginas de lotes" *ngIf="lastPage > 1"><button type="button" [disabled]="loading || page <= 1" (click)="load(page - 1)">Anterior</button><span>{{ page }} / {{ lastPage }}</span><button type="button" [disabled]="loading || page >= lastPage" (click)="load(page + 1)">Siguiente</button></nav>
 </section>
 
-<p-dialog [(visible)]="formVisible" header="Registrar lote" [modal]="true" [draggable]="false" [closable]="!saving" [closeOnEscape]="!saving" [style]="{width:'min(94vw, 560px)'}">
+<p-dialog [(visible)]="formVisible" header="Registrar lote" styleClass="inventory-lot-dialog" [modal]="true" [draggable]="false" [closable]="!saving" [closeOnEscape]="!saving" [style]="{width:'min(94vw, 580px)'}">
+  <ng-template #header>
+    <div class="lot-heading"><span class="lot-icon" aria-hidden="true"><i [class]="draft.category === 'cables' ? 'pi pi-link' : 'pi pi-bolt'"></i></span>
+      <div><span class="lot-kicker">Nueva entrada de inventario</span><h2>Registrar lote</h2></div>
+    </div>
+  </ng-template>
   <form class="lot-form" (ngSubmit)="save()">
-    <p>Registra la cantidad total del lote; no se solicita IMEI ni código individual.</p>
-    <label>Producto<select name="newCategory" [(ngModel)]="draft.category" [disabled]="saving || !!category"><option value="relay">Relay</option><option value="cables">Cables</option></select></label>
-    <label>Nombre / referencia del lote<input name="name" [(ngModel)]="draft.name" required maxlength="120" placeholder="Ej.: Compra agosto · Relay 12V" [disabled]="saving"></label>
-    <label>Cantidad de {{ label(draft.category) }}<input type="number" name="quantity" [(ngModel)]="draft.quantity" required min="1" max="1000000" step="1" [disabled]="saving"></label>
-    <label>Almacén inicial<select name="initialStorage" [(ngModel)]="draft.storage_id" [disabled]="saving"><option [ngValue]="null">Sin asignar — seleccionar después</option><option *ngFor="let warehouse of warehouses" [value]="warehouse._id">{{ warehouse.name }}</option></select></label>
-    <label>Descripción (opcional)<textarea name="description" [(ngModel)]="draft.description" rows="2" maxlength="1000" [disabled]="saving"></textarea></label>
-    <p *ngIf="formError" role="alert" class="lot-error">{{ formError }}</p>
-    <footer><button type="button" [disabled]="saving" (click)="formVisible = false">Cancelar</button><button type="submit" [disabled]="saving">{{ saving ? 'Guardando…' : 'Registrar lote' }}</button></footer>
+    <div class="lot-form-note"><i class="pi pi-info-circle" aria-hidden="true"></i><p>Registra la cantidad total del lote. No necesitas IMEI ni código de barras por unidad.</p></div>
+    <div class="lot-form-row">
+      <label class="lot-field"><span>Producto</span><span class="lot-control lot-control--select">
+        <select name="newCategory" [(ngModel)]="draft.category" [disabled]="saving || !!category"><option value="relay">Relay</option><option value="cables">Cables</option></select>
+        <i class="pi pi-chevron-down" aria-hidden="true"></i>
+      </span></label>
+      <label class="lot-field"><span>Cantidad de {{ label(draft.category) }}</span><input type="number" name="quantity" [(ngModel)]="draft.quantity" required min="1" max="1000000" step="1" [disabled]="saving"></label>
+    </div>
+    <label class="lot-field"><span>Nombre / referencia del lote</span><input name="name" [(ngModel)]="draft.name" required maxlength="120" [placeholder]="draft.category === 'cables' ? 'Ej.: Compra agosto · Cables para GPS' : 'Ej.: Compra agosto · Relay 12V'" [disabled]="saving"></label>
+    <label class="lot-field"><span>Almacén inicial</span><span class="lot-control lot-control--select">
+      <select name="initialStorage" [(ngModel)]="draft.storage_id" [disabled]="saving"><option [ngValue]="null">Sin asignar — seleccionar después</option><option *ngFor="let warehouse of warehouses" [value]="warehouse._id">{{ warehouse.name }}</option></select>
+      <i class="pi pi-chevron-down" aria-hidden="true"></i>
+    </span><small>Puedes trasladar unidades a otro almacén mediante un conduce.</small></label>
+    <label class="lot-field"><span>Descripción <span class="lot-optional">(opcional)</span></span><textarea name="description" [(ngModel)]="draft.description" rows="3" maxlength="1000" placeholder="Detalles de la compra o del producto…" [disabled]="saving"></textarea></label>
+    <p *ngIf="formError" role="alert" class="lot-error"><i class="pi pi-exclamation-circle" aria-hidden="true"></i>{{ formError }}</p>
+    <footer class="lot-form-footer"><button type="button" class="lot-button" [disabled]="saving" (click)="formVisible = false">Cancelar</button>
+      <button type="submit" class="lot-button lot-button--primary" [disabled]="saving"><i [class]="saving ? 'pi pi-spin pi-spinner' : 'pi pi-check'" aria-hidden="true"></i><span>{{ saving ? 'Guardando…' : 'Registrar lote' }}</span></button>
+    </footer>
   </form>
 </p-dialog>
