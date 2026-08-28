@@ -23,6 +23,8 @@
         <i class="pi pi-credit-card"></i>
         <span>SIM cards</span>
       </button>
+      <button type="button" class="inventory-tab" [class.inventory-tab--active]="currentView === 'relay'" [attr.aria-selected]="currentView === 'relay'" role="tab" (click)="switchView('relay')"><i class="pi pi-bolt"></i><span>Relay</span></button>
+      <button type="button" class="inventory-tab" [class.inventory-tab--active]="currentView === 'cables'" [attr.aria-selected]="currentView === 'cables'" role="tab" (click)="switchView('cables')"><i class="pi pi-link"></i><span>Cables</span></button>
     </div>
 
     <div class="inventory-actions">
@@ -61,7 +63,9 @@
     </div>
   </div>
 
-  <div class="global-search-section">
+  <app-inventory-lots *ngIf="currentView === 'relay' || currentView === 'cables'" [category]="currentView === 'cables' ? 'cables' : 'relay'" [warehouses]="warehouses" [canCreate]="canCreateInventory()" [refreshKey]="lotRefreshKey" (selectLot)="addLotToShipping($event)"></app-inventory-lots>
+
+  <div class="global-search-section" *ngIf="currentView === 'devices' || currentView === 'simcards'">
     <!-- Search Section: Dispositivos -->
     <div class="search-container" style="flex: 1;" *ngIf="currentView === 'devices'">
       <div class="search-field inventory-search-field">
@@ -776,10 +780,10 @@
   </p-dialog>
 
   <!-- DIALOGO DE GESTIÓN DE ALMACENES -->
-  <p-dialog [(visible)]="warehouseDialogVisible" [style]="{width: '1180px', maxWidth: '96vw'}" header="Gestión de Almacenes" [modal]="true"
-    styleClass="p-fluid app-dark-dialog">
+  <p-dialog [(visible)]="warehouseDialogVisible" [style]="{width: '1360px', maxWidth: '96vw'}" header="Gestión de Almacenes" [modal]="true"
+    styleClass="p-fluid app-dark-dialog warehouse-management-dialog">
     <ng-template pTemplate="content">
-      <div class="card">
+      <div class="warehouse-modal-content">
         <!-- Toolbar dentro del modal -->
         <div class="warehouse-modal-toolbar">
           <div class="warehouse-modal-search">
@@ -791,11 +795,11 @@
               <i class="pi pi-times"></i>
             </button>
           </div>
-          <button pButton pRipple label="Nuevo Almacén" icon="pi pi-plus" class="p-button-success"
+          <button pButton pRipple label="Nuevo Almacén" icon="pi pi-plus" class="p-button-success warehouse-modal-create"
             (click)="openNewWarehouse()"></button>
         </div>
 
-        <div *ngIf="warehouses && warehouses.length > 0; else noWarehouses">
+        <div *ngIf="warehouses && warehouses.length > 0; else noWarehouses" class="warehouse-modal-results">
           <div *ngIf="warehouseSearchQuery" class="warehouse-search-summary">
             {{ filteredWarehouses.length }} resultado{{ filteredWarehouses.length === 1 ? '' : 's' }} para
             "{{ warehouseSearchQuery }}"
@@ -806,8 +810,19 @@
             <p>No hay almacenes que coincidan con la búsqueda.</p>
           </div>
 
-          <div *ngIf="filteredWarehouses.length > 0" class="warehouse-table-container">
+          <div *ngIf="filteredWarehouses.length > 0" class="warehouse-table-container"
+            tabindex="0" role="region" aria-label="Listado de almacenes">
             <table class="warehouse-table">
+              <colgroup>
+                <col class="warehouse-table__col-name" />
+                <col class="warehouse-table__col-user" />
+                <col class="warehouse-table__col-minimum" />
+                <col class="warehouse-table__col-stock" />
+                <col class="warehouse-table__col-stock" />
+                <col class="warehouse-table__col-status" />
+                <col class="warehouse-table__col-audit" />
+                <col class="warehouse-table__col-actions" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Almacén</th>
@@ -888,12 +903,14 @@
                     </div>
                   </td>
                   <td class="warehouse-table__actions">
-                    <button pButton pRipple icon="pi pi-pencil"
-                      class="p-button-rounded p-button-text p-button-secondary"
-                      (click)="editWarehouse(warehouse)" aria-label="Editar almacén" title="Editar"></button>
-                    <button pButton pRipple icon="pi pi-trash"
-                      class="p-button-rounded p-button-text p-button-danger"
-                      (click)="deleteWarehouse(warehouse)" aria-label="Eliminar almacén" title="Eliminar"></button>
+                    <div class="warehouse-table__action-buttons">
+                      <button pButton pRipple icon="pi pi-pencil"
+                        class="p-button-rounded p-button-text p-button-secondary"
+                        (click)="editWarehouse(warehouse)" aria-label="Editar almacén" title="Editar"></button>
+                      <button pButton pRipple icon="pi pi-trash"
+                        class="p-button-rounded p-button-text p-button-danger"
+                        (click)="deleteWarehouse(warehouse)" aria-label="Eliminar almacén" title="Eliminar"></button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -1233,8 +1250,10 @@
 
   <!-- Shipping Dialog -->
   <p-dialog [(visible)]="shippingDialogVisible" [style]="{width: '600px'}" header="Realizar Conduce" [modal]="true"
+    [closable]="!isCreatingConduce" [closeOnEscape]="!isCreatingConduce"
     styleClass="p-fluid app-dark-dialog" (onHide)="hideShippingDialog()">
     <ng-template pTemplate="content">
+      <fieldset class="lot-shipping-fields" [disabled]="isCreatingConduce || !!shippingSubmittedPayload">
       <div style="padding-top: 1.5rem;">
         <div class="field">
           <label for="shippingWarehouse" class="font-bold block mb-2">Seleccione Almacén de Destino</label>
@@ -1301,21 +1320,38 @@
         </div>
       </div>
 
+      <section class="lot-shipping-section">
+        <h3>Relay y Cables</h3>
+        <button type="button" pButton label="Agregar productos por cantidad" icon="pi pi-plus" (click)="lotPickerVisible = true" [disabled]="isCreatingConduce || !!shippingSubmittedPayload"></button>
+        <div *ngFor="let line of shippingLots; let i = index" class="lot-shipping-row">
+          <div><strong>{{ line.category === 'cables' ? 'Cables' : 'Relay' }} · {{ line.name }}</strong><small>Origen: {{ line.source_name }} · {{ line.available }} disponibles</small></div>
+          <label>Cantidad<input type="number" min="1" [max]="line.available" step="1" [(ngModel)]="line.quantity" class="form-input"></label>
+          <button type="button" pButton icon="pi pi-trash" class="p-button-text p-button-danger" aria-label="Quitar lote" (click)="removeShippingLot(i)"></button>
+        </div>
+      </section>
+
       <div class="field mt-4" *ngIf="shippingDestinationWarehouse">
         <label for="shippingDescription" class="font-bold block mb-2">Descripción del Conduce</label>
         <textarea id="shippingDescription" pInputTextarea [(ngModel)]="shippingDescription" rows="3"
           placeholder="Escriba aquí los detalles del traslado o conduce..." class="w-full form-input"
           style="box-sizing: border-box; width: 100%; resize: vertical;"></textarea>
       </div>
+      </fieldset>
+      <p *ngIf="shippingSubmittedPayload && !isCreatingConduce" class="lot-shipping-notice">Si el envío quedó pendiente, reintenta con estos mismos datos. También puedes revisar su estado en Conduces. No crees otro envío para las mismas unidades sin comprobarlo.</p>
     </ng-template>
     <ng-template pTemplate="footer">
       <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
+        [disabled]="isCreatingConduce"
         (click)="hideShippingDialog()"></button>
       <button pButton pRipple label="Confirmar Conduce" icon="pi pi-check" class="p-button-primary"
         [loading]="isCreatingConduce"
-        [disabled]="isCreatingConduce || !shippingDestinationWarehouse || (shippingDevices.length === 0 && shippingSimcards.length === 0)"
+        [disabled]="isCreatingConduce || !shippingDestinationWarehouse || (shippingDevices.length === 0 && shippingSimcards.length === 0 && shippingLots.length === 0)"
         (click)="confirmConduce()"></button>
     </ng-template>
+  </p-dialog>
+
+  <p-dialog [(visible)]="lotPickerVisible" header="Seleccionar Relay o Cables" [modal]="true" [style]="{width:'min(96vw, 1000px)'}" [draggable]="false">
+    <app-inventory-lots *ngIf="lotPickerVisible" [warehouses]="warehouses" [canCreate]="canCreateInventory()" [picker]="true" [destination]="shippingDestinationWarehouse" (selectLot)="addLotToShipping($event)"></app-inventory-lots>
   </p-dialog>
 
   <!-- Assign Package Dialog -->
@@ -1420,7 +1456,7 @@
             <strong>{{ totalConducesRecords }} conduce{{ totalConducesRecords === 1 ? '' : 's' }} registrado{{ totalConducesRecords === 1 ? '' : 's' }}</strong>
           </div>
         </div>
-        <button type="button" class="conduces-new-button" (click)="openShippingModal()">
+        <button *ngIf="canCreateInventory()" type="button" class="conduces-new-button" (click)="openShippingModal()">
           <i class="pi pi-plus"></i>
           <span>Nuevo conduce</span>
         </button>
@@ -1478,6 +1514,7 @@
                   <strong>{{ conduce.simcards?.length || 0 }}</strong>
                   <small>SIM</small>
                 </span>
+                <span *ngIf="conduce.lots?.length" class="conduce-content__item"><i class="pi pi-bolt"></i><strong>{{ conduceLotQuantity(conduce) }}</strong><small>Relay / Cables</small></span>
               </button>
             </td>
             <td>
@@ -1501,6 +1538,7 @@
             </td>
             <td>
               <div class="conduce-actions">
+                <button *ngIf="conduce.status === 'pending' && conduce.lots?.length && canCreateInventory()" type="button" class="conduce-print-button" [disabled]="!!resumingConduceId" (click)="resumeLotConduce(conduce)"><i class="pi pi-refresh"></i> Reintentar</button>
                 <button type="button" class="conduce-print-button" (click)="openConducePrintDialog(conduce)"
                   pTooltip="Opciones de impresión" tooltipPosition="top"
                   [attr.aria-label]="'Imprimir ' + (conduce.conduceNumber || 'conduce')">
@@ -1548,7 +1586,7 @@
         <span class="conduce-print-option__icon"><i class="pi pi-file-pdf"></i></span>
         <span class="conduce-print-option__content">
           <strong>Imprimir conduce</strong>
-          <small>Genera el documento completo con equipos, SIM cards, trazabilidad y firmas.</small>
+          <small>Genera el documento completo con equipos, SIM cards, Relay, Cables, trazabilidad y firmas.</small>
         </span>
         <i class="pi pi-arrow-right conduce-print-option__arrow"></i>
       </button>
@@ -1711,6 +1749,12 @@
         </div>
 
         <!-- Devices Section -->
+        <section *ngIf="selectedConduceDetails.lots?.length" class="lot-shipping-section">
+          <h3>Relay y Cables · {{ conduceLotQuantity(selectedConduceDetails) }} unidades</h3>
+          <p *ngIf="selectedConduceDetails.processing_error" class="lot-shipping-notice">{{ selectedConduceDetails.processing_error }}. El conduce está pendiente; algunos artículos pueden haberse trasladado. Reintentar continúa sin duplicar unidades.</p>
+          <div *ngFor="let line of selectedConduceDetails.lots" class="lot-shipping-row"><div><strong>{{ line.category === 'cables' ? 'Cables' : 'Relay' }} · {{ line.name }}</strong><small>Origen: {{ line.source_name || 'Sin asignar' }}</small></div><b>{{ line.quantity }} unidades</b></div>
+        </section>
+
         <div style="margin-top: 2rem;">
           <div class="cd-section-title">
             <div class="cd-icon-box blue">

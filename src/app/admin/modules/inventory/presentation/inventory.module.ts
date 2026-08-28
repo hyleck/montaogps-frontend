@@ -7,6 +7,7 @@ import { InventoryRoutingModule } from './inventory-routing.module';
 import { InventoryComponent } from './components/inventory/inventory.component';
 import { InventoryPackageDevicesComponent } from './components/inventory-package-devices/inventory-package-devices.component';
 import { InventoryDeviceAssignmentDialogComponent } from './components/inventory-device-assignment-dialog/inventory-device-assignment-dialog.component';
+import { InventoryLotsComponent } from './components/inventory-lots/inventory-lots.component';
 
 @NgModule({
   declarations: [
@@ -14,6 +15,6 @@ import { InventoryDeviceAssignmentDialogComponent } from './components/inventory
     InventoryPackageDevicesComponent,
     InventoryDeviceAssignmentDialogComponent,
   ],
-  imports: [CommonModule, FormsModule, TranslateModule, PrimengModule, InventoryRoutingModule],
+  imports: [CommonModule, FormsModule, TranslateModule, PrimengModule, InventoryRoutingModule, InventoryLotsComponent],
 })
 export class InventoryModule {}

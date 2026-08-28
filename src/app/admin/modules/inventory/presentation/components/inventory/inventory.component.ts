@@ -10,6 +10,7 @@ import {
   Warehouse,
   Conduce,
   UnregisteredInventorySimAlert,
+  ShippingLotSelection,
 } from 'src/app/core/services/inventory.service';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { Protocol } from 'src/app/core/interfaces/protocol.interface';
@@ -126,7 +127,12 @@ export class InventoryComponent implements OnInit, OnDestroy {
   isEditDeviceMode = false;
 
   // View Toggle
-  currentView: 'devices' | 'simcards' = 'devices';
+  currentView: 'devices' | 'simcards' | 'relay' | 'cables' = 'devices';
+  lotPickerVisible = false;
+  lotRefreshKey = 0;
+  shippingLots: ShippingLotSelection[] = [];
+  shippingSubmittedPayload: any = null;
+  resumingConduceId: string | null = null;
 
   // Simcards State
   @ViewChild('iccidInput') iccidInput?: ElementRef;
@@ -1473,7 +1479,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   // --- Simcards Methods ---
-  switchView(view: 'devices' | 'simcards'): void {
+  switchView(view: 'devices' | 'simcards' | 'relay' | 'cables'): void {
     this.currentView = view;
     if (view === 'simcards' && this.simcardsList.length === 0) {
       this.searchAllSimcards(true);
@@ -2503,6 +2509,21 @@ export class InventoryComponent implements OnInit, OnDestroy {
         },
         margin: { left: marginX, right: marginX }
       });
+      currentY = (doc as any).lastAutoTable.finalY + 15;
+    }
+
+    if (conduce.lots?.length) {
+      if (currentY > 240) { doc.addPage(); currentY = 20; }
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Relay y Cables (${this.conduceLotQuantity(conduce)} unidades)`, marginX, currentY);
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Producto', 'Lote', 'Almacén origen', 'Cantidad']],
+        body: conduce.lots.map((line: any) => [line.category === 'cables' ? 'Cables' : 'Relay', line.name, line.source_name || 'Sin asignar', line.quantity]),
+        theme: 'striped', headStyles: { fillColor: [189, 53, 53] },
+        styles: { fontSize: 9, cellPadding: 3 }, margin: { left: marginX, right: marginX },
+      });
     }
 
     // Pie de página (Firmas)
@@ -2534,16 +2555,21 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   openShippingModal(): void {
+    if (this.isCreatingConduce) return;
     this.shippingRequestId = this.createConduceRequestId();
     this.shippingDialogVisible = true;
   }
 
   hideShippingDialog(): void {
+    if (this.isCreatingConduce) return;
     this.shippingDialogVisible = false;
     this.shippingDestinationWarehouse = null;
     this.shippingDescription = '';
     this.shippingDevices = [];
     this.shippingSimcards = [];
+    this.shippingLots = [];
+    this.shippingSubmittedPayload = null;
+    this.lotPickerVisible = false;
     this.shippingDeviceInput = '';
     this.shippingSimcardInput = '';
     this.shippingRequestId = '';
@@ -2551,11 +2577,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   onShippingDestinationChange(destinationId: string | null): void {
+    if (this.shippingSubmittedPayload) return;
     this.shippingDestinationWarehouse = destinationId || null;
     if (!this.shippingDestinationWarehouse) return;
 
     const previousDeviceCount = this.shippingDevices.length;
     const previousSimcardCount = this.shippingSimcards.length;
+    const previousLotCount = this.shippingLots.length;
+    this.shippingLots = this.shippingLots.filter(line => line.source_warehouse !== this.shippingDestinationWarehouse);
     this.shippingDevices = this.shippingDevices.filter(
       item => !this.isAlreadyAtShippingDestination(item),
     );
@@ -2564,7 +2593,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
     );
 
     const removed = (previousDeviceCount - this.shippingDevices.length)
-      + (previousSimcardCount - this.shippingSimcards.length);
+      + (previousSimcardCount - this.shippingSimcards.length)
+      + (previousLotCount - this.shippingLots.length);
     if (removed) {
       this.messageService.add({
         severity: 'warn',
@@ -2805,13 +2835,19 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   confirmConduce(): void {
+    if (this.isCreatingConduce || !this.canCreateInventory()) return;
     if (!this.shippingDestinationWarehouse) {
       this.messageService.add({ severity: 'warn', summary: 'Validación', detail: 'Debe seleccionar un almacén destino.' });
       return;
     }
 
-    if (this.shippingDevices.length === 0 && this.shippingSimcards.length === 0) {
-      this.messageService.add({ severity: 'warn', summary: 'Validación', detail: 'Debe agregar al menos un dispositivo o simcard.' });
+    if (this.shippingDevices.length === 0 && this.shippingSimcards.length === 0 && this.shippingLots.length === 0) {
+      this.messageService.add({ severity: 'warn', summary: 'Validación', detail: 'Debe agregar al menos un GPS, SIM card, Relay o Cable.' });
+      return;
+    }
+
+    if (this.shippingLots.some(line => !Number.isSafeInteger(line.quantity) || line.quantity <= 0 || line.quantity > line.available || line.source_warehouse === this.shippingDestinationWarehouse)) {
+      this.messageService.add({ severity: 'warn', summary: 'Cantidad inválida', detail: 'Revise las cantidades y el origen de los lotes.' });
       return;
     }
 
@@ -2826,15 +2862,16 @@ export class InventoryComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const payload: any = {
+    const payload: any = this.shippingSubmittedPayload || {
       destination_warehouse: this.shippingDestinationWarehouse,
       request_id: this.shippingRequestId || this.createConduceRequestId(),
       description: this.shippingDescription,
       devices: this.shippingDevices.map((d: any) => d._id).filter((id: any) => id),
-      simcards: this.shippingSimcards.map((s: any) => s._id).filter((id: any) => id)
+      simcards: this.shippingSimcards.map((s: any) => s._id).filter((id: any) => id),
+      ...(this.shippingLots.length ? { lots: this.shippingLots.map(({ lot_id, source_warehouse, quantity }) => ({ lot_id, source_warehouse, quantity })) } : {}),
     };
 
-    if (payload.devices.length === 0 && payload.simcards.length === 0) {
+    if (payload.devices.length === 0 && payload.simcards.length === 0 && !payload.lots?.length) {
       this.messageService.add({
         severity: 'error',
         summary: 'Artículos inválidos',
@@ -2844,11 +2881,16 @@ export class InventoryComponent implements OnInit, OnDestroy {
     }
 
     this.isCreatingConduce = true;
+    this.shippingRequestId = payload.request_id;
+    // Retrying a request with an unknown outcome must use the original plan.
+    this.shippingSubmittedPayload = payload;
     this.inventoryService.createConduce(payload).subscribe({
       next: () => {
         this.isCreatingConduce = false;
         this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Conduce creado correctamente.' });
         this.hideShippingDialog();
+        this.lotRefreshKey++;
+        this.loadWarehouses();
         this.loadConduces(); // Refresh the list if it's open, or just in background
       },
       error: (error) => {
@@ -2858,6 +2900,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
           summary: 'No se pudo crear el conduce',
           detail: getApiErrorMessage(error, 'No se pudo crear el conduce'),
         });
+        this.loadConduces();
+        this.lotRefreshKey++;
       }
     });
   }
@@ -2874,5 +2918,48 @@ export class InventoryComponent implements OnInit, OnDestroy {
       return globalThis.crypto.randomUUID();
     }
     return `conduce-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+
+  addLotToShipping(line: ShippingLotSelection): void {
+    if (!this.canCreateInventory() || this.isCreatingConduce || this.shippingSubmittedPayload) return;
+    if (!Number.isSafeInteger(line.quantity) || line.quantity <= 0 || line.quantity > line.available) return;
+    if (this.shippingDestinationWarehouse && line.source_warehouse === this.shippingDestinationWarehouse) return;
+    const existing = this.shippingLots.find(item => item.lot_id === line.lot_id && item.source_warehouse === line.source_warehouse);
+    if (existing && existing.quantity + line.quantity > line.available) {
+      this.messageService.add({ severity: 'warn', summary: 'Stock insuficiente', detail: `Ya agregó ${existing.quantity} unidades de este lote al conduce.` });
+      return;
+    }
+    if (!this.shippingDialogVisible) this.openShippingModal();
+    if (existing) existing.quantity += line.quantity;
+    else this.shippingLots.push({ ...line });
+    this.lotPickerVisible = false;
+  }
+
+  removeShippingLot(index: number): void {
+    if (!this.isCreatingConduce && !this.shippingSubmittedPayload) this.shippingLots.splice(index, 1);
+  }
+
+  conduceLotQuantity(conduce: Conduce): number {
+    return (conduce.lots || []).reduce((sum, line) => sum + line.quantity, 0);
+  }
+
+  resumeLotConduce(conduce: Conduce): void {
+    if (!this.canCreateInventory() || this.resumingConduceId || !conduce._id) return;
+    this.resumingConduceId = conduce._id;
+    this.inventoryService.resumeConduce(conduce._id).subscribe({
+      next: () => {
+        this.resumingConduceId = null;
+        this.lotRefreshKey++;
+        this.loadWarehouses();
+        this.loadConduces();
+        this.conduceDetailsDialogVisible = false;
+        this.messageService.add({ severity: 'success', summary: 'Conduce completado', detail: 'Se completó el traslado sin duplicar unidades.' });
+      },
+      error: error => {
+        this.resumingConduceId = null;
+        this.loadConduces();
+        this.messageService.add({ severity: 'error', summary: 'Conduce pendiente', detail: getApiErrorMessage(error, 'No se pudo completar el conduce.') });
+      },
+    });
   }
 }

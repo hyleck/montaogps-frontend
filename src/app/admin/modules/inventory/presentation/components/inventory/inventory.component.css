@@ -4420,21 +4420,44 @@ textarea.form-input {
 }
 
 /* ============================================
-   WAREHOUSE CARDS
+   WAREHOUSE MANAGEMENT DIALOG
    ============================================ */
+.warehouse-management-dialog .p-dialog-content {
+  display: flex;
+  min-height: 0;
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.warehouse-modal-content,
+.warehouse-modal-results {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
 .warehouse-modal-toolbar {
   display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-top: 1rem;
   margin-bottom: 1rem;
+}
+
+.warehouse-modal-create {
+  flex: 0 0 auto;
+  width: auto;
+  white-space: nowrap;
 }
 
 .warehouse-modal-search {
   position: relative;
-  flex: 1;
-  min-width: 260px;
+  flex: 1 1 20rem;
+  min-width: 0;
   max-width: 520px;
   height: 44px;
   display: flex;
@@ -4460,7 +4483,7 @@ textarea.form-input {
   pointer-events: none;
 }
 
-:host ::ng-deep .warehouse-modal-search .p-inputtext {
+.warehouse-management-dialog .warehouse-modal-search .p-inputtext {
   min-width: 0;
   flex: 1 1 auto;
   height: 42px;
@@ -4473,13 +4496,13 @@ textarea.form-input {
   font-weight: 700;
 }
 
-:host ::ng-deep .warehouse-modal-search .p-inputtext:enabled:hover,
-:host ::ng-deep .warehouse-modal-search .p-inputtext:enabled:focus {
+.warehouse-management-dialog .warehouse-modal-search .p-inputtext:enabled:hover,
+.warehouse-management-dialog .warehouse-modal-search .p-inputtext:enabled:focus {
   border: 0 !important;
   box-shadow: none !important;
 }
 
-:host ::ng-deep .warehouse-modal-search .p-inputtext::placeholder {
+.warehouse-management-dialog .warehouse-modal-search .p-inputtext::placeholder {
   color: var(--managementColorTextUser);
   opacity: 0.55;
 }
@@ -4522,15 +4545,23 @@ textarea.form-input {
   }
 
   .warehouse-modal-search {
+    flex-basis: auto;
     max-width: none;
-    min-width: 0;
+  }
+
+  .warehouse-modal-create {
+    width: 100%;
   }
 }
 
 .warehouse-table-container {
   width: 100%;
+  min-width: 0;
+  min-height: 0;
   max-height: 64vh;
   overflow: auto;
+  overscroll-behavior: contain;
+  isolation: isolate;
   border: 1px solid var(--managementFieldsBorder);
   border-radius: 12px;
   background: var(--managementColorBackgroundUser);
@@ -4538,10 +4569,20 @@ textarea.form-input {
 
 .warehouse-table {
   width: 100%;
-  min-width: 1170px;
+  min-width: 78rem;
   border-collapse: collapse;
   table-layout: fixed;
 }
+
+/* Allocate every column: percentage widths previously squeezed the counters
+   below their buttons' minimum width, making adjacent columns overlap. */
+.warehouse-table__col-name { width: 16rem; }
+.warehouse-table__col-user { width: 14rem; }
+.warehouse-table__col-minimum { width: 6rem; }
+.warehouse-table__col-stock { width: 7rem; }
+.warehouse-table__col-status { width: 8.5rem; }
+.warehouse-table__col-audit { width: 12rem; }
+.warehouse-table__col-actions { width: 7.5rem; }
 
 .warehouse-table th,
 .warehouse-table td {
@@ -4555,35 +4596,16 @@ textarea.form-input {
 .warehouse-table th {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 2;
   padding-top: 0.75rem;
   padding-bottom: 0.75rem;
-  background: rgba(127, 127, 127, 0.06);
+  background: var(--managementColorBackgroundUser, #fff);
   color: var(--managementColorTextUser);
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.055em;
   text-transform: uppercase;
-}
-
-.warehouse-table th:first-child {
-  width: 26%;
-}
-
-.warehouse-table th:nth-child(2) {
-  width: 24%;
-}
-
-.warehouse-table th:nth-child(6) {
-  width: 13%;
-}
-
-.warehouse-table th:nth-child(7) {
-  width: 190px;
-}
-
-.warehouse-table th:last-child {
-  width: 96px;
+  white-space: nowrap;
 }
 
 .warehouse-table tbody tr:last-child td {
@@ -4680,6 +4702,7 @@ textarea.form-input {
 
 .warehouse-table__stock-button {
   min-width: 72px;
+  max-width: 100%;
   padding: 0.4rem 0.55rem;
   border: 1px solid transparent;
   border-radius: 9px;
@@ -4743,13 +4766,34 @@ textarea.form-input {
 }
 
 .warehouse-table__actions {
-  text-align: right !important;
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  text-align: center !important;
   white-space: nowrap;
+  background: var(--managementColorBackgroundUser, #fff);
+  box-shadow: -1px 0 0 var(--managementFieldsBorder, #dce2e9);
+}
+
+.warehouse-table th.warehouse-table__actions {
+  z-index: 3;
+}
+
+.warehouse-table__action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
 }
 
 .warehouse-table__actions .p-button {
+  flex: 0 0 2.25rem;
   width: 2.25rem;
   height: 2.25rem;
+  padding: 0;
+}
+
+.warehouse-table .inventory-audit {
+  min-width: 0;
 }
 
 @media (max-width: 768px) {
@@ -5131,3 +5175,12 @@ textarea.form-input {
   font-size: 0.85rem;
   opacity: 0.6;
 }
+.lot-shipping-fields { border:0; padding:0; margin:0; min-width:0; }
+.lot-shipping-section { margin-top:1.25rem; padding:1rem 0; border-top:1px solid #e2e8f0; }
+.lot-shipping-row { display:flex; align-items:center; gap:.65rem; padding:.9rem 0; border-bottom:1px solid #e2e8f0; }
+.lot-shipping-row > div { flex:1; min-width:0; overflow-wrap:anywhere; }
+.lot-shipping-row small { display:block; color:#64748b; margin-top:.35rem; }
+.lot-shipping-row label { width:90px; font-size:.8rem; }
+.lot-shipping-row input { width:100%; box-sizing:border-box; }
+.lot-shipping-notice { padding:1rem; background:#fff7ed; color:#9a3412; border-radius:.5rem; }
+.inventory-view-switch { flex-wrap:wrap; }

@@ -89,10 +89,11 @@ describe('EmpleadosComponent live replay', () => {
     Object.assign(component as any, {
       replaySessions: [session],
       selectedReplaySessionId: session.session_id,
-      replayRangeStart: '2026-08-26T11:45',
-      replayRangeEnd: '2026-08-26T13:30',
+      replayRangeStart: (component as any).toDateTimeLocalInput('2026-08-26T11:45:00Z'),
+      replayRangeEnd: (component as any).toDateTimeLocalInput('2026-08-26T13:30:00Z'),
       replayActivities: [],
       allReplayActivities: [],
+      allReplayConsoleLogs: [],
       messageService: { add: jasmine.createSpy('add') },
     });
 
@@ -103,5 +104,37 @@ describe('EmpleadosComponent live replay', () => {
     expect((component as any).replayRangeEnd).toBe(
       (component as any).toDateTimeLocalInput(session.last_event_at),
     );
+  });
+
+  it('keeps viewport metadata and adopted CSS with the checkpoint used for a history range', () => {
+    const { component } = buildComponent();
+    const start = Date.parse('2026-08-28T15:00:00Z');
+    Object.assign(component, {
+      replayMode: 'last_hour',
+      replayRangeStart: new Date(start).toISOString(),
+      replayRangeEnd: new Date(start + 10_000).toISOString(),
+    });
+    const events = [
+      { type: 4, timestamp: start - 60_000, data: { width: 1024, height: 768 } },
+      { type: 2, timestamp: start - 60_000 },
+      { type: 4, timestamp: start - 1_000, data: { width: 390, height: 844 } },
+      { type: 2, timestamp: start - 1_000 },
+      { type: 3, timestamp: start - 990, data: { source: 15, styleIds: [1] } },
+      { type: 3, timestamp: start + 3_000, data: { source: 0 } },
+      { type: 3, timestamp: start + 12_000, data: { source: 0 } },
+    ];
+    expect((component as any).getEventsForSelectedRange(events)).toEqual(events.slice(2, 6));
+    expect((component as any).replayRangePlaybackOffset).toBe(1_000);
+  });
+
+  it('does not alter live events or drop legacy snapshots that lack metadata', () => {
+    const { component } = buildComponent();
+    const start = Date.parse('2026-08-28T15:00:00Z');
+    const events = [{ type: 2, timestamp: start - 1_000 }, { type: 3, timestamp: start + 1_000 }];
+    expect((component as any).getEventsForSelectedRange(events)).toBe(events);
+    Object.assign(component, {
+      replayMode: 'last_hour', replayRangeStart: new Date(start).toISOString(), replayRangeEnd: new Date(start + 2_000).toISOString(),
+    });
+    expect((component as any).getEventsForSelectedRange(events)).toEqual(events);
   });
 });

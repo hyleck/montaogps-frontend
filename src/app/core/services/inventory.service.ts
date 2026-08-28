@@ -147,11 +147,43 @@ export interface Conduce {
   destination_warehouse: string | any;
   devices?: string[] | any[];
   simcards?: string[] | any[];
+  lots?: ConduceLotLine[];
+  processing_error?: string;
   status?: string;
   created_by?: string | any;
   updated_by?: string | any;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export type InventoryLotCategory = 'relay' | 'cables';
+export interface ConduceLotLine {
+  lot_id: string;
+  source_warehouse: string | null;
+  quantity: number;
+  category?: InventoryLotCategory;
+  name?: string;
+  source_name?: string;
+}
+export interface ShippingLotSelection extends ConduceLotLine {
+  available: number;
+}
+export interface InventoryLot {
+  _id: string;
+  category: InventoryLotCategory;
+  name: string;
+  description?: string;
+  quantity: number;
+  balances: Array<{ storage_id: { _id: string; name: string } | string | null; quantity: number }>;
+  createdAt?: string;
+  created_by?: InventoryAuditUser;
+}
+export interface InventoryLotPage {
+  data: InventoryLot[];
+  total: number;
+  total_quantity: number;
+  page: number;
+  lastPage: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -421,6 +453,18 @@ export class InventoryService {
   }
 
   // Conduce methods
+  getLots(category = '', storageId = '', q = '', page = 1): Observable<InventoryLotPage> {
+    return this.http.get<InventoryLotPage>(`${this.apiUrl}/lots`, { params: { category, storage_id: storageId, q, page, limit: 30 } });
+  }
+
+  createLot(payload: { category: InventoryLotCategory; name: string; quantity: number; storage_id: string | null; description?: string; request_id: string }): Observable<InventoryLot> {
+    return this.http.post<InventoryLot>(`${this.apiUrl}/lots`, payload);
+  }
+
+  resumeConduce(id: string): Observable<Conduce> {
+    return this.http.post<Conduce>(`${this.conducesUrl}/${encodeURIComponent(id)}/resume`, {});
+  }
+
   getConduces(page = 1, limit = 20): Observable<{ data: Conduce[]; total: number; page: number; lastPage: number }> {
     return this.http.get<{ data: Conduce[]; total: number; page: number; lastPage: number }>(`${this.conducesUrl}?page=${page}&limit=${limit}`);
   }

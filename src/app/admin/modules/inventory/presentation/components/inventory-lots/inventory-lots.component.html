@@ -1,0 +1,40 @@
+<section class="lot-panel">
+  <header class="lot-header">
+    <div><h2>{{ category ? label(category) : 'Relay y Cables' }}</h2><p>Inventario por lotes y unidades. No requiere código de barras por unidad.</p></div>
+    <button type="button" *ngIf="canCreate && !picker" (click)="openNew()"><i class="pi pi-plus"></i> Registrar lote</button>
+  </header>
+  <form class="lot-filters" (ngSubmit)="load(1)">
+    <label>Buscar lote<input name="q" [(ngModel)]="query" placeholder="Nombre o referencia del lote" maxlength="100"></label>
+    <label *ngIf="!category">Producto<select name="category" [(ngModel)]="filterCategory" (change)="load(1)"><option value="">Todos</option><option value="relay">Relay</option><option value="cables">Cables</option></select></label>
+    <label>Almacén<select name="storage" [(ngModel)]="storage" (change)="load(1)"><option value="">Todos los almacenes</option><option value="unassigned">Sin asignar</option><option *ngFor="let warehouse of warehouses" [value]="warehouse._id">{{ warehouse.name }}</option></select></label>
+    <button type="submit" [disabled]="loading">Buscar</button>
+  </form>
+  <p class="lot-summary" aria-live="polite">{{ totalQuantity }} unidades disponibles · {{ total }} lotes</p>
+  <p *ngIf="error" class="lot-error" role="alert">{{ error }}</p>
+  <p *ngIf="loading" role="status">Cargando lotes…</p>
+  <div class="lot-table-scroll" *ngIf="!loading && rows.length">
+    <table><thead><tr><th>Producto / lote</th><th>Almacén</th><th>Disponible</th><th *ngIf="canCreate">Cantidad a enviar</th><th *ngIf="canCreate">Acción</th></tr></thead>
+      <tbody><tr *ngFor="let row of rows">
+        <td><strong>{{ label(row.category) }} · {{ row.name }}</strong><small>Ingreso: {{ row.createdAt | date:'dd/MM/yyyy' }}</small></td>
+        <td>{{ row.source_name }}</td><td><b>{{ row.available }}</b> unidades</td>
+        <td *ngIf="canCreate"><input type="number" min="1" [max]="row.available" step="1" [(ngModel)]="quantities[row.key]" [attr.aria-label]="'Cantidad de ' + row.name + ' desde ' + row.source_name"></td>
+        <td *ngIf="canCreate"><button type="button" [disabled]="!validQuantity(row)" (click)="choose(row)">{{ picker ? 'Agregar' : (row.source_warehouse ? 'Enviar en conduce' : 'Asignar / enviar') }}</button></td>
+      </tr></tbody>
+    </table>
+  </div>
+  <p *ngIf="!loading && !error && !rows.length" class="lot-empty">No se encontraron lotes. Registra uno nuevo o cambia los filtros.</p>
+  <nav class="lot-pagination" aria-label="Páginas de lotes" *ngIf="lastPage > 1"><button type="button" [disabled]="loading || page <= 1" (click)="load(page - 1)">Anterior</button><span>{{ page }} / {{ lastPage }}</span><button type="button" [disabled]="loading || page >= lastPage" (click)="load(page + 1)">Siguiente</button></nav>
+</section>
+
+<p-dialog [(visible)]="formVisible" header="Registrar lote" [modal]="true" [draggable]="false" [closable]="!saving" [closeOnEscape]="!saving" [style]="{width:'min(94vw, 560px)'}">
+  <form class="lot-form" (ngSubmit)="save()">
+    <p>Registra la cantidad total del lote; no se solicita IMEI ni código individual.</p>
+    <label>Producto<select name="newCategory" [(ngModel)]="draft.category" [disabled]="saving || !!category"><option value="relay">Relay</option><option value="cables">Cables</option></select></label>
+    <label>Nombre / referencia del lote<input name="name" [(ngModel)]="draft.name" required maxlength="120" placeholder="Ej.: Compra agosto · Relay 12V" [disabled]="saving"></label>
+    <label>Cantidad de {{ label(draft.category) }}<input type="number" name="quantity" [(ngModel)]="draft.quantity" required min="1" max="1000000" step="1" [disabled]="saving"></label>
+    <label>Almacén inicial<select name="initialStorage" [(ngModel)]="draft.storage_id" [disabled]="saving"><option [ngValue]="null">Sin asignar — seleccionar después</option><option *ngFor="let warehouse of warehouses" [value]="warehouse._id">{{ warehouse.name }}</option></select></label>
+    <label>Descripción (opcional)<textarea name="description" [(ngModel)]="draft.description" rows="2" maxlength="1000" [disabled]="saving"></textarea></label>
+    <p *ngIf="formError" role="alert" class="lot-error">{{ formError }}</p>
+    <footer><button type="button" [disabled]="saving" (click)="formVisible = false">Cancelar</button><button type="submit" [disabled]="saving">{{ saving ? 'Guardando…' : 'Registrar lote' }}</button></footer>
+  </form>
+</p-dialog>

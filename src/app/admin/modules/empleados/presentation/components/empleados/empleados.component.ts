@@ -695,9 +695,19 @@ export class EmpleadosComponent implements OnInit, OnDestroy {
         event?.type === 2 && Number(event.timestamp) <= start ? index : latestIndex,
       -1,
     );
-    const firstIndex = snapshotIndex >= 0 ? snapshotIndex : events.findIndex(
+    let firstIndex = snapshotIndex >= 0 ? snapshotIndex : events.findIndex(
       (event) => Number(event?.timestamp) >= start,
     );
+    if (snapshotIndex >= 0) {
+      // A checkpoint includes Meta immediately before FullSnapshot. Preserve
+      // its viewport so mobile media queries render at the recorded size.
+      for (let index = snapshotIndex - 1; index >= 0; index--) {
+        if (events[index]?.type === 4) {
+          firstIndex = index;
+          break;
+        }
+      }
+    }
     const selectedEvents = events.slice(Math.max(0, firstIndex)).filter(
       (event) => Number(event?.timestamp) <= end,
     );

@@ -2,8 +2,11 @@ import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/co
 import {
   ExpenseReceipt,
   ExpenseReceiptAccountingCategory,
+  ExpenseReceiptEmployee,
+  ExpenseReceiptUpdate,
   ExpenseReceiptsService,
 } from '../../../../../../core/services/expense-receipts.service';
+import { AuthService } from '../../../../../../core/services/auth.service';
 
 interface ReceiptCategoryGroup {
   category: string;
@@ -35,6 +38,10 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   error = '';
   success = '';
   search = '';
+  employeeId = '';
+  employees: ExpenseReceiptEmployee[] = [];
+  employeesLoading = false;
+  employeesError = '';
   accountingCategory = '';
   status = '';
   dateFrom = '';
@@ -45,8 +52,18 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   uploadFile: File | null = null;
   uploadPreviewUrl = '';
   uploadCategory: ExpenseReceiptAccountingCategory | '' = '';
+  uploadEmployeeId = '';
+  uploadEmployees: ExpenseReceiptEmployee[] = [];
+  uploadEmployeesLoading = false;
+  uploadEmployeesError = '';
   uploadError = '';
   uploading = false;
+  editingReceipt = false;
+  editDraft: ExpenseReceiptUpdate = {};
+  savingReceipt = false;
+  deletingReceipt = false;
+  deleteConfirmation = false;
+  detailError = '';
   private readonly dateKeyFormatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Santo_Domingo',
     year: 'numeric',
@@ -78,10 +95,29 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
     otros: 'Otros',
   };
 
-  constructor(private readonly receiptsService: ExpenseReceiptsService) {}
+  constructor(
+    private readonly receiptsService: ExpenseReceiptsService,
+    private readonly authService: AuthService,
+  ) {}
+
+  get canManageReceipts(): boolean {
+    const root = this.authService.getCurrentUser()?.root;
+    return root === true || ['true', '1'].includes(String(root || '').trim().toLowerCase());
+  }
+
+  get receiptBusy(): boolean {
+    return this.savingReceipt || this.deletingReceipt || !!this.reprocessingId;
+  }
+
+  get editEmployees(): ExpenseReceiptEmployee[] {
+    const current = this.selectedReceipt;
+    if (!current || this.uploadEmployees.some(item => item.employee_id === current.employee_id)) return this.uploadEmployees;
+    return [{ employee_id: current.employee_id, employee_name: current.employee_name, employee_email: current.employee_email }, ...this.uploadEmployees];
+  }
 
   ngOnInit(): void {
     this.loadReceipts();
+    this.loadEmployees();
   }
 
   ngOnDestroy(): void {
@@ -134,6 +170,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
     this.error = '';
     this.receiptsService.getAll({
       search: this.search.trim() || undefined,
+      employee_id: this.employeeId || undefined,
       accounting_category: this.accountingCategory || undefined,
       status: this.status || undefined,
       date_from: this.dateFrom || undefined,
@@ -154,6 +191,21 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadEmployees(): void {
+    this.employeesLoading = true;
+    this.employeesError = '';
+    this.receiptsService.getEmployees().subscribe({
+      next: employees => {
+        this.employees = employees;
+        this.employeesLoading = false;
+      },
+      error: () => {
+        this.employeesError = 'No se pudo cargar el filtro de empleados.';
+        this.employeesLoading = false;
+      },
+    });
+  }
+
   applyFilters(): void {
     this.page = 1;
     this.loadReceipts();
@@ -161,6 +213,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
 
   clearFilters(): void {
     this.search = '';
+    this.employeeId = '';
     this.accountingCategory = '';
     this.status = '';
     this.dateFrom = '';
@@ -176,17 +229,132 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   }
 
   openReceipt(receipt: ExpenseReceipt): void {
+    if (this.receiptBusy) return;
+    this.editingReceipt = false;
+    this.deleteConfirmation = false;
+    this.detailError = '';
     this.selectedReceipt = receipt;
   }
 
   closeReceipt(): void {
+    if (this.receiptBusy) return;
     this.selectedReceipt = null;
+    this.editingReceipt = false;
+    this.deleteConfirmation = false;
+    this.detailError = '';
+  }
+
+  startEditing(receipt: ExpenseReceipt, event?: Event): void {
+    event?.stopPropagation();
+    if (!this.canManageReceipts || this.receiptBusy) return;
+    this.openReceipt(receipt);
+    this.editingReceipt = true;
+    this.editDraft = {
+      employee_id: receipt.employee_id,
+      merchant_name: receipt.merchant_name || '',
+      tax_id: receipt.tax_id || '',
+      receipt_number: receipt.receipt_number || '',
+      ncf: receipt.ncf || '',
+      expense_date: receipt.expense_date?.slice(0, 10) || null,
+      subtotal: receipt.subtotal ?? null,
+      tax_amount: receipt.tax_amount ?? null,
+      total_amount: receipt.total_amount ?? null,
+      currency: receipt.currency || 'DOP',
+      category: receipt.category || 'otros',
+      accounting_category: receipt.accounting_category,
+      description: receipt.description || '',
+      payment_method: receipt.payment_method || '',
+      expected_updated_at: receipt.updatedAt,
+    };
+    this.loadUploadEmployees();
+  }
+
+  cancelEditing(): void {
+    if (this.receiptBusy) return;
+    this.editingReceipt = false;
+    this.detailError = '';
+  }
+
+  saveEditedReceipt(): void {
+    if (!this.canManageReceipts || !this.selectedReceipt || !this.editingReceipt || this.receiptBusy) return;
+    if (!this.editDraft.employee_id || !this.editDraft.accounting_category) {
+      this.detailError = 'Seleccione el empleado y la categoría del gasto.';
+      return;
+    }
+    this.savingReceipt = true;
+    this.detailError = '';
+    this.receiptsService.update(this.selectedReceipt._id, {
+      ...this.editDraft, expense_date: this.editDraft.expense_date || null,
+    }).subscribe({
+      next: updated => {
+        this.savingReceipt = false;
+        this.editingReceipt = false;
+        this.selectedReceipt = updated;
+        this.success = 'Comprobante actualizado.';
+        this.loadReceipts();
+        this.loadEmployees();
+      },
+      error: error => {
+        this.savingReceipt = false;
+        this.detailError = this.receiptErrorMessage(error, 'No se pudo guardar el comprobante.');
+      },
+    });
+  }
+
+  requestDelete(receipt: ExpenseReceipt, event?: Event): void {
+    event?.stopPropagation();
+    if (!this.canManageReceipts || this.receiptBusy) return;
+    this.openReceipt(receipt);
+    this.deleteConfirmation = true;
+  }
+
+  confirmDelete(): void {
+    if (!this.canManageReceipts || !this.selectedReceipt || !this.deleteConfirmation || this.receiptBusy) return;
+    this.deletingReceipt = true;
+    this.detailError = '';
+    this.receiptsService.remove(this.selectedReceipt._id, this.selectedReceipt.updatedAt).subscribe({
+      next: () => {
+        this.deletingReceipt = false;
+        this.closeReceipt();
+        this.page = Math.max(1, Math.min(this.page, Math.ceil((this.total - 1) / this.limit)));
+        this.success = 'Comprobante eliminado. Se conservó la auditoría del registro.';
+        this.loadReceipts();
+        this.loadEmployees();
+      },
+      error: error => {
+        this.deletingReceipt = false;
+        this.detailError = this.receiptErrorMessage(error, 'No se pudo eliminar el comprobante.');
+      },
+    });
+  }
+
+  private receiptErrorMessage(error: any, fallback: string): string {
+    const message = error?.error?.message;
+    return Array.isArray(message) ? message.join(' ') : String(message || fallback);
   }
 
   openUploadModal(): void {
     this.resetUploadForm();
     this.success = '';
     this.uploadModalOpen = true;
+    this.loadUploadEmployees();
+  }
+
+  loadUploadEmployees(): void {
+    if (this.uploadEmployeesLoading) return;
+    this.uploadEmployeesLoading = true;
+    this.uploadEmployeesError = '';
+    this.uploadEmployees = [];
+    this.receiptsService.getEligibleEmployees().subscribe({
+      next: employees => {
+        this.uploadEmployees = employees;
+        this.uploadEmployeesLoading = false;
+      },
+      error: () => {
+        this.uploadEmployeesError = 'No se pudieron cargar los empleados. Reintente antes de guardar.';
+        this.uploadEmployeesLoading = false;
+      },
+    });
   }
 
   closeUploadModal(): void {
@@ -227,6 +395,10 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
       this.uploadError = 'Seleccione si corresponde a un gasto operativo o de representación.';
       return;
     }
+    if (!this.uploadEmployeeId || !this.uploadEmployees.some(employee => employee.employee_id === this.uploadEmployeeId)) {
+      this.uploadError = 'Seleccione el empleado que generó el gasto.';
+      return;
+    }
     if (!this.uploadFile) {
       this.uploadError = 'Seleccione la imagen del comprobante.';
       return;
@@ -234,7 +406,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
 
     this.uploading = true;
     this.uploadError = '';
-    this.receiptsService.upload(this.uploadFile, this.uploadCategory).subscribe({
+    this.receiptsService.upload(this.uploadFile, this.uploadCategory, this.uploadEmployeeId).subscribe({
       next: receipt => {
         this.uploading = false;
         this.uploadModalOpen = false;
@@ -244,6 +416,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
           : 'Comprobante subido y digitalizado correctamente.';
         this.page = 1;
         this.loadReceipts();
+        this.loadEmployees();
       },
       error: error => {
         this.uploading = false;
@@ -257,7 +430,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
 
   reprocess(receipt: ExpenseReceipt, event?: Event): void {
     event?.stopPropagation();
-    if (this.reprocessingId) return;
+    if (!this.canManageReceipts || this.receiptBusy || this.editingReceipt || this.deleteConfirmation) return;
     this.reprocessingId = receipt._id;
     this.receiptsService.reprocess(receipt._id).subscribe({
       next: updated => {
@@ -275,6 +448,20 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
 
   categoryLabel(category?: string): string {
     return this.categoryLabels[String(category || '')] || 'Sin clasificar';
+  }
+
+  expenseEmployeeName(receipt: ExpenseReceipt): string {
+    return receipt.registered_by_id ? receipt.employee_name : 'No especificado (registro anterior)';
+  }
+
+  registeredByName(receipt: ExpenseReceipt): string {
+    return receipt.registered_by_id
+      ? receipt.registered_by_name || 'Usuario no disponible'
+      : receipt.employee_name;
+  }
+
+  registeredByEmail(receipt: ExpenseReceipt): string {
+    return (receipt.registered_by_id ? receipt.registered_by_email : receipt.employee_email) || 'Sin correo';
   }
 
   detectedCategoryLabel(category?: string): string {
@@ -338,6 +525,8 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   private resetUploadForm(): void {
     this.uploadFile = null;
     this.uploadCategory = '';
+    this.uploadEmployeeId = '';
+    this.uploadEmployeesError = '';
     this.uploadError = '';
     this.releaseUploadPreview();
   }

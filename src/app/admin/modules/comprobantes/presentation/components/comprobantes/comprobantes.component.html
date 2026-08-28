@@ -23,6 +23,14 @@
 
   <section class="filters-card">
     <label class="search-field"><span>Buscar</span><div><i class="pi pi-search"></i><input [(ngModel)]="search" (keyup.enter)="applyFilters()" placeholder="Empleado, comercio, NCF o RNC"></div></label>
+    <label class="employee-field"><span>Empleado</span>
+      <select id="receipt-employee-filter" [(ngModel)]="employeeId" [disabled]="employeesLoading">
+        <option value="">{{ employeesLoading ? 'Cargando empleados…' : 'Todos los empleados' }}</option>
+        <option *ngFor="let employee of employees" [value]="employee.employee_id">
+          {{ employee.employee_name }}{{ employee.employee_email ? ' · ' + employee.employee_email : '' }}
+        </option>
+      </select>
+    </label>
     <label><span>Categoría</span><select [(ngModel)]="accountingCategory"><option value="">Todas</option><option *ngFor="let item of categories" [value]="item">{{ categoryLabel(item) }}</option></select></label>
     <label><span>Estado IA</span><select [(ngModel)]="status"><option value="">Todos</option><option value="completed">Digitalizado</option><option value="needs_review">Requiere revisión</option><option value="failed">Error de IA</option><option value="pending">Digitalizando</option></select></label>
     <label><span>Desde</span><input type="date" [(ngModel)]="dateFrom"></label>
@@ -30,6 +38,7 @@
     <div class="filter-actions"><button type="button" class="clear-btn" (click)="clearFilters()">Limpiar</button><button type="button" class="apply-btn" (click)="applyFilters()"><i class="pi pi-filter"></i> Aplicar</button></div>
   </section>
 
+  <div class="error-banner employee-filter-error" *ngIf="employeesError" role="alert"><i class="pi pi-exclamation-triangle"></i><span>{{ employeesError }}</span><button type="button" (click)="loadEmployees()">Reintentar</button></div>
   <div class="error-banner" *ngIf="error"><i class="pi pi-exclamation-triangle"></i><span>{{ error }}</span><button type="button" (click)="error = ''">×</button></div>
   <div class="success-banner" *ngIf="success"><i class="pi pi-check-circle"></i><span>{{ success }}</span><button type="button" (click)="success = ''">×</button></div>
   <div class="loading-state" *ngIf="loading"><span class="loader"></span><strong>Cargando comprobantes…</strong></div>
@@ -47,11 +56,16 @@
             <div class="merchant-row"><div><small>COMERCIO</small><h3>{{ receipt.merchant_name || 'No detectado' }}</h3></div><strong>{{ displayAmount(receipt) }}</strong></div>
             <p>{{ receipt.description || receipt.raw_text || 'Sin descripción digitalizada' }}</p>
             <dl>
-              <div><dt>Empleado</dt><dd>{{ receipt.employee_name }}</dd></div>
+              <div><dt>Gasto generado por</dt><dd>{{ expenseEmployeeName(receipt) }}</dd></div>
+              <div><dt>Registrado por</dt><dd>{{ registeredByName(receipt) }}</dd></div>
               <div><dt>Fecha</dt><dd>{{ displayReceiptDate(receipt) }}</dd></div>
               <div *ngIf="receipt.ncf"><dt>NCF</dt><dd>{{ receipt.ncf }}</dd></div>
               <div *ngIf="receipt.tax_id"><dt>RNC</dt><dd>{{ receipt.tax_id }}</dd></div>
             </dl>
+            <div class="receipt-actions" *ngIf="canManageReceipts">
+              <button type="button" (click)="startEditing(receipt, $event)" [disabled]="receiptBusy"><i class="pi pi-pencil"></i> Editar</button>
+              <button type="button" class="delete-receipt-btn" (click)="requestDelete(receipt, $event)" [disabled]="receiptBusy"><i class="pi pi-trash"></i> Borrar</button>
+            </div>
             <button type="button" class="retry-btn" *ngIf="receipt.processing_status === 'failed' || receipt.processing_status === 'needs_review'" (click)="reprocess(receipt, $event)" [disabled]="!!reprocessingId"><i class="pi" [ngClass]="reprocessingId === receipt._id ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>{{ reprocessingId === receipt._id ? 'Procesando…' : 'Reintentar IA' }}</button>
           </div>
         </article>
@@ -75,6 +89,21 @@
     </header>
 
     <div class="upload-modal-body">
+      <label class="upload-category-field upload-employee-field">
+        <span>Empleado que generó el gasto <em>Obligatorio</em></span>
+        <div class="upload-select-control">
+          <i class="pi pi-user"></i>
+          <select id="receipt-upload-employee" [(ngModel)]="uploadEmployeeId" [disabled]="uploading || uploadEmployeesLoading" required>
+            <option value="" disabled>{{ uploadEmployeesLoading ? 'Cargando empleados…' : 'Seleccione un empleado' }}</option>
+            <option *ngFor="let employee of uploadEmployees" [value]="employee.employee_id">
+              {{ employee.employee_name }}{{ employee.employee_email ? ' · ' + employee.employee_email : '' }}
+            </option>
+          </select>
+          <i class="pi pi-chevron-down"></i>
+        </div>
+      </label>
+      <div class="upload-error" *ngIf="uploadEmployeesError" role="alert"><i class="pi pi-exclamation-triangle"></i><span>{{ uploadEmployeesError }}</span><button type="button" class="upload-employees-retry" (click)="loadUploadEmployees()">Reintentar</button></div>
+      <div class="upload-information" *ngIf="!uploadEmployeesLoading && !uploadEmployeesError && !uploadEmployees.length"><i class="pi pi-info-circle"></i><span>No hay empleados activos disponibles para registrar el gasto.</span></div>
       <label class="upload-category-field">
         <span>Categoría del gasto <em>Obligatoria</em></span>
         <div class="upload-select-control">
@@ -123,12 +152,12 @@
       </div>
 
       <div class="upload-error" *ngIf="uploadError"><i class="pi pi-exclamation-triangle"></i><span>{{ uploadError }}</span></div>
-      <div class="upload-information"><i class="pi pi-info-circle"></i><span>El comprobante quedará registrado a nombre del usuario root conectado.</span></div>
+      <div class="upload-information"><i class="pi pi-info-circle"></i><span>El gasto quedará a nombre del empleado seleccionado. El usuario conectado se guardará automáticamente como quien registró el comprobante.</span></div>
     </div>
 
     <footer class="upload-modal-footer">
       <button type="button" class="upload-cancel-btn" (click)="closeUploadModal()" [disabled]="uploading">Cerrar</button>
-      <button type="button" class="upload-submit-btn" (click)="submitReceipt()" [disabled]="uploading || !uploadFile || !uploadCategory">
+      <button type="button" class="upload-submit-btn" (click)="submitReceipt()" [disabled]="uploading || uploadEmployeesLoading || !!uploadEmployeesError || !uploadFile || !uploadCategory || !uploadEmployeeId">
         <i class="pi" [ngClass]="uploading ? 'pi-spin pi-spinner' : 'pi-sparkles'"></i>
         {{ uploading ? 'Digitalizando comprobante…' : 'Digitalizar y guardar' }}
       </button>
@@ -137,25 +166,58 @@
 </div>
 
 <div class="receipt-modal" *ngIf="selectedReceipt" (click)="closeReceipt()">
-  <section class="modal-card" (click)="$event.stopPropagation()">
-    <button type="button" class="modal-close" (click)="closeReceipt()" aria-label="Cerrar">×</button>
+  <section class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Detalle del comprobante">
+    <button type="button" class="modal-close" (click)="closeReceipt()" [disabled]="receiptBusy" aria-label="Cerrar">×</button>
     <div class="modal-image"><img [src]="selectedReceipt.image_url" alt="Comprobante ampliado"></div>
     <div class="modal-content">
       <div class="modal-title"><div><span>{{ categoryLabel(selectedReceipt.accounting_category) }}</span><h2>{{ selectedReceipt.merchant_name || 'Comercio no detectado' }}</h2></div><strong>{{ displayAmount(selectedReceipt) }}</strong></div>
+      <div class="processing-error" *ngIf="detailError" role="alert">{{ detailError }}</div>
+      <form class="receipt-edit-form" *ngIf="editingReceipt && canManageReceipts" (ngSubmit)="saveEditedReceipt()">
+        <h3>Editar comprobante</h3>
+        <p>El usuario que registró el comprobante se conserva. Esta modificación quedará a tu nombre.</p>
+        <fieldset [disabled]="receiptBusy" class="receipt-edit-grid">
+          <label class="edit-wide">Empleado que generó el gasto<select name="editEmployee" [(ngModel)]="editDraft.employee_id" required><option *ngFor="let employee of editEmployees" [value]="employee.employee_id">{{ employee.employee_name }}{{ employee.employee_email ? ' · ' + employee.employee_email : '' }}</option></select></label>
+          <div class="upload-error edit-wide" *ngIf="uploadEmployeesError"><span>{{ uploadEmployeesError }}</span><button type="button" (click)="loadUploadEmployees()">Reintentar</button></div>
+          <label>Categoría<select name="editAccounting" [(ngModel)]="editDraft.accounting_category" required><option value="" disabled>Seleccione una categoría</option><option *ngFor="let category of categories" [value]="category">{{ categoryLabel(category) }}</option></select></label>
+          <label>Tipo de gasto<select name="editCategory" [(ngModel)]="editDraft.category"><option *ngFor="let item of detectedCategoryLabels | keyvalue" [value]="item.key">{{ item.value }}</option></select></label>
+          <label class="edit-wide">Comercio<input name="editMerchant" [(ngModel)]="editDraft.merchant_name" maxlength="180"></label>
+          <label>RNC<input name="editTax" [(ngModel)]="editDraft.tax_id" maxlength="80"></label>
+          <label>NCF<input name="editNcf" [(ngModel)]="editDraft.ncf" maxlength="80"></label>
+          <label>No. de comprobante<input name="editNumber" [(ngModel)]="editDraft.receipt_number" maxlength="80"></label>
+          <label>Fecha del gasto<input name="editDate" type="date" [(ngModel)]="editDraft.expense_date"></label>
+          <label>Subtotal<input name="editSubtotal" type="number" min="0" max="1000000000000" step="0.01" [(ngModel)]="editDraft.subtotal"></label>
+          <label>ITBIS<input name="editTaxAmount" type="number" min="0" max="1000000000000" step="0.01" [(ngModel)]="editDraft.tax_amount"></label>
+          <label>Total<input name="editTotal" type="number" min="0" max="1000000000000" step="0.01" [(ngModel)]="editDraft.total_amount"></label>
+          <label>Moneda<input name="editCurrency" [(ngModel)]="editDraft.currency" minlength="3" maxlength="3" pattern="[a-zA-Z]{3}" required></label>
+          <label class="edit-wide">Método de pago<input name="editPayment" [(ngModel)]="editDraft.payment_method" maxlength="100"></label>
+          <label class="edit-wide">Descripción<textarea name="editDescription" rows="3" [(ngModel)]="editDraft.description" maxlength="2000"></textarea></label>
+        </fieldset>
+        <div class="receipt-actions"><button type="button" (click)="cancelEditing()" [disabled]="receiptBusy">Cancelar</button><button type="submit" class="save-receipt-btn" [disabled]="receiptBusy">{{ savingReceipt ? 'Guardando…' : 'Guardar cambios' }}</button></div>
+      </form>
+      <ng-container *ngIf="!editingReceipt">
       <div class="detail-grid">
-        <div><small>Empleado</small><strong>{{ selectedReceipt.employee_name }}</strong><span>{{ selectedReceipt.employee_email || 'Sin correo' }}</span></div>
+        <div><small>Gasto generado por</small><strong>{{ expenseEmployeeName(selectedReceipt) }}</strong><span *ngIf="selectedReceipt.registered_by_id">{{ selectedReceipt.employee_email || 'Sin correo' }}</span></div>
+        <div><small>Registrado por</small><strong>{{ registeredByName(selectedReceipt) }}</strong><span>{{ registeredByEmail(selectedReceipt) }}</span></div>
         <div><small>Fecha del gasto</small><strong>{{ displayReceiptDate(selectedReceipt, true) }}</strong></div>
         <div><small>NCF</small><strong>{{ selectedReceipt.ncf || 'No detectado' }}</strong></div>
         <div><small>RNC</small><strong>{{ selectedReceipt.tax_id || 'No detectado' }}</strong></div>
+        <div><small>No. de comprobante</small><strong>{{ selectedReceipt.receipt_number || 'No detectado' }}</strong></div>
         <div><small>Subtotal</small><strong>{{ selectedReceipt.subtotal == null ? 'No detectado' : (selectedReceipt.subtotal | number:'1.2-2') }}</strong></div>
         <div><small>ITBIS</small><strong>{{ selectedReceipt.tax_amount == null ? 'No detectado' : (selectedReceipt.tax_amount | number:'1.2-2') }}</strong></div>
         <div><small>Método de pago</small><strong>{{ selectedReceipt.payment_method || 'No detectado' }}</strong></div>
         <div><small>Tipo detectado por IA</small><strong>{{ detectedCategoryLabel(selectedReceipt.category) }}</strong></div>
         <div><small>Confianza IA</small><strong>{{ selectedReceipt.ai_confidence == null ? 'No disponible' : ((selectedReceipt.ai_confidence * 100) | number:'1.0-0') + '%' }}</strong></div>
       </div>
+      <p class="receipt-audit" *ngIf="selectedReceipt.edited_at">Editado por {{ selectedReceipt.edited_by_name || 'Usuario root' }} · {{ selectedReceipt.edited_at | date:'dd/MM/yyyy HH:mm' }}</p>
       <div class="raw-text"><small>DATOS DIGITALIZADOS</small><p>{{ selectedReceipt.raw_text || selectedReceipt.description || 'La IA no pudo extraer texto.' }}</p></div>
       <div class="processing-error" *ngIf="selectedReceipt.processing_error"><i class="pi pi-exclamation-triangle"></i><span>{{ selectedReceipt.processing_error }}</span></div>
-      <button type="button" class="modal-retry" *ngIf="selectedReceipt.processing_status === 'failed' || selectedReceipt.processing_status === 'needs_review'" (click)="reprocess(selectedReceipt)" [disabled]="!!reprocessingId"><i class="pi" [ngClass]="reprocessingId ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>{{ reprocessingId ? 'Digitalizando…' : 'Reintentar digitalización' }}</button>
+      <div class="receipt-actions" *ngIf="canManageReceipts && !deleteConfirmation"><button type="button" (click)="startEditing(selectedReceipt)" [disabled]="receiptBusy"><i class="pi pi-pencil"></i> Editar</button><button type="button" class="delete-receipt-btn" (click)="requestDelete(selectedReceipt)" [disabled]="receiptBusy"><i class="pi pi-trash"></i> Borrar</button></div>
+      <section class="delete-confirmation" *ngIf="deleteConfirmation && canManageReceipts" role="alertdialog" aria-label="Confirmar borrado del comprobante">
+        <strong>¿Borrar este comprobante?</strong><p>{{ selectedReceipt.merchant_name || 'Comprobante' }} · {{ displayAmount(selectedReceipt) }}. Dejará de aparecer en los listados. Se conservará su auditoría.</p>
+        <div class="receipt-actions"><button type="button" (click)="deleteConfirmation = false" [disabled]="receiptBusy">Cancelar</button><button type="button" class="delete-receipt-btn" (click)="confirmDelete()" [disabled]="receiptBusy">{{ deletingReceipt ? 'Borrando…' : 'Sí, borrar comprobante' }}</button></div>
+      </section>
+      <button type="button" class="modal-retry" *ngIf="canManageReceipts && !deleteConfirmation && (selectedReceipt.processing_status === 'failed' || selectedReceipt.processing_status === 'needs_review')" (click)="reprocess(selectedReceipt)" [disabled]="receiptBusy"><i class="pi" [ngClass]="reprocessingId ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>{{ reprocessingId ? 'Digitalizando…' : 'Reintentar digitalización' }}</button>
+      </ng-container>
     </div>
   </section>
 </div>
