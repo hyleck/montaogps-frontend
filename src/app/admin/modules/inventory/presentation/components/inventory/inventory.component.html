@@ -71,7 +71,7 @@
             <div class="inventory-search-box">
               <i class="pi pi-search"></i>
               <input type="text" id="globalSearch" [(ngModel)]="globalSearchQuery" name="globalSearch"
-                placeholder="IMEI, número SIM o ID SIM" class="form-input search-input" [disabled]="isSearchingGlobal" />
+                placeholder="IMEI, teléfono SIM o ID SIM" class="form-input search-input" [disabled]="isSearchingGlobal" />
               <button type="button" class="inventory-inline-clear" (click)="clearGlobalSearch()"
                 *ngIf="globalSearchQuery || showingSearchResults" aria-label="Limpiar búsqueda">
                 <i class="pi pi-times"></i>
@@ -178,7 +178,7 @@
           <thead>
             <tr>
               <th>Dispositivo</th>
-              <th>SIM / ID SIM</th>
+              <th>SIM / No. teléfono · ID SIM</th>
               <th>{{ 'inventory.device.protocol' | translate }}</th>
               <th>Paquete</th>
               <th>{{ 'inventory.device.warehouse' | translate }}</th>
@@ -203,7 +203,7 @@
               </td>
               <td>
                 <div class="inventory-result-sim" *ngIf="!isDeviceAirtag(device); else airtagSimNotApplicable">
-                  <span><small>SIM</small><strong>{{ device.SIM || device.sim || 'Sin número' }}</strong></span>
+                  <span><small>SIM / No. teléfono</small><strong>{{ device.SIM || device.sim || 'Sin número' }}</strong></span>
                   <span><small>ID SIM</small><strong>{{ device.IDSIM || device.idsim || 'Sin ID' }}</strong></span>
                 </div>
                 <ng-template #airtagSimNotApplicable>
@@ -934,7 +934,7 @@
         <div class="inventory-integrity-alert__search" *ngIf="unregisteredSimAlertCount > 0">
           <i class="pi pi-search"></i>
           <input type="search" [(ngModel)]="unregisteredSimAlertSearch"
-            placeholder="Buscar por IMEI, SIM, ID SIM o almacén..." />
+            placeholder="Buscar por IMEI, teléfono SIM, ID SIM o almacén..." />
           <button *ngIf="unregisteredSimAlertSearch" type="button"
             (click)="unregisteredSimAlertSearch = ''" aria-label="Limpiar búsqueda">
             <i class="pi pi-times"></i>
@@ -964,7 +964,7 @@
             <thead>
               <tr>
                 <th>GPS</th>
-                <th>SIM</th>
+                <th>SIM / No. teléfono</th>
                 <th>ID SIM</th>
                 <th>Almacén</th>
                 <th>Estado</th>
@@ -1117,9 +1117,10 @@
         </div>
 
         <div class="field" *ngIf="selectedDevice && !isDeviceAirtag(selectedDevice)">
-          <label for="deviceSim">SIM</label>
+          <label for="deviceSim">SIM / No. teléfono</label>
           <input type="text" id="deviceSim" [(ngModel)]="selectedDevice.sim" name="sim" class="form-input"
-            placeholder="Ingrese el SIM (opcional)" />
+            placeholder="Ingrese el número de teléfono de la SIM (opcional)" />
+          <small>Para SIM nacionales, coloque aquí el teléfono y en ID SIM su identificador.</small>
         </div>
 
         <div class="field" *ngIf="selectedDevice && !isDeviceAirtag(selectedDevice)">

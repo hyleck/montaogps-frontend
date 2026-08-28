@@ -55,7 +55,7 @@
         <span class="package-filter-panel__icon"><i class="pi pi-filter"></i></span>
         <div>
           <strong>Filtrar dispositivos</strong>
-          <small>Busca por IMEI, SIM, protocolo o modelo, almacén o estado.</small>
+          <small>Busca por IMEI, teléfono SIM, protocolo o modelo, almacén o estado.</small>
         </div>
       </div>
 
@@ -88,11 +88,11 @@
         </label>
 
         <label class="package-filter-field package-filter-field--search" for="packageSearch">
-          <span>IMEI o SIM</span>
+          <span>IMEI o teléfono SIM</span>
           <span class="package-search-input">
             <i class="pi pi-search"></i>
             <input type="text" id="packageSearch" [(ngModel)]="packageSearchQuery" name="packageSearch"
-              placeholder="Escribe un IMEI o número SIM" [disabled]="isSearchingPackage" />
+              placeholder="Escribe un IMEI o teléfono SIM" [disabled]="isSearchingPackage" />
           </span>
         </label>
 
@@ -129,7 +129,7 @@
           <thead>
             <tr>
               <th>IMEI y estado</th>
-              <th>SIM</th>
+              <th>SIM / No. teléfono</th>
               <th>ID SIM</th>
               <th>Almacén</th>
               <th>Fecha de ingreso</th>
@@ -273,9 +273,10 @@
       </div>
 
       <div class="field" *ngIf="selectedDevice && !isDeviceAirtag(selectedDevice)">
-        <label for="deviceSim">SIM</label>
+        <label for="deviceSim">SIM / No. teléfono</label>
         <input type="text" id="deviceSim" [(ngModel)]="selectedDevice.sim" name="sim" class="form-input"
-          placeholder="Ingrese el SIM (opcional)" />
+          placeholder="Ingrese el número de teléfono de la SIM (opcional)" />
+        <small>Para SIM nacionales, coloque aquí el teléfono y en ID SIM su identificador.</small>
       </div>
 
       <div class="field" *ngIf="selectedDevice && !isDeviceAirtag(selectedDevice)">
