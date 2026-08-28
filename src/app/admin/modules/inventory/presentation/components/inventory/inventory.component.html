@@ -23,11 +23,19 @@
         <i class="pi pi-credit-card"></i>
         <span>SIM cards</span>
       </button>
-      <button type="button" class="inventory-tab" [class.inventory-tab--active]="currentView === 'relay'" [attr.aria-selected]="currentView === 'relay'" role="tab" (click)="switchView('relay')"><i class="pi pi-bolt"></i><span>Relay</span></button>
-      <button type="button" class="inventory-tab" [class.inventory-tab--active]="currentView === 'cables'" [attr.aria-selected]="currentView === 'cables'" role="tab" (click)="switchView('cables')"><i class="pi pi-link"></i><span>Cables</span></button>
+      <button type="button" class="inventory-tab" [class.inventory-tab--active]="currentView === 'relay'"
+        [attr.aria-selected]="currentView === 'relay'" role="tab" (click)="switchView('relay')">
+        <i class="pi pi-bolt"></i>
+        <span>Relay</span>
+      </button>
+      <button type="button" class="inventory-tab" [class.inventory-tab--active]="currentView === 'cables'"
+        [attr.aria-selected]="currentView === 'cables'" role="tab" (click)="switchView('cables')">
+        <i class="pi pi-link"></i>
+        <span>Cables</span>
+      </button>
     </div>
 
-    <div class="inventory-actions">
+    <div class="inventory-actions" role="group" aria-label="Acciones del inventario">
       <button *ngIf="currentView === 'devices' && canReadGpsModels()" type="button"
         class="inventory-tool-button" (click)="openGpsModels()">
         <i class="pi pi-cog"></i>
