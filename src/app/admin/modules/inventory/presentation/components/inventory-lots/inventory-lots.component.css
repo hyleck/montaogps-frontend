@@ -168,6 +168,13 @@
 .lot-table--readonly { min-width: 580px; }
 .lot-table--readonly th:nth-child(1), .lot-table--readonly th:nth-child(2) { width: 40%; }
 .lot-table--readonly th:nth-child(3) { width: 20%; }
+.lot-table--manage-only { min-width: 680px; }
+.lot-table--manage-only th:nth-child(1) { width: 34%; }
+.lot-table--manage-only th:nth-child(2) { width: 30%; }
+.lot-table--manage-only th:nth-child(3), .lot-table--manage-only th:nth-child(4) { width: 18%; }
+.lot-row-actions { display: flex; flex-direction: column; align-items: flex-start; gap: .55rem; }
+.lot-edit-actions { display: flex; gap: .45rem; }
+.lot-delete { color: var(--lot-accent); }
 .lot-identity { display: flex; align-items: center; gap: .7rem; min-width: 0; }
 .lot-icon--small { width: 36px; height: 36px; flex-basis: 36px; font-size: 1rem; border-radius: 10px; }
 .lot-identity > div { display: grid; gap: .2rem; min-width: 0; }
@@ -207,6 +214,15 @@
 .lot-field > small, .lot-optional { color: var(--lot-muted); font-size: .72rem; font-weight: 400; line-height: 1.4; }
 .lot-error { display: flex; align-items: flex-start; gap: .5rem; margin: 0; padding: .85rem; border: 1px solid var(--lot-accent); border-radius: 9px; background: var(--lot-accent-soft); color: var(--lot-accent); font-size: .8rem; line-height: 1.5; }
 .lot-error > i { flex: 0 0 auto; margin-top: .15rem; }
+.lot-notice { display: flex; align-items: center; gap: .5rem; padding: .85rem; border: 1px solid var(--lot-border); border-radius: 9px; color: var(--lot-text); background: var(--lot-surface); font-size: .8rem; line-height: 1.5; }
+.lot-notice > i { color: var(--lot-accent); flex: 0 0 auto; }
+.lot-action-notice { margin: 0 0 1rem; }
+.lot-delete-summary { display: grid; gap: .4rem; overflow-wrap: anywhere; font-size: .85rem; }
+.lot-delete-summary > strong { color: var(--lot-heading); font-size: 1rem; }
+.lot-distribution { display: grid; gap: .65rem; padding: .85rem; border: 1px solid var(--lot-border); border-radius: 10px; color: var(--lot-text); background: var(--lot-surface); font-size: .8rem; }
+.lot-distribution > div { display: flex; justify-content: space-between; gap: .75rem; line-height: 1.5; }
+.lot-distribution span { min-width: 0; overflow-wrap: anywhere; }
+.lot-distribution b { flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .lot-form-footer { display: flex; justify-content: flex-end; gap: .6rem; padding-top: 1rem; border-top: 1px solid var(--lot-border); }
 
 @container inventory-lots (max-width: 60rem) {

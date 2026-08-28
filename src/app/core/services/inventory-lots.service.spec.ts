@@ -38,4 +38,25 @@ describe('Inventory lot API', () => {
     expect(request.request.method).toBe('POST');
     request.flush({ status: 'completed' });
   });
+  it('loads complete lot details by an encoded id', () => {
+    api.getLot('lot/1').subscribe();
+    const request = http.expectOne(`${base}/lots/lot%2F1`);
+    expect(request.request.method).toBe('GET');
+    request.flush({ _id: 'lot/1', version: 2, balances: [] });
+  });
+  it('patches only the chosen fields and includes the optimistic version', () => {
+    const payload = { version: 2, name: 'Nuevo', description: 'Notas', quantity: 40, storage_id: null };
+    api.updateLot('lot/1', payload).subscribe();
+    const request = http.expectOne(`${base}/lots/lot%2F1`);
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual(payload);
+    request.flush({ _id: 'lot/1', ...payload });
+  });
+  it('sends the confirmed version when deleting a specific lot', () => {
+    api.deleteLot('lot/1', 3).subscribe();
+    const request = http.expectOne(`${base}/lots/lot%2F1`);
+    expect(request.request.method).toBe('DELETE');
+    expect(request.request.body).toEqual({ version: 3 });
+    request.flush({ id: 'lot/1', deleted: true });
+  });
 });

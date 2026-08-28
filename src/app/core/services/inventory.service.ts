@@ -178,6 +178,19 @@ export interface InventoryLot {
   createdAt?: string;
   created_by?: InventoryAuditUser;
 }
+export interface InventoryLotDetails extends InventoryLot {
+  version: number;
+  stock_locked: boolean;
+  pending_transfer: boolean;
+}
+export interface UpdateInventoryLot {
+  version: number;
+  name: string;
+  description: string;
+  category?: InventoryLotCategory;
+  quantity?: number;
+  storage_id?: string | null;
+}
 export interface InventoryLotPage {
   data: InventoryLot[];
   total: number;
@@ -459,6 +472,18 @@ export class InventoryService {
 
   createLot(payload: { category: InventoryLotCategory; name: string; quantity: number; storage_id: string | null; description?: string; request_id: string }): Observable<InventoryLot> {
     return this.http.post<InventoryLot>(`${this.apiUrl}/lots`, payload);
+  }
+
+  getLot(id: string): Observable<InventoryLotDetails> {
+    return this.http.get<InventoryLotDetails>(`${this.apiUrl}/lots/${encodeURIComponent(id)}`);
+  }
+
+  updateLot(id: string, payload: UpdateInventoryLot): Observable<InventoryLot> {
+    return this.http.patch<InventoryLot>(`${this.apiUrl}/lots/${encodeURIComponent(id)}`, payload);
+  }
+
+  deleteLot(id: string, version: number): Observable<{ deleted: boolean; id: string }> {
+    return this.http.delete<{ deleted: boolean; id: string }>(`${this.apiUrl}/lots/${encodeURIComponent(id)}`, { body: { version } });
   }
 
   resumeConduce(id: string): Observable<Conduce> {

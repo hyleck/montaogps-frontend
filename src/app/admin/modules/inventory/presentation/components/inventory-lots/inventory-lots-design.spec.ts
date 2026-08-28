@@ -21,9 +21,10 @@ describe('Inventory lots design', () => {
   };
 
   beforeEach(async () => {
-    inventory = jasmine.createSpyObj('InventoryService', ['getLots', 'createLot']);
+    inventory = jasmine.createSpyObj('InventoryService', ['getLots', 'createLot', 'getLot']);
     inventory.getLots.and.returnValue(of(page));
     inventory.createLot.and.returnValue(of(page.data[0]));
+    inventory.getLot.and.returnValue(of({ ...page.data[0], version: 2, stock_locked: true, pending_transfer: false }));
     await TestBed.configureTestingModule({
       imports: [InventoryLotsComponent, NoopAnimationsModule],
       providers: [{ provide: InventoryService, useValue: inventory }],
@@ -75,6 +76,66 @@ describe('Inventory lots design', () => {
   }
 
   for (const mode of ['light', 'dark'] as const) {
+    for (const width of [1280, 720, 320]) {
+      it(`keeps edit/delete actions inside their table cells at ${width}px in ${mode}`, () => {
+        theme(mode);
+        fixture.componentRef.setInput('canUpdate', true);
+        fixture.componentRef.setInput('canDelete', true);
+        host.style.width = `${width}px`;
+        fixture.detectChanges();
+        for (const create of [true, false]) {
+          fixture.componentRef.setInput('canCreate', create);
+          fixture.detectChanges();
+          for (const controls of Array.from(host.querySelectorAll('.lot-edit-actions'))) {
+            inside(controls, controls.closest('td')!);
+            for (const button of Array.from(controls.children)) inside(button, controls.closest('td')!);
+            expect(controls.children[0].getBoundingClientRect().right).toBeLessThanOrEqual(controls.children[1].getBoundingClientRect().left);
+          }
+          const scroll = element('.lot-table-scroll');
+          scroll.scrollLeft = scroll.scrollWidth;
+          inside(element('.lot-edit'), scroll);
+          inside(element('.lot-delete'), scroll);
+          readable('.lot-edit', element('.lot-edit'));
+          readable('.lot-delete', element('.lot-delete'));
+          expect(element('.lot-section').scrollWidth).toBeLessThanOrEqual(element('.lot-section').clientWidth + 1);
+        }
+      });
+    }
+
+    it(`themes the deletion confirmation and full warehouse distribution in ${mode}`, async () => {
+      theme(mode);
+      fixture.componentRef.setInput('canDelete', true);
+      fixture.detectChanges();
+      component.openDelete(component.rows[0]);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const dialog = element('.inventory-lot-delete-dialog');
+      dialog.style.width = '320px';
+      dialog.style.maxWidth = 'none';
+      dialog.style.flexShrink = '0';
+      expect(rgb(getComputedStyle(dialog).backgroundColor)).toEqual(rgb(managementPalette[mode].managementColorBackgroundUser));
+      expect(element('.lot-delete-summary').textContent).toContain('1,240');
+      readable('.lot-delete-summary > strong', element('.p-dialog-content'));
+      readable('.lot-distribution', element('.lot-distribution'));
+      readable('.lot-confirm-delete', element('.lot-confirm-delete'));
+      for (const control of Array.from(dialog.querySelectorAll('.lot-distribution > div > *, .lot-form-footer button'))) inside(control, element('.lot-form'));
+      expect(element('.lot-form').scrollWidth).toBeLessThanOrEqual(element('.lot-form').clientWidth + 1);
+    });
+
+    it(`renders locked edit controls and warehouse balances in ${mode}`, async () => {
+      theme(mode);
+      fixture.componentRef.setInput('canUpdate', true);
+      fixture.detectChanges();
+      component.openEdit(component.rows[0]);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(element('.p-dialog-header').textContent).toContain('Editar lote');
+      expect((element('input[name="quantity"]') as HTMLInputElement).disabled).toBeTrue();
+      readable('.lot-distribution', element('.lot-distribution'));
+      readable('.lot-form-note p', element('.lot-form-note'));
+      expect(element('.lot-distribution').textContent).toContain('Almacén del equipo técnico');
+    });
+
     for (const category of ['relay', 'cables'] as const) {
       for (const width of [1280, 960, 720, 390, 320]) {
         it(`keeps ${category} filters and table controls aligned at ${width}px in ${mode}`, () => {

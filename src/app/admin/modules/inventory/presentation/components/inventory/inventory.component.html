@@ -71,7 +71,7 @@
     </div>
   </div>
 
-  <app-inventory-lots *ngIf="currentView === 'relay' || currentView === 'cables'" [category]="currentView === 'cables' ? 'cables' : 'relay'" [warehouses]="warehouses" [canCreate]="canCreateInventory()" [refreshKey]="lotRefreshKey" (selectLot)="addLotToShipping($event)"></app-inventory-lots>
+  <app-inventory-lots *ngIf="currentView === 'relay' || currentView === 'cables'" [category]="currentView === 'cables' ? 'cables' : 'relay'" [warehouses]="warehouses" [canCreate]="canCreateInventory()" [canUpdate]="canUpdateInventory()" [canDelete]="canDeleteInventory()" [refreshKey]="lotRefreshKey" (selectLot)="addLotToShipping($event)"></app-inventory-lots>
 
   <div class="global-search-section" *ngIf="currentView === 'devices' || currentView === 'simcards'">
     <!-- Search Section: Dispositivos -->
