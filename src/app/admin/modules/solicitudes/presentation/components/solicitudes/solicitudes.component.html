@@ -16,7 +16,7 @@
         </div>
         <div class="sol-started-toast__title">{{ toast.technicianName }} inició el trabajo</div>
         <div class="sol-started-toast__client">{{ toast.clientName }} · {{ toast.typeLabel }}</div>
-        <div class="sol-started-toast__device">{{ toast.deviceLabel }}</div>
+        <div class="sol-started-toast__device">{{ toast.deviceLabel | deviceLabel }}</div>
     </div>
 </div>
 
@@ -500,7 +500,7 @@
                             [disabled]="isSolicitudLocked(sol)"
                             (click)="openKanbanProcessDetails(sol, inst, i, $event)"
                             style="width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer;"
-                            [attr.aria-label]="'Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)">
+                            [attr.aria-label]="('Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)) | deviceLabel">
                             <i *ngIf="inst.completed && !inst.cancelled && !inst.omitted" class="pi pi-check-circle"></i>
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
                             <i *ngIf="inst.omitted" class="pi pi-minus-circle"></i>
@@ -510,8 +510,8 @@
                                 class="pi pi-circle"></i>
                             <span class="sol-process-summary">
                                 <span class="sol-process-name">
-                                    {{ getKanbanProcessLabel(sol, inst, i) }}
-                                    <span class="sol-process-device-badge">{{ getProcessDeviceTypeLabel(inst) }}</span>
+                                    {{ (getKanbanProcessLabel(sol, inst, i)) | deviceLabel }}
+                                    <span class="sol-process-device-badge">{{ (getProcessDeviceTypeLabel(inst)) | deviceLabel }}</span>
                                     <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
                                     <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
                                 </span>
@@ -642,7 +642,7 @@
                             [disabled]="isSolicitudLocked(sol)"
                             (click)="openKanbanProcessDetails(sol, inst, i, $event)"
                             style="width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer;"
-                            [attr.aria-label]="'Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)">
+                            [attr.aria-label]="('Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)) | deviceLabel">
                             <i *ngIf="inst.completed && !inst.cancelled && !inst.omitted" class="pi pi-check-circle"></i>
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
                             <i *ngIf="inst.omitted" class="pi pi-minus-circle"></i>
@@ -650,7 +650,7 @@
                                 class="pi pi-spin pi-spinner sol-process-loading"></i>
                             <span class="sol-process-summary">
                                 <span class="sol-process-name">
-                                    {{ getKanbanProcessLabel(sol, inst, i) }}
+                                    {{ (getKanbanProcessLabel(sol, inst, i)) | deviceLabel }}
                                     <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
                                     <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
                                 </span>
@@ -773,14 +773,14 @@
                             [disabled]="isSolicitudLocked(sol)"
                             (click)="openKanbanProcessDetails(sol, inst, i, $event)"
                             style="width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer;"
-                            [attr.aria-label]="'Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)">
+                            [attr.aria-label]="('Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)) | deviceLabel">
                             <i *ngIf="inst.completed && !inst.cancelled && !inst.omitted" class="pi pi-check-circle"></i>
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
                             <i *ngIf="inst.omitted" class="pi pi-minus-circle"></i>
                             <i *ngIf="!inst.completed && !inst.cancelled && !inst.omitted" class="pi pi-circle"></i>
                             <span class="sol-process-summary">
                                 <span class="sol-process-name">
-                                    {{ getKanbanProcessLabel(sol, inst, i) }}
+                                    {{ (getKanbanProcessLabel(sol, inst, i)) | deviceLabel }}
                                     <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
                                     <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
                                 </span>
@@ -911,10 +911,10 @@
                         [disabled]="isSolicitudLocked(sol)"
                         (click)="openKanbanProcessDetails(sol, inst, i, $event)"
                         style="width: 100%; font: inherit; text-align: left; cursor: pointer;"
-                        [attr.aria-label]="'Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)">
+                        [attr.aria-label]="('Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)) | deviceLabel">
                         <i class="pi" [ngClass]="inst.cancelled ? 'pi-times-circle' : (inst.omitted ? 'pi-minus-circle' : (inst.completed ? 'pi-check-circle' : 'pi-circle'))"></i>
                         <span class="sol-process-summary">
-                            <span class="sol-process-name">{{ getKanbanProcessLabel(sol, inst, i) }}</span>
+                            <span class="sol-process-name">{{ (getKanbanProcessLabel(sol, inst, i)) | deviceLabel }}</span>
                             <small *ngIf="inst.completion_source === 'office'" class="sol-process-office-status">
                                 <i class="pi pi-building"></i> Finalizado desde oficina
                             </small>
@@ -1388,7 +1388,7 @@
 <p-dialog [(visible)]="processDetailsDialogVisible"
     [style]="{width: '820px'}"
     [breakpoints]="{'900px': '94vw'}"
-    [header]="'Detalle de ' + getInstallationEntityName(processDetailsInstallation) + ' #' + (processDetailsIndex + 1)"
+    [header]="('Detalle de ' + getInstallationEntityName(processDetailsInstallation) + ' #' + (processDetailsIndex + 1)) | deviceLabel"
     [modal]="true"
     styleClass="app-dark-dialog sol-process-details-dialog"
     [draggable]="false"
@@ -1425,11 +1425,11 @@
                             </label>
                             <label>Tipo de dispositivo
                                 <select [(ngModel)]="correction.device_type">
-                                    <option *ngFor="let option of processDeviceTypeOptions" [value]="option.value">{{ option.label }}</option>
+                                    <option *ngFor="let option of processDeviceTypeOptions" [value]="option.value">{{ option.label | deviceLabel }}</option>
                                 </select>
                             </label>
                             <label>Nombre del objetivo
-                                <input type="text" [(ngModel)]="correction.target_name" placeholder="Nombre visible del objetivo">
+                                <input appDeviceLabel type="text" [(ngModel)]="correction.target_name" placeholder="Nombre visible del objetivo">
                             </label>
                             <label *ngIf="correction.process_type === 'desinstalacion'">Motivo de desinstalación
                                 <select [(ngModel)]="correction.deinstallation_reason">
@@ -1482,7 +1482,7 @@
                             <label>Modelo
                                 <select [(ngModel)]="correction.model" [disabled]="!correction.brand">
                                     <option value="">Sin especificar</option>
-                                    <option *ngFor="let model of processCorrectionModels" [value]="model.value">{{ model.label }}</option>
+                                    <option *ngFor="let model of processCorrectionModels" [value]="model.value">{{ (model.label) | deviceLabel }}</option>
                                 </select>
                             </label>
                             <label>Año
@@ -1661,7 +1661,7 @@
                 <section class="sol-info-card sol-info-card--full" *ngIf="!processDetailsDeviceLoading && processDetailsDeviceError">
                     <div class="sol-process-device-warning">
                         <i class="pi pi-info-circle"></i>
-                        <span>{{ processDetailsDeviceError }} Los demás detalles guardados en la solicitud continúan disponibles.</span>
+                        <span>{{ (processDetailsDeviceError) | deviceLabel }} Los demás detalles guardados en la solicitud continúan disponibles.</span>
                     </div>
                 </section>
 
@@ -1791,7 +1791,7 @@
                             <div *ngIf="installation.new_sim_card_number"><dt>Nueva SIM</dt><dd>{{ installation.new_sim_card_number }}</dd></div>
                             <div *ngIf="installation.sim_company"><dt>Compañía SIM</dt><dd>{{ installation.sim_company }}</dd></div>
                             <div *ngIf="installation.new_sim_company"><dt>Nueva compañía</dt><dd>{{ installation.new_sim_company }}</dd></div>
-                            <div *ngIf="installation.new_protocol"><dt>Protocolo nuevo</dt><dd>{{ installation.new_protocol }}</dd></div>
+                            <div *ngIf="installation.new_protocol"><dt>Protocolo nuevo</dt><dd>{{ (installation.new_protocol) | deviceLabel }}</dd></div>
                             <div *ngIf="!installation.device_imei && !installation.new_device_imei && !installation.sim_card_number && !installation.new_sim_card_number">
                                 <dt>Información</dt><dd>No registrada</dd>
                             </div>
@@ -1900,7 +1900,7 @@
                             <div><dt>SIM anterior</dt><dd>{{ gpsChangeInstallation.sim_card_number || 'No registrada' }}</dd></div>
                             <div><dt>SIM nueva</dt><dd>{{ gpsChangeInstallation.new_sim_card_number || 'Pendiente de seleccionar' }}</dd></div>
                             <div *ngIf="gpsChangeInstallation.new_sim_company"><dt>Compañía SIM</dt><dd>{{ gpsChangeInstallation.new_sim_company }}</dd></div>
-                            <div *ngIf="gpsChangeInstallation.new_protocol"><dt>Protocolo nuevo</dt><dd>{{ gpsChangeInstallation.new_protocol }}</dd></div>
+                            <div *ngIf="gpsChangeInstallation.new_protocol"><dt>Protocolo nuevo</dt><dd>{{ (gpsChangeInstallation.new_protocol) | deviceLabel }}</dd></div>
                             <div *ngIf="sol.gps_change?.scheduled_date"><dt>Programado</dt><dd>{{ sol.gps_change?.scheduled_date | date: 'dd/MM/yyyy, h:mm a' }}</dd></div>
                             <div *ngIf="sol.gps_change?.completed_date"><dt>Finalizado</dt><dd>{{ sol.gps_change?.completed_date | date: 'dd/MM/yyyy, h:mm a' }}</dd></div>
                             <div *ngIf="sol.gps_change?.mechanic_id"><dt>Técnico del cambio</dt><dd>{{ getTechnicianDisplayName(sol.gps_change!) }}</dd></div>
@@ -1926,7 +1926,7 @@
                         <div><dt>SIM anterior</dt><dd>{{ gpsChangeInstallation.sim_card_number || 'No registrada' }}</dd></div>
                         <div><dt>SIM nueva</dt><dd>{{ gpsChangeInstallation.new_sim_card_number || 'No registrada' }}</dd></div>
                         <div *ngIf="gpsChangeInstallation.new_sim_company"><dt>Compañía SIM nueva</dt><dd>{{ gpsChangeInstallation.new_sim_company }}</dd></div>
-                        <div *ngIf="gpsChangeInstallation.new_protocol"><dt>Protocolo nuevo</dt><dd>{{ gpsChangeInstallation.new_protocol }}</dd></div>
+                        <div *ngIf="gpsChangeInstallation.new_protocol"><dt>Protocolo nuevo</dt><dd>{{ (gpsChangeInstallation.new_protocol) | deviceLabel }}</dd></div>
                     </dl>
                 </section>
 
@@ -1951,7 +1951,7 @@
                                 <dt>Finalizada</dt><dd>{{ processDetailsDevice.activation_status.completedAt | date: 'dd/MM/yyyy, h:mm a' }}</dd>
                             </div>
                             <div *ngFor="let step of getProcessActivationSteps()">
-                                <dt>{{ step.label }}</dt>
+                                <dt>{{ (step.label) | deviceLabel }}</dt>
                                 <dd>{{ step.status === 'success' ? 'Completado' : (step.status === 'error' ? 'Con error' : (step.status === 'running' ? 'En proceso' : 'Pendiente')) }}</dd>
                             </div>
                         </dl>
@@ -2339,8 +2339,8 @@
                     <header class="sol-vehicle-card__header">
                         <div>
                             <span>{{ typeLabels[getProcessTypeForSolicitud(sol, installation)] || 'Proceso' }} {{ index + 1 }}</span>
-                            <strong>{{ installation.plate || getSolicitudPrimaryDeviceLabel(sol) }}</strong>
-                            <small class="sol-process-device-badge">{{ getProcessDeviceTypeLabel(installation) }}</small>
+                            <strong>{{ (installation.plate || getSolicitudPrimaryDeviceLabel(sol)) | deviceLabel }}</strong>
+                            <small class="sol-process-device-badge">{{ (getProcessDeviceTypeLabel(installation)) | deviceLabel }}</small>
                         </div>
                         <span class="sol-vehicle-card__state"
                             [class.is-cancelled]="installation.cancelled"
@@ -2564,7 +2564,7 @@
                             required>
                             <option [ngValue]="undefined" disabled>Selecciona destino</option>
                             <option *ngFor="let option of postUninstallDispositionOptions" [value]="option.value">
-                                {{ option.label }}
+                                {{ option.label | deviceLabel }}
                             </option>
                         </select>
                         <small class="sol-field-error" *ngIf="postUninstallDispositionError">
@@ -2819,7 +2819,7 @@
                             </div>
                             <div class="sol-install-card-content">
                                 <div class="sol-install-card-title-row">
-                                    <h4>{{ getInstallationEntityName(install) }} #{{i + 1}}</h4>
+                                    <h4>{{ (getInstallationEntityName(install)) | deviceLabel }} #{{i + 1}}</h4>
                                     <span class="sol-install-status-badge"
                                         [ngClass]="{'status-completed': install.completed && !install.cancelled && !install.omitted, 'status-cancelled': install.cancelled, 'status-omitted': install.omitted, 'status-pending': !install.completed && !install.cancelled && !install.omitted}">
                                         {{ install.cancelled ? 'Cancelada' : (install.omitted ? 'Omitida' : (install.completed ? 'Realizada' : 'Pendiente')) }}
@@ -2834,7 +2834,7 @@
                                             required>
                                             <option value="" disabled>Seleccionar dispositivo</option>
                                             <option *ngFor="let option of processDeviceTypeOptions" [value]="option.value">
-                                                {{ option.label }}
+                                                {{ option.label | deviceLabel }}
                                             </option>
                                         </select>
                                     </label>
@@ -2849,7 +2849,7 @@
                                             required>
                                             <option value="" disabled>Seleccionar tipo</option>
                                             <option *ngFor="let option of mixedProcessOptions" [value]="option.value">
-                                                {{ option.label }}
+                                                {{ option.label | deviceLabel }}
                                             </option>
                                         </select>
                                     </label>
@@ -2876,7 +2876,7 @@
                                             required>
                                             <option [ngValue]="undefined" disabled>Selecciona destino</option>
                                             <option *ngFor="let option of postUninstallDispositionOptions" [value]="option.value">
-                                                {{ option.label }}
+                                                {{ option.label | deviceLabel }}
                                             </option>
                                         </select>
                                         <small class="sol-field-error"
@@ -2891,7 +2891,7 @@
                                 type="button"
                                 class="sol-install-details-button"
                                 (click)="$event.stopPropagation(); openInstallationModal(i)"
-                                [attr.aria-label]="'Ver detalles de ' + getInstallationEntityName(install) + ' ' + (i + 1)">
+                                [attr.aria-label]="('Ver detalles de ' + getInstallationEntityName(install) + ' ' + (i + 1)) | deviceLabel">
                                 <i class="pi pi-pencil"></i>
                                 <span>Detalles</span>
                             </button>
@@ -2919,7 +2919,7 @@
 
 <!-- New Modal: Instalación -->
 <p-dialog [(visible)]="installationModalVisible" [style]="{width: '600px', maxWidth: '94vw', 'max-height': '90vh'}"
-    header="{{ getInstallationEntityName(selectedSolicitud?.installations?.[editingInstallationIndex]) }} #{{editingInstallationIndex + 1}}"
+    header="{{ (getInstallationEntityName(selectedSolicitud?.installations?.[editingInstallationIndex])) | deviceLabel }} #{{editingInstallationIndex + 1}}"
     [modal]="true" styleClass="p-fluid app-dark-dialog sol-installation-form-dialog"
     [draggable]="false" [resizable]="false">
     <div class="sol-form-container" [class.sol-form-container--readonly]="isSelectedSolicitudFinalized()" *ngIf="selectedSolicitud && selectedSolicitud.installations && selectedSolicitud.installations[editingInstallationIndex]">
@@ -2937,7 +2937,7 @@
             <div *ngIf="showVehicleData" class="sol-collapsible-section" style="animation: fadein 0.2s; display: flex; flex-direction: column; gap: 0.85rem;">
                 <div *ngIf="getCurrentInstallationProcessType() === 'cambio_vehiculo'" class="sol-vehicle-change-current">
                     <strong><i class="pi pi-history"></i> Vehículo actual</strong>
-                    <span>{{ selectedSolicitud.installations[editingInstallationIndex].previous_target_name || '—' }}</span>
+                    <span>{{ (selectedSolicitud.installations[editingInstallationIndex].previous_target_name || '—') | deviceLabel }}</span>
                     <small>
                         {{ getBrandName(selectedSolicitud.installations[editingInstallationIndex].previous_brand) }}
                         {{ getModelName(selectedSolicitud.installations[editingInstallationIndex].previous_brand, selectedSolicitud.installations[editingInstallationIndex].previous_model) }}
@@ -2951,7 +2951,7 @@
                     <label>
                         {{ getCurrentInstallationProcessType() === 'cambio_vehiculo' ? 'Nombre del nuevo objetivo' : 'Nombre del objetivo' }} (opcional)
                     </label>
-                    <input type="text"
+                    <input appDeviceLabel type="text"
                         [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].target_name"
                         [placeholder]="getCurrentInstallationProcessType() === 'cambio_vehiculo' ? 'Ej. Toyota Corolla nuevo de Juan' : 'Ej. Toyota Corolla de Juan'" />
                 </div>
@@ -2967,7 +2967,7 @@
                         <label>Modelo</label>
                         <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].model" [disabled]="availableModels.length === 0">
                             <option value="">Seleccionar modelo</option>
-                            <option *ngFor="let model of availableModels" [value]="model.value">{{ model.label }}</option>
+                            <option *ngFor="let model of availableModels" [value]="model.value">{{ (model.label) | deviceLabel }}</option>
                         </select>
                     </div>
                     <div class="sol-form-field">
@@ -3067,7 +3067,7 @@
                                     <strong>{{ getInventoryDeviceImei(device) }}</strong>
                                     <small>
                                         <span *ngIf="getInventoryDeviceSim(device)">SIM: {{ getInventoryDeviceSim(device) }}</span>
-                                        <span *ngIf="getInventoryDeviceProtocolName(device)"> · {{ getInventoryDeviceProtocolName(device) }}</span>
+                                        <span *ngIf="getInventoryDeviceProtocolName(device)"> · {{ (getInventoryDeviceProtocolName(device)) | deviceLabel }}</span>
                                     </small>
                                 </div>
                             </ng-template>
@@ -3124,7 +3124,7 @@
                                     <strong>{{ getInventoryDeviceImei(device) }}</strong>
                                     <small>
                                         <span *ngIf="getInventoryDeviceSim(device)">SIM: {{ getInventoryDeviceSim(device) }}</span>
-                                        <span *ngIf="getInventoryDeviceProtocolName(device)"> · {{ getInventoryDeviceProtocolName(device) }}</span>
+                                        <span *ngIf="getInventoryDeviceProtocolName(device)"> · {{ (getInventoryDeviceProtocolName(device)) | deviceLabel }}</span>
                                     </small>
                                 </div>
                             </ng-template>
@@ -3141,7 +3141,7 @@
             <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('install')" [class.active]="showInstallData" style="cursor: pointer; justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 0.6rem;">
                     <i class="pi pi-wrench" style="color: #6366f1;"></i>
-                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">{{ getInstallationEntityName(selectedSolicitud.installations[editingInstallationIndex]) }} (Opcional)</span>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">{{ (getInstallationEntityName(selectedSolicitud.installations[editingInstallationIndex])) | deviceLabel }} (Opcional)</span>
                 </div>
                 <i class="pi" [ngClass]="showInstallData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
             </div>
@@ -3149,7 +3149,7 @@
             <div *ngIf="showInstallData" class="sol-collapsible-section" style="animation: fadein 0.2s; display: flex; flex-direction: column; gap: 0.85rem;">
                 <div class="sol-form-row">
                     <div class="sol-form-field" style="grid-column: span 2;">
-                        <label>Lugar de {{ getInstallationEntityName(selectedSolicitud.installations[editingInstallationIndex]) }}</label>
+                        <label>Lugar de {{ (getInstallationEntityName(selectedSolicitud.installations[editingInstallationIndex])) | deviceLabel }}</label>
                         <app-installation-location-select
                             [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].installation_location"
                             placeholder="Seleccionar lugar">
@@ -3692,7 +3692,7 @@
             </div>
             <div class="sol-rollback-warning__process"
                 *ngFor="let item of cancellationRollbackPreview?.items">
-                <strong>{{ item.target_name }}</strong>
+                <strong>{{ (item.target_name) | deviceLabel }}</strong>
                 <ul>
                     <li *ngFor="let action of item.actions">
                         <i class="pi" [ngClass]="getRollbackActionIcon(action)" aria-hidden="true"></i>
@@ -3871,7 +3871,7 @@
             </div>
             <div class="sol-rollback-warning__process"
                 *ngFor="let item of deletionRollbackPreview?.items">
-                <strong>{{ item.target_name }}</strong>
+                <strong>{{ (item.target_name) | deviceLabel }}</strong>
                 <ul>
                     <li *ngFor="let action of item.actions">
                         <i class="pi" [ngClass]="getRollbackActionIcon(action)" aria-hidden="true"></i>
@@ -4183,7 +4183,7 @@
                                 <strong>{{ getInventoryDeviceImei(device) }}</strong>
                                 <small>
                                     <span *ngIf="getInventoryDeviceSim(device)">SIM: {{ getInventoryDeviceSim(device) }}</span>
-                                    <span *ngIf="getInventoryDeviceProtocolName(device)"> · {{ getInventoryDeviceProtocolName(device) }}</span>
+                                    <span *ngIf="getInventoryDeviceProtocolName(device)"> · {{ (getInventoryDeviceProtocolName(device)) | deviceLabel }}</span>
                                 </small>
                             </div>
                         </ng-template>
@@ -4206,7 +4206,7 @@
                 <label>Protocolo / Tipo de Dispositivo *</label>
                 <select [(ngModel)]="installData.type">
                     <option value="">Seleccionar protocolo</option>
-                    <option *ngFor="let proto of availableProtocols" [value]="proto._id">{{ proto.name }}</option>
+                    <option *ngFor="let proto of availableProtocols" [value]="proto._id">{{ (proto.name) | deviceLabel }}</option>
                 </select>
             </div>
 

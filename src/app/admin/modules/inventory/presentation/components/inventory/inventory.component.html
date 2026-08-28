@@ -222,7 +222,7 @@
                   <span class="inventory-result-empty">No aplica</span>
                 </ng-template>
               </td>
-              <td><span class="inventory-result-protocol">{{ getProtocolLabel(device.Protocol || device.protocol) }}</span></td>
+              <td><span class="inventory-result-protocol">{{ (getProtocolLabel(device.Protocol || device.protocol)) | deviceLabel }}</span></td>
               <td>
                 <span class="inventory-result-package" [title]="getPackageTitle(device)">
                   <i class="pi pi-box"></i>
@@ -669,7 +669,7 @@
         <div class="gps-model-editor__fields">
           <label>
             <span>Nombre del modelo</span>
-            <input type="text" [(ngModel)]="gpsModelForm.name" name="gpsModelName" maxlength="100"
+            <input appDeviceLabel type="text" [(ngModel)]="gpsModelForm.name" name="gpsModelName" maxlength="100"
               placeholder="Ej. ET300 versión 2026" autocomplete="off" />
           </label>
 
@@ -680,7 +680,7 @@
                 {{ selectedGpsModel ? 'Mantener la configuración actual' : 'Seleccionar protocolo base' }}
               </option>
               <option *ngFor="let template of gpsModelTemplateOptions" [value]="template._id">
-                {{ template.name }}
+                {{ (template.name) | deviceLabel }}
               </option>
             </select>
           </label>
@@ -690,7 +690,7 @@
           <span><i class="pi pi-clone"></i></span>
           <div>
             <small>Se utilizará el protocolo</small>
-            <strong>{{ template.name }}</strong>
+            <strong>{{ (template.name) | deviceLabel }}</strong>
           </div>
         </div>
 
@@ -740,16 +740,16 @@
           [class.gps-model-row--editing]="selectedGpsModel?._id === model._id">
           <span class="gps-model-row__icon">
             <i [class]="model.isAirtag ? 'pi pi-wifi' : 'pi pi-map-marker'"></i>
-            <img *ngIf="model.img" [src]="model.img" [alt]="model.name"
+            <img *ngIf="model.img" [src]="model.img" [alt]="(model.name) | deviceLabel"
               (error)="hideBrokenGpsModelImage($event)" />
           </span>
           <div class="gps-model-row__identity">
-            <strong>{{ model.name }}</strong>
-            <small>{{ getGpsModelKind(model) }}</small>
+            <strong>{{ (model.name) | deviceLabel }}</strong>
+            <small>{{ (getGpsModelKind(model)) | deviceLabel }}</small>
           </div>
           <div class="gps-model-row__template">
             <small>Configuración</small>
-            <span><i class="pi pi-clone"></i> {{ getGpsModelTemplateName(model) }}</span>
+            <span><i class="pi pi-clone"></i> {{ (getGpsModelTemplateName(model)) | deviceLabel }}</span>
           </div>
           <div class="inventory-audit inventory-audit--model">
             <span [title]="auditUserLabel(model.created_by)">
@@ -1169,7 +1169,7 @@
           <select id="deviceProtocol" [(ngModel)]="selectedDevice.protocol" name="protocol" required class="form-input">
             <option value="">Seleccionar protocolo</option>
             <option *ngFor="let protocol of protocols" [value]="protocol.value">
-              {{ protocol.label }}
+              {{ (protocol.label) | deviceLabel }}
             </option>
           </select>
         </div>

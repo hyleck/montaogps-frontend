@@ -1,3 +1,5 @@
+import { DeviceLabelInputDirective } from 'src/app/shareds/directives/device-label-input.directive';
+import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -15,6 +17,9 @@ import { InventoryLotsComponent } from './components/inventory-lots/inventory-lo
     InventoryPackageDevicesComponent,
     InventoryDeviceAssignmentDialogComponent,
   ],
-  imports: [CommonModule, FormsModule, TranslateModule, PrimengModule, InventoryRoutingModule, InventoryLotsComponent],
+  imports: [
+    DeviceLabelInputDirective,
+    DeviceLabelPipe, CommonModule, FormsModule, TranslateModule, PrimengModule, InventoryRoutingModule, InventoryLotsComponent
+  ],
 })
 export class InventoryModule {}

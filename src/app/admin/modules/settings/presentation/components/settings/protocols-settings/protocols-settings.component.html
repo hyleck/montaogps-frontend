@@ -28,7 +28,7 @@
             <form (ngSubmit)="onSubmit()" ngNativeValidate>
                 <div class="form-group">
                     <label for="name">{{ 'settings.protocols.name' | translate }} <span class="required">*</span></label>
-                    <input id="name" type="text" [(ngModel)]="protocolForm.name" name="name" required 
+                    <input appDeviceLabel id="name" type="text" [(ngModel)]="protocolForm.name" name="name" required
                            [placeholder]="'settings.protocols.name' | translate">
                 </div>
                 
@@ -191,7 +191,7 @@
                 </ng-template>
                 <ng-template pTemplate="body" let-protocol>
                     <tr>
-                        <td>{{protocol.name}}</td>
+                        <td>{{ (protocol.name) | deviceLabel }}</td>
                         <td>{{protocol.port}}</td>
                         <td>{{protocol.commands.length}}</td>
                         <td>

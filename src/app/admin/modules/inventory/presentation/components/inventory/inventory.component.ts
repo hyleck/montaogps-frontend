@@ -1,3 +1,5 @@
+import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
+import { DeviceLabelMessageService, DeviceLabelConfirmationService } from 'src/app/shareds/services/device-label-messages.service';
 import { Component, OnDestroy, OnInit, ViewEncapsulation, ViewChild, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
@@ -42,7 +44,7 @@ type ShippingLabelSocialIcons = Record<ShippingLabelSocialNetwork, HTMLImageElem
   selector: 'app-inventory',
   templateUrl: './inventory.component.html',
   styleUrls: ['./inventory.component.css'],
-  providers: [MessageService, ConfirmationService],
+  providers: [{ provide: MessageService, useClass: DeviceLabelMessageService }, { provide: ConfirmationService, useClass: DeviceLabelConfirmationService }],
   standalone: false,
   host: {
     '[class.inventory-lots-viewport]': "currentView === 'relay' || currentView === 'cables'",
@@ -422,7 +424,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     const query = this.gpsModelSearchQuery.trim().toLowerCase();
     if (!query) return this.loadedProtocols;
     return this.loadedProtocols.filter((model) =>
-      [model.name, this.getGpsModelTemplateName(model)]
+      [model.name, formatDeviceLabel(model.name), this.getGpsModelTemplateName(model)]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query)),
     );

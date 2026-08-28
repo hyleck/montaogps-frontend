@@ -1,3 +1,5 @@
+import { DeviceLabelConfirmationService, DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
+import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -24,6 +26,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     MonitorIaFunnelComponent
   ],
   imports: [
+    DeviceLabelPipe,
     CommonModule,
     MonitorIaRoutingModule,
     ProgressBarModule,
@@ -36,6 +39,6 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     TooltipModule,
     FormsModule,
   ],
-  providers: [ConfirmationService, MessageService],
+  providers: [{ provide: ConfirmationService, useClass: DeviceLabelConfirmationService }, { provide: MessageService, useClass: DeviceLabelMessageService }],
 })
 export class MonitorIaModule { }

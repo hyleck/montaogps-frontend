@@ -1,3 +1,4 @@
+import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 // utils/marker-service.ts
 import mapboxgl from 'mapbox-gl';
 import { PopupBuilder } from './map-popup.helper';
@@ -606,7 +607,7 @@ export class MarkerService {
         if (popupElement && popupElement.querySelector) {
           // Actualizar elementos específicos sin regenerar HTML
           PopupBuilder.updatePopupElementsDirectly(popupElement, {
-            title: target.name,
+            title: formatDeviceLabel(target.name),
             speedKmh: finalSpeedKmh,
             status,
             stopTime,
@@ -615,7 +616,7 @@ export class MarkerService {
         } else {
           // Fallback: regenerar HTML si no se puede actualizar directamente
           const newHtml = PopupBuilder.buildPopupHtml({
-            title: target.name,
+            title: formatDeviceLabel(target.name),
             vehicleType: vehicleTypeGetter?.(target.model),
             speedKmh: finalSpeedKmh,
             status,
@@ -649,7 +650,7 @@ export class MarkerService {
         if (popupElement && popupElement.querySelector) {
           // Actualizar elementos específicos sin regenerar HTML
           PopupBuilder.updatePopupElementsDirectly(popupElement, {
-            title: target.name,
+            title: formatDeviceLabel(target.name),
             speedKmh: finalSpeedKmh,
             status,
             stopTime,
@@ -658,7 +659,7 @@ export class MarkerService {
         } else {
           // Fallback: regenerar HTML si no se puede actualizar directamente
           const newHtml = PopupBuilder.buildPopupHtml({
-            title: target.name,
+            title: formatDeviceLabel(target.name),
             vehicleType: vehicleTypeGetter?.(target.model),
             speedKmh: finalSpeedKmh,
             status,
@@ -1017,7 +1018,7 @@ export class MarkerService {
       const infoWindow = marker.infoWindow;
       if (infoWindow) {
         const newHtml = PopupBuilder.buildPopupHtml({
-          title: target.name,
+          title: formatDeviceLabel(target.name),
           vehicleType: vehicleTypeGetter?.(target.model),
           speedKmh,
           status,
@@ -1033,7 +1034,7 @@ export class MarkerService {
       const popup = marker.getPopup();
       if (popup) {
         const newHtml = PopupBuilder.buildPopupHtml({
-          title: target.name,
+          title: formatDeviceLabel(target.name),
           vehicleType: vehicleTypeGetter?.(target.model),
           speedKmh,
           status,

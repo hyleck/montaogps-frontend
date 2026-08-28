@@ -1,3 +1,4 @@
+import { DeviceLabelMessageService, DeviceLabelConfirmationService } from 'src/app/shareds/services/device-label-messages.service';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -18,8 +19,8 @@ import { MessageService, ConfirmationService } from 'primeng/api';
     PrimengModule,
   ],
   providers: [
-    MessageService,
-    ConfirmationService,
+    { provide: MessageService, useClass: DeviceLabelMessageService },
+    { provide: ConfirmationService, useClass: DeviceLabelConfirmationService },
   ]
 })
 export class InteraccionesModule { }

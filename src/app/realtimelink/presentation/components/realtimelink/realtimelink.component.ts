@@ -1,3 +1,4 @@
+import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MapUtils } from '../../../../shareds/helpers/map.helper';
@@ -323,7 +324,7 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
         this.marker = new google.maps.Marker({
             position: position,
             map: this.map,
-            title: this.target.name,
+            title: formatDeviceLabel(this.target.name),
             icon: iconConfig,
             opacity: isOffline ? 0.65 : 1
         });
@@ -348,7 +349,7 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
                         <path d="M14 1.41L12.59 0L7 5.59L1.41 0L0 1.41L5.59 7L0 12.59L1.41 14L7 8.41L12.59 14L14 12.59L8.41 7L14 1.41Z" fill="currentColor"/>
                     </svg>
                 </button>
-                <div class="custom-popup-header">${this.target.name}</div>
+                <div class="custom-popup-header">${formatDeviceLabel(this.target.name)}</div>
                 <div class="custom-popup-row">
                     <span class="custom-popup-label" style="color: #2563eb; font-weight: 600;">Compartido</span>
                     <span class="custom-popup-value" style="color: ${statusColor}; font-weight: 600;">${statusText}</span>

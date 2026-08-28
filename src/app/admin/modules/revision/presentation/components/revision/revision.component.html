@@ -103,7 +103,7 @@
               </div>
             </div>
           </td>
-          <td data-label="Modelo"><span class="model-pill">{{ protocolName(device) }}</span></td>
+          <td data-label="Modelo"><span class="model-pill">{{ (protocolName(device)) | deviceLabel }}</span></td>
           <td data-label="Estado">
             <span class="device-status" [ngClass]="statusClass(device)">
               <i class="pi" [ngClass]="statusIcon(device)"></i>
@@ -119,7 +119,7 @@
           <td data-label="Motivo de revisión">
             <p class="reason-text">{{ reviewReason(device) }}</p>
             <small *ngIf="!isPreventive(device) && device.inspection_solicitud_id">Solicitud {{ device.inspection_solicitud_id }}</small>
-            <small *ngIf="isPreventive(device) && device.device_name">Objetivo: {{ device.device_name }}</small>
+            <small *ngIf="isPreventive(device) && device.device_name">Objetivo: {{ (device.device_name) | deviceLabel }}</small>
           </td>
           <td [attr.data-label]="isPreventive(device) ? 'Instalación' : 'Marcado'">
             <span class="date-value">{{ formatDate(relevantDate(device)) }}</span>

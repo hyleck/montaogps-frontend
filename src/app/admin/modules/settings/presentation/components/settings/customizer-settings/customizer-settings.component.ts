@@ -1,3 +1,4 @@
+import { DeviceLabelMessageService, DeviceLabelConfirmationService } from 'src/app/shareds/services/device-label-messages.service';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -41,7 +42,7 @@ import { Tag } from '@core/interfaces/tag.interface';
         ConfirmDialogModule,
         DividerModule
     ],
-    providers: [MessageService, ConfirmationService]
+    providers: [{ provide: MessageService, useClass: DeviceLabelMessageService }, { provide: ConfirmationService, useClass: DeviceLabelConfirmationService }]
 })
 export class CustomizerSettingsComponent implements OnInit {
     forms: Form[] = [];

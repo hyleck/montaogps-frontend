@@ -1,3 +1,4 @@
+import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,6 +14,7 @@ import { getApiErrorMessage } from '../core/utils/api-error.util';
   styleUrls: ['./public-vehicle-verification.component.css'],
   standalone: true,
   imports: [
+    DeviceLabelPipe,
     CommonModule,
     FormsModule,
     PrimengModule

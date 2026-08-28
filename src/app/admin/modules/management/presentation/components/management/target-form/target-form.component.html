@@ -17,7 +17,7 @@
                                         <div class="target-form__column">
                                             <div class="target-form__field">
                                                 <label for="tag-target-name">Nombre del objetivo <span class="required-label">(Requerido)</span></label>
-                                                <input
+                                                <input appDeviceLabel
                                                     [(ngModel)]="target.name"
                                                     name="tag_target_name"
                                                     id="tag-target-name"
@@ -83,7 +83,7 @@
                                                         {{ hasVehicleVerification() ? 'Verificado' : 'Verificar vehículo' }}
                                                     </button>
                                                 </div>
-                                                <input [(ngModel)]="target.name" name="name"
+                                                <input appDeviceLabel [(ngModel)]="target.name" name="name"
                                                     placeholder="Ej: Ford Explorer 2021" type="text" id="name" required>
                                                 <input #vehicleRegistrationFileInput type="file" accept="image/*"
                                                     class="vehicle-registration-file-input"
@@ -114,7 +114,7 @@
                                                         translate('management.targetForm.selectModel')
                                                         }}</option>
                                                     <option *ngFor="let model of availableModels" [value]="model.value">
-                                                        {{model.label}}
+                                                        {{ (model.label) | deviceLabel }}
                                                     </option>
                                                 </select>
                                             </div>
@@ -306,12 +306,12 @@
                                             <div class="linked-vehicle-info-card__header">
                                                 <div>
                                                     <span>Vehículo vinculado</span>
-                                                    <strong>{{ getLinkedVehicleName() }}</strong>
+                                                    <strong>{{ (getLinkedVehicleName()) | deviceLabel }}</strong>
                                                 </div>
                                                 <span class="linked-vehicle-info-card__badge"
                                                     [class.linked-vehicle-info-card__badge--ok]="getLinkedVehicleValue('verificado') === true">
                                                     <i class="pi" [ngClass]="getLinkedVehicleValue('verificado') === true ? 'pi-check-circle' : 'pi-link'"></i>
-                                                    {{ getSelectedGpsModelName() }}
+                                                    {{ (getSelectedGpsModelName()) | deviceLabel }}
                                                 </span>
                                             </div>
 
@@ -560,7 +560,7 @@
                                                     translate('management.targetForm.selectGpsModel') }}</option>
                                                 <option *ngFor="let model of availableGpsModels"
                                                     [ngValue]="model.value">
-                                                    {{model.label}}
+                                                    {{ (model.label) | deviceLabel }}
                                                 </option>
                                             </select>
                                         </div>
@@ -635,7 +635,7 @@
                                                 <div class="additional-installation-item"
                                                     *ngFor="let installation of getAdditionalInstallations()">
                                                     <div class="additional-installation-item__main">
-                                                        <strong>{{ installation.name || 'Sin nombre' }}</strong>
+                                                        <strong>{{ (installation.name || 'Sin nombre') | deviceLabel }}</strong>
                                                         <span>IMEI: {{ installation.device_imei || '-' }}</span>
                                                     </div>
                                                     <span class="additional-installation-item__sim">
@@ -1069,7 +1069,7 @@
                                                         translate('management.targetForm.selectGpsModel') }}</option>
                                                     <option *ngFor="let gpsModel of availableGpsModels"
                                                         [value]="gpsModel.value">
-                                                        {{ gpsModel.label }}
+                                                        {{ (gpsModel.label) | deviceLabel }}
                                                     </option>
                                                 </select>
                                             </div>
@@ -1109,7 +1109,7 @@
                                                         translate('management.targetForm.selectGpsModel') }}</option>
                                                     <option *ngFor="let model of availableGpsModels"
                                                         [value]="model.value">
-                                                        {{model.label}}
+                                                        {{ (model.label) | deviceLabel }}
                                                     </option>
                                                 </select>
                                             </div>
@@ -1223,7 +1223,7 @@
                                 <div class="device-info">
                                     <div class="device-name">
                                         <i class="pi pi-mobile"></i>
-                                        <span>{{ target.name || 'Dispositivo GPS' }}</span>
+                                        <span>{{ (target.name || 'Dispositivo GPS') | deviceLabel }}</span>
                                     </div>
                                     <div class="sim-info">
                                         <span class="sim-provider">{{ getSimCardDisplayName() }}</span>
@@ -1441,7 +1441,7 @@
                                             <div class="step-content">
                                                 <div class="step-header">
                                                     <i class="pi" [ngClass]="step.icon"></i>
-                                                    <span class="step-title">{{ step.label }}</span>
+                                                    <span class="step-title">{{ (step.label) | deviceLabel }}</span>
                                                     <span *ngIf="step.status === 'running'"
                                                         class="step-status-badge active-badge">En proceso</span>
                                                     <span *ngIf="step.status === 'success'"
@@ -1926,7 +1926,7 @@
                                             <span>Detalles</span>
                                         </div>
                                         <div class="detail-content">
-                                            <p>{{ process.details }}</p>
+                                            <p>{{ (process.details) | deviceLabel }}</p>
                                         </div>
                                     </div>
 
@@ -1936,7 +1936,7 @@
                                             <span>Descripción del Proceso</span>
                                         </div>
                                         <div class="detail-content">
-                                            <p>{{ process.description }}</p>
+                                            <p>{{ (process.description) | deviceLabel }}</p>
                                         </div>
                                     </div>
 
@@ -1948,7 +1948,7 @@
                                         <div class="detail-content">
                                             <div class="detail-row" *ngIf="process.target?.name">
                                                 <span class="label">Nombre:</span>
-                                                <span class="value">{{ process.target.name }}</span>
+                                                <span class="value">{{ (process.target.name) | deviceLabel }}</span>
                                             </div>
                                             <div class="detail-row">
                                                 <span class="label">IMEI:</span>
@@ -2235,7 +2235,7 @@
                         <i class="pi pi-send"></i>
                         <div>
                             <strong>Comandos</strong>
-                            <span>{{ getSelectedGpsModelName() }}</span>
+                            <span>{{ (getSelectedGpsModelName()) | deviceLabel }}</span>
                         </div>
                     </div>
                 </ng-template>
@@ -2257,7 +2257,7 @@
 
                             <div class="server-commands-empty" *ngIf="protocolCommandsError">
                                 <i class="pi pi-exclamation-triangle"></i>
-                                <p>{{ protocolCommandsError }}</p>
+                                <p>{{ (protocolCommandsError) | deviceLabel }}</p>
                             </div>
 
                             <div class="server-commands-empty"
@@ -2369,7 +2369,7 @@
                 <span><i class="pi pi-wrench"></i></span>
                 <div>
                     <strong>Registrar instalación</strong>
-                    <small>{{ target.name || target.device_imei }} · Paso {{ installationRegistrationStep }} de 4</small>
+                    <small>{{ (target.name || target.device_imei) | deviceLabel }} · Paso {{ installationRegistrationStep }} de 4</small>
                 </div>
             </div>
         </ng-template>
@@ -2525,7 +2525,7 @@
                 <div><strong>Confirma el registro</strong><small>Se actualizará el objetivo y se agregará la instalación inicial a Procesos.</small></div>
             </div>
             <dl class="installation-registration-summary">
-                <div><dt>Objetivo</dt><dd>{{ target.name || 'Sin nombre' }}</dd></div>
+                <div><dt>Objetivo</dt><dd>{{ (target.name || 'Sin nombre') | deviceLabel }}</dd></div>
                 <div><dt>IMEI</dt><dd>{{ target.device_imei }}</dd></div>
                 <div><dt>Fecha</dt><dd>{{ installationRegistrationForm.installationDate }}</dd></div>
                 <div><dt>Técnico</dt><dd>{{ getTechnicianName(installationRegistrationForm.mechanicId) }}</dd></div>
@@ -2579,7 +2579,7 @@
             <div class="office-review-dialog__device">
                 <i class="pi pi-map-marker"></i>
                 <div>
-                    <span>{{ target.name || 'Objetivo sin nombre' }}</span>
+                    <span>{{ (target.name || 'Objetivo sin nombre') | deviceLabel }}</span>
                     <small>IMEI {{ target.device_imei || 'no definido' }}</small>
                 </div>
                 <span class="office-review-dialog__status"
@@ -2651,7 +2651,7 @@
                     <span><i class="pi pi-car"></i></span>
                     <div>
                         <small>Vehículo actualmente registrado</small>
-                        <strong>{{ target.name || 'Sin nombre' }}</strong>
+                        <strong>{{ (target.name || 'Sin nombre') | deviceLabel }}</strong>
                     </div>
                     <em>Actual</em>
                 </header>
@@ -2686,7 +2686,7 @@
                             <span class="vehicle-change-dialog__field-label"><i class="pi pi-tag"></i> Nombre del vehículo</span>
                             <em>Requerido</em>
                         </label>
-                        <input id="vehicle_change_name" type="text" maxlength="180"
+                        <input appDeviceLabel id="vehicle_change_name" type="text" maxlength="180"
                             [(ngModel)]="vehicleChangeForm.targetName" name="vehicle_change_name"
                             [disabled]="isRegisteringVehicleChange"
                             placeholder="Ej: Toyota Corolla 2024">
@@ -2707,7 +2707,7 @@
                         <select id="vehicle_change_model" [(ngModel)]="vehicleChangeForm.targetModelId"
                             name="vehicle_change_model" [disabled]="isRegisteringVehicleChange || !vehicleChangeForm.targetBrandId">
                             <option value="">Sin especificar</option>
-                            <option *ngFor="let model of vehicleChangeModels" [value]="model.value">{{ model.label }}</option>
+                            <option *ngFor="let model of vehicleChangeModels" [value]="model.value">{{ (model.label) | deviceLabel }}</option>
                         </select>
                     </div>
 

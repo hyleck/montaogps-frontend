@@ -1,3 +1,4 @@
+import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import { Component, OnInit, OnChanges, OnDestroy, SimpleChanges, Input, Output, EventEmitter } from '@angular/core';
 import { Router } from '@angular/router';
 import { ThemesService } from '../../services/themes.service';
@@ -918,7 +919,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private async createMarker(lat: number, lng: number): Promise<void> {
-    const title = this.selectedTarget?.name || 'Target';
+    const title = formatDeviceLabel(this.selectedTarget?.name || 'Target');
     const statusLower = (this.selectedTarget?.traccarStatus || '').toLowerCase();
     const isOffline = !this.isOnlineLikeStatus(statusLower) && statusLower !== 'localizado';
     const statusText = (this.selectedTarget?.traccarStatus || 'desconocido').toLowerCase();
@@ -1028,7 +1029,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   private async updateExistingMarker(lat: number, lng: number): Promise<void> {
     if (!this.currentMarker) return;
 
-    const title = this.selectedTarget?.name || 'Target';
+    const title = formatDeviceLabel(this.selectedTarget?.name || 'Target');
     const statusLower = (this.selectedTarget?.traccarStatus || '').toLowerCase();
     const isOffline = !this.isOnlineLikeStatus(statusLower) && statusLower !== 'localizado';
     const statusText = (this.selectedTarget?.traccarStatus || 'desconocido').toLowerCase();
@@ -1628,7 +1629,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
-    const title = this.selectedTarget?.name || 'Target';
+    const title = formatDeviceLabel(this.selectedTarget?.name || 'Target');
     const statusText = (this.selectedTarget?.traccarStatus || 'desconocido').toLowerCase();
     const isOnline = this.isOnlineLikeStatus(statusText);
     const html = this.getSelectedTargetPopupHtml(title, statusText, isOnline);
@@ -1769,7 +1770,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       },
       properties: {
         id: target?._id || target?.id || '',
-        title: target?.name || 'Target',
+        title: formatDeviceLabel(target?.name || 'Target'),
         status,
         selected,
       },

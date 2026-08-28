@@ -403,7 +403,7 @@
         <div class="device-list">
           <div class="device-row" *ngFor="let device of record.offlineDevices">
             <div>
-              <strong>{{ device.name || "Dispositivo sin nombre" }}</strong>
+              <strong>{{ (device.name || "Dispositivo sin nombre") | deviceLabel }}</strong>
               <span>IMEI: {{ device.device_imei || "No disponible" }}</span>
             </div>
             <span class="category-chip">Fuera de línea +3 días</span>

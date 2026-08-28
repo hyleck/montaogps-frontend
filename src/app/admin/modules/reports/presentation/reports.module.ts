@@ -1,3 +1,4 @@
+import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -14,6 +15,7 @@ import { ReportsMapModule } from '../../../../shareds/components/reports-map/rep
     ReportsComponent
   ],
   imports: [
+    DeviceLabelPipe,
     CommonModule,
     FormsModule,
     TranslateModule,

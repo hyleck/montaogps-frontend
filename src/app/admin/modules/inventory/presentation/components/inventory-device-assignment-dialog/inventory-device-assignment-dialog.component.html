@@ -14,7 +14,7 @@
     <div>
       <small>DISPOSITIVO DE INVENTARIO</small>
       <strong>{{ imei }}</strong>
-      <em>{{ protocolName }} · SIM / No. teléfono: {{ device?.SIM || device?.sim || 'No aplica' }}</em>
+      <em>{{ (protocolName) | deviceLabel }} · SIM / No. teléfono: {{ device?.SIM || device?.sim || 'No aplica' }}</em>
     </div>
   </div>
 
@@ -94,7 +94,7 @@
     </label>
     <label>
       <span>Nombre inicial del objetivo</span>
-      <input type="text" [(ngModel)]="targetName" [placeholder]="protocolName + ' ' + imei" maxlength="120">
+      <input appDeviceLabel type="text" [(ngModel)]="targetName" [placeholder]="(protocolName + ' ' + imei) | deviceLabel" maxlength="120">
     </label>
   </section>
 

@@ -1,3 +1,4 @@
+import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -6,6 +7,8 @@ import { RevisionRoutingModule } from './revision-routing.module';
 
 @NgModule({
   declarations: [RevisionComponent],
-  imports: [CommonModule, FormsModule, RevisionRoutingModule],
+  imports: [
+    DeviceLabelPipe, CommonModule, FormsModule, RevisionRoutingModule
+  ],
 })
 export class RevisionModule {}

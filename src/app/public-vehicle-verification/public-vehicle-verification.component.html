@@ -30,7 +30,7 @@
       <div class="vehicle-heading">
         <i class="pi pi-car"></i>
         <div>
-          <h2>{{ info?.device?.name || 'Vehículo' }}</h2>
+          <h2>{{ (info?.device?.name || 'Vehículo') | deviceLabel }}</h2>
           <p *ngIf="info?.device?.imei">IMEI: {{ info?.device?.imei }}</p>
           <p>Sube una foto clara de la matrícula o carta de ruta. Si los datos se leen correctamente, el vehículo se verifica automáticamente.</p>
         </div>

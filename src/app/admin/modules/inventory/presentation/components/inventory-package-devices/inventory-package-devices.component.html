@@ -145,7 +145,7 @@
                 <div class="package-device-identity">
                   <strong>{{ device.IMEI || device.imei || 'N/A' }}</strong>
                   <small class="package-device-protocol-subtext">
-                    Protocolo: {{ getProtocolLabel(device.Protocol || device.protocol) }}
+                    Protocolo: {{ (getProtocolLabel(device.Protocol || device.protocol)) | deviceLabel }}
                   </small>
                   <span class="package-device-status package-device-status--inspection"
                     *ngIf="isDeviceInspectionRequired(device)"
@@ -300,7 +300,7 @@
         <select id="deviceProtocol" [(ngModel)]="selectedDevice.protocol" name="protocol" required class="form-input">
           <option value="">Seleccionar protocolo</option>
           <option *ngFor="let protocol of protocols" [value]="protocol.value">
-            {{ protocol.label }}
+            {{ (protocol.label) | deviceLabel }}
           </option>
         </select>
       </div>

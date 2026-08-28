@@ -1,3 +1,5 @@
+import { DeviceLabelConfirmationService, DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
+import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -18,6 +20,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     ManagementComponent
   ],
   imports: [
+    DeviceLabelPipe,
     CommonModule,
     FormsModule,
     ManagementRoutingModule,
@@ -30,8 +33,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
   providers: [
     ManagementService,
     ScreenService,
-    ConfirmationService,
-    MessageService
+    { provide: ConfirmationService, useClass: DeviceLabelConfirmationService },
+    { provide: MessageService, useClass: DeviceLabelMessageService }
   ]
 })
 export class ManagementModule { }

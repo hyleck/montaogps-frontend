@@ -245,14 +245,14 @@
                                 <p-tag [value]="getTypeLabel(process.type)"
                                     [severity]="getTypeSeverity(process.type)" [rounded]="true">
                                 </p-tag>
-                                <span *ngIf="process.description">{{ process.description }}</span>
+                                <span *ngIf="process.description">{{ (process.description) | deviceLabel }}</span>
                             </div>
                         </td>
                         <td>
                             <div class="process-target">
                                 <div class="process-target__icon"><i class="pi pi-map-marker"></i></div>
                                 <div>
-                                    <strong>{{ getTargetName(process.target) | titlecase }}</strong>
+                                    <strong>{{ (getTargetName(process.target) | titlecase) | deviceLabel }}</strong>
                                     <span>IMEI {{ getTargetImei(process.target) }}</span>
                                 </div>
                             </div>
@@ -343,7 +343,7 @@
             <section class="detail-summary">
                 <div class="detail-summary__main">
                     <span class="detail-summary__eyebrow">Registro operativo</span>
-                    <p>{{ selectedProcess.description || 'Proceso registrado en el historial operativo.' }}</p>
+                    <p>{{ (selectedProcess.description || 'Proceso registrado en el historial operativo.') | deviceLabel }}</p>
                     <div class="detail-summary__meta">
                         <span><i class="pi pi-calendar"></i>{{ selectedProcess.createdAt | date:'dd/MM/yyyy · HH:mm:ss' }}</span>
                         <span><i class="pi pi-hashtag"></i>{{ selectedProcess.reference || selectedProcess._id }}</span>
@@ -387,7 +387,7 @@
                         <div><span>Objetivo</span><small>Dispositivo relacionado</small></div>
                     </div>
                     <dl class="detail-data-list">
-                        <div><dt>Nombre</dt><dd>{{ getTargetName(selectedProcess.target) }}</dd></div>
+                        <div><dt>Nombre</dt><dd>{{ (getTargetName(selectedProcess.target)) | deviceLabel }}</dd></div>
                         <div><dt>IMEI</dt><dd class="mono-value">{{ getTargetImei(selectedProcess.target) }}</dd></div>
                         <div *ngIf="selectedProcess.target?.sim_card_number">
                             <dt>SIM</dt><dd class="mono-value">{{ selectedProcess.target.sim_card_number }}</dd>
@@ -414,7 +414,7 @@
                     <i class="pi pi-align-left"></i>
                     <div><span>Detalle operativo</span><small>Información registrada durante el proceso</small></div>
                 </div>
-                <p class="detail-description">{{ selectedProcess.details }}</p>
+                <p class="detail-description">{{ (selectedProcess.details) | deviceLabel }}</p>
             </section>
 
             <section class="detail-card detail-card--wide" *ngIf="selectedProcess.before || selectedProcess.after">

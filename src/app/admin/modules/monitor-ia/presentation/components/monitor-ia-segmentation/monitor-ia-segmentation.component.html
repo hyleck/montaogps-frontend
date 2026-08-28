@@ -87,7 +87,7 @@
             <i class="pi pi-bolt"></i> Elegible
           </span>
         </div>
-        <h3>{{ record.deviceData?.name || 'Dispositivo sin nombre' }}</h3>
+        <h3>{{ (record.deviceData?.name || 'Dispositivo sin nombre') | deviceLabel }}</h3>
         <p>{{ record.userName || record.userId }}</p>
         <dl>
           <div>

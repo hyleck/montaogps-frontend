@@ -489,7 +489,7 @@
           <select [(ngModel)]="selectedProtocolFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_ALL_PROTOCOLS' | translate }}</option>
             <option *ngFor="let protocol of filteredProtocolOptions" [value]="protocol._id">
-              {{ protocol.name }}
+              {{ (protocol.name) | deviceLabel }}
             </option>
           </select>
         </div>
@@ -730,10 +730,10 @@
             </ng-template>
             <ng-template pTemplate="body" let-device>
               <tr>
-                <td>{{ device.name }}</td>
+                <td>{{ (device.name) | deviceLabel }}</td>
                 <td>{{ device.target_plate_number }}</td>
                 <td>{{ device.device_imei }}</td>
-                <td>{{ getProtocolName(device.type) }}</td>
+                <td>{{ (getProtocolName(device.type)) | deviceLabel }}</td>
                 <td>
                   <span class="device-status" [class.active]="device.status" [class.inactive]="!device.status">
                     {{ device.status ? 'Active' : 'Inactive' }}
@@ -822,7 +822,7 @@
               <ng-container *ngFor="let device of group.devices">
                 <div *ngIf="!device.isExcluded" class="device-preview-item">
                   <div class="device-info">
-                    <span class="device-preview-name">{{ device.name }}</span>
+                    <span class="device-preview-name">{{ (device.name) | deviceLabel }}</span>
                     <span class="device-preview-imei">{{ device.device_imei }}</span>
                   </div>
                   <div class="device-controls">
@@ -887,7 +887,7 @@
               <i *ngIf="item.status === 'cancelled'" class="pi pi-times"></i>
             </div>
             <div class="progress-item-content">
-              <span class="progress-item-name">{{ item.deviceName }}</span>
+              <span class="progress-item-name">{{ (item.deviceName) | deviceLabel }}</span>
               <span *ngIf="item.status === 'success' && item.newDate" class="progress-item-date">
                 <i class="pi pi-calendar-plus"></i> Nueva fecha: {{ formatExpirationDate(item.newDate) }}
               </span>

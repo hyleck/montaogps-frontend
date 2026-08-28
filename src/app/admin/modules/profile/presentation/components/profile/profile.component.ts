@@ -1,3 +1,4 @@
+import { DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
@@ -38,7 +39,7 @@ import { getApiErrorMessage } from '@core/utils/api-error.util';
         TranslateModule,
         ToastModule
     ],
-    providers: [MessageService]
+    providers: [{ provide: MessageService, useClass: DeviceLabelMessageService }]
 })
 export class ProfileComponent implements OnInit {
     // Propiedades públicas

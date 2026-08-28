@@ -1,3 +1,4 @@
+import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,7 +9,8 @@ import { MacroComponent } from './components/macro/macro.component';
 
 @NgModule({
   declarations: [MacroComponent],
-  imports: [CommonModule, FormsModule, TranslateModule, PrimengModule, MacroRoutingModule],
+  imports: [
+    DeviceLabelPipe, CommonModule, FormsModule, TranslateModule, PrimengModule, MacroRoutingModule
+  ],
 })
 export class MacroModule {}
-

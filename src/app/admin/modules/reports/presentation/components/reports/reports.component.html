@@ -97,7 +97,7 @@
             Dispositivo Seleccionado
           </label>
           <div class="target-info-display">
-            <div class="target-name">{{ getSelectedTargetInfo()?.name || getSelectedTargetInfo()?.alias }}</div>
+            <div class="target-name">{{ (getSelectedTargetInfo()?.name || getSelectedTargetInfo()?.alias) | deviceLabel }}</div>
             <div class="target-details">IMEI: {{ getSelectedTargetInfo()?.imei || 'Sin IMEI' }}</div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 // utils/popup-builder.ts
 
 export class PopupBuilder {
@@ -28,6 +29,8 @@ export class PopupBuilder {
     ignitionStatus?: 'on' | 'off' | null;   
     target?: any;
   }): string {
+      title = formatDeviceLabel(title);
+      vehicleType = vehicleType ? formatDeviceLabel(vehicleType) : vehicleType;
       const vehicleTypeHtml = vehicleType && vehicleType !== 'Desconocido'
         ? `<span style="color: #9C27B0; font-size: 11px; margin-left: 4px;">(${vehicleType})</span>`
         : '';
@@ -751,7 +754,7 @@ export class PopupBuilder {
         if (titleElement) {
           // Preservar el HTML del tipo de vehículo si existe
           const vehicleTypeHtml = titleElement.innerHTML.match(/<span[^>]*>\([^)]+\)<\/span>/);
-          titleElement.innerHTML = updates.title + (vehicleTypeHtml ? vehicleTypeHtml[0] : '');
+          titleElement.innerHTML = formatDeviceLabel(updates.title) + (vehicleTypeHtml ? vehicleTypeHtml[0] : '');
         }
       }
 

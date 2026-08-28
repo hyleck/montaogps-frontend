@@ -1,3 +1,4 @@
+import { DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
 import { Component, OnInit } from '@angular/core';
 import {
   ProcessesService,
@@ -19,7 +20,7 @@ import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
   standalone: false,
   templateUrl: './processes.component.html',
   styleUrls: ['./processes.component.css'],
-  providers: [MessageService],
+  providers: [{ provide: MessageService, useClass: DeviceLabelMessageService }],
 })
 export class ProcessesComponent implements OnInit {
 

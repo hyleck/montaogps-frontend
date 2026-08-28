@@ -1,3 +1,4 @@
+import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import {
   AfterViewInit,
   Component,
@@ -1208,7 +1209,7 @@ export class MonitoringMapComponent
 
     const title = document.createElement('strong');
     title.className = 'monitoring-map-popup__title';
-    title.textContent = String(properties['name'] || 'GPS');
+    title.textContent = formatDeviceLabel(properties['name'] || 'GPS');
     content.appendChild(title);
 
     const rows: Array<[string, string]> = [

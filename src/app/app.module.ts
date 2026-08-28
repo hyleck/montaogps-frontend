@@ -16,6 +16,7 @@ import { CloudModule } from './shareds/components/cloud/cloud.module';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { RouteReuseStrategy } from '@angular/router';
 import { AppRouteReuseStrategy } from './core/services/app-route-reuse.strategy';
+import { DeviceLabelConfirmationService, DeviceLabelMessageService } from './shareds/services/device-label-messages.service';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './i18n/', '.json');
@@ -47,8 +48,8 @@ export function HttpLoaderFactory(http: HttpClient) {
         options: { darkModeSelector: '.app-dark' }
       }
     }),
-    ConfirmationService,
-    MessageService,
+    { provide: ConfirmationService, useClass: DeviceLabelConfirmationService },
+    { provide: MessageService, useClass: DeviceLabelMessageService },
     { provide: RouteReuseStrategy, useClass: AppRouteReuseStrategy }
   ],
   bootstrap: [AppComponent]

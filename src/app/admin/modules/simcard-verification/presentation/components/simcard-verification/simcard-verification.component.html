@@ -107,7 +107,7 @@
                 <tr>
                   <td class="index-cell">{{ rowIndex + 1 }}</td>
                   <td><span class="iccid success">{{ item.iccid }}</span></td>
-                  <td class="font-medium">{{ item.deviceName || 'N/A' }}</td>
+                  <td class="font-medium">{{ (item.deviceName || 'N/A') | deviceLabel }}</td>
                   <td class="muted">{{ item.deviceImei || 'N/A' }}</td>
                   <td><span class="plate">{{ item.plateNumber || 'N/A' }}</span></td>
                 </tr>
@@ -135,7 +135,7 @@
                 <tr>
                   <td class="index-cell">{{ rowIndex + 1 }}</td>
                   <td><span class="iccid neutral">{{ item.iccid }}</span></td>
-                  <td class="font-medium">{{ item.deviceName || 'N/A' }}</td>
+                  <td class="font-medium">{{ (item.deviceName || 'N/A') | deviceLabel }}</td>
                   <td class="muted">{{ item.deviceImei || 'N/A' }}</td>
                   <td><span class="plate">{{ item.plateNumber || 'N/A' }}</span></td>
                 </tr>
@@ -163,7 +163,7 @@
                 <tr>
                   <td class="index-cell">{{ rowIndex + 1 }}</td>
                   <td><span class="iccid danger">{{ item.iccid }}</span></td>
-                  <td class="font-medium">{{ item.deviceName || 'N/A' }}</td>
+                  <td class="font-medium">{{ (item.deviceName || 'N/A') | deviceLabel }}</td>
                   <td class="muted">{{ item.deviceImei || 'N/A' }}</td>
                   <td><span class="plate">{{ item.plateNumber || 'N/A' }}</span></td>
                 </tr>
@@ -191,7 +191,7 @@
                 <tr>
                   <td class="index-cell">{{ rowIndex + 1 }}</td>
                   <td><span class="iccid info">{{ item.iccid }}</span></td>
-                  <td class="font-medium">{{ item.deviceName || 'N/A' }}</td>
+                  <td class="font-medium">{{ (item.deviceName || 'N/A') | deviceLabel }}</td>
                   <td class="muted">{{ item.deviceImei || 'N/A' }}</td>
                   <td><span class="plate">{{ item.plateNumber || 'N/A' }}</span></td>
                 </tr>
@@ -251,7 +251,7 @@
                   </ng-template>
                   <ng-template pTemplate="body" let-match>
                     <tr>
-                      <td class="font-medium">{{ match.name || 'N/A' }}</td>
+                      <td class="font-medium">{{ (match.name || 'N/A') | deviceLabel }}</td>
                       <td class="muted">{{ match.device_imei || 'N/A' }}</td>
                       <td><span class="plate">{{ match.target_plate_number || 'N/A' }}</span></td>
                       <td>

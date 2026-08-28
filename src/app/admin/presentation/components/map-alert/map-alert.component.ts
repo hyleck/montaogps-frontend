@@ -1,3 +1,4 @@
+import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import { Component, OnInit, OnDestroy, Input, ElementRef, ViewChild, AfterViewInit, OnChanges } from '@angular/core';
 import { MapUtils } from '../../../../shareds/helpers/map.helper';
 import { SystemService } from '../../../../core/services/system.service';
@@ -449,7 +450,7 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
                     const marker = new google.maps.Marker({
                         position: position,
                         map: this.map,
-                        title: target.name,
+                        title: formatDeviceLabel(target.name),
                         icon: iconConfig,
                         opacity: isOffline ? 0.65 : 1
                     });
@@ -458,7 +459,7 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
                     const speedText = Number.isFinite(rawSpeed)
                         ? `${(rawSpeed * 1.852).toFixed(1)} km/h`
                         : 'Sin datos';
-                    const safeName = this.escapeHtml(target?.name || 'Dispositivo');
+                    const safeName = this.escapeHtml(formatDeviceLabel(target?.name || 'Dispositivo'));
                     const safeStatus = this.escapeHtml(statusText);
                     const infoWindow = new google.maps.InfoWindow({
                         content: `

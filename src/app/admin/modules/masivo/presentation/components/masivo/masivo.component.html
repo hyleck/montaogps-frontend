@@ -47,10 +47,10 @@
           <td>
             <p-tableCheckbox [value]="device"></p-tableCheckbox>
           </td>
-          <td>{{ device.name }}</td>
+          <td>{{ (device.name) | deviceLabel }}</td>
           <td>{{ device.device_imei }}</td>
           <td>{{ device.sim_card_number || 'Sin SIM' }}</td>
-          <td>{{ device.protocol?.name || 'Sin protocolo' }}</td>
+          <td>{{ (device.protocol?.name || 'Sin protocolo') | deviceLabel }}</td>
           <td>
             <span [title]="device.protocol?.firstCommand || 'N/A'">
               {{ (device.protocol?.firstCommand || 'N/A') | slice:0:20 }}{{ (device.protocol?.firstCommand?.length || 0) > 20 ? '...' : '' }}

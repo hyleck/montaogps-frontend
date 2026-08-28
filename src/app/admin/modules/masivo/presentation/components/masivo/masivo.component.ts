@@ -1,3 +1,4 @@
+import { DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
 import { Component, OnInit } from '@angular/core';
 import { DialogService } from 'primeng/dynamicdialog';
 import { MessageService, MenuItem } from 'primeng/api';
@@ -9,7 +10,7 @@ import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util'
   templateUrl: './masivo.component.html',
   styleUrl: './masivo.component.css',
   standalone: false,
-  providers: [DialogService, MessageService]
+  providers: [DialogService, { provide: MessageService, useClass: DeviceLabelMessageService }]
 })
 export class MasivoComponent implements OnInit {
 

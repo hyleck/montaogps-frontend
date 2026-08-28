@@ -133,7 +133,7 @@
           <div class="current-device-overview">
             <div class="device-header">
               <div class="device-main-info">
-                <h4>{{ currentDeviceInfo.deviceName }}</h4>
+                <h4>{{ (currentDeviceInfo.deviceName) | deviceLabel }}</h4>
                 <small>IMEI: {{ currentDeviceInfo.deviceImei }}</small>
                 <small>Dispositivo {{ currentDeviceInfo.deviceIndex }} de {{ currentAnalysisInfo?.totalDevices }}</small>
               </div>
@@ -256,7 +256,7 @@
                 <!-- Header de la tarjeta: nombre y status -->
                 <div class="device-info">
                   <div>
-                    <div class="device-name">{{ deviceProgress.deviceName }}</div>
+                    <div class="device-name">{{ (deviceProgress.deviceName) | deviceLabel }}</div>
                     <div class="device-imei">{{ deviceProgress.deviceImei }}</div>
                   </div>
                   <div class="device-status">
@@ -316,7 +316,7 @@
             
             <ng-template pTemplate="body" let-device>
               <tr>
-                <td>{{ device.name }}</td>
+                <td>{{ (device.name) | deviceLabel }}</td>
                 <td>{{ device.device_imei }}</td>
                 <td>{{ device.api_device_id }}</td>
                 <td>

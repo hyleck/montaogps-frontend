@@ -1,3 +1,4 @@
+import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -16,6 +17,7 @@ import { DropdownModule } from 'primeng/dropdown';
     MasivoComponent
   ],
   imports: [
+    DeviceLabelPipe,
     CommonModule,
     FormsModule,
     MasivoRoutingModule,

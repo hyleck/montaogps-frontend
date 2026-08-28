@@ -176,7 +176,7 @@
                         <select [(ngModel)]="bulkProcessForm.newGpsModel" [disabled]="applyingBulkProcess">
                             <option value="">Seleccione un modelo de GPS</option>
                             <option *ngFor="let model of bulkProcessGpsModels" [value]="model.value">
-                                {{ model.label }}
+                                {{ (model.label) | deviceLabel }}
                             </option>
                         </select>
                     </label>
@@ -236,7 +236,7 @@
                             <i *ngIf="result.status === 'error'" class="pi pi-times"></i>
                         </div>
                         <div class="bulk-process__target-copy">
-                            <strong>{{ result.target_name }}</strong>
+                            <strong>{{ (result.target_name) | deviceLabel }}</strong>
                             <small *ngIf="result.target_imei">IMEI: {{ result.target_imei }}</small>
                             <small *ngIf="result.error" class="bulk-process__target-error">{{ result.error }}</small>
                         </div>
@@ -316,7 +316,7 @@
                     <span>{{ currentSelectedTargets.length === 1 ? 'Vehículo seleccionado' : 'Vehículos seleccionados' }}</span>
                     <div class="alerts-hub__target-chips" *ngIf="currentSelectedTargets.length">
                         <span *ngFor="let target of currentSelectedTargets.slice(0, 3)">
-                            {{ target.name || target.device_imei }}
+                            {{ (target.name || target.device_imei) | deviceLabel }}
                         </span>
                         <span *ngIf="currentSelectedTargets.length > 3">
                             +{{ currentSelectedTargets.length - 3 }}
@@ -1103,7 +1103,7 @@
                 <div *ngFor="let target of displayedCanceledTargets" class="target-card">
                     <div class="target-header">
                         <div class="target-title">
-                            <h4>{{ target.name }}</h4>
+                            <h4>{{ (target.name) | deviceLabel }}</h4>
                             <span class="canceled-badge">{{ 'common.canceled' | translate }}</span>
                             <span *ngIf="target.cancellationDisposition === 'retained_by_client'" class="canceled-badge">
                                 Reservado para reinstalación
@@ -1148,7 +1148,7 @@
                         <p *ngIf="$any(target).type">
                             <i class="pi pi-tag"></i>
                             <strong>Tipo</strong>
-                            <span>{{ $any(target).type }}</span>
+                            <span>{{ ($any(target).type) | deviceLabel }}</span>
                         </p>
                         <p *ngIf="$any(target).activation_date">
                             <i class="pi pi-calendar"></i>
@@ -1213,7 +1213,7 @@
 
             <!-- Header simple -->
             <div class="simple-header">
-                <div class="target-name">{{ selectedTargetDetails.name }}</div>
+                <div class="target-name">{{ (selectedTargetDetails.name) | deviceLabel }}</div>
                 <div class="target-status">
                     <span class="status-simple canceled">{{ 'common.canceled' | translate }}</span>
                     <span class="status-simple" *ngIf="selectedTargetDetails.traccarInfo?.status"
@@ -1236,7 +1236,7 @@
                         </div>
                         <div class="field">
                             <span class="field-label">{{ 'management.targetForm.name' | translate }}:</span>
-                            <span class="field-value">{{ selectedTargetDetails.name }}</span>
+                            <span class="field-value">{{ (selectedTargetDetails.name) | deviceLabel }}</span>
                         </div>
                         <div class="field">
                             <span class="field-label">IMEI:</span>
@@ -1245,7 +1245,7 @@
                         </div>
                         <div class="field" *ngIf="selectedTargetDetails.gps_model">
                             <span class="field-label">{{ 'management.targetForm.gpsModel' | translate }}:</span>
-                            <span class="field-value">{{ selectedTargetDetails.gps_model }}</span>
+                            <span class="field-value">{{ (selectedTargetDetails.gps_model) | deviceLabel }}</span>
                         </div>
                         <div class="field" *ngIf="selectedTargetDetails.api_id">
                             <span class="field-label">API ID:</span>
@@ -1398,14 +1398,14 @@
                     <div *ngFor="let process of targetProcesses" class="process-item">
                         <div class="process-header">
                             <div class="process-info">
-                                <h4>{{ process.description }}</h4>
+                                <h4>{{ (process.description) | deviceLabel }}</h4>
                                 <span class="process-date">{{ process.registrationDate | date:'dd/MM/yyyy HH:mm'
                                     }}</span>
                             </div>
                             <span class="process-type">{{ 'navbar.processType' | translate }} {{ process.type }}</span>
                         </div>
                         <div class="process-details" *ngIf="process.details">
-                            <p>{{ process.details }}</p>
+                            <p>{{ (process.details) | deviceLabel }}</p>
                         </div>
                         <div class="process-user" *ngIf="process.user?.name">
                             <small>
@@ -1463,7 +1463,7 @@
                     <div *ngFor="let target of targetsToTransfer; let i = index" class="target-item">
                         <div class="target-info">
                             <i class="pi pi-map-marker"></i>
-                            <span class="target-name">{{ target.name }}</span>
+                            <span class="target-name">{{ (target.name) | deviceLabel }}</span>
                             <span class="target-imei">IMEI: {{ target.imei }}</span>
                         </div>
                     </div>
@@ -1601,7 +1601,7 @@
             <div class="realtime-targets-summary__list">
                 <div *ngFor="let target of targetsToShare">
                     <strong [ngStyle]="{'color': currentTheme === 'dark' ? '#f8fafc' : '#1f2937'}">
-                        {{ target.name || 'Objetivo sin nombre' }}
+                        {{ (target.name || 'Objetivo sin nombre') | deviceLabel }}
                     </strong>
                     <span [ngStyle]="{'color': currentTheme === 'dark' ? '#d1d5db' : '#6b7280'}">
                         IMEI: {{ target.device_imei || target.imei || 'No disponible' }}
@@ -1648,7 +1648,7 @@
             <div class="realtime-generated-list">
                 <article *ngFor="let generated of realtimeGeneratedLinks">
                     <div class="realtime-generated-target">
-                        <strong>{{ generated.target_name }}</strong>
+                        <strong>{{ (generated.target_name) | deviceLabel }}</strong>
                         <span *ngIf="generated.target_imei">
                             IMEI {{ generated.target_imei }}
                         </span>
@@ -1658,7 +1658,7 @@
                         <button
                             type="button"
                             (click)="copyRealtimeLinkToClipboard(generated)"
-                            [title]="'Copiar link de ' + generated.target_name">
+                            [title]="('Copiar link de ' + generated.target_name) | deviceLabel">
                             <i class="pi pi-copy"></i>
                         </button>
                     </div>
@@ -1725,7 +1725,7 @@
                 </h4>
                 <div class="targets-list-compact">
                     <div *ngFor="let target of targetsToShare" class="target-item-compact">
-                        <strong>{{ target.name }}</strong>
+                        <strong>{{ (target.name) | deviceLabel }}</strong>
                         <span>IMEI: {{ target.device_imei || target.imei }}</span>
                     </div>
                 </div>

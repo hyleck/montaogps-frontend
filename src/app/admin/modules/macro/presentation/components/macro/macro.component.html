@@ -69,11 +69,11 @@
 
         <ng-template pTemplate="body" let-device>
             <tr>
-                <td>{{ device.name || 'N/A' }}</td>
+                <td>{{ (device.name || 'N/A') | deviceLabel }}</td>
                 <td>{{ device.device_imei || 'N/A' }}</td>
                 <td>{{ device.sim_card_number || 'N/A' }}</td>
-                <td>{{ device.protocol?.name || 'N/A' }}</td>
-                <td>{{ device.type || 'N/A' }}</td>
+                <td>{{ (device.protocol?.name || 'N/A') | deviceLabel }}</td>
+                <td>{{ (device.type || 'N/A') | deviceLabel }}</td>
                 <td>
                     <span [class]="'status-' + (device.status ? 'active' : 'inactive')">
                         {{ device.status ? 'Activo' : 'Inactivo' }}
@@ -139,7 +139,7 @@
                                         >
                                             <option [ngValue]="''">{{ translateKey('management.targetForm.selectGpsModel') }}</option>
                                             <option *ngFor="let model of availableGpsModels" [value]="model.value">
-                                                {{ model.label }}
+                                                {{ (model.label) | deviceLabel }}
                                             </option>
                                         </select>
                                     </div>

@@ -1,3 +1,4 @@
+import { DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
@@ -14,7 +15,7 @@ import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util'
   templateUrl: './macro.component.html',
   styleUrls: ['./macro.component.css'],
   standalone: false,
-  providers: [MessageService],
+  providers: [{ provide: MessageService, useClass: DeviceLabelMessageService }],
 })
 export class MacroComponent implements OnInit {
   items: MenuItem[] = [{ label: 'Macro' }];

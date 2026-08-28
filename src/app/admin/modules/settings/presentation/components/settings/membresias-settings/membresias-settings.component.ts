@@ -1,3 +1,4 @@
+import { DeviceLabelConfirmationService, DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
 import { Component, OnInit } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -35,7 +36,7 @@ import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.ut
         TextareaModule,
         InputNumberModule
     ],
-    providers: [ConfirmationService, MessageService]
+    providers: [{ provide: ConfirmationService, useClass: DeviceLabelConfirmationService }, { provide: MessageService, useClass: DeviceLabelMessageService }]
 })
 export class MembresiasSettingsComponent implements OnInit {
     membresias: Membresia[] = [];

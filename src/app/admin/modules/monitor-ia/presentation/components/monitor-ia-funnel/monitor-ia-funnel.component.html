@@ -40,7 +40,7 @@
             "
           ></i>
         </span>
-        <span [ngClass]="getPhaseStatus(step.phase)">{{ step.label }}</span>
+        <span [ngClass]="getPhaseStatus(step.phase)">{{ (step.label) | deviceLabel }}</span>
       </div>
       <span
         *ngIf="!last"
@@ -176,7 +176,7 @@
       >
         <div class="device-main">
           <span class="device-status">{{ statusLabel(device.finalStatus) }}</span>
-          <h3>{{ device.deviceName || 'Dispositivo sin nombre' }}</h3>
+          <h3>{{ (device.deviceName || 'Dispositivo sin nombre') | deviceLabel }}</h3>
           <p>{{ device.userName || device.userId }}</p>
           <small>
             IMEI: {{ device.imei || 'N/A' }} · SIM:

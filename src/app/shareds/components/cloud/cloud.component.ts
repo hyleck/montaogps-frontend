@@ -1,3 +1,4 @@
+import { DeviceLabelConfirmationService } from 'src/app/shareds/services/device-label-messages.service';
 import { Component, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -29,7 +30,7 @@ interface CloudItem {
   imports: [CommonModule, FormsModule, ConfirmDialogModule],
   templateUrl: './cloud.component.html',
   styleUrl: './cloud.component.css',
-  providers: [ConfirmationService]
+  providers: [{ provide: ConfirmationService, useClass: DeviceLabelConfirmationService }]
 })
 export class CloudComponent implements OnInit {
   @Input() targetId?: string;

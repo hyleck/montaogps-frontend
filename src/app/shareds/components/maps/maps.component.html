@@ -12,7 +12,7 @@
             [ngClass]="['provider-' + provider, isSelectedTargetOnlineLike() ? 'status-online' : '']"
             *ngIf="selectedTarget && getVehicleImageUrl()">
             <img [src]="getVehicleImageUrl()" 
-                 [alt]="selectedTarget?.name || 'Vehículo'"
+                 [alt]="(selectedTarget?.name || 'Vehículo') | deviceLabel"
                  (click)="showVehicleImageModal = true"
                  style="cursor: pointer;"
                  (error)="onVehicleImageError($event)">
@@ -20,7 +20,7 @@
         <!-- Full-size vehicle image modal -->
         <div class="vehicle-image-modal-overlay" *ngIf="showVehicleImageModal" (click)="showVehicleImageModal = false">
             <img [src]="getVehicleImageUrl(true)" 
-                 [alt]="selectedTarget?.name || 'Vehículo'"
+                 [alt]="(selectedTarget?.name || 'Vehículo') | deviceLabel"
                  (click)="$event.stopPropagation()">
             <button class="vehicle-image-modal-close" (click)="showVehicleImageModal = false">
                 <i class="pi pi-times"></i>
@@ -52,7 +52,7 @@
                                 : 'El objetivo seleccionado está fuera de línea, pero hay una instalación adicional con conexión disponible.') }}
                     </p>
                     <div class="additional-online-modal__target" *ngIf="onlineAdditionalTarget">
-                        <strong>{{ onlineAdditionalTarget?.name || 'GPS adicional' }}</strong>
+                        <strong>{{ (onlineAdditionalTarget?.name || 'GPS adicional') | deviceLabel }}</strong>
                         <span>IMEI: {{ onlineAdditionalTarget?.device_imei || onlineAdditionalTarget?.imei || 'No disponible' }}</span>
                         <small>{{ onlineAdditionalTarget?.traccarStatus || onlineAdditionalTarget?.traccarInfo?.status || 'En línea' }}</small>
                     </div>
@@ -211,8 +211,8 @@
         </div>
         <div class="info-chip primary">
             <span class="chip-label">{{ 'maps.infoTitle' | translate }}</span>
-            <span class="chip-value" [title]="selectedTarget?.name">
-                {{ selectedTarget?.name || ('maps.unknownTarget' | translate) }}
+            <span class="chip-value" [title]="(selectedTarget?.name) | deviceLabel">
+                {{ (selectedTarget?.name || ('maps.unknownTarget' | translate)) | deviceLabel }}
             </span>
         </div>
         <div class="info-chip imei">

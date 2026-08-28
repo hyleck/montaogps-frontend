@@ -1,3 +1,4 @@
+import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import * as maplibregl from 'maplibre-gl';
 
 export type MapProvider = 'google' | 'mapbox' | 'osm';
@@ -263,6 +264,7 @@ export class MapUtils {
     course: number = 0,
   ): any {
 
+    title = formatDeviceLabel(title);
     const normalizedInfo = info?.toLowerCase();
     const isOnlineLike = MapUtils.isOnlineLikeStatus(normalizedInfo);
     const isOffline = !isOnlineLike && normalizedInfo !== 'localizado';

@@ -161,7 +161,7 @@
             <div class="device-matches" *ngIf="simcard.devices?.length; else noDevices">
               <div class="device-match" *ngFor="let device of simcard.devices">
                 <div class="device-row-head">
-                  <div class="device-name">{{ device.name || 'Sin nombre' }}</div>
+                  <div class="device-name">{{ (device.name || 'Sin nombre') | deviceLabel }}</div>
                   <span class="connection-dot" [ngClass]="device.isOnline ? 'online' : 'offline'"></span>
                 </div>
                 <div class="device-meta">

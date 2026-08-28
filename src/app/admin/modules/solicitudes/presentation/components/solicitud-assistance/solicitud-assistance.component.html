@@ -46,7 +46,7 @@
         <div>
           <small *ngIf="hasMultipleProcesses">PROCESO {{ selectedIndex + 1 | number:'2.0-0' }}</small>
           <h3>{{ processLabel }}</h3>
-          <span class="sol-assistance-device-type" [attr.data-type]="deviceType">{{ deviceTypeLabel }}</span>
+          <span class="sol-assistance-device-type" [attr.data-type]="deviceType">{{ (deviceTypeLabel) | deviceLabel }}</span>
         </div>
         <div class="sol-assistance-toolbar__actions">
           <button type="button" class="sol-assistance-technician-refresh" (click)="requestTechnicianDataRefresh()"
@@ -87,7 +87,7 @@
         </section>
 
         <p class="sol-assistance-error" *ngIf="deviceError">
-          <i class="pi pi-exclamation-triangle"></i>{{ deviceError }}
+          <i class="pi pi-exclamation-triangle"></i>{{ (deviceError) | deviceLabel }}
         </p>
 
         <section class="sol-assistance-actions" *ngIf="installation">
@@ -143,7 +143,7 @@
         </header>
 
         <p class="sol-assistance-error" *ngIf="deviceError">
-          <i class="pi pi-exclamation-triangle"></i>{{ deviceError }}
+          <i class="pi pi-exclamation-triangle"></i>{{ (deviceError) | deviceLabel }}
         </p>
 
         <div class="sol-assistance-action__details" *ngIf="action.details?.length">
@@ -183,7 +183,7 @@
               <div class="sol-assistance-inventory">
                 <button type="button" *ngFor="let device of inventoryDevices" [class.selected]="selectedInventoryDevice?._id === device._id" (click)="selectInventoryDevice(device)">
                   <span class="sol-assistance-radio"><i class="pi pi-check"></i></span>
-                  <span><strong>{{ inventoryIdentifier(device) }}</strong><small>{{ inventoryProtocol(device) }} · SIM {{ device.SIM || device.sim || 'N/A' }}</small></span>
+                  <span><strong>{{ inventoryIdentifier(device) }}</strong><small>{{ (inventoryProtocol(device)) | deviceLabel }} · SIM {{ device.SIM || device.sim || 'N/A' }}</small></span>
                 </button>
                 <p *ngIf="!inventoryLoading && !inventoryDevices.length"><i class="pi pi-inbox"></i> No hay dispositivos disponibles con este filtro.</p>
               </div>
@@ -198,7 +198,7 @@
 
             <ng-container *ngIf="action.id === 'details'">
               <div class="sol-assistance-form-grid">
-                <label class="sol-assistance-field"><span>Nombre del objetivo <em>Requerido</em></span><input pInputText [(ngModel)]="detailsForm['target_name']" placeholder="Ej: Toyota Corolla 2024" /></label>
+                <label class="sol-assistance-field"><span>Nombre del objetivo <em>Requerido</em></span><input appDeviceLabel pInputText [(ngModel)]="detailsForm['target_name']" placeholder="Ej: Toyota Corolla 2024" /></label>
                 <label class="sol-assistance-field"><span>Categoría</span><p-dropdown [options]="targetCategories" [(ngModel)]="detailsForm['target_category']" optionLabel="label" optionValue="value" placeholder="Selecciona la categoría" appendTo="body"></p-dropdown></label>
                 <ng-container *ngIf="deviceType !== 'mtag_p'">
                   <label class="sol-assistance-field is-brand-field">

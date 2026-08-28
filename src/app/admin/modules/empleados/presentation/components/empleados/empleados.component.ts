@@ -1,3 +1,4 @@
+import { DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Replayer } from '@rrweb/replay';
 import { firstValueFrom } from 'rxjs';
@@ -33,7 +34,7 @@ import {
   selector: 'app-empleados',
   templateUrl: './empleados.component.html',
   styleUrls: ['./empleados.component.css'],
-  providers: [MessageService],
+  providers: [{ provide: MessageService, useClass: DeviceLabelMessageService }],
   standalone: false
 })
 export class EmpleadosComponent implements OnInit, OnDestroy {

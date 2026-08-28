@@ -1,3 +1,5 @@
+import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
+import { DeviceLabelMessageService, DeviceLabelConfirmationService } from 'src/app/shareds/services/device-label-messages.service';
 import {
   Component,
   ElementRef,
@@ -22,7 +24,7 @@ import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util'
   selector: 'app-inventory-package-devices',
   templateUrl: './inventory-package-devices.component.html',
   styleUrls: ['../inventory/inventory.component.css'],
-  providers: [MessageService, ConfirmationService],
+  providers: [{ provide: MessageService, useClass: DeviceLabelMessageService }, { provide: ConfirmationService, useClass: DeviceLabelConfirmationService }],
   standalone: false,
 })
 export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
@@ -141,7 +143,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
       next: (list: any[]) => {
         this.loadedProtocols = list;
         this.protocols = list.map((p) => ({
-          label: p.name || p.type || p._id,
+          label: formatDeviceLabel(p.name || p.type || p._id),
           value: p._id,
         }));
       },
