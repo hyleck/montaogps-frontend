@@ -44,6 +44,9 @@ type ShippingLabelSocialIcons = Record<ShippingLabelSocialNetwork, HTMLImageElem
   styleUrls: ['./inventory.component.css'],
   providers: [MessageService, ConfirmationService],
   standalone: false,
+  host: {
+    '[class.inventory-lots-viewport]': "currentView === 'relay' || currentView === 'cables'",
+  },
   encapsulation: ViewEncapsulation.None
 })
 export class InventoryComponent implements OnInit, OnDestroy {

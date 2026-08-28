@@ -11,6 +11,30 @@
   min-height: calc(100vh - 120px);
 }
 
+/* The admin shell clips overflow. Lot views need their own scroll viewport so
+   wrapped filters, the bottom of the table and pagination remain reachable. */
+.inventory-lots-viewport {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.inventory-lots-viewport > .management__route {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.inventory-lots-viewport > .inventory-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
 /* ============================================
    COMMAND BAR
    ============================================ */
