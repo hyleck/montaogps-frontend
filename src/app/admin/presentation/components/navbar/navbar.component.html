@@ -76,6 +76,386 @@
     </div>
 </div>
 
+<!-- Chat flotante de Aquiles. Comparte la conversación con el centro de soporte. -->
+<aside *ngIf="floatingAquilesVisible" class="aquiles-floating-chat"
+    [class.aquiles-floating-chat--light]="currentTheme === 'light'"
+    role="dialog" aria-modal="false" aria-label="Chat de ayuda con Aquiles">
+    <header class="aquiles-floating-chat__header">
+        <div class="aquiles-floating-chat__identity">
+            <span class="aquiles-floating-chat__avatar"><i class="pi pi-user"></i></span>
+            <div>
+                <strong>Aquiles</strong>
+                <small><span class="support-agent-status"></span> Soporte Montao GPS · En línea</small>
+            </div>
+        </div>
+        <div class="aquiles-floating-chat__controls">
+            <button type="button" (click)="expandFloatingAquiles()" title="Abrir centro de soporte"
+                aria-label="Abrir centro de soporte completo">
+                <i class="pi pi-window-maximize"></i>
+            </button>
+            <button type="button" (click)="closeFloatingAquiles()" title="Cerrar ayuda"
+                aria-label="Cerrar chat de ayuda">
+                <i class="pi pi-times"></i>
+            </button>
+        </div>
+    </header>
+
+    <div #floatingSupportChatScroll class="aquiles-floating-chat__messages" aria-live="polite">
+        <div class="aquiles-floating-chat__notice">
+            <i [class]="capturingSupportDiagnostics ? 'pi pi-spin pi-spinner' : 'pi pi-camera'"></i>
+            <span>
+                {{ capturingSupportDiagnostics
+                    ? 'Aquiles está capturando la pantalla y revisando errores recientes.'
+                    : 'Aquiles puede revisar la pantalla y los errores recientes antes de crear el ticket.' }}
+            </span>
+        </div>
+
+        <div class="support-conversation-date" role="separator" aria-label="Mensajes de hoy">
+            <span>Hoy</span>
+        </div>
+
+        <article *ngFor="let message of supportChatMessages" class="support-chat-message"
+            [class.support-chat-message--user]="message.role === 'user'">
+            <div class="support-chat-bubble">
+                <strong>
+                    <i [class]="message.role === 'assistant' ? 'pi pi-user' : 'pi pi-user-edit'"></i>
+                    {{ message.role === 'assistant' ? 'Aquiles' : 'Tú' }}
+                </strong>
+                <p>{{ message.content }}</p>
+                <time>{{ message.createdAt | date:'shortTime' }}</time>
+            </div>
+        </article>
+
+        <article *ngIf="supportAssistantThinking" class="support-chat-message">
+            <div class="support-chat-bubble support-chat-bubble--typing" aria-label="Aquiles está escribiendo">
+                <strong><i class="pi pi-user"></i>Aquiles</strong>
+                <span><i></i><i></i><i></i></span>
+            </div>
+        </article>
+
+        <section *ngIf="supportDraftReady" class="support-ticket-draft aquiles-floating-chat__draft">
+            <header>
+                <span><i class="pi pi-check-circle"></i></span>
+                <div>
+                    <strong>Ticket listo para confirmar</strong>
+                    <small>Revisa el resumen preparado por Aquiles.</small>
+                </div>
+            </header>
+            <div class="support-ticket-draft__meta">
+                <span><i class="pi pi-ticket"></i>{{ newTicket.title }}</span>
+                <span [class]="'ticket-priority-pill ' + getPriorityClass(newTicket.priority || 'medium')">
+                    <i class="pi pi-flag-fill"></i>{{ getPriorityLabel(newTicket.priority || 'medium') | translate }}
+                </span>
+            </div>
+            <p>{{ newTicket.description }}</p>
+            <div *ngIf="supportDiagnosticCapture" class="support-diagnostic-summary">
+                <span>
+                    <i class="pi pi-camera"></i>
+                    {{ supportDiagnosticCapture.screenshotFile ? 'Captura adjunta' : 'Captura no disponible' }}
+                </span>
+                <span>
+                    <i class="pi pi-code"></i>
+                    {{ supportDiagnosticCapture.diagnostics.console_entries.length }} error(es) o advertencia(s)
+                </span>
+            </div>
+            <div class="support-ticket-draft__actions">
+                <button type="button" class="support-chat-secondary-button" (click)="editSupportDraft()"
+                    [disabled]="savingTicket">
+                    <i class="pi pi-pencil"></i> Corregir
+                </button>
+                <button type="button" class="support-chat-primary-button" (click)="saveSupportTicket()"
+                    [disabled]="savingTicket">
+                    <i [class]="savingTicket ? 'pi pi-spin pi-spinner' : 'pi pi-send'"></i>
+                    {{ savingTicket ? 'Creando...' : 'Crear ticket' }}
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <form class="support-chat-composer aquiles-floating-chat__composer" (ngSubmit)="sendSupportChatMessage()">
+        <textarea name="floatingSupportChatInput" [(ngModel)]="supportChatInput"
+            (keydown)="onSupportChatKeydown($event)" rows="1" maxlength="2500"
+            [disabled]="supportAssistantThinking || savingTicket"
+            placeholder="Cuéntale a Aquiles qué ocurre..." aria-label="Mensaje para Aquiles"></textarea>
+        <button type="submit" [disabled]="!supportChatInput.trim() || supportAssistantThinking || savingTicket"
+            aria-label="Enviar mensaje a Aquiles">
+            <i class="pi pi-send"></i>
+        </button>
+    </form>
+    <small class="support-chat-help aquiles-floating-chat__help">
+        <i class="pi pi-lock"></i> El ticket solo se crea cuando confirmas el resumen.
+    </small>
+</aside>
+
+<!-- Chat flotante de conversaciones asignadas. -->
+<aside *ngIf="floatingCommunicationVisible" class="aquiles-floating-chat communication-floating-chat"
+    [class.aquiles-floating-chat--light]="currentTheme === 'light'"
+    role="dialog" aria-modal="false" aria-label="Chat de comunicación asignado">
+    <header class="aquiles-floating-chat__header">
+        <div class="aquiles-floating-chat__identity">
+            <span class="aquiles-floating-chat__avatar communication-floating-chat__avatar">
+                <img *ngIf="hasFloatingCommunicationAvatar(selectedFloatingCommunicationChat)"
+                    [src]="selectedFloatingCommunicationChat?.avatar"
+                    [alt]="'Foto de ' + (selectedFloatingCommunicationChat?.contactName || 'cliente')"
+                    (error)="onFloatingCommunicationAvatarError(selectedFloatingCommunicationChat)">
+                <ng-container *ngIf="!hasFloatingCommunicationAvatar(selectedFloatingCommunicationChat)">
+                    {{ getFloatingCommunicationInitials(selectedFloatingCommunicationChat) }}
+                </ng-container>
+            </span>
+            <div>
+                <strong>{{ selectedFloatingCommunicationChat?.contactName || 'Contacto' }}</strong>
+                <small>
+                    <span class="support-agent-status"></span>
+                    {{ selectedFloatingCommunicationChat?.contactPhone || 'Chat de Comunicación' }}
+                </small>
+            </div>
+        </div>
+        <div class="aquiles-floating-chat__controls">
+            <button type="button" (click)="expandFloatingCommunication()" title="Abrir en Comunicación"
+                aria-label="Abrir conversación en el módulo de Comunicación">
+                <i class="pi pi-window-maximize"></i>
+            </button>
+            <button type="button" (click)="closeFloatingCommunication()" title="Cerrar chat"
+                aria-label="Cerrar chat de comunicación">
+                <i class="pi pi-times"></i>
+            </button>
+        </div>
+    </header>
+
+    <nav *ngIf="floatingCommunicationChatTabs.length > 1" class="communication-floating-chat__contacts"
+        aria-label="Conversaciones asignadas">
+        <button type="button" *ngFor="let chat of floatingCommunicationChatTabs; trackBy: trackAssignedCommunicationChat"
+            [class.active]="chat.conversationId === selectedFloatingCommunicationChat?.conversationId"
+            (click)="selectFloatingCommunicationChat(chat)"
+            [attr.aria-label]="'Mostrar conversación de ' + chat.contactName">
+            <span>
+                <img *ngIf="hasFloatingCommunicationAvatar(chat)" [src]="chat.avatar"
+                    [alt]="'Foto de ' + chat.contactName"
+                    (error)="onFloatingCommunicationAvatarError(chat)">
+                <ng-container *ngIf="!hasFloatingCommunicationAvatar(chat)">
+                    {{ getFloatingCommunicationInitials(chat) }}
+                </ng-container>
+            </span>
+            <strong>{{ chat.contactName }}</strong>
+            <em *ngIf="chat.unreadCount > 0">{{ chat.unreadCount > 99 ? '99+' : chat.unreadCount }}</em>
+        </button>
+    </nav>
+
+    <div #floatingCommunicationScroll class="aquiles-floating-chat__messages communication-floating-chat__messages"
+        aria-live="polite">
+        <div *ngIf="loadingFloatingCommunication" class="communication-floating-chat__state">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Cargando mensajes...</span>
+        </div>
+
+        <div *ngIf="floatingCommunicationError && !loadingFloatingCommunication"
+            class="communication-floating-chat__state communication-floating-chat__state--error">
+            <i class="pi pi-exclamation-circle"></i>
+            <span>{{ floatingCommunicationError }}</span>
+            <button type="button" (click)="selectFloatingCommunicationChat(selectedFloatingCommunicationChat!, true)">
+                Reintentar
+            </button>
+        </div>
+
+        <div *ngIf="!loadingFloatingCommunication && !floatingCommunicationError && !floatingCommunicationMessages.length"
+            class="communication-floating-chat__state">
+            <i class="pi pi-comments"></i>
+            <span>Esta conversación todavía no tiene mensajes.</span>
+        </div>
+
+        <ng-container *ngFor="let message of floatingCommunicationMessages; let index = index; trackBy: trackFloatingCommunicationMessage">
+            <div *ngIf="shouldShowFloatingCommunicationDate(index)" class="support-conversation-date"
+                role="separator">
+                <span>{{ formatFloatingCommunicationDate(message.createdAt) }}</span>
+            </div>
+            <article class="support-chat-message"
+                [class.support-chat-message--user]="message.from === 'me'"
+                [class.communication-floating-chat__system-message]="message.from === 'system'">
+                <div class="support-chat-bubble">
+                    <strong *ngIf="message.from !== 'system'">
+                        <i [class]="message.from === 'incoming' ? 'pi pi-user' : 'pi pi-user-edit'"></i>
+                        {{ message.authorName }}
+                    </strong>
+                    <p>{{ message.text }}</p>
+                    <time>{{ message.createdAt | date:'shortTime' }}</time>
+                </div>
+            </article>
+        </ng-container>
+
+    </div>
+
+    <form class="support-chat-composer aquiles-floating-chat__composer communication-floating-chat__composer"
+        (ngSubmit)="sendFloatingCommunicationMessage()">
+        <textarea name="floatingCommunicationInput" [(ngModel)]="floatingCommunicationInput"
+            (keydown)="onFloatingCommunicationKeydown($event)" rows="1" maxlength="2500"
+            [disabled]="sendingFloatingCommunication || !selectedFloatingCommunicationChat"
+            placeholder="Escribe un mensaje..." aria-label="Mensaje para el contacto"></textarea>
+        <button type="submit"
+            [disabled]="!floatingCommunicationInput.trim() || sendingFloatingCommunication || !selectedFloatingCommunicationChat"
+            aria-label="Enviar mensaje al contacto">
+            <i [class]="sendingFloatingCommunication ? 'pi pi-spin pi-spinner' : 'pi pi-send'"></i>
+        </button>
+    </form>
+    <small class="support-chat-help aquiles-floating-chat__help communication-floating-chat__help">
+        <i class="pi pi-whatsapp"></i> Conversación asignada en Comunicación
+    </small>
+</aside>
+
+<!-- Chat flotante de los grupos donde los técnicos registran las instalaciones. -->
+<aside *ngIf="floatingTechniciansVisible"
+    class="aquiles-floating-chat communication-floating-chat technician-floating-chat"
+    [class.aquiles-floating-chat--light]="currentTheme === 'light'"
+    role="dialog" aria-modal="false" aria-label="Chats de técnicos">
+    <header class="aquiles-floating-chat__header technician-floating-chat__header">
+        <div class="aquiles-floating-chat__identity">
+            <span class="aquiles-floating-chat__avatar technician-floating-chat__avatar">
+                <img *ngIf="hasFloatingTechnicianAvatar(selectedFloatingTechnicianGroup)"
+                    [src]="selectedFloatingTechnicianGroup?.technician?.photo"
+                    [alt]="'Foto de ' + getFloatingTechnicianGroupName(selectedFloatingTechnicianGroup)"
+                    (error)="onFloatingTechnicianAvatarError(selectedFloatingTechnicianGroup)">
+                <ng-container *ngIf="!hasFloatingTechnicianAvatar(selectedFloatingTechnicianGroup)">
+                    {{ getFloatingTechnicianGroupInitials(selectedFloatingTechnicianGroup) }}
+                </ng-container>
+            </span>
+            <div>
+                <strong>{{ getFloatingTechnicianGroupName(selectedFloatingTechnicianGroup) }}</strong>
+                <small>
+                    <span class="support-agent-status"></span>
+                    {{ selectedFloatingTechnicianGroup?.technician?.email || 'Registros de instalaciones' }}
+                </small>
+            </div>
+        </div>
+        <div class="aquiles-floating-chat__controls">
+            <button type="button" (click)="expandFloatingTechnicians()" title="Abrir en Comunicación"
+                aria-label="Abrir chats de técnicos en Comunicación">
+                <i class="pi pi-window-maximize"></i>
+            </button>
+            <button type="button" (click)="closeFloatingTechnicians()" title="Cerrar chat"
+                aria-label="Cerrar chats de técnicos">
+                <i class="pi pi-times"></i>
+            </button>
+        </div>
+    </header>
+
+    <nav *ngIf="floatingTechnicianGroups.length > 1"
+        class="communication-floating-chat__contacts technician-floating-chat__groups"
+        aria-label="Seleccionar técnico">
+        <button type="button"
+            *ngFor="let group of floatingTechnicianGroups; trackBy: trackFloatingTechnicianGroup"
+            [class.active]="group.id === selectedFloatingTechnicianGroup?.id"
+            (click)="selectFloatingTechnicianGroup(group)"
+            [attr.aria-label]="'Mostrar mensajes de ' + getFloatingTechnicianGroupName(group)">
+            <span>
+                <img *ngIf="hasFloatingTechnicianAvatar(group)" [src]="group.technician?.photo"
+                    [alt]="'Foto de ' + getFloatingTechnicianGroupName(group)"
+                    (error)="onFloatingTechnicianAvatarError(group)">
+                <ng-container *ngIf="!hasFloatingTechnicianAvatar(group)">
+                    {{ getFloatingTechnicianGroupInitials(group) }}
+                </ng-container>
+            </span>
+            <strong>{{ getFloatingTechnicianGroupName(group) }}</strong>
+            <em *ngIf="(group.unreadCount || 0) > 0">
+                {{ (group.unreadCount || 0) > 99 ? '99+' : group.unreadCount }}
+            </em>
+        </button>
+    </nav>
+
+    <div #floatingTechnicianScroll
+        class="aquiles-floating-chat__messages communication-floating-chat__messages technician-floating-chat__messages"
+        aria-live="polite">
+        <div *ngIf="loadingFloatingTechnicianGroups || loadingFloatingTechnicianMessages"
+            class="communication-floating-chat__state">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Cargando mensajes de técnicos...</span>
+        </div>
+
+        <div *ngIf="floatingTechnicianError && !loadingFloatingTechnicianGroups && !loadingFloatingTechnicianMessages"
+            class="communication-floating-chat__state communication-floating-chat__state--error">
+            <i class="pi pi-exclamation-circle"></i>
+            <span>{{ floatingTechnicianError }}</span>
+            <button *ngIf="selectedFloatingTechnicianGroup" type="button"
+                (click)="selectFloatingTechnicianGroup(selectedFloatingTechnicianGroup, true)">
+                Reintentar
+            </button>
+        </div>
+
+        <div *ngIf="!loadingFloatingTechnicianGroups && !floatingTechnicianGroups.length && !floatingTechnicianError"
+            class="communication-floating-chat__state">
+            <i class="pi pi-wrench"></i>
+            <span>No hay grupos de técnicos disponibles.</span>
+        </div>
+
+        <div *ngIf="!loadingFloatingTechnicianMessages && selectedFloatingTechnicianGroup && !floatingTechnicianMessages.length && !floatingTechnicianError"
+            class="communication-floating-chat__state">
+            <i class="pi pi-comments"></i>
+            <span>Este técnico todavía no ha registrado mensajes.</span>
+        </div>
+
+        <ng-container *ngFor="let message of floatingTechnicianMessages; let index = index; trackBy: trackFloatingTechnicianMessage">
+            <div *ngIf="shouldShowFloatingTechnicianDate(index)" class="support-conversation-date"
+                role="separator">
+                <span>{{ formatFloatingTechnicianDate(message.createdAt) }}</span>
+            </div>
+            <article class="technician-floating-chat__message"
+                [class.technician-floating-chat__message--me]="isMyFloatingTechnicianMessage(message)">
+                <span class="technician-floating-chat__message-avatar">
+                    <img *ngIf="message.author.photo" [src]="message.author.photo"
+                        [alt]="'Foto de ' + getFloatingTechnicianAuthorName(message)">
+                    <ng-container *ngIf="!message.author.photo">
+                        {{ getFloatingTechnicianAuthorInitials(message) }}
+                    </ng-container>
+                </span>
+                <div class="technician-floating-chat__bubble">
+                    <div class="technician-floating-chat__meta">
+                        <strong>{{ isMyFloatingTechnicianMessage(message) ? 'Tú' : getFloatingTechnicianAuthorName(message) }}</strong>
+                        <time>{{ message.createdAt | date:'shortTime' }}</time>
+                    </div>
+                    <p *ngIf="message.text">{{ message.text | deviceLabel }}</p>
+                    <div *ngIf="message.attachments?.length" class="technician-floating-chat__attachments">
+                        <ng-container *ngFor="let attachment of message.attachments">
+                            <a *ngIf="isFloatingTechnicianImage(attachment)"
+                                class="technician-floating-chat__image" [href]="attachment.url"
+                                target="_blank" rel="noopener noreferrer">
+                                <img [src]="attachment.url" [alt]="getFloatingTechnicianAttachmentName(attachment)"
+                                    (load)="onFloatingTechnicianMediaReady()"
+                                    (error)="onFloatingTechnicianMediaReady()">
+                            </a>
+                            <video *ngIf="isFloatingTechnicianVideo(attachment)"
+                                [src]="attachment.url" controls preload="metadata"
+                                (loadedmetadata)="onFloatingTechnicianMediaReady()"></video>
+                            <audio *ngIf="isFloatingTechnicianAudio(attachment)"
+                                [src]="attachment.url" controls preload="metadata"
+                                (loadedmetadata)="onFloatingTechnicianMediaReady()"></audio>
+                            <a *ngIf="!isFloatingTechnicianImage(attachment) && !isFloatingTechnicianVideo(attachment) && !isFloatingTechnicianAudio(attachment)"
+                                class="technician-floating-chat__file" [href]="attachment.url"
+                                target="_blank" rel="noopener noreferrer">
+                                <i class="pi pi-file"></i>
+                                {{ getFloatingTechnicianAttachmentName(attachment) }}
+                            </a>
+                        </ng-container>
+                    </div>
+                </div>
+            </article>
+        </ng-container>
+    </div>
+
+    <form class="support-chat-composer aquiles-floating-chat__composer communication-floating-chat__composer"
+        (ngSubmit)="sendFloatingTechnicianMessage()">
+        <textarea name="floatingTechnicianInput" [(ngModel)]="floatingTechnicianInput"
+            (keydown)="onFloatingTechnicianKeydown($event)" rows="1" maxlength="2500"
+            [disabled]="sendingFloatingTechnicianMessage || !selectedFloatingTechnicianGroup"
+            placeholder="Escribe al grupo del técnico..." aria-label="Mensaje para el grupo del técnico"></textarea>
+        <button type="submit"
+            [disabled]="!floatingTechnicianInput.trim() || sendingFloatingTechnicianMessage || !selectedFloatingTechnicianGroup"
+            aria-label="Enviar mensaje al grupo del técnico">
+            <i [class]="sendingFloatingTechnicianMessage ? 'pi pi-spin pi-spinner' : 'pi pi-send'"></i>
+        </button>
+    </form>
+    <small class="support-chat-help aquiles-floating-chat__help technician-floating-chat__help">
+        <i class="pi pi-wrench"></i> Registros de instalaciones en Comunicación
+    </small>
+</aside>
+
 @defer (when bulkProcessDialogVisible) {
 <p-dialog [(visible)]="bulkProcessDialogVisible" [modal]="true" [draggable]="false" [resizable]="false"
     [closable]="!applyingBulkProcess" [closeOnEscape]="!applyingBulkProcess" [dismissableMask]="false"
@@ -2120,26 +2500,26 @@
 </p-dialog>
 }
 
-<!-- Modal para crear ticket de soporte -->
+<!-- Centro de soporte conversacional -->
 @defer (when supportDialogVisible) {
-<p-dialog [(visible)]="supportDialogVisible" [modal]="true" [style]="{width: '820px', maxWidth: '95vw'}"
+<p-dialog [(visible)]="supportDialogVisible" [modal]="true" [style]="{width: '980px', maxWidth: '96vw'}"
     styleClass="app-dark-dialog support-ticket-dialog" appendTo="body" [draggable]="false" [resizable]="false">
 
     <ng-template pTemplate="header">
         <div class="support-dialog-header">
             <div class="support-dialog-heading">
-                <span class="support-dialog-icon"><i class="pi pi-headphones"></i></span>
+                <span class="support-dialog-icon support-dialog-icon--aquiles"><i class="pi pi-user"></i></span>
                 <div>
-                    <strong>Centro de soporte</strong>
-                    <small>Reporta una incidencia y consulta su avance</small>
+                    <strong>Aquiles · Soporte Montao GPS</strong>
+                    <small><span class="support-agent-status"></span> En línea · Prepararé tu ticket contigo</small>
                 </div>
             </div>
             <div class="support-dialog-tabs" role="tablist" aria-label="Opciones de soporte">
                 <button type="button" role="tab" (click)="showCreateForm()"
                     [attr.aria-selected]="activeSupportTab === 'create'"
                     [class.active]="activeSupportTab === 'create'">
-                    <i class="pi pi-plus-circle"></i>
-                    {{ 'support.createTicket' | translate }}
+                    <i class="pi pi-comments"></i>
+                    Hablar con Aquiles
                 </button>
                 <button type="button" role="tab" (click)="showTicketList()"
                     [attr.aria-selected]="activeSupportTab === 'list'"
@@ -2154,40 +2534,91 @@
 
     <div class="support-content-container support-shell">
         <div *ngIf="activeSupportTab === 'create'" class="support-create-panel">
-            <div class="support-form-grid">
-                <div class="field support-field support-field-wide">
-                    <label for="support-title">
-                        <i class="pi pi-ticket"></i>
-                        {{ 'support.ticketTitle' | translate }}
-                    </label>
-                    <input id="support-title" type="text" [(ngModel)]="newTicket.title" class="native-input"
-                        [placeholder]="'support.ticketTitlePlaceholder' | translate" />
-                </div>
-
-                <div class="field support-field">
-                    <label for="support-priority">
-                        <i class="pi pi-flag"></i>
-                        {{ 'support.priority' | translate }}
-                    </label>
-                    <select id="support-priority" [(ngModel)]="newTicket.priority" class="native-select">
-                        <option value="" disabled>{{ 'support.selectPriority' | translate }}</option>
-                        <option *ngFor="let p of priorities" [value]="p.value">{{ p.label }}</option>
-                    </select>
-                </div>
-
-                <div class="field support-field support-field-full">
-                    <div class="support-label-row">
-                        <label for="support-description">
-                            <i class="pi pi-align-left"></i>
-                            {{ 'support.descriptionLabel' | translate }}
-                        </label>
-                        <span>{{ newTicket.description.length }} caracteres</span>
+            <section class="support-chat-workspace" aria-label="Conversación con Aquiles">
+                <div #supportChatScroll class="support-chat-messages" aria-live="polite">
+                    <div class="support-chat-intro">
+                        <i [class]="capturingSupportDiagnostics ? 'pi pi-spin pi-spinner' : 'pi pi-camera'"></i>
+                        <span>
+                            Aquiles consulta tu cuenta y tus GPS, toma una captura de la pantalla actual y revisa
+                            los errores recientes del navegador antes de preparar el ticket.
+                        </span>
                     </div>
-                    <textarea id="support-description" [(ngModel)]="newTicket.description" rows="7"
-                        class="native-textarea"
-                        [placeholder]="'support.descriptionPlaceholder' | translate"></textarea>
+
+                    <div class="support-conversation-date" role="separator" aria-label="Mensajes de hoy">
+                        <span>Hoy</span>
+                    </div>
+
+                    <article *ngFor="let message of supportChatMessages"
+                        class="support-chat-message" [class.support-chat-message--user]="message.role === 'user'">
+                        <div class="support-chat-bubble">
+                            <strong>
+                                <i [class]="message.role === 'assistant' ? 'pi pi-user' : 'pi pi-user-edit'"></i>
+                                {{ message.role === 'assistant' ? 'Aquiles' : 'Tú' }}
+                            </strong>
+                            <p>{{ message.content }}</p>
+                            <time>{{ message.createdAt | date:'shortTime' }}</time>
+                        </div>
+                    </article>
+
+                    <article *ngIf="supportAssistantThinking" class="support-chat-message">
+                        <div class="support-chat-bubble support-chat-bubble--typing" aria-label="Aquiles está escribiendo">
+                            <strong><i class="pi pi-user"></i>Aquiles</strong>
+                            <span><i></i><i></i><i></i></span>
+                        </div>
+                    </article>
+
+                    <section *ngIf="supportDraftReady" class="support-ticket-draft">
+                        <header>
+                            <span><i class="pi pi-check-circle"></i></span>
+                            <div>
+                                <strong>Ticket listo para confirmar</strong>
+                                <small>Revisa la información preparada por Aquiles.</small>
+                            </div>
+                        </header>
+                        <div class="support-ticket-draft__meta">
+                            <span><i class="pi pi-ticket"></i>{{ newTicket.title }}</span>
+                            <span [class]="'ticket-priority-pill ' + getPriorityClass(newTicket.priority || 'medium')">
+                                <i class="pi pi-flag-fill"></i>{{ getPriorityLabel(newTicket.priority || 'medium') | translate }}
+                            </span>
+                        </div>
+                        <p>{{ newTicket.description }}</p>
+                        <div *ngIf="supportDiagnosticCapture" class="support-diagnostic-summary">
+                            <span>
+                                <i class="pi pi-camera"></i>
+                                {{ supportDiagnosticCapture.screenshotFile ? 'Captura adjunta' : 'Captura no disponible' }}
+                            </span>
+                            <span>
+                                <i class="pi pi-code"></i>
+                                {{ supportDiagnosticCapture.diagnostics.console_entries.length }} error(es) o advertencia(s)
+                            </span>
+                        </div>
+                        <div class="support-ticket-draft__actions">
+                            <button type="button" class="support-chat-secondary-button" (click)="editSupportDraft()"
+                                [disabled]="savingTicket">
+                                <i class="pi pi-pencil"></i> Agregar o corregir
+                            </button>
+                            <button type="button" class="support-chat-primary-button" (click)="saveSupportTicket()"
+                                [disabled]="savingTicket">
+                                <i [class]="savingTicket ? 'pi pi-spin pi-spinner' : 'pi pi-send'"></i>
+                                {{ savingTicket ? 'Creando...' : 'Confirmar y crear ticket' }}
+                            </button>
+                        </div>
+                    </section>
                 </div>
-            </div>
+
+                <form class="support-chat-composer" (ngSubmit)="sendSupportChatMessage()">
+                    <textarea name="supportChatInput" [(ngModel)]="supportChatInput"
+                        (keydown)="onSupportChatKeydown($event)" rows="2" maxlength="2500"
+                        [disabled]="supportAssistantThinking || savingTicket"
+                        placeholder="Explícale el problema a Aquiles... (Enter para enviar, Shift + Enter para otra línea)"
+                        aria-label="Mensaje para Aquiles"></textarea>
+                    <button type="submit" [disabled]="!supportChatInput.trim() || supportAssistantThinking || savingTicket"
+                        aria-label="Enviar mensaje a Aquiles">
+                        <i class="pi pi-send"></i>
+                    </button>
+                </form>
+                <small class="support-chat-help"><i class="pi pi-lock"></i> El ticket no se crea hasta que confirmes el resumen.</small>
+            </section>
         </div>
 
         <div *ngIf="activeSupportTab === 'list'" class="support-list-content">
@@ -2274,11 +2705,10 @@
     <!-- Footer (Solo visible en pestaña de creación) -->
     <ng-template pTemplate="footer">
         <div *ngIf="activeSupportTab === 'create'" class="support-dialog-actions">
-            <button pButton pRipple [label]="'support.cancel' | translate" icon="pi pi-times" class="p-button-text"
+            <button pButton pRipple label="Cerrar" icon="pi pi-times" class="p-button-text"
                 (click)="supportDialogVisible = false" [disabled]="savingTicket"></button>
-            <button pButton pRipple [label]="'support.sendTicket' | translate"
-                [icon]="savingTicket ? 'pi pi-spin pi-spinner' : 'pi pi-send'" class="p-button-primary"
-                (click)="saveSupportTicket()" [disabled]="savingTicket"></button>
+            <button pButton pRipple label="Nueva conversación" icon="pi pi-refresh" class="p-button-outlined"
+                (click)="resetSupportChat()" [disabled]="savingTicket || supportAssistantThinking"></button>
         </div>
     </ng-template>
 </p-dialog>

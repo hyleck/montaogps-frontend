@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject, Subject, Subscription, interval, of } from 'rxjs';
-import { catchError, switchMap } from 'rxjs/operators';
+import { BehaviorSubject, Subject, Subscription, forkJoin, interval, of } from 'rxjs';
+import { catchError, filter, map, switchMap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { WhatsAppApiService } from './whatsapp-api.service';
 import { InternalChatMessage, InternalChatService } from './internal-chat.service';
@@ -8,6 +8,7 @@ import { UserService } from './user.service';
 
 interface WhatsAppConversationSummary {
   id: number;
+  status?: string;
   last_message?: string;
   last_message_time?: number | null;
   last_message_type?: number;
@@ -36,9 +37,25 @@ export interface CommunicationFloatingMessage {
   groupId?: string;
   contactName: string;
   contactPhone: string;
+  avatar?: string;
   message: string;
   time: number | null;
   assigneeName?: string;
+}
+
+export interface AssignedCommunicationChat {
+  conversationId: number;
+  contactName: string;
+  contactPhone: string;
+  avatar: string;
+  lastMessage: string;
+  time: number | null;
+  unreadCount: number;
+}
+
+export interface FloatingAssignedChatRequest {
+  conversationId: number;
+  chat?: AssignedCommunicationChat;
 }
 
 @Injectable({
@@ -53,10 +70,20 @@ export class CommunicationNotificationService implements OnDestroy {
   esterPendingCount$ = this.esterPendingCountSubject.asObservable();
   private internalPendingCountSubject = new BehaviorSubject<number>(0);
   internalPendingCount$ = this.internalPendingCountSubject.asObservable();
+  private technicianPendingCountSubject = new BehaviorSubject<number>(0);
+  technicianPendingCount$ = this.technicianPendingCountSubject.asObservable();
   private internalChatMutedSubject = new BehaviorSubject<boolean>(false);
   internalChatMuted$ = this.internalChatMutedSubject.asObservable();
-  private floatingMessageSubject = new Subject<CommunicationFloatingMessage>();
-  floatingMessage$ = this.floatingMessageSubject.asObservable();
+  private floatingMessageSubject = new BehaviorSubject<CommunicationFloatingMessage | null>(null);
+  floatingMessage$ = this.floatingMessageSubject.asObservable().pipe(
+    filter((message): message is CommunicationFloatingMessage => message !== null),
+  );
+  private assignedChatsSubject = new BehaviorSubject<AssignedCommunicationChat[]>([]);
+  assignedChats$ = this.assignedChatsSubject.asObservable();
+  private floatingAssignedChatRequestedSubject = new Subject<FloatingAssignedChatRequest>();
+  floatingAssignedChatRequested$ = this.floatingAssignedChatRequestedSubject.asObservable();
+  private floatingTechniciansRequestedSubject = new Subject<string | null>();
+  floatingTechniciansRequested$ = this.floatingTechniciansRequestedSubject.asObservable();
 
   private pollingSubscription?: Subscription;
   private internalPollingSubscription?: Subscription;
@@ -73,8 +100,11 @@ export class CommunicationNotificationService implements OnDestroy {
   private conversationState = new Map<number, ConversationNotificationState>();
   private lastInternalMessageId = '';
   private internalPendingCount = 0;
+  private technicianPendingCount = 0;
   private whatsappPendingCount = 0;
   private internalChatMuted = false;
+  private assignedChatsFingerprint = '';
+  private floatingMessageTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     private authService: AuthService,
@@ -109,6 +139,24 @@ export class CommunicationNotificationService implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stop();
+  }
+
+  openFloatingAssignedChat(
+    conversationId?: number,
+    chat?: AssignedCommunicationChat | null,
+  ): void {
+    const normalizedConversationId = Number(conversationId || chat?.conversationId || 0);
+    if (!normalizedConversationId) return;
+    this.floatingAssignedChatRequestedSubject.next({
+      conversationId: normalizedConversationId,
+      ...(chat ? { chat: { ...chat, conversationId: normalizedConversationId } } : {}),
+    });
+  }
+
+  openFloatingTechnicians(groupId?: string): void {
+    this.floatingTechniciansRequestedSubject.next(
+      String(groupId || '').trim() || null,
+    );
   }
 
   private refreshAndStartPolling(): void {
@@ -158,20 +206,73 @@ export class CommunicationNotificationService implements OnDestroy {
     this.conversationState.clear();
 
     this.pollingSubscription = interval(5000).pipe(
-      switchMap(() => this.whatsappApi.getConversations(this.inboxId, 1, this.agentId, true).pipe(
-        catchError(() => of(null)),
-      )),
-    ).subscribe((response: any) => {
-      if (!response?.success) return;
-      this.processConversations(response.conversations || []);
+      switchMap(() => this.loadConversationNotificationSnapshot()),
+    ).subscribe((snapshot) => {
+      if (!snapshot.all?.success) return;
+      this.processConversations(
+        snapshot.all.conversations || [],
+        snapshot.assigned?.success ? snapshot.assigned.conversations || [] : undefined,
+      );
     });
 
-    this.whatsappApi.getConversations(this.inboxId, 1, this.agentId, true).pipe(
-      catchError(() => of(null)),
-    ).subscribe((response: any) => {
-      if (!response?.success) return;
-      this.processConversations(response.conversations || []);
+    this.loadConversationNotificationSnapshot().subscribe((snapshot) => {
+      if (!snapshot.all?.success) return;
+      this.processConversations(
+        snapshot.all.conversations || [],
+        snapshot.assigned?.success ? snapshot.assigned.conversations || [] : undefined,
+      );
     });
+  }
+
+  private loadConversationNotificationSnapshot() {
+    return forkJoin({
+      all: this.whatsappApi.getConversations(
+        this.inboxId,
+        1,
+        this.agentId,
+        true,
+      ).pipe(catchError(() => of(null))),
+      assigned: this.loadAllAssignedConversations()
+        .pipe(catchError(() => of(null))),
+    });
+  }
+
+  private loadAllAssignedConversations() {
+    const loadPage = (page: number) => this.whatsappApi.getConversations(
+      this.inboxId,
+      page,
+      undefined,
+      true,
+      '',
+      'all',
+      true,
+    );
+
+    return loadPage(1).pipe(
+      switchMap((firstPage: any) => {
+        if (!firstPage?.success) return of(firstPage);
+        const totalPages = Math.max(1, Number(firstPage?.meta?.total_pages) || 1);
+        if (totalPages === 1) return of(firstPage);
+
+        const remainingPages = Array.from(
+          { length: totalPages - 1 },
+          (_, index) => index + 2,
+        );
+        return forkJoin(
+          remainingPages.map(page => loadPage(page).pipe(catchError(() => of(null)))),
+        ).pipe(
+          map((responses: any[]) => ({
+            ...firstPage,
+            conversations: [
+              ...(firstPage.conversations || []),
+              ...responses.flatMap(response => (
+                response?.success ? response.conversations || [] : []
+              )),
+            ],
+          })),
+        );
+      }),
+    );
   }
 
   private stopPolling(): void {
@@ -184,11 +285,16 @@ export class CommunicationNotificationService implements OnDestroy {
     this.conversationState.clear();
     this.pendingCountSubject.next(0);
     this.esterPendingCountSubject.next(0);
+    this.assignedChatsFingerprint = '';
+    this.assignedChatsSubject.next([]);
+    this.clearFloatingMessage();
     this.stopInternalChatPolling();
     this.internalPendingCount = 0;
+    this.technicianPendingCount = 0;
     this.whatsappPendingCount = 0;
     this.lastInternalMessageId = '';
     this.internalPendingCountSubject.next(0);
+    this.technicianPendingCountSubject.next(0);
   }
 
   private stopWhatsAppPolling(): void {
@@ -198,8 +304,30 @@ export class CommunicationNotificationService implements OnDestroy {
     this.pendingCountSubject.next(0);
   }
 
-  private processConversations(conversations: WhatsAppConversationSummary[]): void {
+  private processConversations(
+    conversations: WhatsAppConversationSummary[],
+    assignedConversations?: WhatsAppConversationSummary[],
+  ): void {
     const nextState = new Map<number, ConversationNotificationState>();
+    const assignedChats: AssignedCommunicationChat[] = (
+      assignedConversations || conversations
+    )
+      .filter(conversation => (
+        Boolean(String(conversation?.assignee_id || '').trim())
+        && this.isActiveAssignedConversation(conversation)
+      ))
+      .map(conversation => ({
+        conversationId: Number(conversation.id),
+        contactName: conversation.contact?.name
+          || conversation.contact?.phone
+          || 'Contacto sin nombre',
+        contactPhone: conversation.contact?.phone || '',
+        avatar: conversation.contact?.avatar || '',
+        lastMessage: conversation.last_message || 'Sin mensajes recientes',
+        time: conversation.last_message_time || null,
+        unreadCount: Number(conversation.unread_count || 0),
+      }))
+      .filter(chat => Boolean(chat.conversationId));
     let shouldPlayAssignedToMe = false;
     let shouldPlayOtherConversation = false;
     let totalPending = 0;
@@ -275,12 +403,24 @@ export class CommunicationNotificationService implements OnDestroy {
     }
 
     this.conversationState = nextState;
+    this.publishAssignedChats(assignedChats);
     this.whatsappPendingCount = totalPending;
     this.emitWhatsAppPendingCount();
     this.esterPendingCountSubject.next(esterPending);
 
     if (!this.initialized) {
       this.initialized = true;
+      const latestUnreadConversation = conversations
+        .filter(conversation => (
+          Number(conversation.unread_count || 0) > 0
+          && this.isIncomingMessage(conversation)
+        ))
+        .sort((left, right) => (
+          Number(right.last_message_time || 0) - Number(left.last_message_time || 0)
+        ))[0];
+      if (latestUnreadConversation) {
+        this.emitFloatingMessage(latestUnreadConversation);
+      }
       return;
     }
 
@@ -338,6 +478,13 @@ export class CommunicationNotificationService implements OnDestroy {
 
       this.internalPendingCount += incomingMessages.length;
       this.internalPendingCountSubject.next(this.internalPendingCount);
+      const technicianMessages = incomingMessages.filter((message) =>
+        String(message?.groupId || '').startsWith('technician:'),
+      );
+      if (technicianMessages.length) {
+        this.technicianPendingCount += technicianMessages.length;
+        this.technicianPendingCountSubject.next(this.technicianPendingCount);
+      }
       this.emitInternalFloatingMessage(incomingMessages[incomingMessages.length - 1]);
       this.playInternalNotificationSound();
     });
@@ -369,6 +516,13 @@ export class CommunicationNotificationService implements OnDestroy {
     });
     this.whatsappPendingCount = Math.max(0, this.whatsappPendingCount - readCount);
     this.emitWhatsAppPendingCount();
+    this.publishAssignedChats(
+      this.assignedChatsSubject.value.map(chat =>
+        chat.conversationId === normalizedConversationId
+          ? { ...chat, unreadCount: 0 }
+          : chat,
+      ),
+    );
 
     if (currentState.esterAssigned) {
       this.esterPendingCountSubject.next(
@@ -384,6 +538,13 @@ export class CommunicationNotificationService implements OnDestroy {
     this.internalPendingCountSubject.next(this.internalPendingCount);
   }
 
+  syncTechnicianPendingCount(count: number): void {
+    this.technicianPendingCount = this.internalChatMuted
+      ? 0
+      : Math.max(0, Number(count) || 0);
+    this.technicianPendingCountSubject.next(this.technicianPendingCount);
+  }
+
   isInternalChatMuted(): boolean {
     return this.internalChatMuted;
   }
@@ -395,6 +556,7 @@ export class CommunicationNotificationService implements OnDestroy {
 
     if (muted) {
       this.markInternalChatRead();
+      this.syncTechnicianPendingCount(0);
     }
   }
 
@@ -419,6 +581,8 @@ export class CommunicationNotificationService implements OnDestroy {
     if (muted) {
       this.internalPendingCount = 0;
       this.internalPendingCountSubject.next(0);
+      this.technicianPendingCount = 0;
+      this.technicianPendingCountSubject.next(0);
     }
   }
 
@@ -478,11 +642,12 @@ export class CommunicationNotificationService implements OnDestroy {
   private emitFloatingMessage(conversation: WhatsAppConversationSummary): void {
     if (!this.isIncomingMessage(conversation)) return;
 
-    this.floatingMessageSubject.next({
+    this.publishFloatingMessage({
       source: 'whatsapp',
       conversationId: Number(conversation.id),
       contactName: conversation.contact?.name || conversation.contact?.phone || 'Contacto sin nombre',
       contactPhone: conversation.contact?.phone || '',
+      avatar: conversation.contact?.avatar || '',
       message: conversation.last_message || 'Nuevo mensaje recibido',
       time: conversation.last_message_time || null,
       assigneeName: conversation.assignee_name || conversation.assignee_email || undefined,
@@ -499,8 +664,33 @@ export class CommunicationNotificationService implements OnDestroy {
     return Boolean(assigneeId && assigneeId === String(this.agentId || '').trim());
   }
 
+  private isActiveAssignedConversation(conversation: WhatsAppConversationSummary): boolean {
+    const status = String(conversation.status || '').trim().toLowerCase();
+    return status !== 'resolved' && status !== 'closed';
+  }
+
+  private publishAssignedChats(chats: AssignedCommunicationChat[]): void {
+    const ordered = [...chats].sort((left, right) =>
+      Number(right.unreadCount > 0) - Number(left.unreadCount > 0)
+      || (Number(right.time || 0) - Number(left.time || 0))
+      || left.contactName.localeCompare(right.contactName, 'es'),
+    );
+    const fingerprint = ordered.map(chat => [
+      chat.conversationId,
+      chat.contactName,
+      chat.contactPhone,
+      chat.avatar,
+      chat.lastMessage,
+      chat.time || '',
+      chat.unreadCount,
+    ].join('|')).join('::');
+    if (fingerprint === this.assignedChatsFingerprint) return;
+    this.assignedChatsFingerprint = fingerprint;
+    this.assignedChatsSubject.next(ordered);
+  }
+
   private emitInternalFloatingMessage(message: InternalChatMessage): void {
-    this.floatingMessageSubject.next({
+    this.publishFloatingMessage({
       source: 'internal',
       conversationId: 0,
       groupId: message.groupId,
@@ -511,6 +701,22 @@ export class CommunicationNotificationService implements OnDestroy {
       message: message.text || 'Nuevo mensaje en el grupo',
       time: message.createdAt ? Math.floor(new Date(message.createdAt).getTime() / 1000) : null,
     });
+  }
+
+  private publishFloatingMessage(message: CommunicationFloatingMessage): void {
+    this.floatingMessageSubject.next(message);
+    if (this.floatingMessageTimer) clearTimeout(this.floatingMessageTimer);
+    this.floatingMessageTimer = setTimeout(() => {
+      this.floatingMessageSubject.next(null);
+      this.floatingMessageTimer = undefined;
+    }, 10000);
+  }
+
+  private clearFloatingMessage(): void {
+    this.floatingMessageSubject.next(null);
+    if (!this.floatingMessageTimer) return;
+    clearTimeout(this.floatingMessageTimer);
+    this.floatingMessageTimer = undefined;
   }
 
   private isMyInternalMessage(message: InternalChatMessage): boolean {

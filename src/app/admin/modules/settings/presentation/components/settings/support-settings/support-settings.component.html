@@ -231,6 +231,26 @@
                         </div>
                     </div>
                 </div>
+                <div class="ticket-info-group support-diagnostic-detail" *ngIf="selectedTicket.diagnostics as diagnostic">
+                    <div class="ticket-label"><i class="pi pi-desktop"></i>Diagnóstico automático</div>
+                    <div class="support-diagnostic-context">
+                        <span><i class="pi pi-window-maximize"></i>{{ diagnostic.route || 'Pantalla no disponible' }}</span>
+                        <span><i class="pi pi-clock"></i>{{ diagnostic.captured_at | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+                        <span><i class="pi pi-expand"></i>{{ diagnostic.viewport || 'Vista no disponible' }}</span>
+                    </div>
+                    <div class="support-console-diagnostics" *ngIf="diagnostic.console_entries?.length; else noConsoleDiagnostics">
+                        <div *ngFor="let entry of diagnostic.console_entries" [class.is-error]="entry.level === 'error'">
+                            <header>
+                                <strong><i class="pi" [ngClass]="entry.level === 'error' ? 'pi-times-circle' : 'pi-exclamation-triangle'"></i>{{ entry.level === 'error' ? 'Error' : 'Advertencia' }}</strong>
+                                <time>{{ entry.occurred_at | date:'HH:mm:ss' }}</time>
+                            </header>
+                            <code>{{ entry.message }}</code>
+                        </div>
+                    </div>
+                    <ng-template #noConsoleDiagnostics>
+                        <div class="support-console-empty"><i class="pi pi-check-circle"></i>No se registraron errores recientes en esta sesión.</div>
+                    </ng-template>
+                </div>
             </div>
 
             <div *ngIf="selectedTicket.response" class="ticket-info-group ticket-response">

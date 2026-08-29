@@ -59,6 +59,12 @@ export class AdminComponent implements OnInit, OnDestroy {
                 });
 
         this.floatingSub = this.communicationNotifications.floatingMessage$.subscribe((message) => {
+            if (
+                (message.source || 'whatsapp') === 'whatsapp'
+                && this.router.url.startsWith('/admin/management')
+            ) {
+                return;
+            }
             this.floatingMessage = message;
             if (this.floatingTimer) clearTimeout(this.floatingTimer);
             this.floatingTimer = setTimeout(() => {

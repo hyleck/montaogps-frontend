@@ -26,6 +26,13 @@ export interface ConsoleCaptureStatus {
   forced: boolean;
 }
 
+export interface LocalConsoleDiagnostic {
+  level: 'warn' | 'error';
+  message: string;
+  route: string;
+  occurred_at: string;
+}
+
 interface PendingConsoleLog {
   platform: 'desktop';
   level: UserConsoleLevel;
@@ -46,6 +53,7 @@ export class UserConsoleLogService {
   private captureEnabled = false;
   private statusRequestInFlight = false;
   private activeUserId = '';
+  private readonly localDiagnostics: LocalConsoleDiagnostic[] = [];
   private readonly windowErrorHandler = (event: ErrorEvent) => {
     this.enqueue('error', [event.error || event.message]);
   };
@@ -120,14 +128,32 @@ export class UserConsoleLogService {
     return this.http.patch<ConsoleCaptureStatus>(`${this.apiUrl}/status/user/${userId}`, { enabled });
   }
 
+  getRecentDiagnostics(limit = 30): LocalConsoleDiagnostic[] {
+    const normalizedLimit = Math.min(Math.max(Number(limit) || 30, 1), 100);
+    return this.localDiagnostics.slice(-normalizedLimit).map(entry => ({ ...entry }));
+  }
+
   private enqueue(level: UserConsoleLevel, args: any[]): void {
     const userId = this.currentUserId();
+    const message = this.serializeArguments(args);
+    if (!message) return;
+
+    if (level === 'warn' || level === 'error') {
+      this.localDiagnostics.push({
+        level,
+        message,
+        route: this.router.url || window.location.pathname || '/',
+        occurred_at: new Date().toISOString(),
+      });
+      if (this.localDiagnostics.length > 100) {
+        this.localDiagnostics.splice(0, this.localDiagnostics.length - 100);
+      }
+    }
+
     if (!userId || !this.isAuthenticated() || !this.captureEnabled) return;
     if (this.activeUserId && this.activeUserId !== userId) this.buffer = [];
     this.activeUserId = userId;
 
-    const message = this.serializeArguments(args);
-    if (!message) return;
     this.buffer.push({
       platform: 'desktop',
       level,

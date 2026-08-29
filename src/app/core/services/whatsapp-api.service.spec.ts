@@ -60,18 +60,24 @@ describe('WhatsAppApiService', () => {
         request.flush({ success: true, conversations: [] });
     });
 
-    it('persists a custom internal team chat name', () => {
-        service.setConversationTeamName(202, 'Operaciones').subscribe();
+    it('can request only conversations assigned to the current employee', () => {
+        service.getConversations(
+            5,
+            1,
+            'employee-id',
+            true,
+            '',
+            'all',
+            true,
+        ).subscribe();
 
-        const request = httpController.expectOne(
-            `${environment.apiUrl}/whatsapp/conversation-team-name`,
-        );
-        expect(request.request.method).toBe('POST');
-        expect(request.request.body).toEqual({
-            conversation_id: 202,
-            name: 'Operaciones',
-        });
-        request.flush({ success: true, team_chat_name: 'Operaciones' });
+        const request = httpController.expectOne(candidate => (
+            candidate.url === `${environment.apiUrl}/whatsapp/conversations`
+            && candidate.params.get('agent_id') === 'employee-id'
+            && candidate.params.get('assigned_only') === 'true'
+        ));
+        expect(request.request.method).toBe('GET');
+        request.flush({ success: true, conversations: [] });
     });
 
     it('clears a conversation while preserving the chat', () => {

@@ -151,7 +151,8 @@
 
                     <div class="management__content-body" (scroll)="onScroll($event)">
                         <div *ngIf="managementService.getOp() === 'u'"
-                            class="management__content-cards management__content-cards--maps">
+                            class="management__content-cards management__content-cards--maps"
+                            [class.management__content-cards--end-spaced]="!hasMoreUsersToLoad && users.length > 0 && !isLoadingMoreUsers">
                             <ng-container *ngIf="!loading; else loadingSkeletonsMaps">
                                 <div *ngIf="!loading && users.length === 0" class="no-targets-message fade-in-message"
                                     [@fadeInOut]>
@@ -567,6 +568,8 @@
                                         <span>No hay más dispositivos para cargar</span>
                                     </div>
                                 </div>
+                                <div *ngIf="!hasMoreTargetsToLoad && targetsList.length > 0 && !isLoadingMoreTargets"
+                                    class="management__scroll-end-spacer" aria-hidden="true"></div>
                             </div>
 
                         </div>
@@ -638,11 +641,20 @@
                     <i *ngIf="!selectedUser?.photo" class="pi pi-user"></i>
                 </div>
                 <div class="management__user-title">
-                    <strong *ngIf="!loading">{{ selectedUser?.name }} {{ selectedUser?.last_name }}</strong>
+                    <strong *ngIf="!loading"
+                        [title]="((selectedUser?.name || '') + ' ' + (selectedUser?.last_name || '')).trim()">{{
+                        selectedUser?.name }} {{ selectedUser?.last_name }}</strong>
                     <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '150px', 'height': '24px' }"></p-skeleton>
                 </div>
-                <div class="management__user-subtitle">
-                    <span *ngIf="!loading">{{ selectedUser?.email }}</span>
+                <div class="management__user-subtitle management__user-email">
+                    <span *ngIf="!loading" class="management__user-email-value"
+                        [title]="selectedUser?.email || ''">{{ selectedUser?.email }}</span>
+                    <button *ngIf="!loading && selectedUser?.email" type="button"
+                        class="management__copy-email-button" (click)="copyEmail(selectedUser?.email)"
+                        title="Copiar correo" aria-label="Copiar correo al portapapeles">
+                        <i class="pi pi-copy" aria-hidden="true"></i>
+                        <span>Copiar</span>
+                    </button>
                     <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '120px', 'height': '18px' }"></p-skeleton>
                 </div>
                 <div class="management__user-subtitle">
@@ -732,7 +744,8 @@
 
 
             <div class="management__content-body" (scroll)="onScroll($event)">
-                <div *ngIf="managementService.getOp() === 'u'" class="management__content-cards">
+                <div *ngIf="managementService.getOp() === 'u'" class="management__content-cards"
+                    [class.management__content-cards--end-spaced]="!hasMoreUsersToLoad && users.length > 0 && !isLoadingMoreUsers">
                     <ng-container *ngIf="!loading; else loadingSkeletons">
                         <div *ngIf="!loading && users.length === 0" class="no-targets-message fade-in-message"
                             [@fadeInOut]>
@@ -1291,6 +1304,8 @@
                                     <span>No hay más dispositivos para cargar</span>
                                 </div>
                             </div>
+                            <div *ngIf="!hasMoreTargetsToLoad && targetsList.length > 0 && !isLoadingMoreTargets"
+                                class="management__scroll-end-spacer" aria-hidden="true"></div>
                         </div>
                     </ng-container>
 
@@ -1819,6 +1834,71 @@
 
 <!-- Botones flotantes -->
 <div class="floating-buttons">
+    <div class="floating-contact-action"
+        *ngIf="!showMaps && activeFloatingCommunicationContact as assignedChat">
+        <div *ngIf="assignedCommunicationMessagePreview as preview"
+            class="floating-contact-preview" aria-live="polite">
+            <button type="button" class="floating-contact-preview__open"
+                (click)="openFloatingAssignedCommunicationChat(preview.conversationId)"
+                [attr.aria-label]="'Abrir el nuevo mensaje de ' + preview.contactName">
+                <span class="floating-contact-preview__avatar">
+                    <img *ngIf="isImageAvailable(preview.avatar); else previewContactInitials"
+                        [src]="preview.avatar"
+                        [alt]="'Foto de ' + preview.contactName"
+                        (error)="handleImageLoadError(preview.avatar)">
+                    <ng-template #previewContactInitials>
+                        {{ getAssignedCommunicationInitials(preview.contactName) }}
+                    </ng-template>
+                </span>
+                <span class="floating-contact-preview__content">
+                    <small><i class="pi pi-comment"></i> Nuevo mensaje</small>
+                    <strong>{{ preview.contactName }}</strong>
+                    <span>{{ preview.message }}</span>
+                    <em>Haz clic para abrir la conversación</em>
+                </span>
+            </button>
+            <button type="button" class="floating-contact-preview__close"
+                (click)="dismissAssignedCommunicationMessagePreview($event)"
+                aria-label="Cerrar vista previa del mensaje">
+                <i class="pi pi-times"></i>
+            </button>
+        </div>
+
+        <button type="button" class="floating-contact-btn"
+            (click)="openFloatingAssignedCommunicationChat()"
+            [title]="'Abrir conversación con ' + assignedChat.contactName"
+            [attr.aria-label]="'Abrir conversación con ' + assignedChat.contactName">
+            <span class="floating-contact-btn__avatar">
+                <img *ngIf="isImageAvailable(assignedChat.avatar); else assignedContactInitials"
+                    [src]="assignedChat.avatar"
+                    [alt]="'Foto de ' + assignedChat.contactName"
+                    (error)="handleImageLoadError(assignedChat.avatar)">
+                <ng-template #assignedContactInitials>{{ primaryAssignedCommunicationInitials }}</ng-template>
+            </span>
+            <span>{{ primaryAssignedCommunicationFirstName }}</span>
+            <strong *ngIf="assignedCommunicationUnreadCount > 0" class="floating-contact-btn__badge">
+                {{ assignedCommunicationUnreadCount > 99 ? '99+' : assignedCommunicationUnreadCount }}
+            </strong>
+        </button>
+    </div>
+
+    <button class="floating-technicians-btn"
+        *ngIf="currentUserAffiliationTypeId === 'empleado' && !showMaps"
+        (click)="openFloatingTechniciansChat()"
+        title="Abrir chats de técnicos" aria-label="Abrir chats de técnicos">
+        <i class="pi pi-wrench"></i>
+        <span>Técnicos</span>
+        <strong *ngIf="technicianChatUnreadCount > 0" class="floating-technicians-btn__badge">
+            {{ technicianChatUnreadCount > 99 ? '99+' : technicianChatUnreadCount }}
+        </strong>
+    </button>
+
+    <button class="floating-help-btn" *ngIf="!showMaps" (click)="openFloatingAquilesChat()"
+        title="Abrir ayuda con Aquiles" aria-label="Abrir chat de ayuda con Aquiles">
+        <i class="pi pi-comments"></i>
+        <span>Ayuda</span>
+    </button>
+
     <button class="floating-shortcuts-btn" [class.vibrate]="false"
         *ngIf="shortcuts && shortcuts.length > 0 && !showMaps" (click)="toggleShortcutsMenu()">
         <i class="pi pi-th-large"></i>

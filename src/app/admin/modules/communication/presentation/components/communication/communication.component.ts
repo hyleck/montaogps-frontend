@@ -41,16 +41,12 @@ import {
   canParticipateInConversation as canParticipateInTeamAwareConversation,
   formatConversationContactName,
   formatConversationDisplayName,
-  isEmployeeConversation,
   toTitleCaseName,
 } from './conversation-team-filter';
 
 interface ChatConversation {
   id: number;
   status: string;
-  shared_employee_conversation?: boolean;
-  shared_team_conversation?: boolean;
-  team_chat_name?: string;
   contact: {
     id: number | string;
     name: string;
@@ -1312,10 +1308,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // ============================
   
   openTransferModal(): void {
-    if (
-      !this.isConversationAssignedToMe()
-      || this.isSharedEmployeeConversation()
-    ) return;
+    if (!this.isConversationAssignedToMe()) return;
     this.showTransferModal = true;
     this.selectedTransferAgentId = null;
     this.isTransferring = false;
@@ -1386,11 +1379,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   selectEsterForTransfer(): void {
-    if (
-      this.isTransferring
-      || !this.isConversationAssignedToMe()
-      || this.isSharedEmployeeConversation()
-    ) return;
+    if (this.isTransferring || !this.isConversationAssignedToMe()) return;
 
     this.selectedTransferAgentId = this.esterTransferAgentId;
     this.confirmTransfer();
@@ -1415,13 +1404,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     ) return;
     
     const transferToEster = this.selectedTransferAgentId === this.esterTransferAgentId;
-    if (
-      transferToEster
-      && this.isSharedEmployeeConversation(this.selectedConversation)
-    ) {
-      this.selectedTransferAgentId = null;
-      return;
-    }
     this.isTransferring = true;
     const conversationId = this.selectedConversation.id;
     const targetAgentId = transferToEster
@@ -1507,9 +1489,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   transferAllToEster(): void {
-    const activeConvs = this.conversations.filter(c =>
-      c.assignee_id !== null && !isEmployeeConversation(c)
-    );
+    const activeConvs = this.conversations.filter(c => !!c.assignee_id);
     if (activeConvs.length === 0) {
       this.messageService.add({ severity: 'info', summary: 'Bandeja limpia', detail: 'No tienes conversaciones activas pendientes por devolver.' });
       return;
@@ -1770,18 +1750,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   getConversationAssigneeLabel(conv: ChatConversation): string {
-    if (!conv.assignee_id) {
-      return isEmployeeConversation(conv)
-        ? 'Disponible para todos'
-        : 'Ester Assistant';
-    }
+    if (!conv.assignee_id) return 'Ester Assistant';
     return (conv.assignee_name || conv.assignee_email || 'otro empleado').trim();
-  }
-
-  isSharedEmployeeConversation(
-    conv: ChatConversation | null = this.selectedConversation,
-  ): boolean {
-    return isEmployeeConversation(conv);
   }
 
   canParticipateInConversation(
@@ -1798,10 +1768,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   ): boolean {
     return !!conv
       && !conv.assignee_id
-      && (
-        isEmployeeConversation(conv)
-        || this.esterAutoReplyActive === false
-      );
+      && this.esterAutoReplyActive === false;
   }
 
   private refreshEsterAutoReplyStatus(force = false): void {
@@ -1849,11 +1816,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   getConversationManagerLabel(
     conv: ChatConversation | null = this.selectedConversation,
   ): string {
-    if (!conv?.assignee_id) {
-      return isEmployeeConversation(conv)
-        ? 'Disponible para todos'
-        : 'Ester Assistant';
-    }
+    if (!conv?.assignee_id) return 'Ester Assistant';
     return String(
       conv.assignee_name
       || conv.assignee_email
@@ -3135,7 +3098,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   private getConversationsFingerprint(convs: ChatConversation[]): string {
-    return convs.map(c => `${c.id}:${c.team_chat_name || ''}:${c.last_message}:${c.last_message_time}:${c.last_message_type ?? ''}:${this.getConversationPreviewFingerprint(c)}:${c.unread_count}:${c.has_unread ? 1 : 0}:${c.waiting_for_reply ? 1 : 0}:${c.priority_urgent ? 1 : 0}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}:${c.reminder_eligible ? 1 : 0}:${c.reminder_waiting_since || ''}:${c.contact.satisfaction_level ?? ''}:${c.campaign_execution_id || ''}:${c.campaign_active ? 1 : 0}:${(c.conversation_objectives || []).map(objective => `${objective.id}-${objective.status}-${objective.updated_at || ''}`).join(',')}`).join('|');
+    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.last_message_type ?? ''}:${this.getConversationPreviewFingerprint(c)}:${c.unread_count}:${c.has_unread ? 1 : 0}:${c.waiting_for_reply ? 1 : 0}:${c.priority_urgent ? 1 : 0}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}:${c.reminder_eligible ? 1 : 0}:${c.reminder_waiting_since || ''}:${c.contact.satisfaction_level ?? ''}:${c.campaign_execution_id || ''}:${c.campaign_active ? 1 : 0}:${(c.conversation_objectives || []).map(objective => `${objective.id}-${objective.status}-${objective.updated_at || ''}`).join(',')}`).join('|');
   }
 
   private getConversationPreviewFingerprint(conversation: ChatConversation): string {
@@ -4149,7 +4112,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return !!(
       conversation
       && this.isConversationAssignedToMe(conversation)
-      && !isEmployeeConversation(conversation)
       && !this.isOutside24hWindow(conversation)
       && latestMessage?.from === 'incoming'
       && latestMessage.id
@@ -5834,7 +5796,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (
       !this.selectedConversation
       || !this.whatsappAgentId
-      || this.isSharedEmployeeConversation(this.selectedConversation)
     ) return;
 
     this.whatsappApi.assignAgentToConversation(this.selectedConversation.id, this.whatsappAgentId).subscribe({
@@ -5864,7 +5825,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const conversation = this.selectedConversation;
     if (
       !conversation?.reminder_eligible
-      || this.isSharedEmployeeConversation(conversation)
       || !conversation.assignee_id
       || this.isConversationAssignedToMe(conversation)
       || this.sendingConversationReminder
@@ -6337,8 +6297,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return formatConversationContactName({
       contact: {
         name: toTitleCaseName(name) || 'Sin Nombre',
-        affiliation_type_id:
-          this.selectedConversation?.contact?.affiliation_type_id,
       },
     });
   }
@@ -6349,7 +6307,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return formatConversationDisplayName({
       contact: {
         name: this.getSelectedContactDisplayName(),
-        affiliation_type_id: conversation.contact.affiliation_type_id,
       },
     });
   }

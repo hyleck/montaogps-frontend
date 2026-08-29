@@ -1,12 +1,7 @@
 export interface TeamFilterableConversation {
   assignee_id?: string | null;
-  shared_employee_conversation?: boolean;
-  shared_team_conversation?: boolean;
-  team_chat_name?: string | null;
   contact?: {
     name?: string | null;
-    affiliation_type_id?: string | null;
-    status?: boolean | null;
   } | null;
 }
 
@@ -15,7 +10,6 @@ export function canParticipateInConversation(
   participantIds: Array<string | null | undefined> = [],
 ): boolean {
   if (!conversation) return false;
-  if (isEmployeeConversation(conversation)) return true;
 
   const assigneeId = String(conversation.assignee_id || '').trim();
   if (!assigneeId) return false;
@@ -23,27 +17,6 @@ export function canParticipateInConversation(
     .map(value => String(value || '').trim())
     .filter(Boolean)
     .includes(assigneeId);
-}
-
-const EMPLOYEE_AFFILIATIONS = new Set([
-  'empleado',
-  'tecnico',
-  'tecnico_empleado',
-  'tecnico_independiente',
-]);
-
-export function isEmployeeConversation(
-  conversation: TeamFilterableConversation | null | undefined,
-): boolean {
-  if (conversation?.contact?.status === false) return false;
-  if (
-    conversation?.shared_employee_conversation === true
-    || conversation?.shared_team_conversation === true
-  ) return true;
-  const affiliation = String(
-    conversation?.contact?.affiliation_type_id || '',
-  ).trim().toLowerCase();
-  return EMPLOYEE_AFFILIATIONS.has(affiliation);
 }
 
 export function toTitleCaseName(value: unknown): string {

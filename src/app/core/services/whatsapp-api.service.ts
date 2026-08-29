@@ -89,6 +89,7 @@ export class WhatsAppApiService {
         includeAll: boolean = false,
         search: string = '',
         attention: 'all' | 'recent' | 'urgent' | 'waiting' | 'unread' = 'all',
+        assignedOnly: boolean = false,
     ): Observable<any> {
         const params: any = { page: page.toString() };
         if (inboxId) {
@@ -105,6 +106,9 @@ export class WhatsAppApiService {
         }
         if (attention !== 'all') {
             params.attention = attention;
+        }
+        if (assignedOnly) {
+            params.assigned_only = 'true';
         }
         return this.http.get(`${this.apiUrl}/conversations`, { params });
     }
@@ -305,19 +309,6 @@ export class WhatsAppApiService {
             {
                 conversation_id: conversationId,
                 language,
-            },
-        );
-    }
-
-    setConversationTeamName(
-        conversationId: number,
-        name: string,
-    ): Observable<{ success: boolean; team_chat_name: string }> {
-        return this.http.post<{ success: boolean; team_chat_name: string }>(
-            `${this.apiUrl}/conversation-team-name`,
-            {
-                conversation_id: conversationId,
-                name,
             },
         );
     }

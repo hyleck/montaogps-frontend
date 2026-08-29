@@ -1,5 +1,6 @@
 /// <reference types="google.maps" />
 
+import { fakeAsync, tick } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { NavbarComponent } from './navbar.component';
 
@@ -60,6 +61,9 @@ describe('NavbarComponent realtime links', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
       { getAllProtocols: () => of([]) } as any,
       systemService as any,
       appUpdateService as any,
@@ -81,6 +85,26 @@ describe('NavbarComponent realtime links', () => {
 
     expect(appUpdateService.applyUpdate).toHaveBeenCalledTimes(1);
   });
+
+  it('keeps the technicians chat at the bottom while its content finishes rendering', fakeAsync(() => {
+    const { component } = createComponent();
+    const scrollElement = {
+      scrollTop: 0,
+      scrollHeight: 700,
+    };
+    component.floatingTechniciansVisible = true;
+    (component as any).floatingTechnicianScroll = {
+      nativeElement: scrollElement,
+    };
+
+    (component as any).scrollFloatingTechnicianToBottom();
+    tick(70);
+    scrollElement.scrollHeight = 1450;
+    tick(400);
+
+    expect(scrollElement.scrollTop).toBe(1450);
+    component.ngOnDestroy();
+  }));
 
   it('opens realtime sharing for multiple selected targets', () => {
     const { component, messageService } = createComponent();

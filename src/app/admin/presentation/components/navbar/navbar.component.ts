@@ -24,8 +24,32 @@ import * as XLSX from 'xlsx-js-style';
 import { MapAlertComponent } from '../map-alert/map-alert.component';
 import { FirebaseNotificationsService, NotificationLog } from '../../../../core/services/firebase-notifications.service';
 import { SupportService } from '../../../../core/services/support.service';
-import { CreateTicketDto, Ticket } from '../../../../core/interfaces/support.interface';
+import {
+  AssignedCommunicationChat,
+  CommunicationNotificationService,
+} from '../../../../core/services/communication-notification.service';
+import { WhatsAppApiService } from '../../../../core/services/whatsapp-api.service';
+import {
+  InternalChatAttachment,
+  InternalChatGroup,
+  InternalChatMessage,
+  InternalChatService,
+} from '../../../../core/services/internal-chat.service';
+import {
+  CreateTicketDto,
+  SupportDiagnosticCapture,
+  SupportAssistantMessage,
+  Ticket,
+} from '../../../../core/interfaces/support.interface';
 import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
+import {
+  formatChatTimelineDate,
+  shouldShowChatDateSeparator,
+} from '../../../../core/utils/chat-timeline.util';
+import {
+  FloatingCommunicationMessage,
+  mapFloatingCommunicationMessage,
+} from './floating-communication-message';
 import {
   ALERT_PRESET_CATEGORIES,
   ALERT_PRESETS,
@@ -77,6 +101,11 @@ interface ManualAlertOption {
   label: string;
   description: string;
   icon: string;
+}
+
+interface AquilesChatMessage extends SupportAssistantMessage {
+  id: number;
+  createdAt: Date;
 }
 
 @Component({
@@ -485,6 +514,48 @@ export class NavbarComponent implements OnInit, OnDestroy {
   activeSupportTab: 'create' | 'list' = 'create';
   userTickets: Ticket[] = [];
   loadingTickets: boolean = false;
+  supportChatMessages: AquilesChatMessage[] = [];
+  supportChatInput: string = '';
+  supportAssistantThinking: boolean = false;
+  supportDraftReady: boolean = false;
+  floatingAquilesVisible: boolean = false;
+  supportDiagnosticCapture: SupportDiagnosticCapture | null = null;
+  capturingSupportDiagnostics: boolean = false;
+  private supportChatMessageSequence: number = 0;
+  private supportDiagnosticRequestSequence: number = 0;
+  @ViewChild('supportChatScroll') supportChatScroll?: ElementRef<HTMLDivElement>;
+  @ViewChild('floatingSupportChatScroll') floatingSupportChatScroll?: ElementRef<HTMLDivElement>;
+
+  // Chat flotante de conversaciones asignadas
+  assignedCommunicationChats: AssignedCommunicationChat[] = [];
+  floatingCommunicationVisible: boolean = false;
+  selectedFloatingCommunicationChat: AssignedCommunicationChat | null = null;
+  floatingCommunicationMessages: FloatingCommunicationMessage[] = [];
+  floatingCommunicationInput: string = '';
+  loadingFloatingCommunication: boolean = false;
+  sendingFloatingCommunication: boolean = false;
+  floatingCommunicationError: string = '';
+  private floatingCommunicationRequestSequence: number = 0;
+  private floatingCommunicationFallbackChat: AssignedCommunicationChat | null = null;
+  private readonly floatingCommunicationAvatarErrors = new Set<string>();
+  @ViewChild('floatingCommunicationScroll') floatingCommunicationScroll?: ElementRef<HTMLDivElement>;
+
+  // Chat flotante de grupos de instalación por técnico
+  floatingTechniciansVisible: boolean = false;
+  floatingTechnicianGroups: InternalChatGroup[] = [];
+  selectedFloatingTechnicianGroup: InternalChatGroup | null = null;
+  floatingTechnicianMessages: InternalChatMessage[] = [];
+  floatingTechnicianInput: string = '';
+  loadingFloatingTechnicianGroups: boolean = false;
+  loadingFloatingTechnicianMessages: boolean = false;
+  sendingFloatingTechnicianMessage: boolean = false;
+  floatingTechnicianError: string = '';
+  private floatingTechnicianRequestSequence: number = 0;
+  private floatingTechnicianPollingInterval?: ReturnType<typeof setInterval>;
+  private floatingTechnicianScrollTimeout?: ReturnType<typeof setTimeout>;
+  private floatingTechnicianScrollSequence: number = 0;
+  private readonly floatingTechnicianAvatarErrors = new Set<string>();
+  @ViewChild('floatingTechnicianScroll') floatingTechnicianScroll?: ElementRef<HTMLDivElement>;
 
   // Detalles del ticket
   ticketDetailsDialogVisible: boolean = false;
@@ -584,14 +655,627 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   openSupportModal() {
-    console.log('[SUPPORT] Opening technical support modal from navbar');
-    this.newTicket = {
-      title: '',
-      description: '',
-      priority: 'medium'
-    };
+    if (!this.supportChatMessages.length) {
+      this.resetSupportChat();
+    }
+    this.activeSupportTab = 'create';
+    this.floatingAquilesVisible = false;
+    this.floatingCommunicationVisible = false;
+    this.closeFloatingTechnicians();
+    this.supportDialogVisible = true;
+    this.scrollSupportChatToBottom();
+  }
+
+  openFloatingAquiles(): void {
+    if (!this.supportChatMessages.length) {
+      this.resetSupportChat();
+    }
+    this.supportDialogVisible = false;
+    this.floatingCommunicationVisible = false;
+    this.closeFloatingTechnicians();
+    this.activeSupportTab = 'create';
+    this.floatingAquilesVisible = true;
+    this.scrollSupportChatToBottom();
+  }
+
+  closeFloatingAquiles(): void {
+    this.floatingAquilesVisible = false;
+  }
+
+  expandFloatingAquiles(): void {
+    this.floatingAquilesVisible = false;
     this.activeSupportTab = 'create';
     this.supportDialogVisible = true;
+    this.scrollSupportChatToBottom();
+  }
+
+  openFloatingCommunication(
+    conversationId?: number | null,
+    fallbackChat?: AssignedCommunicationChat | null,
+  ): void {
+    const requestedId = Number(conversationId || 0);
+    const chat = this.assignedCommunicationChats.find(
+      item => item.conversationId === requestedId,
+    ) || (
+      fallbackChat?.conversationId === requestedId
+        ? fallbackChat
+        : null
+    ) || this.assignedCommunicationChats[0];
+    if (!chat) return;
+    this.floatingCommunicationFallbackChat = this.assignedCommunicationChats.some(
+      item => item.conversationId === chat.conversationId,
+    ) ? null : chat;
+    this.floatingAquilesVisible = false;
+    this.supportDialogVisible = false;
+    this.closeFloatingTechnicians();
+    this.floatingCommunicationVisible = true;
+    this.selectFloatingCommunicationChat(chat, true);
+  }
+
+  closeFloatingCommunication(): void {
+    this.floatingCommunicationVisible = false;
+    this.floatingCommunicationFallbackChat = null;
+    this.floatingCommunicationRequestSequence += 1;
+  }
+
+  get floatingCommunicationChatTabs(): AssignedCommunicationChat[] {
+    const selected = this.selectedFloatingCommunicationChat;
+    if (
+      !selected
+      || this.assignedCommunicationChats.some(
+        chat => chat.conversationId === selected.conversationId,
+      )
+    ) {
+      return this.assignedCommunicationChats;
+    }
+    return [selected, ...this.assignedCommunicationChats];
+  }
+
+  expandFloatingCommunication(): void {
+    const conversationId = this.selectedFloatingCommunicationChat?.conversationId;
+    this.closeFloatingCommunication();
+    if (!conversationId) return;
+    void this.router.navigate([
+      '/admin/communication',
+      'chat',
+      conversationId,
+    ]);
+  }
+
+  selectFloatingCommunicationChat(
+    chat: AssignedCommunicationChat,
+    forceReload = false,
+  ): void {
+    if (!chat?.conversationId) return;
+    const changed = this.selectedFloatingCommunicationChat?.conversationId
+      !== chat.conversationId;
+    this.selectedFloatingCommunicationChat = chat;
+    if (changed) {
+      this.floatingCommunicationMessages = [];
+      this.floatingCommunicationError = '';
+    }
+    this.communicationNotifications.markWhatsAppConversationRead(chat.conversationId);
+    if (changed || forceReload || !this.floatingCommunicationMessages.length) {
+      this.loadFloatingCommunicationMessages();
+    }
+  }
+
+  sendFloatingCommunicationMessage(): void {
+    const chat = this.selectedFloatingCommunicationChat;
+    const message = this.floatingCommunicationInput.trim();
+    if (!chat || !message || this.sendingFloatingCommunication) return;
+
+    const optimisticMessage: FloatingCommunicationMessage = {
+      id: `local-${Date.now()}`,
+      from: 'me',
+      text: message,
+      createdAt: new Date(),
+      authorName: 'Tú',
+      isCurrentUser: true,
+    };
+    this.floatingCommunicationMessages = [
+      ...this.floatingCommunicationMessages,
+      optimisticMessage,
+    ];
+    this.floatingCommunicationInput = '';
+    this.sendingFloatingCommunication = true;
+    this.floatingCommunicationError = '';
+    this.scrollFloatingCommunicationToBottom();
+
+    const firstName = String(this.currentUser?.name || 'Agente')
+      .trim()
+      .split(/\s+/)[0] || 'Agente';
+    const apiMessage = `> ${firstName}\n${message.replace(/[¿¡]/g, '')}`;
+    this.whatsappApi.sendConversationMessage(
+      chat.conversationId,
+      apiMessage,
+      undefined,
+      undefined,
+      String(this.currentUser?.id || ''),
+    )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: response => {
+          this.sendingFloatingCommunication = false;
+          if (response?.success === false) {
+            this.floatingCommunicationMessages = [
+              ...this.floatingCommunicationMessages.filter(
+                item => item.id !== optimisticMessage.id,
+              ),
+              {
+                id: `error-${Date.now()}`,
+                from: 'system',
+                text: getApiErrorMessage(response, 'No se pudo enviar el mensaje'),
+                createdAt: new Date(),
+                authorName: '',
+                isCurrentUser: false,
+              },
+            ];
+            this.scrollFloatingCommunicationToBottom();
+            return;
+          }
+          this.scrollFloatingCommunicationToBottom();
+        },
+        error: error => {
+          this.sendingFloatingCommunication = false;
+          this.floatingCommunicationMessages = [
+            ...this.floatingCommunicationMessages.filter(
+              item => item.id !== optimisticMessage.id,
+            ),
+            {
+              id: `error-${Date.now()}`,
+              from: 'system',
+              text: getApiErrorMessage(error, 'No se pudo enviar el mensaje'),
+              createdAt: new Date(),
+              authorName: '',
+              isCurrentUser: false,
+            },
+          ];
+          this.scrollFloatingCommunicationToBottom();
+        },
+      });
+  }
+
+  onFloatingCommunicationKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    event.preventDefault();
+    this.sendFloatingCommunicationMessage();
+  }
+
+  getFloatingCommunicationInitials(chat?: AssignedCommunicationChat | null): string {
+    const name = String(chat?.contactName || '').trim();
+    if (!name) return '??';
+    return name.split(/\s+/).slice(0, 2)
+      .map(part => part.charAt(0).toUpperCase()).join('');
+  }
+
+  hasFloatingCommunicationAvatar(chat?: AssignedCommunicationChat | null): boolean {
+    const avatar = String(chat?.avatar || '').trim();
+    return !!avatar && !this.floatingCommunicationAvatarErrors.has(avatar);
+  }
+
+  onFloatingCommunicationAvatarError(chat?: AssignedCommunicationChat | null): void {
+    const avatar = String(chat?.avatar || '').trim();
+    if (avatar) this.floatingCommunicationAvatarErrors.add(avatar);
+  }
+
+  shouldShowFloatingCommunicationDate(index: number): boolean {
+    return shouldShowChatDateSeparator(
+      this.floatingCommunicationMessages[index]?.createdAt,
+      this.floatingCommunicationMessages[index - 1]?.createdAt,
+    );
+  }
+
+  formatFloatingCommunicationDate(value: Date): string {
+    return formatChatTimelineDate(value);
+  }
+
+  trackAssignedCommunicationChat(
+    _index: number,
+    chat: AssignedCommunicationChat,
+  ): number {
+    return chat.conversationId;
+  }
+
+  trackFloatingCommunicationMessage(
+    _index: number,
+    message: FloatingCommunicationMessage,
+  ): number | string {
+    return message.id;
+  }
+
+  private loadFloatingCommunicationMessages(): void {
+    const conversationId = this.selectedFloatingCommunicationChat?.conversationId;
+    if (!conversationId) return;
+    const requestId = ++this.floatingCommunicationRequestSequence;
+    this.loadingFloatingCommunication = true;
+    this.floatingCommunicationError = '';
+
+    this.whatsappApi.getConversationMessages(conversationId, 50)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: response => {
+          if (
+            requestId !== this.floatingCommunicationRequestSequence
+            || this.selectedFloatingCommunicationChat?.conversationId !== conversationId
+          ) return;
+          this.loadingFloatingCommunication = false;
+          if (response?.success === false) {
+            this.floatingCommunicationError = getApiErrorMessage(
+              response,
+              'No se pudieron cargar los mensajes',
+            );
+            return;
+          }
+          const messages = Array.isArray(response?.messages) ? response.messages : [];
+          this.floatingCommunicationMessages = messages.map((message: any) =>
+            mapFloatingCommunicationMessage(
+              message,
+              this.currentUser,
+              this.selectedFloatingCommunicationChat?.contactName || 'Contacto',
+            )
+          );
+          this.communicationNotifications.markWhatsAppConversationRead(conversationId);
+          this.scrollFloatingCommunicationToBottom();
+        },
+        error: error => {
+          if (requestId !== this.floatingCommunicationRequestSequence) return;
+          this.loadingFloatingCommunication = false;
+          this.floatingCommunicationError = getApiErrorMessage(
+            error,
+            'No se pudieron cargar los mensajes',
+          );
+        },
+      });
+  }
+
+  private scrollFloatingCommunicationToBottom(): void {
+    const scroll = () => {
+      const element = this.floatingCommunicationScroll?.nativeElement;
+      if (element) element.scrollTop = element.scrollHeight;
+    };
+    setTimeout(scroll);
+    setTimeout(scroll, 120);
+  }
+
+  openFloatingTechnicians(groupId?: string | null): void {
+    this.floatingAquilesVisible = false;
+    this.floatingCommunicationVisible = false;
+    this.supportDialogVisible = false;
+    this.floatingTechniciansVisible = true;
+    this.loadFloatingTechnicianGroups(groupId || null, true);
+  }
+
+  closeFloatingTechnicians(): void {
+    this.floatingTechniciansVisible = false;
+    this.floatingTechnicianRequestSequence += 1;
+    this.stopFloatingTechnicianPolling();
+    this.stopFloatingTechnicianAutoScroll();
+  }
+
+  expandFloatingTechnicians(): void {
+    const groupId = this.selectedFloatingTechnicianGroup?.id;
+    this.closeFloatingTechnicians();
+    void this.router.navigate(['/admin/communication', 'grupo'], {
+      queryParams: groupId ? { groupId } : undefined,
+    });
+  }
+
+  selectFloatingTechnicianGroup(
+    group: InternalChatGroup,
+    forceReload = false,
+  ): void {
+    if (!group?.id) return;
+    const changed = this.selectedFloatingTechnicianGroup?.id !== group.id;
+    this.selectedFloatingTechnicianGroup = group;
+    if (changed) {
+      this.floatingTechnicianMessages = [];
+      this.floatingTechnicianInput = '';
+      this.floatingTechnicianError = '';
+    }
+    this.setFloatingTechnicianGroupRead(group.id);
+    if (changed || forceReload || !this.floatingTechnicianMessages.length) {
+      this.loadFloatingTechnicianMessages();
+    }
+  }
+
+  sendFloatingTechnicianMessage(): void {
+    const groupId = this.selectedFloatingTechnicianGroup?.id;
+    const text = this.floatingTechnicianInput.trim();
+    if (!groupId || !text || this.sendingFloatingTechnicianMessage) return;
+
+    this.sendingFloatingTechnicianMessage = true;
+    this.floatingTechnicianInput = '';
+    this.floatingTechnicianError = '';
+    this.internalChatService.sendMessage(text, [], 'text', groupId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: response => {
+          this.sendingFloatingTechnicianMessage = false;
+          const message = response?.message;
+          if (
+            message
+            && groupId === this.selectedFloatingTechnicianGroup?.id
+            && !this.floatingTechnicianMessages.some(item => item._id === message._id)
+          ) {
+            this.floatingTechnicianMessages = [...this.floatingTechnicianMessages, message];
+          }
+          this.scrollFloatingTechnicianToBottom();
+        },
+        error: error => {
+          this.sendingFloatingTechnicianMessage = false;
+          if (groupId === this.selectedFloatingTechnicianGroup?.id) {
+            this.floatingTechnicianInput = text;
+          }
+          this.floatingTechnicianError = getApiErrorMessage(
+            error,
+            'No se pudo enviar el mensaje al técnico',
+          );
+        },
+      });
+  }
+
+  onFloatingTechnicianKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    event.preventDefault();
+    this.sendFloatingTechnicianMessage();
+  }
+
+  getFloatingTechnicianGroupName(group?: InternalChatGroup | null): string {
+    const technicianName = `${group?.technician?.name || ''} ${group?.technician?.lastName || ''}`.trim();
+    return technicianName
+      || String(group?.name || '').replace(/^Instalaciones\s*-\s*/i, '').trim()
+      || 'Técnico';
+  }
+
+  getFloatingTechnicianGroupInitials(group?: InternalChatGroup | null): string {
+    return this.getFloatingChatInitials(this.getFloatingTechnicianGroupName(group));
+  }
+
+  hasFloatingTechnicianAvatar(group?: InternalChatGroup | null): boolean {
+    const avatar = String(group?.technician?.photo || '').trim();
+    return !!avatar && !this.floatingTechnicianAvatarErrors.has(avatar);
+  }
+
+  onFloatingTechnicianAvatarError(group?: InternalChatGroup | null): void {
+    const avatar = String(group?.technician?.photo || '').trim();
+    if (avatar) this.floatingTechnicianAvatarErrors.add(avatar);
+  }
+
+  isMyFloatingTechnicianMessage(message: InternalChatMessage): boolean {
+    const currentUserId = String(this.currentUser?.id || this.currentUser?._id || '');
+    return String(message?.author?._id || '') === currentUserId;
+  }
+
+  getFloatingTechnicianAuthorName(message: InternalChatMessage): string {
+    const author = message?.author;
+    return `${author?.name || ''} ${author?.last_name || ''}`.trim()
+      || author?.email
+      || 'Técnico';
+  }
+
+  getFloatingTechnicianAuthorInitials(message: InternalChatMessage): string {
+    return this.getFloatingChatInitials(this.getFloatingTechnicianAuthorName(message));
+  }
+
+  shouldShowFloatingTechnicianDate(index: number): boolean {
+    return shouldShowChatDateSeparator(
+      this.floatingTechnicianMessages[index]?.createdAt,
+      this.floatingTechnicianMessages[index - 1]?.createdAt,
+    );
+  }
+
+  formatFloatingTechnicianDate(value: Date | string | number | null | undefined): string {
+    return formatChatTimelineDate(value);
+  }
+
+  isFloatingTechnicianImage(attachment: InternalChatAttachment): boolean {
+    const mimeType = String(attachment?.mimeType || '').toLowerCase();
+    const url = String(attachment?.url || '').toLowerCase().split('?')[0];
+    return mimeType.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/.test(url);
+  }
+
+  isFloatingTechnicianVideo(attachment: InternalChatAttachment): boolean {
+    const mimeType = String(attachment?.mimeType || '').toLowerCase();
+    const url = String(attachment?.url || '').toLowerCase().split('?')[0];
+    return mimeType.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/.test(url);
+  }
+
+  isFloatingTechnicianAudio(attachment: InternalChatAttachment): boolean {
+    const mimeType = String(attachment?.mimeType || '').toLowerCase();
+    const url = String(attachment?.url || '').toLowerCase().split('?')[0];
+    return attachment?.fileType === 'audio'
+      || mimeType.startsWith('audio/')
+      || /\.(mp3|m4a|aac|ogg|oga|wav|webm)$/.test(url);
+  }
+
+  getFloatingTechnicianAttachmentName(attachment: InternalChatAttachment): string {
+    return attachment?.name || attachment?.url?.split('/').pop() || 'Archivo';
+  }
+
+  onFloatingTechnicianMediaReady(): void {
+    if (!this.floatingTechniciansVisible) return;
+    this.scrollFloatingTechnicianToBottom();
+  }
+
+  trackFloatingTechnicianGroup(_index: number, group: InternalChatGroup): string {
+    return group.id;
+  }
+
+  trackFloatingTechnicianMessage(_index: number, message: InternalChatMessage): string {
+    return message._id;
+  }
+
+  private loadFloatingTechnicianGroups(
+    requestedGroupId: string | null = null,
+    loadMessages = false,
+    silent = false,
+  ): void {
+    if (!silent) this.loadingFloatingTechnicianGroups = true;
+    this.internalChatService.getGroups()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: response => {
+          this.loadingFloatingTechnicianGroups = false;
+          const groups = (response?.groups || []).filter(
+            group => group.type === 'installation',
+          );
+          const previousId = this.selectedFloatingTechnicianGroup?.id || '';
+          this.floatingTechnicianGroups = groups;
+          this.communicationNotifications.syncTechnicianPendingCount(
+            groups.reduce((total, group) => total + Math.max(0, Number(group.unreadCount) || 0), 0),
+          );
+
+          const selected = groups.find(group => group.id === requestedGroupId)
+            || groups.find(group => group.id === previousId)
+            || groups[0]
+            || null;
+          const changed = selected?.id !== previousId;
+          this.selectedFloatingTechnicianGroup = selected;
+
+          if (!selected) {
+            this.floatingTechnicianMessages = [];
+            this.stopFloatingTechnicianPolling();
+            return;
+          }
+          if (
+            this.floatingTechniciansVisible
+            && (loadMessages || changed || !this.floatingTechnicianMessages.length)
+          ) {
+            this.selectFloatingTechnicianGroup(selected, true);
+          }
+        },
+        error: error => {
+          this.loadingFloatingTechnicianGroups = false;
+          if (this.floatingTechniciansVisible) {
+            this.floatingTechnicianError = getApiErrorMessage(
+              error,
+              'No se pudieron cargar los chats de técnicos',
+            );
+          }
+        },
+      });
+  }
+
+  private loadFloatingTechnicianMessages(): void {
+    const groupId = this.selectedFloatingTechnicianGroup?.id;
+    if (!groupId) return;
+    const requestId = ++this.floatingTechnicianRequestSequence;
+    this.loadingFloatingTechnicianMessages = true;
+    this.floatingTechnicianError = '';
+
+    this.internalChatService.getMessages({ limit: 50, groupId })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: response => {
+          if (
+            requestId !== this.floatingTechnicianRequestSequence
+            || groupId !== this.selectedFloatingTechnicianGroup?.id
+          ) return;
+          this.loadingFloatingTechnicianMessages = false;
+          this.floatingTechnicianMessages = response?.messages || [];
+          this.setFloatingTechnicianGroupRead(groupId);
+          this.scrollFloatingTechnicianToBottom();
+          this.startFloatingTechnicianPolling();
+        },
+        error: error => {
+          if (requestId !== this.floatingTechnicianRequestSequence) return;
+          this.loadingFloatingTechnicianMessages = false;
+          this.floatingTechnicianError = getApiErrorMessage(
+            error,
+            'No se pudieron cargar los mensajes del técnico',
+          );
+          this.stopFloatingTechnicianPolling();
+        },
+      });
+  }
+
+  private setFloatingTechnicianGroupRead(groupId: string): void {
+    this.floatingTechnicianGroups = this.floatingTechnicianGroups.map(group =>
+      group.id === groupId ? { ...group, unreadCount: 0 } : group,
+    );
+    this.communicationNotifications.syncTechnicianPendingCount(
+      this.floatingTechnicianGroups.reduce(
+        (total, group) => total + Math.max(0, Number(group.unreadCount) || 0),
+        0,
+      ),
+    );
+    this.internalChatService.markGroupRead(groupId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ error: () => undefined });
+  }
+
+  private startFloatingTechnicianPolling(): void {
+    this.stopFloatingTechnicianPolling();
+    this.floatingTechnicianPollingInterval = setInterval(() => {
+      if (!this.floatingTechniciansVisible) return;
+      this.loadFloatingTechnicianGroups(null, false, true);
+      const groupId = this.selectedFloatingTechnicianGroup?.id;
+      if (!groupId) return;
+      const lastId = this.floatingTechnicianMessages[this.floatingTechnicianMessages.length - 1]?._id;
+      this.internalChatService.getMessages({ limit: 50, after: lastId, groupId })
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: response => {
+            if (groupId !== this.selectedFloatingTechnicianGroup?.id) return;
+            const newMessages = (response?.messages || []).filter(
+              message => !this.floatingTechnicianMessages.some(existing => existing._id === message._id),
+            );
+            if (!newMessages.length) return;
+            this.floatingTechnicianMessages = [...this.floatingTechnicianMessages, ...newMessages];
+            this.setFloatingTechnicianGroupRead(groupId);
+            this.scrollFloatingTechnicianToBottom();
+          },
+          error: () => undefined,
+        });
+    }, 6000);
+  }
+
+  private stopFloatingTechnicianPolling(): void {
+    if (!this.floatingTechnicianPollingInterval) return;
+    clearInterval(this.floatingTechnicianPollingInterval);
+    this.floatingTechnicianPollingInterval = undefined;
+  }
+
+  private scrollFloatingTechnicianToBottom(): void {
+    this.stopFloatingTechnicianAutoScroll();
+    const sequence = ++this.floatingTechnicianScrollSequence;
+    let previousHeight = -1;
+    let stablePasses = 0;
+    let attempts = 0;
+
+    const scrollWhenStable = () => {
+      if (sequence !== this.floatingTechnicianScrollSequence) return;
+      const element = this.floatingTechnicianScroll?.nativeElement;
+      if (!element || !this.floatingTechniciansVisible) return;
+
+      const currentHeight = element.scrollHeight;
+      element.scrollTop = currentHeight;
+      stablePasses = currentHeight === previousHeight ? stablePasses + 1 : 0;
+      previousHeight = currentHeight;
+      attempts += 1;
+
+      if (attempts < 14 && stablePasses < 3) {
+        this.floatingTechnicianScrollTimeout = setTimeout(scrollWhenStable, 60);
+      } else {
+        this.floatingTechnicianScrollTimeout = undefined;
+      }
+    };
+
+    this.floatingTechnicianScrollTimeout = setTimeout(scrollWhenStable);
+  }
+
+  private stopFloatingTechnicianAutoScroll(): void {
+    this.floatingTechnicianScrollSequence += 1;
+    if (!this.floatingTechnicianScrollTimeout) return;
+    clearTimeout(this.floatingTechnicianScrollTimeout);
+    this.floatingTechnicianScrollTimeout = undefined;
+  }
+
+  private getFloatingChatInitials(name: string): string {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return 'TC';
+    return parts.slice(0, 2).map(part => part.charAt(0).toUpperCase()).join('');
   }
 
   showTicketList() {
@@ -601,6 +1285,148 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   showCreateForm() {
     this.activeSupportTab = 'create';
+    if (!this.supportChatMessages.length) {
+      this.resetSupportChat();
+    }
+    this.scrollSupportChatToBottom();
+  }
+
+  resetSupportChat(): void {
+    const firstName = String(this.currentUser?.name || '').trim().split(/\s+/)[0];
+    this.newTicket = {
+      title: '',
+      description: '',
+      priority: 'medium'
+    };
+    this.supportChatInput = '';
+    this.supportAssistantThinking = false;
+    this.supportDraftReady = false;
+    this.supportDiagnosticCapture = null;
+    this.capturingSupportDiagnostics = false;
+    this.supportDiagnosticRequestSequence += 1;
+    this.supportChatMessages = [];
+    this.supportChatMessageSequence = 0;
+    this.addSupportChatMessage(
+      'assistant',
+      `Hola${firstName ? `, ${firstName}` : ''}. Soy Aquiles, tu asistente de soporte. Cuéntame con tus propias palabras qué problema tienes y qué esperabas que ocurriera.`
+    );
+  }
+
+  sendSupportChatMessage(): void {
+    const content = this.supportChatInput.trim();
+    if (!content || this.supportAssistantThinking || this.savingTicket) return;
+
+    this.addSupportChatMessage('user', content);
+    this.supportChatInput = '';
+    this.supportDraftReady = false;
+    this.supportAssistantThinking = true;
+    this.capturingSupportDiagnostics = true;
+    this.scrollSupportChatToBottom();
+
+    const diagnosticRequestId = ++this.supportDiagnosticRequestSequence;
+    void this.supportService.captureAquilesDiagnostics()
+      .then(capture => {
+        if (diagnosticRequestId !== this.supportDiagnosticRequestSequence) return;
+        this.supportDiagnosticCapture = capture;
+        this.capturingSupportDiagnostics = false;
+        this.requestAquilesResponse(diagnosticRequestId);
+      })
+      .catch(() => {
+        if (diagnosticRequestId !== this.supportDiagnosticRequestSequence) return;
+        this.capturingSupportDiagnostics = false;
+        this.requestAquilesResponse(diagnosticRequestId);
+      });
+  }
+
+  private requestAquilesResponse(diagnosticRequestId: number): void {
+    const capture = this.supportDiagnosticCapture;
+
+    this.supportService.chatWithAquiles({
+      messages: this.supportChatMessages.map(message => ({
+        role: message.role,
+        content: message.content,
+      })),
+      route: this.router.url,
+      browser: this.getSupportBrowserContext(),
+      diagnostics: capture?.summary,
+      screenshot_data_url: capture?.screenshotDataUrl,
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: response => {
+          if (diagnosticRequestId !== this.supportDiagnosticRequestSequence) return;
+          this.supportAssistantThinking = false;
+          this.addSupportChatMessage('assistant', response.message);
+          this.supportDraftReady = Boolean(
+            response.ready && response.title?.trim() && response.description?.trim()
+          );
+          if (this.supportDraftReady) {
+            this.newTicket = {
+              title: response.title.trim(),
+              description: response.description.trim(),
+              priority: response.priority || 'medium',
+            };
+          }
+          this.scrollSupportChatToBottom();
+        },
+        error: error => {
+          if (diagnosticRequestId !== this.supportDiagnosticRequestSequence) return;
+          console.error('[SUPPORT] Aquiles assistant error:', error);
+          this.supportAssistantThinking = false;
+          this.addSupportChatMessage(
+            'assistant',
+            'No pude procesar ese mensaje en este momento. Tu explicación no se perdió; intenta enviarla nuevamente.'
+          );
+          this.scrollSupportChatToBottom();
+        },
+      });
+  }
+
+  onSupportChatKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    event.preventDefault();
+    this.sendSupportChatMessage();
+  }
+
+  editSupportDraft(): void {
+    this.supportDraftReady = false;
+    this.addSupportChatMessage(
+      'assistant',
+      'Claro. Dime qué dato quieres corregir o qué información adicional debo incluir.'
+    );
+    this.scrollSupportChatToBottom();
+  }
+
+  private addSupportChatMessage(role: 'user' | 'assistant', content: string): void {
+    this.supportChatMessageSequence += 1;
+    this.supportChatMessages = [
+      ...this.supportChatMessages,
+      {
+        id: this.supportChatMessageSequence,
+        role,
+        content,
+        createdAt: new Date(),
+      },
+    ];
+  }
+
+  private scrollSupportChatToBottom(): void {
+    const scroll = () => {
+      const elements = [
+        this.supportChatScroll?.nativeElement,
+        this.floatingSupportChatScroll?.nativeElement,
+      ];
+      elements.forEach(element => {
+        if (element) element.scrollTop = element.scrollHeight;
+      });
+    };
+    setTimeout(scroll);
+    setTimeout(scroll, 120);
+  }
+
+  private getSupportBrowserContext(): string {
+    if (typeof navigator === 'undefined') return '';
+    return String(navigator.userAgent || '').slice(0, 280);
   }
 
   loadUserTickets() {
@@ -648,17 +1474,38 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   saveSupportTicket() {
-    if (!this.newTicket.title || !this.newTicket.description) {
+    if (!this.supportDraftReady || !this.newTicket.title || !this.newTicket.description) {
       this.messageService.add({
         severity: 'warn',
         summary: 'Atención',
-        detail: 'Por favor complete el título y la descripción'
+        detail: 'Completa la conversación con Aquiles y confirma el resumen del ticket.'
       });
       return;
     }
 
     this.savingTicket = true;
-    this.supportService.createTicket(this.newTicket).subscribe({
+    this.capturingSupportDiagnostics = true;
+    const diagnosticRequestId = ++this.supportDiagnosticRequestSequence;
+    void this.supportService.captureAquilesDiagnostics()
+      .then(capture => {
+        if (diagnosticRequestId !== this.supportDiagnosticRequestSequence) return;
+        this.supportDiagnosticCapture = capture;
+        this.capturingSupportDiagnostics = false;
+        this.createSupportTicketWithDiagnostics(capture);
+      })
+      .catch(() => {
+        if (diagnosticRequestId !== this.supportDiagnosticRequestSequence) return;
+        this.capturingSupportDiagnostics = false;
+        this.createSupportTicketWithDiagnostics(this.supportDiagnosticCapture);
+      });
+  }
+
+  private createSupportTicketWithDiagnostics(
+    capture: SupportDiagnosticCapture | null,
+  ): void {
+    this.supportService.createTicket(this.newTicket, capture)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
@@ -666,11 +1513,19 @@ export class NavbarComponent implements OnInit, OnDestroy {
           detail: 'Ticket creado correctamente'
         });
 
-        // Refrescar lista y cambiar a pestaña de listado
+        this.supportDraftReady = false;
         this.loadUserTickets();
-        setTimeout(() => {
-          this.activeSupportTab = 'list';
-        }, 500);
+        if (this.floatingAquilesVisible) {
+          this.addSupportChatMessage(
+            'assistant',
+            'Listo, tu ticket fue creado correctamente. El equipo de soporte ya puede revisarlo.'
+          );
+          this.scrollSupportChatToBottom();
+        } else {
+          setTimeout(() => {
+            this.activeSupportTab = 'list';
+          }, 500);
+        }
 
         this.savingTicket = false;
       },
@@ -707,6 +1562,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private alertsService: AlertsService,
     private firebaseNotificationsService: FirebaseNotificationsService,
     private supportService: SupportService,
+    private communicationNotifications: CommunicationNotificationService,
+    private whatsappApi: WhatsAppApiService,
+    private internalChatService: InternalChatService,
     private protocolsService: ProtocolsService,
     private systemService: SystemService,
     private appUpdateService: AppUpdateService
@@ -749,6 +1607,51 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.communicationNotifications.assignedChats$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(chats => {
+        const previous = this.selectedFloatingCommunicationChat;
+        this.assignedCommunicationChats = chats;
+        if (!this.floatingCommunicationVisible) return;
+        const selected = chats.find(
+          chat => chat.conversationId === previous?.conversationId,
+        );
+        if (!selected) {
+          if (
+            previous
+            && this.floatingCommunicationFallbackChat?.conversationId
+              === previous.conversationId
+          ) {
+            return;
+          }
+          if (chats.length) this.selectFloatingCommunicationChat(chats[0], true);
+          else this.closeFloatingCommunication();
+          return;
+        }
+        this.floatingCommunicationFallbackChat = null;
+        const hasChanged = selected.time !== previous?.time
+          || selected.lastMessage !== previous?.lastMessage;
+        this.selectedFloatingCommunicationChat = selected;
+        if (hasChanged) this.loadFloatingCommunicationMessages();
+      });
+
+    this.communicationNotifications.floatingAssignedChatRequested$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(request => this.openFloatingCommunication(
+        request.conversationId,
+        request.chat,
+      ));
+
+    this.communicationNotifications.floatingTechniciansRequested$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(groupId => this.openFloatingTechnicians(groupId));
+
+    this.loadFloatingTechnicianGroups();
+
+    this.supportService.floatingAquilesRequested$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.openFloatingAquiles());
+
     this.appUpdateService.updateAvailable$
       .pipe(takeUntil(this.destroy$))
       .subscribe(available => {
@@ -816,6 +1719,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.stopFloatingTechnicianPolling();
+    this.stopFloatingTechnicianAutoScroll();
     this.destroy$.next();
     this.destroy$.complete();
   }

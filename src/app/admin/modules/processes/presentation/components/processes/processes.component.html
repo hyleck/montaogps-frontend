@@ -1,86 +1,9 @@
 <div class="processes-page">
     <p-toast></p-toast>
 
-    <header class="processes-hero">
-        <div class="processes-hero__identity">
-            <div class="processes-hero__icon" aria-hidden="true">
-                <i class="pi pi-history"></i>
-            </div>
-            <div>
-                <span class="processes-eyebrow">Trazabilidad operativa</span>
-                <h1>Procesos</h1>
-                <p>Consulta, filtra y verifica cada cambio realizado sobre las cuentas y sus dispositivos.</p>
-            </div>
-        </div>
-
-        <div class="processes-hero__actions">
-            <div class="period-indicator">
-                <i class="pi pi-calendar"></i>
-                <div>
-                    <span>Período consultado</span>
-                    <strong>{{ getPeriodLabel() }}</strong>
-                </div>
-            </div>
-            <button type="button" pButton icon="pi pi-file-excel" label="Exportar"
-                class="p-button-outlined processes-export-button" (click)="exportExcel()">
-            </button>
-        </div>
-    </header>
-
-    <section class="processes-overview" aria-label="Resumen de procesos">
-        <article class="overview-card overview-card--total">
-            <div class="overview-card__icon"><i class="pi pi-database"></i></div>
-            <div class="overview-card__copy">
-                <span>Total histórico</span>
-                <strong>{{ stats?.totalProcesses || 0 | number }}</strong>
-                <small>Procesos registrados</small>
-            </div>
-        </article>
-
-        <article class="overview-card">
-            <div class="overview-card__icon overview-card__icon--results"><i class="pi pi-filter"></i></div>
-            <div class="overview-card__copy">
-                <span>En este período</span>
-                <strong>{{ totalRecords | number }}</strong>
-                <small>Coinciden con la consulta</small>
-            </div>
-        </article>
-
-        <article class="overview-card overview-card--pending">
-            <div class="overview-card__icon"><i class="pi pi-clock"></i></div>
-            <div class="overview-card__copy">
-                <span>Pendientes</span>
-                <strong>{{ getVisibleStatusCount('pending') }}</strong>
-                <small>En esta página</small>
-            </div>
-        </article>
-
-        <article class="overview-card overview-card--verified">
-            <div class="overview-card__icon"><i class="pi pi-check-circle"></i></div>
-            <div class="overview-card__copy">
-                <span>Verificados</span>
-                <strong>{{ getVisibleStatusCount('verified') }}</strong>
-                <small>En esta página</small>
-            </div>
-        </article>
-    </section>
-
-    <section class="process-types" *ngIf="stats?.processesByType?.length">
-        <div class="process-types__heading">
-            <span>Actividad por tipo</span>
-            <small>Histórico</small>
-        </div>
-        <div class="process-types__list">
-            <div class="process-type-stat" *ngFor="let stat of stats.processesByType">
-                <span>{{ getTypeLabel(stat._id) }}</span>
-                <strong>{{ stat.count }}</strong>
-            </div>
-        </div>
-    </section>
-
     <section class="processes-toolbar" aria-label="Búsqueda y filtros">
         <div class="processes-toolbar__primary">
-            <label class="process-search">
+            <div class="process-search">
                 <i class="pi pi-search" aria-hidden="true"></i>
                 <input pInputText type="search" [(ngModel)]="searchQuery"
                     placeholder="Buscar objetivo, IMEI, referencia o detalle…"
@@ -89,7 +12,11 @@
                     aria-label="Limpiar búsqueda" (click)="searchQuery = ''; applyFilters()">
                     <i class="pi pi-times"></i>
                 </button>
-            </label>
+                <button type="button" class="process-search__submit" aria-label="Buscar"
+                    pTooltip="Buscar" tooltipPosition="bottom" (click)="applyFilters()">
+                    <i class="pi pi-search"></i>
+                </button>
+            </div>
 
             <button type="button" pButton icon="pi pi-sliders-h" label="Filtros"
                 class="p-button-outlined processes-filter-toggle"
@@ -98,8 +25,8 @@
                 <span *ngIf="getAppliedFilterCount() > 0" class="filter-count">{{ getAppliedFilterCount() }}</span>
             </button>
 
-            <button type="button" pButton icon="pi pi-search" label="Buscar"
-                class="processes-search-button" (click)="applyFilters()">
+            <button type="button" pButton icon="pi pi-file-excel" label="Exportar"
+                class="p-button-outlined processes-export-button" (click)="exportExcel()">
             </button>
         </div>
 
@@ -199,19 +126,6 @@
     </section>
 
     <section class="processes-list-card">
-        <div class="processes-list-card__header">
-            <div>
-                <span class="section-kicker">Registro de actividad</span>
-                <h2>Historial de procesos</h2>
-                <p>{{ totalRecords | number }} registros creados dentro del período seleccionado</p>
-            </div>
-            <div class="list-legend">
-                <span><i class="legend-dot legend-dot--verified"></i>Verificado</span>
-                <span><i class="legend-dot legend-dot--pending"></i>Pendiente</span>
-                <span><i class="legend-dot legend-dot--rejected"></i>Rechazado</span>
-            </div>
-        </div>
-
         <div class="processes-table">
             <p-table [value]="processes" [loading]="loading" [lazy]="true"
                 [paginator]="true" [rows]="rowsPerPage" [totalRecords]="totalRecords"
@@ -222,7 +136,7 @@
 
                 <ng-template pTemplate="header">
                     <tr>
-                        <th class="column-date">Fecha del proceso</th>
+                        <th class="column-date">Fecha</th>
                         <th class="column-process">Proceso</th>
                         <th class="column-target">Objetivo</th>
                         <th class="column-client">Cliente</th>
@@ -244,7 +158,6 @@
                                 <p-tag [value]="getTypeLabel(process.type)"
                                     [severity]="getTypeSeverity(process.type)" [rounded]="true">
                                 </p-tag>
-                                <span *ngIf="process.description">{{ (process.description) | deviceLabel }}</span>
                             </div>
                         </td>
                         <td>
@@ -259,8 +172,8 @@
                         <td>
                             <div class="process-client-cell">
                                 <div class="process-client-cell__icon"><i class="pi pi-user"></i></div>
-                                <div>
-                                    <strong>{{ getClientName(process) }}</strong>
+                                <div class="process-client-cell__content">
+                                    <strong [title]="getClientName(process)">{{ getClientName(process) }}</strong>
                                     <span *ngIf="getClientContact(process)">{{ getClientContact(process) }}</span>
                                 </div>
                             </div>
@@ -417,18 +330,123 @@
                 <p class="detail-description">{{ (selectedProcess.details) | deviceLabel }}</p>
             </section>
 
-            <section class="detail-card detail-card--wide" *ngIf="selectedProcess.before || selectedProcess.after">
+            <section class="detail-card detail-card--wide"
+                *ngIf="detailSimpleChangeRows.length || detailStructuredChangeRows.length">
                 <div class="detail-card__heading">
                     <i class="pi pi-sync"></i>
                     <div><span>Cambios registrados</span><small>Comparación antes y después</small></div>
                 </div>
-                <div class="change-comparison" *ngIf="detailChangeRows.length">
+
+                <ng-template #structuredDetailValue let-value>
+                    <div class="structured-value">
+                        <div class="structured-summary" *ngIf="value.metrics.length">
+                            <article class="structured-metric"
+                                *ngFor="let metric of value.metrics"
+                                [ngClass]="'structured-tone--' + metric.tone">
+                                <span class="structured-metric__icon"><i [class]="metric.icon"></i></span>
+                                <div>
+                                    <span>{{ metric.label }}</span>
+                                    <strong [title]="metric.value">{{ metric.value }}</strong>
+                                </div>
+                            </article>
+                        </div>
+
+                        <section class="structured-section" *ngIf="value.steps.length">
+                            <header class="structured-section__heading">
+                                <div><i class="pi pi-list-check"></i><span>Pasos del proceso</span></div>
+                                <strong>{{ value.steps.length }}</strong>
+                            </header>
+                            <div class="structured-steps">
+                                <article class="structured-step" *ngFor="let step of value.steps"
+                                    [ngClass]="'structured-tone--' + step.tone">
+                                    <span class="structured-step__icon"><i [class]="step.icon"></i></span>
+                                    <div class="structured-step__copy">
+                                        <strong>{{ step.label }}</strong>
+                                        <p *ngIf="step.description">{{ step.description }}</p>
+                                    </div>
+                                    <span class="structured-status">{{ step.status }}</span>
+                                </article>
+                            </div>
+                        </section>
+
+                        <section class="structured-section" *ngIf="value.fields.length">
+                            <header class="structured-section__heading">
+                                <div><i class="pi pi-th-large"></i><span>Datos registrados</span></div>
+                                <strong>{{ value.fields.length }}</strong>
+                            </header>
+                            <div class="structured-fields">
+                                <article class="structured-field" *ngFor="let field of value.fields"
+                                    [ngClass]="'structured-tone--' + field.tone">
+                                    <span>{{ field.label }}</span>
+                                    <strong>{{ field.value }}</strong>
+                                </article>
+                            </div>
+                        </section>
+
+                        <section class="structured-section" *ngIf="value.events.length">
+                            <header class="structured-section__heading">
+                                <div><i class="pi pi-clock"></i><span>Línea de eventos</span></div>
+                                <strong>{{ value.events.length }}</strong>
+                            </header>
+                            <div class="structured-events">
+                                <article class="structured-event" *ngFor="let event of value.events"
+                                    [ngClass]="'structured-tone--' + event.tone">
+                                    <span class="structured-event__marker"><i [class]="event.icon"></i></span>
+                                    <div>
+                                        <time *ngIf="event.time">{{ event.time }}</time>
+                                        <p>{{ event.message }}</p>
+                                    </div>
+                                </article>
+                            </div>
+                        </section>
+                    </div>
+                </ng-template>
+
+                <div class="structured-changes" *ngIf="detailStructuredChangeRows.length">
+                    <article class="structured-change" *ngFor="let change of detailStructuredChangeRows">
+                        <header class="structured-change__heading">
+                            <span><i class="pi pi-box"></i></span>
+                            <div>
+                                <strong>{{ change.label }}</strong>
+                                <small>Información estructurada del proceso</small>
+                            </div>
+                        </header>
+
+                        <div class="structured-change__versions">
+                            <section class="structured-change__version"
+                                *ngIf="change.beforeStructured || change.before !== 'Sin dato'">
+                                <span class="structured-version-label">Antes</span>
+                                <ng-container *ngIf="change.beforeStructured; else simpleBefore"
+                                    [ngTemplateOutlet]="structuredDetailValue"
+                                    [ngTemplateOutletContext]="{$implicit: change.beforeStructured}">
+                                </ng-container>
+                                <ng-template #simpleBefore>
+                                    <span class="change-value change-value--before">{{ change.before }}</span>
+                                </ng-template>
+                            </section>
+
+                            <section class="structured-change__version structured-change__version--after"
+                                *ngIf="change.afterStructured || change.after !== 'Sin dato'">
+                                <span class="structured-version-label structured-version-label--after">Después</span>
+                                <ng-container *ngIf="change.afterStructured; else simpleAfter"
+                                    [ngTemplateOutlet]="structuredDetailValue"
+                                    [ngTemplateOutletContext]="{$implicit: change.afterStructured}">
+                                </ng-container>
+                                <ng-template #simpleAfter>
+                                    <span class="change-value change-value--after">{{ change.after }}</span>
+                                </ng-template>
+                            </section>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="change-comparison" *ngIf="detailSimpleChangeRows.length">
                     <div class="change-comparison__header" aria-hidden="true">
                         <span>Campo</span>
                         <span>Antes</span>
                         <span>Después</span>
                     </div>
-                    <div class="change-comparison__row" *ngFor="let change of detailChangeRows">
+                    <div class="change-comparison__row" *ngFor="let change of detailSimpleChangeRows">
                         <strong>{{ change.label }}</strong>
                         <span class="change-value change-value--before"
                             [class.change-value--empty]="change.before === 'Sin dato'">

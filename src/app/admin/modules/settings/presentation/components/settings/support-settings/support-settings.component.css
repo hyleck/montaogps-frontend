@@ -212,6 +212,98 @@
     height: 9px;
 }
 
+.support-diagnostic-context {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.55rem;
+}
+
+.support-diagnostic-context span {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid rgba(59, 130, 246, 0.18);
+    border-radius: 9px;
+    color: var(--globalColorTextMuted, #64748b);
+    background: rgba(59, 130, 246, 0.06);
+    font-size: 0.69rem;
+    overflow-wrap: anywhere;
+}
+
+.support-diagnostic-context i {
+    color: #3b82f6;
+}
+
+.support-console-diagnostics {
+    max-height: 240px;
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 0.55rem;
+    overflow-y: auto;
+}
+
+.support-console-diagnostics > div {
+    padding: 0.55rem 0.65rem;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: 10px;
+    background: rgba(245, 158, 11, 0.06);
+}
+
+.support-console-diagnostics > div.is-error {
+    border-color: rgba(239, 68, 68, 0.22);
+    background: rgba(239, 68, 68, 0.06);
+}
+
+.support-console-diagnostics header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
+}
+
+.support-console-diagnostics strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #d97706;
+    font-size: 0.68rem;
+}
+
+.support-console-diagnostics .is-error strong {
+    color: #dc2626;
+}
+
+.support-console-diagnostics time {
+    color: var(--globalColorTextMuted, #64748b);
+    font-size: 0.64rem;
+}
+
+.support-console-diagnostics code {
+    display: block;
+    color: var(--globalColorTextInput);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.68rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.support-console-empty {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.55rem;
+    padding: 0.6rem;
+    border-radius: 10px;
+    color: #047857;
+    background: rgba(16, 185, 129, 0.08);
+    font-size: 0.7rem;
+}
+
 .support-table-panel {
     overflow: hidden;
     border: 1px solid var(--globalColorBorderDark);

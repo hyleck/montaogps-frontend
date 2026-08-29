@@ -16,6 +16,53 @@ import { MessageService } from 'primeng/api';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
 
+type StructuredDetailTone = 'success' | 'danger' | 'warning' | 'info' | 'neutral';
+
+interface StructuredDetailMetric {
+  label: string;
+  value: string;
+  icon: string;
+  tone: StructuredDetailTone;
+}
+
+interface StructuredDetailStep {
+  label: string;
+  description: string;
+  status: string;
+  icon: string;
+  tone: StructuredDetailTone;
+}
+
+interface StructuredDetailEvent {
+  message: string;
+  time: string;
+  icon: string;
+  tone: StructuredDetailTone;
+}
+
+interface StructuredDetailField {
+  label: string;
+  value: string;
+  tone: StructuredDetailTone;
+}
+
+interface StructuredDetailValue {
+  metrics: StructuredDetailMetric[];
+  steps: StructuredDetailStep[];
+  events: StructuredDetailEvent[];
+  fields: StructuredDetailField[];
+}
+
+interface DetailChangeRow {
+  key: string;
+  label: string;
+  before: string;
+  after: string;
+  beforeStructured: StructuredDetailValue | null;
+  afterStructured: StructuredDetailValue | null;
+  isStructured: boolean;
+}
+
 @Component({
   selector: 'app-processes',
   standalone: false,
@@ -56,13 +103,11 @@ export class ProcessesComponent implements OnInit {
   }));
   updatingVerificationId: string | null = null;
 
-  // Stats
-  stats: any = null;
-
   // Detail dialog
   selectedProcess: ProcessItem | null = null;
   detailDialogVisible = false;
-  detailChangeRows: Array<{ key: string; label: string; before: string; after: string }> = [];
+  detailSimpleChangeRows: DetailChangeRow[] = [];
+  detailStructuredChangeRows: DetailChangeRow[] = [];
 
   // Technicians map
   techniciansMap: { [id: string]: string } = {};
@@ -89,7 +134,6 @@ export class ProcessesComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadProcesses();
-    this.loadStats();
     this.loadTechnicians();
     this.loadEmployees();
     this.loadMechanics();
@@ -117,13 +161,6 @@ export class ProcessesComponent implements OnInit {
       error: () => {
         this.loading = false;
       }
-    });
-  }
-
-  loadStats(): void {
-    this.processesService.getStats().subscribe({
-      next: (s) => this.stats = s,
-      error: () => {}
     });
   }
 
@@ -335,26 +372,9 @@ export class ProcessesComponent implements OnInit {
     return this.getVerificationStatus(status) === 'verified' ? 'process-row--verified' : '';
   }
 
-  getVisibleStatusCount(status: ProcessVerificationStatus): number {
-    return this.processes.filter(process => this.getVerificationStatus(process.verificationStatus) === status).length;
-  }
-
   getProcessDate(process: ProcessItem): Date | null {
     return parseProcessDisplayDate(process.registrationDate)
       || parseProcessDisplayDate(process.createdAt);
-  }
-
-  getPeriodLabel(): string {
-    if (!this.dateFrom && !this.dateTo) return 'Todas las fechas';
-
-    const formatter = new Intl.DateTimeFormat('es-DO', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-    const from = this.dateFrom ? formatter.format(this.dateFrom) : 'Inicio';
-    const to = this.dateTo ? formatter.format(this.dateTo) : 'Hoy';
-    return `${from} — ${to}`;
   }
 
   getAppliedFilterCount(): number {
@@ -407,23 +427,204 @@ export class ProcessesComponent implements OnInit {
 
   showDetail(process: ProcessItem): void {
     this.selectedProcess = process;
-    this.detailChangeRows = this.buildChangeRows(process.before, process.after);
+    const changes = this.buildChangeRows(process.before, process.after);
+    this.detailSimpleChangeRows = changes.filter(change => !change.isStructured);
+    this.detailStructuredChangeRows = changes.filter(change => change.isStructured);
     this.detailDialogVisible = true;
   }
 
-  private buildChangeRows(before: any, after: any): Array<{ key: string; label: string; before: string; after: string }> {
-    const previous = before && typeof before === 'object' ? before : {};
-    const current = after && typeof after === 'object' ? after : {};
+  private buildChangeRows(before: any, after: any): DetailChangeRow[] {
+    const previous = this.toComparableRecord(before);
+    const current = this.toComparableRecord(after);
     const keys = Array.from(new Set([...Object.keys(previous), ...Object.keys(current)]));
 
     return keys
       .filter(key => JSON.stringify(previous[key] ?? null) !== JSON.stringify(current[key] ?? null))
-      .map(key => ({
-        key,
-        label: this.getChangeFieldLabel(key),
-        before: this.formatChangeValue(key, previous[key]),
-        after: this.formatChangeValue(key, current[key]),
-      }));
+      .map(key => {
+        const beforeStructured = this.buildStructuredDetailValue(previous[key]);
+        const afterStructured = this.buildStructuredDetailValue(current[key]);
+
+        return {
+          key,
+          label: this.getChangeFieldLabel(key),
+          before: this.formatChangeValue(key, previous[key], beforeStructured),
+          after: this.formatChangeValue(key, current[key], afterStructured),
+          beforeStructured,
+          afterStructured,
+          isStructured: !!beforeStructured || !!afterStructured,
+        };
+      });
+  }
+
+  private toComparableRecord(value: any): Record<string, any> {
+    const parsed = this.parseStructuredValue(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  }
+
+  private parseStructuredValue(value: any): any {
+    if (value && typeof value === 'object') return value;
+    if (typeof value !== 'string') return value;
+
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return value;
+
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return value;
+    }
+  }
+
+  private buildStructuredDetailValue(value: any): StructuredDetailValue | null {
+    const parsed = this.parseStructuredValue(value);
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const source: any = Array.isArray(parsed) ? {} : parsed;
+    const metrics: StructuredDetailMetric[] = [];
+
+    if (Object.prototype.hasOwnProperty.call(source, 'completed')) {
+      metrics.push({
+        label: 'Completado',
+        value: source.completed ? 'Sí' : 'No',
+        icon: source.completed ? 'pi pi-check-circle' : 'pi pi-clock',
+        tone: source.completed ? 'success' : 'warning',
+      });
+    }
+    if (Object.prototype.hasOwnProperty.call(source, 'cancelled')) {
+      metrics.push({
+        label: 'Cancelado',
+        value: source.cancelled ? 'Sí' : 'No',
+        icon: source.cancelled ? 'pi pi-times-circle' : 'pi pi-shield',
+        tone: source.cancelled ? 'danger' : 'neutral',
+      });
+    }
+    if (source.status !== undefined && source.status !== null) {
+      metrics.push({
+        label: 'Estado',
+        value: this.getStructuredStatusLabel(source.status),
+        icon: this.getStructuredStatusIcon(source.status),
+        tone: this.getStructuredTone(source.status),
+      });
+    }
+    if (source.startedAt) {
+      metrics.push({
+        label: 'Inicio',
+        value: this.formatStructuredDate(source.startedAt),
+        icon: 'pi pi-play-circle',
+        tone: 'info',
+      });
+    }
+    if (source.heartbeatAt) {
+      metrics.push({
+        label: 'Última actividad',
+        value: this.formatStructuredDate(source.heartbeatAt),
+        icon: 'pi pi-bolt',
+        tone: 'info',
+      });
+    }
+    if (source.run_id) {
+      metrics.push({
+        label: 'ID de ejecución',
+        value: String(source.run_id),
+        icon: 'pi pi-hashtag',
+        tone: 'neutral',
+      });
+    }
+
+    const steps: StructuredDetailStep[] = Array.isArray(source.steps)
+      ? source.steps.map((step: any, index: number) => {
+          const status = step?.status || 'pending';
+          return {
+            label: step?.label || `Paso ${index + 1}`,
+            description: step?.description || '',
+            status: this.getStructuredStatusLabel(status),
+            icon: this.getSafeStructuredIcon(step?.icon, status),
+            tone: this.getStructuredTone(status),
+          };
+        })
+      : [];
+
+    const events: StructuredDetailEvent[] = Array.isArray(source.logs)
+      ? source.logs.map((event: any) => {
+          const type = event?.type || 'info';
+          return {
+            message: event?.message || 'Evento registrado',
+            time: event?.time ? this.formatStructuredDate(event.time) : '',
+            icon: this.getStructuredStatusIcon(type),
+            tone: this.getStructuredTone(type),
+          };
+        })
+      : [];
+
+    const fields: StructuredDetailField[] = [];
+    if (Array.isArray(parsed)) {
+      this.flattenStructuredFields(parsed, 'Elemento', fields);
+    } else {
+      const displayedKeys = new Set([
+        'completed', 'cancelled', 'status', 'startedAt', 'heartbeatAt', 'run_id', 'steps', 'logs',
+      ]);
+      Object.entries(source)
+        .filter(([key]) => !displayedKeys.has(key))
+        .forEach(([key, fieldValue]) => {
+          this.flattenStructuredFields(fieldValue, this.getChangeFieldLabel(key), fields);
+        });
+    }
+
+    return { metrics, steps, events, fields };
+  }
+
+  private flattenStructuredFields(
+    value: any,
+    label: string,
+    fields: StructuredDetailField[],
+    depth = 0,
+  ): void {
+    if (depth > 4) {
+      fields.push({ label, value: 'Contenido agrupado', tone: 'neutral' });
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      if (!value.length) {
+        fields.push({ label, value: 'Sin elementos', tone: 'neutral' });
+        return;
+      }
+      if (value.every(item => item === null || typeof item !== 'object')) {
+        fields.push({
+          label,
+          value: value.map(item => this.formatStructuredPrimitive(label, item)).join(' · '),
+          tone: 'neutral',
+        });
+        return;
+      }
+      value.forEach((item, index) => {
+        this.flattenStructuredFields(item, `${label} ${index + 1}`, fields, depth + 1);
+      });
+      return;
+    }
+
+    if (value && typeof value === 'object') {
+      const entries = Object.entries(value);
+      if (!entries.length) {
+        fields.push({ label, value: 'Sin datos', tone: 'neutral' });
+        return;
+      }
+      entries.forEach(([key, nestedValue]) => {
+        this.flattenStructuredFields(
+          nestedValue,
+          `${label} · ${this.getChangeFieldLabel(key)}`,
+          fields,
+          depth + 1,
+        );
+      });
+      return;
+    }
+
+    fields.push({
+      label,
+      value: this.formatStructuredPrimitive(label, value),
+      tone: this.getStructuredTone(value),
+    });
   }
 
   private getChangeFieldLabel(key: string): string {
@@ -438,6 +639,15 @@ export class ProcessesComponent implements OnInit {
       installation_date: 'Fecha de instalación',
       mechanic_id: 'Técnico',
       gps_model: 'Modelo GPS',
+      activation_status: 'Estado de activación',
+      run_id: 'ID de ejecución',
+      startedAt: 'Inicio',
+      heartbeatAt: 'Última actividad',
+      completedAt: 'Finalización',
+      completed: 'Completado',
+      cancelled: 'Cancelado',
+      provider: 'Proveedor',
+      enabled: 'Habilitado',
     };
 
     return labels[key] || key
@@ -446,7 +656,89 @@ export class ProcessesComponent implements OnInit {
       .replace(/^./, value => value.toUpperCase());
   }
 
-  private formatChangeValue(key: string, value: any): string {
+  private getStructuredStatusLabel(value: any): string {
+    const normalized = String(value ?? '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    const statuses: Record<string, string> = {
+      success: 'Completado',
+      completed: 'Completado',
+      active: 'Activo',
+      enabled: 'Habilitado',
+      pending: 'Pendiente',
+      in_progress: 'En progreso',
+      running: 'En progreso',
+      info: 'Información',
+      warning: 'Advertencia',
+      failed: 'Fallido',
+      error: 'Error',
+      danger: 'Error',
+      cancelled: 'Cancelado',
+      skipped: 'Omitido',
+    };
+    return statuses[normalized] || this.formatStructuredPrimitive('Estado', value);
+  }
+
+  private getStructuredTone(value: any): StructuredDetailTone {
+    if (value === true) return 'success';
+    if (value === false || value === null || value === undefined) return 'neutral';
+
+    const normalized = String(value).trim().toLowerCase().replace(/[\s-]+/g, '_');
+    if (['success', 'completed', 'active', 'enabled', 'ok', 'true'].includes(normalized)) return 'success';
+    if (['failed', 'error', 'danger', 'cancelled', 'inactive'].includes(normalized)) return 'danger';
+    if (['pending', 'warning', 'in_progress', 'running'].includes(normalized)) return 'warning';
+    if (['info', 'skipped'].includes(normalized)) return 'info';
+    return 'neutral';
+  }
+
+  private getStructuredStatusIcon(value: any): string {
+    const tone = this.getStructuredTone(value);
+    const icons: Record<StructuredDetailTone, string> = {
+      success: 'pi pi-check-circle',
+      danger: 'pi pi-times-circle',
+      warning: 'pi pi-clock',
+      info: 'pi pi-info-circle',
+      neutral: 'pi pi-circle',
+    };
+    return icons[tone];
+  }
+
+  private getSafeStructuredIcon(icon: any, status: any): string {
+    const value = typeof icon === 'string' ? icon.trim() : '';
+    if (/^pi pi-[a-z0-9-]+$/i.test(value)) return value;
+    if (/^pi-[a-z0-9-]+$/i.test(value)) return `pi ${value}`;
+    return this.getStructuredStatusIcon(status);
+  }
+
+  private formatStructuredDate(value: any): string {
+    const date = new Date(String(value));
+    if (Number.isNaN(date.getTime())) return String(value);
+
+    return new Intl.DateTimeFormat('es-DO', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).format(date);
+  }
+
+  private formatStructuredPrimitive(key: string, value: any): string {
+    if (value === null || value === undefined || value === '') return 'Sin dato';
+    if (typeof value === 'boolean') return value ? 'Sí' : 'No';
+    if (typeof value === 'number') return value.toLocaleString('es-DO');
+
+    const text = String(value);
+    const looksLikeDate = /(fecha|date|inicio|actividad|time|(?:^|\s)at$)/i.test(key)
+      || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(text);
+    return looksLikeDate ? this.formatStructuredDate(text) : text;
+  }
+
+  private formatChangeValue(
+    key: string,
+    value: any,
+    knownStructuredValue?: StructuredDetailValue | null,
+  ): string {
     if (value === null || value === undefined || value === '') return 'Sin dato';
     if (key === 'status') {
       const statuses: Record<string, string> = {
@@ -485,8 +777,27 @@ export class ProcessesComponent implements OnInit {
         ? this.getTypeLabel(processTypes[normalizedType])
         : String(value);
     }
+    if (/(?:date|fecha|_at|At)$/i.test(key)) {
+      return this.formatStructuredDate(value);
+    }
     if (typeof value === 'boolean') return value ? 'Sí' : 'No';
-    if (typeof value === 'object') return JSON.stringify(value);
+    const structured = knownStructuredValue === undefined
+      ? this.buildStructuredDetailValue(value)
+      : knownStructuredValue;
+    if (structured) {
+      const summary = [
+        structured.steps.length
+          ? `${structured.steps.length} ${structured.steps.length === 1 ? 'paso' : 'pasos'}`
+          : '',
+        structured.events.length
+          ? `${structured.events.length} ${structured.events.length === 1 ? 'evento' : 'eventos'}`
+          : '',
+        structured.fields.length
+          ? `${structured.fields.length} ${structured.fields.length === 1 ? 'dato' : 'datos'}`
+          : '',
+      ].filter(Boolean);
+      return summary.join(' · ') || 'Datos estructurados';
+    }
     return String(value);
   }
 

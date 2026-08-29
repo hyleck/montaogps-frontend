@@ -32,6 +32,12 @@ import { ProtocolsService } from '@core/services/protocols.service';
 import { InventoryService, Warehouse, InventoryItem } from '@core/services/inventory.service';
 import { SolicitudesService } from '@core/services/solicitudes.service';
 import { UserActivity, UserActivityService } from '@core/services/user-activity.service';
+import { SupportService } from '@core/services/support.service';
+import {
+  AssignedCommunicationChat,
+  CommunicationFloatingMessage,
+  CommunicationNotificationService,
+} from '@core/services/communication-notification.service';
 import {
   UserConsoleLevel,
   UserConsoleLog,
@@ -178,6 +184,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   // Shortcuts
   shortcuts: any[] = [];
+  assignedCommunicationChats: AssignedCommunicationChat[] = [];
+  assignedCommunicationMessagePreview: CommunicationFloatingMessage | null = null;
+  technicianChatUnreadCount: number = 0;
   showShortcutsDialog: boolean = false;
   showMassActionButtons: boolean = false;
 
@@ -767,8 +776,93 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private inventoryService: InventoryService,
     private solicitudesService: SolicitudesService,
     private userActivityService: UserActivityService,
-    private userConsoleLogService: UserConsoleLogService
+    private userConsoleLogService: UserConsoleLogService,
+    private supportService: SupportService,
+    private communicationNotifications: CommunicationNotificationService
   ) { }
+
+  openFloatingAquilesChat(): void {
+    this.supportService.openFloatingAquiles();
+  }
+
+  openFloatingTechniciansChat(): void {
+    this.communicationNotifications.openFloatingTechnicians();
+  }
+
+  get primaryAssignedCommunicationChat(): AssignedCommunicationChat | null {
+    return this.assignedCommunicationChats[0] || null;
+  }
+
+  get activeFloatingCommunicationContact(): AssignedCommunicationChat | null {
+    const preview = this.assignedCommunicationMessagePreview;
+    if (!preview) return this.primaryAssignedCommunicationChat;
+    return this.assignedCommunicationChats.find(
+      chat => chat.conversationId === preview.conversationId,
+    ) || {
+      conversationId: preview.conversationId,
+      contactName: preview.contactName,
+      contactPhone: preview.contactPhone,
+      avatar: preview.avatar || '',
+      lastMessage: preview.message,
+      time: preview.time,
+      unreadCount: 1,
+    };
+  }
+
+  get primaryAssignedCommunicationFirstName(): string {
+    const contactName = String(
+      this.activeFloatingCommunicationContact?.contactName || '',
+    ).trim();
+    const firstName = contactName.split(/\s+/)[0] || '';
+    return /^contacto$/i.test(firstName) ? 'Cliente' : firstName || 'Cliente';
+  }
+
+  get primaryAssignedCommunicationInitials(): string {
+    return this.getAssignedCommunicationInitials(
+      this.activeFloatingCommunicationContact?.contactName,
+    );
+  }
+
+  getAssignedCommunicationInitials(contactName?: string): string {
+    const normalizedName = String(contactName || '').trim();
+    if (!normalizedName) return 'CL';
+    return normalizedName
+      .split(/\s+/)
+      .slice(0, 2)
+      .map(part => part.charAt(0).toUpperCase())
+      .join('');
+  }
+
+  get assignedCommunicationUnreadCount(): number {
+    return Math.max(
+      0,
+      Number(this.activeFloatingCommunicationContact?.unreadCount) || 0,
+    );
+  }
+
+  openFloatingAssignedCommunicationChat(conversationId?: number): void {
+    const requestedConversationId = Number(
+      conversationId || this.activeFloatingCommunicationContact?.conversationId || 0,
+    );
+    if (!requestedConversationId) return;
+    const requestedChat = this.assignedCommunicationChats.find(
+      chat => chat.conversationId === requestedConversationId,
+    ) || (
+      this.activeFloatingCommunicationContact?.conversationId === requestedConversationId
+        ? this.activeFloatingCommunicationContact
+        : null
+    );
+    this.clearAssignedCommunicationMessagePreview();
+    this.communicationNotifications.openFloatingAssignedChat(
+      requestedConversationId,
+      requestedChat,
+    );
+  }
+
+  dismissAssignedCommunicationMessagePreview(event: Event): void {
+    event.stopPropagation();
+    this.clearAssignedCommunicationMessagePreview();
+  }
 
   // ====================================
   // MÉTODOS DE VALIDACIÓN DE PRIVILEGIOS
@@ -954,6 +1048,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (this.scrollTimeout) {
       clearTimeout(this.scrollTimeout);
     }
+    this.clearAssignedCommunicationMessagePreview();
     this.stopChatPolling();
   }
 
@@ -1573,6 +1668,56 @@ export class ManagementComponent implements OnInit, OnDestroy {
         detail: this.registrationLinkUrl,
         life: 8000
       });
+    }
+  }
+
+  async copyEmail(email?: string | null): Promise<void> {
+    const value = String(email || '').trim();
+    if (!value) return;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        this.copyTextWithFallback(value);
+      }
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Correo copiado',
+        detail: value
+      });
+    } catch {
+      try {
+        this.copyTextWithFallback(value);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Correo copiado',
+          detail: value
+        });
+      } catch {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo copiar',
+          detail: 'Copia el correo manualmente.'
+        });
+      }
+    }
+  }
+
+  private copyTextWithFallback(value: string): void {
+    const textArea = document.createElement('textarea');
+    textArea.value = value;
+    textArea.setAttribute('readonly', '');
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.select();
+
+    const copied = document.execCommand('copy');
+    document.body.removeChild(textArea);
+    if (!copied) {
+      throw new Error('Clipboard copy failed');
     }
   }
 
@@ -3277,6 +3422,25 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private setupSubscriptions(): void {
+    this.subscriptions.push(
+      this.communicationNotifications.assignedChats$.subscribe(chats => {
+        this.assignedCommunicationChats = chats;
+      })
+    );
+
+    this.subscriptions.push(
+      this.communicationNotifications.floatingMessage$.subscribe(message => {
+        if ((message.source || 'whatsapp') !== 'whatsapp') return;
+        this.assignedCommunicationMessagePreview = message;
+      })
+    );
+
+    this.subscriptions.push(
+      this.communicationNotifications.technicianPendingCount$.subscribe(count => {
+        this.technicianChatUnreadCount = Math.max(0, Number(count) || 0);
+      })
+    );
+
     // Suscribirse a notificaciones de actualización de targets (ej: cuando se restaura un target)
     this.subscriptions.push(
       this.selectionService.targetsUpdated$.subscribe(updated => {
@@ -3572,6 +3736,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private cleanupSubscriptions(): void {
     this.subscriptions.forEach(sub => sub.unsubscribe());
     this.subscriptions = [];
+  }
+
+  private clearAssignedCommunicationMessagePreview(): void {
+    this.assignedCommunicationMessagePreview = null;
   }
 
   /**

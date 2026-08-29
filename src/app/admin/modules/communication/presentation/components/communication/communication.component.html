@@ -95,9 +95,9 @@
             <div *ngFor="let conv of filteredConversations" class="comm-contact"
                 [hidden]="loadingConversations"
                 [class.comm-contact--active]="selectedConversation?.id === conv.id"
-                [class.comm-contact--ester]="!isSharedEmployeeConversation(conv) && !conv.assignee_id"
-                [class.comm-contact--mine]="!isSharedEmployeeConversation(conv) && isConversationAssignedToMe(conv)"
-                [class.comm-contact--employee]="!isSharedEmployeeConversation(conv) && !!conv.assignee_id && !isConversationAssignedToMe(conv)"
+                [class.comm-contact--ester]="!conv.assignee_id"
+                [class.comm-contact--mine]="isConversationAssignedToMe(conv)"
+                [class.comm-contact--employee]="!!conv.assignee_id && !isConversationAssignedToMe(conv)"
                 (click)="selectConversation(conv)">
                 <div class="comm-contact__avatar">
                     <img *ngIf="getUsableAvatarUrl(conv.contact.avatar) as avatarUrl"
@@ -130,7 +130,7 @@
                                     <span class="comm-contact__preview-text">{{ preview.text }}</span>
                                 </div>
                             </ng-container>
-                            <div *ngIf="!isSharedEmployeeConversation(conv)" class="comm-contact__assignee"
+                            <div class="comm-contact__assignee"
                                 [class.comm-contact__assignee--ester]="!conv.assignee_id"
                                 [class.comm-contact__assignee--ester-disabled]="isEsterAutoReplyDisabled(conv)"
                                 [class.comm-contact__assignee--mine]="isConversationAssignedToMe(conv)">
@@ -142,10 +142,6 @@
                                 {{ isConversationAssignedToMe(conv)
                                     ? 'Asignada a ti'
                                     : 'Asignada a ' + getConversationAssigneeLabel(conv) }}
-                            </div>
-                            <div *ngIf="isSharedEmployeeConversation(conv)" class="comm-contact__assignee">
-                                <i class="pi pi-user"></i>
-                                Disponible para todos
                             </div>
                         </div>
                         <div *ngIf="conv.unread_count > 0" class="comm-contact__badge">{{ conv.unread_count }}</div>
@@ -259,7 +255,7 @@
                         aria-label="Borrar chat definitivamente">
                         <i class="pi pi-trash"></i>
                     </button>
-                    <button *ngIf="isConversationAssignedToMe(selectedConversation) && !isSharedEmployeeConversation(selectedConversation)"
+                    <button *ngIf="isConversationAssignedToMe(selectedConversation)"
                         class="comm-info-btn comm-action-btn" (click)="openTransferModal()" title="Transferir Conversación a otro Agente">
                         <i class="pi pi-sort-alt"></i>
                     </button>
@@ -674,8 +670,7 @@
 
             <div *ngIf="selectedConversation.assignee_id
                     && selectedConversation.assignee_typing
-                    && !isConversationAssignedToMe(selectedConversation)
-                    && !isSharedEmployeeConversation(selectedConversation)"
+                    && !isConversationAssignedToMe(selectedConversation)"
                 class="comm-typing-indicator"
                 role="status"
                 aria-live="polite">
@@ -830,18 +825,14 @@
                                 : 'pi pi-bolt'"></i>
                     </span>
                     <strong class="comm-managed-banner__title">
-                        {{ isSharedEmployeeConversation(selectedConversation)
-                            ? 'Conversación interna sin asignar'
-                            : isEsterAutoReplyDisabled(selectedConversation)
+                        {{ isEsterAutoReplyDisabled(selectedConversation)
                             ? 'Ester Assistant está desactivada'
                             : 'Gestionado por ' + getConversationManagerLabel(selectedConversation) }}
                     </strong>
                     <span class="comm-managed-banner__description">
                         {{ selectedConversation.assignee_id
                             ? 'Esta conversación está asignada a otro empleado.'
-                            : isSharedEmployeeConversation(selectedConversation)
-                                ? 'Ester no responde conversaciones de empleados o técnicos.'
-                                : isEsterAutoReplyDisabled(selectedConversation)
+                            : isEsterAutoReplyDisabled(selectedConversation)
                                 ? 'La conversación sigue asignada a Ester, pero no responderá automáticamente.'
                                 : 'Esta conversación está siendo atendida de forma automática.' }}
                     </span>
@@ -863,9 +854,7 @@
                     <button type="button" class="comm-managed-banner__action" (click)="assignToMe()">
                         <i class="pi pi-user-plus"></i>
                         <span>
-                            {{ isSharedEmployeeConversation(selectedConversation)
-                                ? 'Tomar control de la conversación'
-                                : isEsterAutoReplyDisabled(selectedConversation)
+                            {{ isEsterAutoReplyDisabled(selectedConversation)
                                 ? 'Ester está desactivada · Tomar control'
                                 : 'Tomar control de la conversación' }}
                         </span>
@@ -1874,7 +1863,7 @@
 
         <div *ngIf="!loadingTransferAgents"
             class="comm-transfer__agents" role="list" aria-label="Agentes disponibles">
-            <button *ngIf="isConversationAssignedToMe(selectedConversation) && !isSharedEmployeeConversation(selectedConversation)" type="button"
+            <button *ngIf="isConversationAssignedToMe(selectedConversation)" type="button"
                 class="comm-transfer-agent comm-transfer-agent--ester" role="listitem"
                 (click)="selectEsterForTransfer()">
                 <span class="comm-transfer-agent__avatar comm-transfer-agent__avatar--ester">
