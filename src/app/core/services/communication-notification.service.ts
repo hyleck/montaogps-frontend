@@ -72,6 +72,8 @@ export class CommunicationNotificationService implements OnDestroy {
   internalPendingCount$ = this.internalPendingCountSubject.asObservable();
   private technicianPendingCountSubject = new BehaviorSubject<number>(0);
   technicianPendingCount$ = this.technicianPendingCountSubject.asObservable();
+  private adminPendingCountSubject = new BehaviorSubject<number>(0);
+  adminPendingCount$ = this.adminPendingCountSubject.asObservable();
   private internalChatMutedSubject = new BehaviorSubject<boolean>(false);
   internalChatMuted$ = this.internalChatMutedSubject.asObservable();
   private floatingMessageSubject = new BehaviorSubject<CommunicationFloatingMessage | null>(null);
@@ -84,6 +86,8 @@ export class CommunicationNotificationService implements OnDestroy {
   floatingAssignedChatRequested$ = this.floatingAssignedChatRequestedSubject.asObservable();
   private floatingTechniciansRequestedSubject = new Subject<string | null>();
   floatingTechniciansRequested$ = this.floatingTechniciansRequestedSubject.asObservable();
+  private floatingAdminRequestedSubject = new Subject<string | null>();
+  floatingAdminRequested$ = this.floatingAdminRequestedSubject.asObservable();
 
   private pollingSubscription?: Subscription;
   private internalPollingSubscription?: Subscription;
@@ -101,6 +105,7 @@ export class CommunicationNotificationService implements OnDestroy {
   private lastInternalMessageId = '';
   private internalPendingCount = 0;
   private technicianPendingCount = 0;
+  private adminPendingCount = 0;
   private whatsappPendingCount = 0;
   private internalChatMuted = false;
   private assignedChatsFingerprint = '';
@@ -155,6 +160,12 @@ export class CommunicationNotificationService implements OnDestroy {
 
   openFloatingTechnicians(groupId?: string): void {
     this.floatingTechniciansRequestedSubject.next(
+      String(groupId || '').trim() || null,
+    );
+  }
+
+  openFloatingAdmin(groupId?: string): void {
+    this.floatingAdminRequestedSubject.next(
       String(groupId || '').trim() || null,
     );
   }
@@ -291,10 +302,12 @@ export class CommunicationNotificationService implements OnDestroy {
     this.stopInternalChatPolling();
     this.internalPendingCount = 0;
     this.technicianPendingCount = 0;
+    this.adminPendingCount = 0;
     this.whatsappPendingCount = 0;
     this.lastInternalMessageId = '';
     this.internalPendingCountSubject.next(0);
     this.technicianPendingCountSubject.next(0);
+    this.adminPendingCountSubject.next(0);
   }
 
   private stopWhatsAppPolling(): void {
@@ -485,6 +498,13 @@ export class CommunicationNotificationService implements OnDestroy {
         this.technicianPendingCount += technicianMessages.length;
         this.technicianPendingCountSubject.next(this.technicianPendingCount);
       }
+      const adminMessages = incomingMessages.filter((message) =>
+        !String(message?.groupId || '').startsWith('technician:'),
+      );
+      if (adminMessages.length) {
+        this.adminPendingCount += adminMessages.length;
+        this.adminPendingCountSubject.next(this.adminPendingCount);
+      }
       this.emitInternalFloatingMessage(incomingMessages[incomingMessages.length - 1]);
       this.playInternalNotificationSound();
     });
@@ -545,6 +565,13 @@ export class CommunicationNotificationService implements OnDestroy {
     this.technicianPendingCountSubject.next(this.technicianPendingCount);
   }
 
+  syncAdminPendingCount(count: number): void {
+    this.adminPendingCount = this.internalChatMuted
+      ? 0
+      : Math.max(0, Number(count) || 0);
+    this.adminPendingCountSubject.next(this.adminPendingCount);
+  }
+
   isInternalChatMuted(): boolean {
     return this.internalChatMuted;
   }
@@ -557,6 +584,7 @@ export class CommunicationNotificationService implements OnDestroy {
     if (muted) {
       this.markInternalChatRead();
       this.syncTechnicianPendingCount(0);
+      this.syncAdminPendingCount(0);
     }
   }
 
@@ -583,6 +611,8 @@ export class CommunicationNotificationService implements OnDestroy {
       this.internalPendingCountSubject.next(0);
       this.technicianPendingCount = 0;
       this.technicianPendingCountSubject.next(0);
+      this.adminPendingCount = 0;
+      this.adminPendingCountSubject.next(0);
     }
   }
 

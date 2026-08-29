@@ -1882,6 +1882,17 @@
         </button>
     </div>
 
+    <button class="floating-admin-btn"
+        *ngIf="currentUserAffiliationTypeId === 'empleado' && !showMaps"
+        (click)="openFloatingAdminChat()"
+        title="Abrir chat del grupo de empleados" aria-label="Abrir chat administrativo">
+        <i class="pi pi-users"></i>
+        <span>Admin</span>
+        <strong *ngIf="adminChatUnreadCount > 0" class="floating-admin-btn__badge">
+            {{ adminChatUnreadCount > 99 ? '99+' : adminChatUnreadCount }}
+        </strong>
+    </button>
+
     <button class="floating-technicians-btn"
         *ngIf="currentUserAffiliationTypeId === 'empleado' && !showMaps"
         (click)="openFloatingTechniciansChat()"

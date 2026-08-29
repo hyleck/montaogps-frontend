@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
 import { ThemesService } from '../../../../shareds/services/themes.service';
 import { MenuItem, ConfirmationService, MessageService } from 'primeng/api';
 import { StatusService } from '../../../../shareds/services/status.service';
@@ -47,6 +47,7 @@ import {
   shouldShowChatDateSeparator,
 } from '../../../../core/utils/chat-timeline.util';
 import {
+  FloatingCommunicationAttachment,
   FloatingCommunicationMessage,
   mapFloatingCommunicationMessage,
 } from './floating-communication-message';
@@ -517,12 +518,15 @@ export class NavbarComponent implements OnInit, OnDestroy {
   supportChatMessages: AquilesChatMessage[] = [];
   supportChatInput: string = '';
   supportAssistantThinking: boolean = false;
-  supportDraftReady: boolean = false;
   floatingAquilesVisible: boolean = false;
   supportDiagnosticCapture: SupportDiagnosticCapture | null = null;
   capturingSupportDiagnostics: boolean = false;
   private supportChatMessageSequence: number = 0;
   private supportDiagnosticRequestSequence: number = 0;
+  private supportCaptureRequestSequence: number = 0;
+  private lastSupportUserAction: string = '';
+  private supportGreetingTimeout?: ReturnType<typeof setTimeout>;
+  private readonly supportGreetingDelayMs = 1200;
   @ViewChild('supportChatScroll') supportChatScroll?: ElementRef<HTMLDivElement>;
   @ViewChild('floatingSupportChatScroll') floatingSupportChatScroll?: ElementRef<HTMLDivElement>;
 
@@ -533,29 +537,46 @@ export class NavbarComponent implements OnInit, OnDestroy {
   floatingCommunicationMessages: FloatingCommunicationMessage[] = [];
   floatingCommunicationInput: string = '';
   loadingFloatingCommunication: boolean = false;
+  loadingOlderFloatingCommunication: boolean = false;
+  floatingCommunicationHasOlder: boolean = true;
+  floatingCommunicationOlderError: string = '';
   sendingFloatingCommunication: boolean = false;
   floatingCommunicationError: string = '';
   private floatingCommunicationRequestSequence: number = 0;
   private floatingCommunicationFallbackChat: AssignedCommunicationChat | null = null;
+  private readonly floatingCommunicationPageSize: number = 20;
+  private floatingCommunicationPinnedToBottom: boolean = true;
+  private floatingCommunicationLastScrollTop: number = 0;
   private readonly floatingCommunicationAvatarErrors = new Set<string>();
   @ViewChild('floatingCommunicationScroll') floatingCommunicationScroll?: ElementRef<HTMLDivElement>;
 
   // Chat flotante de grupos de instalación por técnico
   floatingTechniciansVisible: boolean = false;
+  floatingInternalGroupType: 'installation' | 'admin' = 'installation';
   floatingTechnicianGroups: InternalChatGroup[] = [];
   selectedFloatingTechnicianGroup: InternalChatGroup | null = null;
   floatingTechnicianMessages: InternalChatMessage[] = [];
   floatingTechnicianInput: string = '';
   loadingFloatingTechnicianGroups: boolean = false;
   loadingFloatingTechnicianMessages: boolean = false;
+  loadingOlderFloatingTechnicianMessages: boolean = false;
+  floatingTechnicianHasOlder: boolean = true;
+  floatingTechnicianOlderError: string = '';
   sendingFloatingTechnicianMessage: boolean = false;
   floatingTechnicianError: string = '';
   private floatingTechnicianRequestSequence: number = 0;
   private floatingTechnicianPollingInterval?: ReturnType<typeof setInterval>;
   private floatingTechnicianScrollTimeout?: ReturnType<typeof setTimeout>;
   private floatingTechnicianScrollSequence: number = 0;
+  private readonly floatingTechnicianPageSize: number = 20;
+  private floatingTechnicianPinnedToBottom: boolean = true;
+  private floatingTechnicianLastScrollTop: number = 0;
   private readonly floatingTechnicianAvatarErrors = new Set<string>();
   @ViewChild('floatingTechnicianScroll') floatingTechnicianScroll?: ElementRef<HTMLDivElement>;
+
+  get isFloatingAdminChat(): boolean {
+    return this.floatingInternalGroupType === 'admin';
+  }
 
   // Detalles del ticket
   ticketDetailsDialogVisible: boolean = false;
@@ -655,15 +676,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   openSupportModal() {
-    if (!this.supportChatMessages.length) {
-      this.resetSupportChat();
-    }
-    this.activeSupportTab = 'create';
+    this.activeSupportTab = 'list';
     this.floatingAquilesVisible = false;
     this.floatingCommunicationVisible = false;
     this.closeFloatingTechnicians();
     this.supportDialogVisible = true;
-    this.scrollSupportChatToBottom();
+    this.loadUserTickets();
   }
 
   openFloatingAquiles(): void {
@@ -684,9 +702,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   expandFloatingAquiles(): void {
     this.floatingAquilesVisible = false;
-    this.activeSupportTab = 'create';
+    this.activeSupportTab = 'list';
     this.supportDialogVisible = true;
-    this.scrollSupportChatToBottom();
+    this.loadUserTickets();
   }
 
   openFloatingCommunication(
@@ -716,6 +734,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.floatingCommunicationVisible = false;
     this.floatingCommunicationFallbackChat = null;
     this.floatingCommunicationRequestSequence += 1;
+    this.loadingOlderFloatingCommunication = false;
+    this.floatingCommunicationLastScrollTop = 0;
   }
 
   get floatingCommunicationChatTabs(): AssignedCommunicationChat[] {
@@ -753,6 +773,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     if (changed) {
       this.floatingCommunicationMessages = [];
       this.floatingCommunicationError = '';
+      this.floatingCommunicationOlderError = '';
+      this.floatingCommunicationHasOlder = true;
+      this.floatingCommunicationPinnedToBottom = true;
+      this.floatingCommunicationLastScrollTop = 0;
     }
     this.communicationNotifications.markWhatsAppConversationRead(chat.conversationId);
     if (changed || forceReload || !this.floatingCommunicationMessages.length) {
@@ -772,6 +796,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       createdAt: new Date(),
       authorName: 'Tú',
       isCurrentUser: true,
+      attachments: [],
+      transcription: '',
     };
     this.floatingCommunicationMessages = [
       ...this.floatingCommunicationMessages,
@@ -809,6 +835,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
                 createdAt: new Date(),
                 authorName: '',
                 isCurrentUser: false,
+                attachments: [],
+                transcription: '',
               },
             ];
             this.scrollFloatingCommunicationToBottom();
@@ -829,6 +857,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
               createdAt: new Date(),
               authorName: '',
               isCurrentUser: false,
+              attachments: [],
+              transcription: '',
             },
           ];
           this.scrollFloatingCommunicationToBottom();
@@ -884,14 +914,144 @@ export class NavbarComponent implements OnInit, OnDestroy {
     return message.id;
   }
 
-  private loadFloatingCommunicationMessages(): void {
+  isFloatingCommunicationImage(attachment: FloatingCommunicationAttachment): boolean {
+    return attachment.fileType === 'image';
+  }
+
+  isFloatingCommunicationVideo(attachment: FloatingCommunicationAttachment): boolean {
+    return attachment.fileType === 'video';
+  }
+
+  isFloatingCommunicationAudio(attachment: FloatingCommunicationAttachment): boolean {
+    return attachment.fileType === 'audio';
+  }
+
+  isFloatingCommunicationPdf(attachment: FloatingCommunicationAttachment): boolean {
+    return attachment.mimeType === 'application/pdf'
+      || attachment.name.toLowerCase().endsWith('.pdf');
+  }
+
+  getFloatingCommunicationAttachmentType(attachment: FloatingCommunicationAttachment): string {
+    if (this.isFloatingCommunicationPdf(attachment)) return 'Documento PDF';
+    if (attachment.mimeType) return attachment.mimeType;
+    return 'Archivo';
+  }
+
+  onFloatingCommunicationMediaReady(): void {
+    if (this.floatingCommunicationPinnedToBottom) {
+      this.scrollFloatingCommunicationToBottom();
+    }
+  }
+
+  onFloatingCommunicationScroll(event: Event): void {
+    const element = event.currentTarget as HTMLElement | null;
+    if (!element) return;
+    const scrollTop = Math.max(0, element.scrollTop);
+    const isScrollingUp = scrollTop < this.floatingCommunicationLastScrollTop - 1;
+    this.floatingCommunicationLastScrollTop = scrollTop;
+    this.floatingCommunicationPinnedToBottom = this.isFloatingChatNearBottom(element);
+    if (isScrollingUp && scrollTop <= 80) {
+      this.loadOlderFloatingCommunicationMessages();
+    }
+  }
+
+  loadOlderFloatingCommunicationMessages(): void {
+    const conversationId = this.selectedFloatingCommunicationChat?.conversationId;
+    if (
+      !conversationId
+      || this.loadingFloatingCommunication
+      || this.loadingOlderFloatingCommunication
+      || !this.floatingCommunicationHasOlder
+      || !this.floatingCommunicationMessages.length
+    ) return;
+
+    const oldestMessageId = this.floatingCommunicationMessages
+      .map(message => typeof message.id === 'number' ? message.id : Number.NaN)
+      .find(id => Number.isFinite(id) && id > 0);
+    if (!oldestMessageId) {
+      this.floatingCommunicationHasOlder = false;
+      return;
+    }
+
+    const requestId = this.floatingCommunicationRequestSequence;
+    const element = this.floatingCommunicationScroll?.nativeElement;
+    const previousScrollHeight = element?.scrollHeight || 0;
+    const previousScrollTop = element?.scrollTop || 0;
+    this.loadingOlderFloatingCommunication = true;
+    this.floatingCommunicationOlderError = '';
+    this.floatingCommunicationPinnedToBottom = false;
+
+    this.whatsappApi.getConversationMessages(
+      conversationId,
+      this.floatingCommunicationPageSize,
+      oldestMessageId,
+    )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: response => {
+          if (
+            requestId !== this.floatingCommunicationRequestSequence
+            || conversationId !== this.selectedFloatingCommunicationChat?.conversationId
+          ) return;
+          this.loadingOlderFloatingCommunication = false;
+          if (response?.success === false) {
+            this.floatingCommunicationOlderError = getApiErrorMessage(
+              response,
+              'No se pudieron cargar los mensajes anteriores',
+            );
+            return;
+          }
+
+          const rawMessages = Array.isArray(response?.messages) ? response.messages : [];
+          const existingIds = new Set(this.floatingCommunicationMessages.map(message => String(message.id)));
+          const olderMessages: FloatingCommunicationMessage[] = rawMessages
+            .map((message: any) => mapFloatingCommunicationMessage(
+              message,
+              this.currentUser,
+              this.selectedFloatingCommunicationChat?.contactName || 'Contacto',
+            ))
+            .filter((message: FloatingCommunicationMessage) => !existingIds.has(String(message.id)));
+          this.floatingCommunicationMessages = [
+            ...olderMessages,
+            ...this.floatingCommunicationMessages,
+          ];
+          this.floatingCommunicationHasOlder = rawMessages.length >= this.floatingCommunicationPageSize;
+          setTimeout(() => {
+            const currentElement = this.floatingCommunicationScroll?.nativeElement;
+            if (!currentElement || conversationId !== this.selectedFloatingCommunicationChat?.conversationId) return;
+            const restoredScrollTop = currentElement.scrollHeight
+              - previousScrollHeight
+              + previousScrollTop;
+            currentElement.scrollTop = restoredScrollTop;
+            this.floatingCommunicationLastScrollTop = restoredScrollTop;
+          });
+        },
+        error: error => {
+          if (requestId !== this.floatingCommunicationRequestSequence) return;
+          this.loadingOlderFloatingCommunication = false;
+          this.floatingCommunicationOlderError = getApiErrorMessage(
+            error,
+            'No se pudieron cargar los mensajes anteriores',
+          );
+        },
+      });
+  }
+
+  private loadFloatingCommunicationMessages(replaceMessages = true): void {
     const conversationId = this.selectedFloatingCommunicationChat?.conversationId;
     if (!conversationId) return;
     const requestId = ++this.floatingCommunicationRequestSequence;
-    this.loadingFloatingCommunication = true;
-    this.floatingCommunicationError = '';
+    this.loadingOlderFloatingCommunication = false;
+    if (replaceMessages) {
+      this.loadingFloatingCommunication = true;
+      this.floatingCommunicationError = '';
+      this.floatingCommunicationOlderError = '';
+    }
 
-    this.whatsappApi.getConversationMessages(conversationId, 50)
+    this.whatsappApi.getConversationMessages(
+      conversationId,
+      this.floatingCommunicationPageSize,
+    )
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: response => {
@@ -908,15 +1068,31 @@ export class NavbarComponent implements OnInit, OnDestroy {
             return;
           }
           const messages = Array.isArray(response?.messages) ? response.messages : [];
-          this.floatingCommunicationMessages = messages.map((message: any) =>
+          const mappedMessages: FloatingCommunicationMessage[] = messages.map((message: any) =>
             mapFloatingCommunicationMessage(
               message,
               this.currentUser,
               this.selectedFloatingCommunicationChat?.contactName || 'Contacto',
             )
           );
+          const wasPinnedToBottom = this.floatingCommunicationPinnedToBottom;
+          if (replaceMessages || !this.floatingCommunicationMessages.length) {
+            this.floatingCommunicationMessages = mappedMessages;
+            this.floatingCommunicationHasOlder = messages.length >= this.floatingCommunicationPageSize;
+          } else {
+            const latestById = new Map(mappedMessages.map(
+              (message: FloatingCommunicationMessage) => [String(message.id), message],
+            ));
+            const retainedMessages = this.floatingCommunicationMessages.filter(message =>
+              !latestById.has(String(message.id)),
+            );
+            this.floatingCommunicationMessages = [...retainedMessages, ...mappedMessages]
+              .sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime());
+          }
           this.communicationNotifications.markWhatsAppConversationRead(conversationId);
-          this.scrollFloatingCommunicationToBottom();
+          if (replaceMessages || wasPinnedToBottom) {
+            this.scrollFloatingCommunicationToBottom();
+          }
         },
         error: error => {
           if (requestId !== this.floatingCommunicationRequestSequence) return;
@@ -930,18 +1106,52 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   private scrollFloatingCommunicationToBottom(): void {
+    this.floatingCommunicationPinnedToBottom = true;
     const scroll = () => {
       const element = this.floatingCommunicationScroll?.nativeElement;
-      if (element) element.scrollTop = element.scrollHeight;
+      if (element) {
+        element.scrollTop = element.scrollHeight;
+        this.floatingCommunicationLastScrollTop = element.scrollTop;
+      }
     };
     setTimeout(scroll);
     setTimeout(scroll, 120);
   }
 
+  private isFloatingChatNearBottom(element: HTMLElement): boolean {
+    return element.scrollHeight - element.scrollTop - element.clientHeight <= 100;
+  }
+
   openFloatingTechnicians(groupId?: string | null): void {
+    this.openFloatingInternalChat('installation', groupId);
+  }
+
+  openFloatingAdmin(groupId?: string | null): void {
+    this.openFloatingInternalChat('admin', groupId);
+  }
+
+  private openFloatingInternalChat(
+    groupType: 'installation' | 'admin',
+    groupId?: string | null,
+  ): void {
     this.floatingAquilesVisible = false;
     this.floatingCommunicationVisible = false;
     this.supportDialogVisible = false;
+    const modeChanged = this.floatingInternalGroupType !== groupType;
+    if (modeChanged) {
+      this.floatingInternalGroupType = groupType;
+      this.floatingTechnicianRequestSequence += 1;
+      this.stopFloatingTechnicianPolling();
+      this.stopFloatingTechnicianAutoScroll();
+      this.selectedFloatingTechnicianGroup = null;
+      this.floatingTechnicianMessages = [];
+      this.floatingTechnicianInput = '';
+      this.floatingTechnicianError = '';
+      this.floatingTechnicianOlderError = '';
+      this.floatingTechnicianHasOlder = true;
+      this.floatingTechnicianPinnedToBottom = true;
+      this.floatingTechnicianLastScrollTop = 0;
+    }
     this.floatingTechniciansVisible = true;
     this.loadFloatingTechnicianGroups(groupId || null, true);
   }
@@ -951,6 +1161,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.floatingTechnicianRequestSequence += 1;
     this.stopFloatingTechnicianPolling();
     this.stopFloatingTechnicianAutoScroll();
+    this.loadingOlderFloatingTechnicianMessages = false;
+    this.floatingTechnicianLastScrollTop = 0;
   }
 
   expandFloatingTechnicians(): void {
@@ -972,6 +1184,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.floatingTechnicianMessages = [];
       this.floatingTechnicianInput = '';
       this.floatingTechnicianError = '';
+      this.floatingTechnicianOlderError = '';
+      this.floatingTechnicianHasOlder = true;
+      this.floatingTechnicianPinnedToBottom = true;
+      this.floatingTechnicianLastScrollTop = 0;
     }
     this.setFloatingTechnicianGroupRead(group.id);
     if (changed || forceReload || !this.floatingTechnicianMessages.length) {
@@ -1009,7 +1225,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
           }
           this.floatingTechnicianError = getApiErrorMessage(
             error,
-            'No se pudo enviar el mensaje al técnico',
+            this.isFloatingAdminChat
+              ? 'No se pudo enviar el mensaje al grupo de empleados'
+              : 'No se pudo enviar el mensaje al técnico',
           );
         },
       });
@@ -1022,6 +1240,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   getFloatingTechnicianGroupName(group?: InternalChatGroup | null): string {
+    if (group?.type === 'admin') return 'Admin';
     const technicianName = `${group?.technician?.name || ''} ${group?.technician?.lastName || ''}`.trim();
     return technicianName
       || String(group?.name || '').replace(/^Instalaciones\s*-\s*/i, '').trim()
@@ -1095,7 +1314,84 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   onFloatingTechnicianMediaReady(): void {
     if (!this.floatingTechniciansVisible) return;
-    this.scrollFloatingTechnicianToBottom();
+    if (this.floatingTechnicianPinnedToBottom) {
+      this.scrollFloatingTechnicianToBottom();
+    }
+  }
+
+  onFloatingTechnicianScroll(event: Event): void {
+    const element = event.currentTarget as HTMLElement | null;
+    if (!element) return;
+    const scrollTop = Math.max(0, element.scrollTop);
+    const isScrollingUp = scrollTop < this.floatingTechnicianLastScrollTop - 1;
+    this.floatingTechnicianLastScrollTop = scrollTop;
+    this.floatingTechnicianPinnedToBottom = this.isFloatingChatNearBottom(element);
+    if (isScrollingUp && scrollTop <= 80) {
+      this.loadOlderFloatingTechnicianMessages();
+    }
+  }
+
+  loadOlderFloatingTechnicianMessages(): void {
+    const groupId = this.selectedFloatingTechnicianGroup?.id;
+    const oldestMessageId = this.floatingTechnicianMessages[0]?._id;
+    if (
+      !groupId
+      || !oldestMessageId
+      || this.loadingFloatingTechnicianMessages
+      || this.loadingOlderFloatingTechnicianMessages
+      || !this.floatingTechnicianHasOlder
+    ) return;
+
+    const requestId = this.floatingTechnicianRequestSequence;
+    const element = this.floatingTechnicianScroll?.nativeElement;
+    const previousScrollHeight = element?.scrollHeight || 0;
+    const previousScrollTop = element?.scrollTop || 0;
+    this.loadingOlderFloatingTechnicianMessages = true;
+    this.floatingTechnicianOlderError = '';
+    this.floatingTechnicianPinnedToBottom = false;
+
+    this.internalChatService.getMessages({
+      limit: this.floatingTechnicianPageSize,
+      before: oldestMessageId,
+      groupId,
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: response => {
+          if (
+            requestId !== this.floatingTechnicianRequestSequence
+            || groupId !== this.selectedFloatingTechnicianGroup?.id
+          ) return;
+          this.loadingOlderFloatingTechnicianMessages = false;
+          const existingIds = new Set(this.floatingTechnicianMessages.map(message => message._id));
+          const olderMessages = (response?.messages || []).filter(
+            message => !existingIds.has(message._id),
+          );
+          this.floatingTechnicianMessages = [
+            ...olderMessages,
+            ...this.floatingTechnicianMessages,
+          ];
+          this.floatingTechnicianHasOlder = this.floatingTechnicianMessages.length
+            < Math.max(0, Number(response?.total || 0));
+          setTimeout(() => {
+            const currentElement = this.floatingTechnicianScroll?.nativeElement;
+            if (!currentElement || groupId !== this.selectedFloatingTechnicianGroup?.id) return;
+            const restoredScrollTop = currentElement.scrollHeight
+              - previousScrollHeight
+              + previousScrollTop;
+            currentElement.scrollTop = restoredScrollTop;
+            this.floatingTechnicianLastScrollTop = restoredScrollTop;
+          });
+        },
+        error: error => {
+          if (requestId !== this.floatingTechnicianRequestSequence) return;
+          this.loadingOlderFloatingTechnicianMessages = false;
+          this.floatingTechnicianOlderError = getApiErrorMessage(
+            error,
+            'No se pudieron cargar los mensajes anteriores',
+          );
+        },
+      });
   }
 
   trackFloatingTechnicianGroup(_index: number, group: InternalChatGroup): string {
@@ -1117,14 +1413,22 @@ export class NavbarComponent implements OnInit, OnDestroy {
       .subscribe({
         next: response => {
           this.loadingFloatingTechnicianGroups = false;
-          const groups = (response?.groups || []).filter(
-            group => group.type === 'installation',
+          const allGroups = response?.groups || [];
+          const groups = allGroups.filter(
+            group => group.type === this.floatingInternalGroupType,
+          );
+          this.communicationNotifications.syncTechnicianPendingCount(
+            allGroups
+              .filter(group => group.type === 'installation')
+              .reduce((total, group) => total + Math.max(0, Number(group.unreadCount) || 0), 0),
+          );
+          this.communicationNotifications.syncAdminPendingCount(
+            allGroups
+              .filter(group => group.type === 'admin')
+              .reduce((total, group) => total + Math.max(0, Number(group.unreadCount) || 0), 0),
           );
           const previousId = this.selectedFloatingTechnicianGroup?.id || '';
           this.floatingTechnicianGroups = groups;
-          this.communicationNotifications.syncTechnicianPendingCount(
-            groups.reduce((total, group) => total + Math.max(0, Number(group.unreadCount) || 0), 0),
-          );
 
           const selected = groups.find(group => group.id === requestedGroupId)
             || groups.find(group => group.id === previousId)
@@ -1135,6 +1439,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
           if (!selected) {
             this.floatingTechnicianMessages = [];
+            this.floatingTechnicianHasOlder = false;
             this.stopFloatingTechnicianPolling();
             return;
           }
@@ -1150,7 +1455,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
           if (this.floatingTechniciansVisible) {
             this.floatingTechnicianError = getApiErrorMessage(
               error,
-              'No se pudieron cargar los chats de técnicos',
+              this.isFloatingAdminChat
+                ? 'No se pudo cargar el chat administrativo'
+                : 'No se pudieron cargar los chats de técnicos',
             );
           }
         },
@@ -1161,10 +1468,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
     const groupId = this.selectedFloatingTechnicianGroup?.id;
     if (!groupId) return;
     const requestId = ++this.floatingTechnicianRequestSequence;
+    this.loadingOlderFloatingTechnicianMessages = false;
     this.loadingFloatingTechnicianMessages = true;
     this.floatingTechnicianError = '';
 
-    this.internalChatService.getMessages({ limit: 50, groupId })
+    this.internalChatService.getMessages({
+      limit: this.floatingTechnicianPageSize,
+      groupId,
+    })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: response => {
@@ -1174,6 +1485,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
           ) return;
           this.loadingFloatingTechnicianMessages = false;
           this.floatingTechnicianMessages = response?.messages || [];
+          this.floatingTechnicianHasOlder = this.floatingTechnicianMessages.length
+            < Math.max(0, Number(response?.total || 0));
           this.setFloatingTechnicianGroupRead(groupId);
           this.scrollFloatingTechnicianToBottom();
           this.startFloatingTechnicianPolling();
@@ -1183,7 +1496,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
           this.loadingFloatingTechnicianMessages = false;
           this.floatingTechnicianError = getApiErrorMessage(
             error,
-            'No se pudieron cargar los mensajes del técnico',
+            this.isFloatingAdminChat
+              ? 'No se pudieron cargar los mensajes administrativos'
+              : 'No se pudieron cargar los mensajes del técnico',
           );
           this.stopFloatingTechnicianPolling();
         },
@@ -1194,12 +1509,15 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.floatingTechnicianGroups = this.floatingTechnicianGroups.map(group =>
       group.id === groupId ? { ...group, unreadCount: 0 } : group,
     );
-    this.communicationNotifications.syncTechnicianPendingCount(
-      this.floatingTechnicianGroups.reduce(
-        (total, group) => total + Math.max(0, Number(group.unreadCount) || 0),
-        0,
-      ),
+    const unreadCount = this.floatingTechnicianGroups.reduce(
+      (total, group) => total + Math.max(0, Number(group.unreadCount) || 0),
+      0,
     );
+    if (this.isFloatingAdminChat) {
+      this.communicationNotifications.syncAdminPendingCount(unreadCount);
+    } else {
+      this.communicationNotifications.syncTechnicianPendingCount(unreadCount);
+    }
     this.internalChatService.markGroupRead(groupId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({ error: () => undefined });
@@ -1222,9 +1540,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
               message => !this.floatingTechnicianMessages.some(existing => existing._id === message._id),
             );
             if (!newMessages.length) return;
+            const wasPinnedToBottom = this.floatingTechnicianPinnedToBottom;
             this.floatingTechnicianMessages = [...this.floatingTechnicianMessages, ...newMessages];
             this.setFloatingTechnicianGroupRead(groupId);
-            this.scrollFloatingTechnicianToBottom();
+            if (wasPinnedToBottom) this.scrollFloatingTechnicianToBottom();
           },
           error: () => undefined,
         });
@@ -1238,6 +1557,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   private scrollFloatingTechnicianToBottom(): void {
+    this.floatingTechnicianPinnedToBottom = true;
     this.stopFloatingTechnicianAutoScroll();
     const sequence = ++this.floatingTechnicianScrollSequence;
     let previousHeight = -1;
@@ -1251,6 +1571,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
       const currentHeight = element.scrollHeight;
       element.scrollTop = currentHeight;
+      this.floatingTechnicianLastScrollTop = element.scrollTop;
       stablePasses = currentHeight === previousHeight ? stablePasses + 1 : 0;
       previousHeight = currentHeight;
       attempts += 1;
@@ -1293,6 +1614,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   resetSupportChat(): void {
     const firstName = String(this.currentUser?.name || '').trim().split(/\s+/)[0];
+    this.clearSupportGreetingTimeout();
     this.newTicket = {
       title: '',
       description: '',
@@ -1300,16 +1622,29 @@ export class NavbarComponent implements OnInit, OnDestroy {
     };
     this.supportChatInput = '';
     this.supportAssistantThinking = false;
-    this.supportDraftReady = false;
     this.supportDiagnosticCapture = null;
     this.capturingSupportDiagnostics = false;
     this.supportDiagnosticRequestSequence += 1;
+    this.supportCaptureRequestSequence += 1;
     this.supportChatMessages = [];
     this.supportChatMessageSequence = 0;
-    this.addSupportChatMessage(
-      'assistant',
-      `Hola${firstName ? `, ${firstName}` : ''}. Soy Aquiles, tu asistente de soporte. Cuéntame con tus propias palabras qué problema tienes y qué esperabas que ocurriera.`
-    );
+    this.supportAssistantThinking = true;
+    this.scrollSupportChatToBottom();
+    this.supportGreetingTimeout = setTimeout(() => {
+      this.supportGreetingTimeout = undefined;
+      this.supportAssistantThinking = false;
+      this.addSupportChatMessage(
+        'assistant',
+        `Hola${firstName ? `, ${firstName}` : ''}. Cuéntame qué pasó y te ayudo a dejar el ticket bien explicado.`
+      );
+      this.scrollSupportChatToBottom();
+    }, this.supportGreetingDelayMs);
+  }
+
+  private clearSupportGreetingTimeout(): void {
+    if (!this.supportGreetingTimeout) return;
+    clearTimeout(this.supportGreetingTimeout);
+    this.supportGreetingTimeout = undefined;
   }
 
   sendSupportChatMessage(): void {
@@ -1318,24 +1653,39 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     this.addSupportChatMessage('user', content);
     this.supportChatInput = '';
-    this.supportDraftReady = false;
     this.supportAssistantThinking = true;
-    this.capturingSupportDiagnostics = true;
     this.scrollSupportChatToBottom();
 
     const diagnosticRequestId = ++this.supportDiagnosticRequestSequence;
-    void this.supportService.captureAquilesDiagnostics()
-      .then(capture => {
-        if (diagnosticRequestId !== this.supportDiagnosticRequestSequence) return;
-        this.supportDiagnosticCapture = capture;
-        this.capturingSupportDiagnostics = false;
-        this.requestAquilesResponse(diagnosticRequestId);
-      })
-      .catch(() => {
-        if (diagnosticRequestId !== this.supportDiagnosticRequestSequence) return;
-        this.capturingSupportDiagnostics = false;
-        this.requestAquilesResponse(diagnosticRequestId);
+    this.requestAquilesResponse(diagnosticRequestId);
+  }
+
+  captureSupportScreen(): void {
+    if (this.capturingSupportDiagnostics) return;
+    const captureRequestId = ++this.supportCaptureRequestSequence;
+    this.capturingSupportDiagnostics = true;
+
+    // Let Angular paint the pressed/loading state before html2canvas starts its
+    // expensive DOM traversal. Capturing is optional and never blocks a message.
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        void this.supportService.captureAquilesDiagnostics()
+          .then(capture => {
+            if (captureRequestId !== this.supportCaptureRequestSequence) return;
+            this.supportDiagnosticCapture = capture;
+            this.capturingSupportDiagnostics = false;
+          })
+          .catch(() => {
+            if (captureRequestId !== this.supportCaptureRequestSequence) return;
+            this.capturingSupportDiagnostics = false;
+            this.messageService.add({
+              severity: 'warn',
+              summary: 'Captura no disponible',
+              detail: 'Puedes continuar hablando con Aquiles sin adjuntar la pantalla.',
+            });
+          });
       });
+    });
   }
 
   private requestAquilesResponse(diagnosticRequestId: number): void {
@@ -1348,7 +1698,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       })),
       route: this.router.url,
       browser: this.getSupportBrowserContext(),
-      diagnostics: capture?.summary,
+      page_context: this.buildSupportPageContext(),
       screenshot_data_url: capture?.screenshotDataUrl,
     })
       .pipe(takeUntil(this.destroy$))
@@ -1357,21 +1707,21 @@ export class NavbarComponent implements OnInit, OnDestroy {
           if (diagnosticRequestId !== this.supportDiagnosticRequestSequence) return;
           this.supportAssistantThinking = false;
           this.addSupportChatMessage('assistant', response.message);
-          this.supportDraftReady = Boolean(
+          const ticketReady = Boolean(
             response.ready && response.title?.trim() && response.description?.trim()
           );
-          if (this.supportDraftReady) {
+          if (ticketReady) {
             this.newTicket = {
               title: response.title.trim(),
               description: response.description.trim(),
               priority: response.priority || 'medium',
             };
+            this.createSupportTicketInBackground(this.supportDiagnosticCapture);
           }
           this.scrollSupportChatToBottom();
         },
         error: error => {
           if (diagnosticRequestId !== this.supportDiagnosticRequestSequence) return;
-          console.error('[SUPPORT] Aquiles assistant error:', error);
           this.supportAssistantThinking = false;
           this.addSupportChatMessage(
             'assistant',
@@ -1382,19 +1732,198 @@ export class NavbarComponent implements OnInit, OnDestroy {
       });
   }
 
+  @HostListener('document:click', ['$event'])
+  captureSupportUserAction(event: MouseEvent): void {
+    const source = event.target as HTMLElement | null;
+    if (!source || source.closest('.aquiles-floating-chat')) return;
+    const actionable = source.closest<HTMLElement>(
+      'button, a, [role="button"], [role="tab"], [role="menuitem"]',
+    );
+    if (!actionable) return;
+    const label = this.normalizeSupportContextText(
+      actionable.getAttribute('aria-label')
+      || actionable.getAttribute('title')
+      || actionable.innerText,
+      180,
+    );
+    if (!label || /^(?:ayuda|aquiles|soporte(?: técnico)?)$/i.test(label)) return;
+    this.lastSupportUserAction = label;
+  }
+
+  @HostListener('document:change', ['$event'])
+  captureSupportFieldAction(event: Event): void {
+    const field = event.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
+    if (
+      !field
+      || !field.matches('input, select, textarea')
+      || field.closest('.aquiles-floating-chat')
+      || (field instanceof HTMLInputElement && field.type === 'password')
+    ) return;
+    const label = this.normalizeSupportContextText(
+      field.getAttribute('aria-label')
+      || field.labels?.[0]?.innerText
+      || field.getAttribute('placeholder')
+      || field.getAttribute('name'),
+      160,
+    );
+    if (label) this.lastSupportUserAction = `Modificó el campo ${label}`;
+  }
+
+  private buildSupportPageContext(): string {
+    const route = String(this.router.url || '/').split('?')[0];
+    const selectedTargets = (this.currentSelectedTargets?.length
+      ? this.currentSelectedTargets
+      : this.selectionService.selectedTargetsValue || [])
+      .slice(0, 12);
+    const focusedTargets = [
+      ...(this.targetDetailsVisible && this.selectedTargetDetails
+        ? [this.selectedTargetDetails]
+        : []),
+      ...selectedTargets,
+    ].filter((target, index, targets) => {
+      const id = String(target?._id || target?.device_imei || target?.imei || '');
+      return !!id && targets.findIndex(item =>
+        String(item?._id || item?.device_imei || item?.imei || '') === id,
+      ) === index;
+    });
+    const visibleHeadings = this.collectVisibleSupportContext(
+      'h1, h2, h3, .page-title, .p-dialog-title, [aria-current="page"]',
+      8,
+      () => true,
+    );
+    const visibleGpsRows = this.collectVisibleSupportContext(
+      [
+        '.management__content-table-tr',
+        '.target-linked-pair-card',
+        '.target-card',
+        '.target-info',
+        '.device-preview-item',
+        '.device-info',
+        '[data-support-context]',
+        'tr[role="row"]',
+      ].join(', '),
+      10,
+      text => /\b(?:IMEI|GPS|SIM)\b/i.test(text),
+    );
+    const activeView = this.getSupportActiveView();
+    const lines = [
+      'CONTEXTO ACTUAL DE LA INTERFAZ',
+      `- Ruta: ${route}`,
+      `- Módulo: ${this.getSupportModuleName(route)}`,
+      visibleHeadings.length
+        ? `- Títulos visibles: ${visibleHeadings.join(' | ')}`
+        : '',
+      activeView ? `- Acción o ventana activa: ${activeView}` : '',
+      this.lastSupportUserAction
+        ? `- Última acción relevante: ${this.lastSupportUserAction}`
+        : '',
+      focusedTargets.length
+        ? '- GPS enfocados o seleccionados:'
+        : '- No hay GPS seleccionados ni un detalle de GPS abierto.',
+      ...focusedTargets.map(target => `  ${this.getSupportTargetContext(target)}`),
+      visibleGpsRows.length ? '- GPS visibles en pantalla:' : '',
+      ...visibleGpsRows.map(text => `  - ${text}`),
+    ].filter(Boolean);
+    return lines.join('\n').slice(0, 12_000);
+  }
+
+  private collectVisibleSupportContext(
+    selector: string,
+    limit: number,
+    include: (text: string) => boolean,
+  ): string[] {
+    if (typeof document === 'undefined') return [];
+    const values: string[] = [];
+    const seen = new Set<string>();
+    const candidates = Array.from(
+      document.querySelectorAll<HTMLElement>(selector),
+    ).slice(0, 250);
+    for (const element of candidates) {
+      if (element.closest('.aquiles-floating-chat')) continue;
+      const rect = element.getBoundingClientRect();
+      if (
+        rect.width <= 0
+        || rect.height <= 0
+        || rect.bottom <= 0
+        || rect.right <= 0
+        || rect.top >= window.innerHeight
+        || rect.left >= window.innerWidth
+      ) continue;
+      const text = this.normalizeSupportContextText(element.innerText, 520);
+      if (!text || !include(text) || seen.has(text)) continue;
+      seen.add(text);
+      values.push(text);
+      if (values.length >= limit) break;
+    }
+    return values;
+  }
+
+  private getSupportTargetContext(target: Target): string {
+    const name = this.normalizeSupportContextText(target?.name, 120) || 'Sin nombre';
+    const imei = this.normalizeSupportContextText(
+      target?.device_imei || target?.imei,
+      40,
+    ) || 'no disponible';
+    const sim = this.normalizeSupportContextText(
+      target?.sim_card_number || target?.sim_card,
+      40,
+    ) || 'no disponible';
+    const connection = this.normalizeSupportContextText(
+      target?.traccarInfo?.status,
+      40,
+    ) || 'no disponible';
+    const expiration = this.normalizeSupportContextText(target?.expiration_date, 60)
+      || 'no disponible';
+    return `- ${name} | IMEI: ${imei} | SIM: ${sim} | Conexión: ${connection} | Expira: ${expiration}`;
+  }
+
+  private getSupportActiveView(): string {
+    if (this.targetDetailsVisible && this.selectedTargetDetails) {
+      return `Detalles del GPS ${this.selectedTargetDetails.name || this.selectedTargetDetails.device_imei}`;
+    }
+    if (this.bulkProcessDialogVisible) return 'Formulario de procesos para objetivos seleccionados';
+    if (this.realtimeLinkDialogVisible) return 'Compartiendo ubicación en tiempo real';
+    if (this.shareDialogVisible || this.shareMethodDialogVisible) return 'Compartiendo acceso a objetivos';
+    if (this.transferDialogVisible) return 'Transfiriendo objetivos';
+    if (this.canceledDrawerVisible) return 'Consultando objetivos cancelados';
+    if (
+      this.alertsDialogVisible
+      || this.speedAlertDialogVisible
+      || this.perimeterAlertDialogVisible
+      || this.ignitionAlertDialogVisible
+      || this.movementAlertDialogVisible
+      || this.connectionAlertDialogVisible
+    ) return 'Configurando una alerta';
+    return '';
+  }
+
+  private getSupportModuleName(route: string): string {
+    const match = [
+      ['/management', 'Management'],
+      ['/monitoring', 'Monitoreo'],
+      ['/communication', 'Comunicación'],
+      ['/inventory', 'Inventario'],
+      ['/solicitudes', 'Solicitudes'],
+      ['/process', 'Procesos'],
+      ['/settings', 'Configuración'],
+      ['/empleados', 'Empleados'],
+    ].find(([segment]) => route.includes(segment));
+    return match?.[1] || 'Montao GPS';
+  }
+
+  private normalizeSupportContextText(value: unknown, limit: number): string {
+    return String(value || '')
+      .replace(/[\r\n\t]+/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/((?:password|contrase(?:ña|na)|token|secret|api[_-]?key|cookie)\s*[:=]\s*)\S+/gi, '$1[OCULTO]')
+      .trim()
+      .slice(0, limit);
+  }
+
   onSupportChatKeydown(event: KeyboardEvent): void {
     if (event.key !== 'Enter' || event.shiftKey) return;
     event.preventDefault();
     this.sendSupportChatMessage();
-  }
-
-  editSupportDraft(): void {
-    this.supportDraftReady = false;
-    this.addSupportChatMessage(
-      'assistant',
-      'Claro. Dime qué dato quieres corregir o qué información adicional debo incluir.'
-    );
-    this.scrollSupportChatToBottom();
   }
 
   private addSupportChatMessage(role: 'user' | 'assistant', content: string): void {
@@ -1473,69 +2002,34 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
-  saveSupportTicket() {
-    if (!this.supportDraftReady || !this.newTicket.title || !this.newTicket.description) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Atención',
-        detail: 'Completa la conversación con Aquiles y confirma el resumen del ticket.'
-      });
-      return;
-    }
-
-    this.savingTicket = true;
-    this.capturingSupportDiagnostics = true;
-    const diagnosticRequestId = ++this.supportDiagnosticRequestSequence;
-    void this.supportService.captureAquilesDiagnostics()
-      .then(capture => {
-        if (diagnosticRequestId !== this.supportDiagnosticRequestSequence) return;
-        this.supportDiagnosticCapture = capture;
-        this.capturingSupportDiagnostics = false;
-        this.createSupportTicketWithDiagnostics(capture);
-      })
-      .catch(() => {
-        if (diagnosticRequestId !== this.supportDiagnosticRequestSequence) return;
-        this.capturingSupportDiagnostics = false;
-        this.createSupportTicketWithDiagnostics(this.supportDiagnosticCapture);
-      });
-  }
-
-  private createSupportTicketWithDiagnostics(
+  private createSupportTicketInBackground(
     capture: SupportDiagnosticCapture | null,
   ): void {
+    if (this.savingTicket || !this.newTicket.title || !this.newTicket.description) return;
+    this.savingTicket = true;
     this.supportService.createTicket(this.newTicket, capture)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
       next: () => {
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Éxito',
-          detail: 'Ticket creado correctamente'
-        });
-
-        this.supportDraftReady = false;
         this.loadUserTickets();
-        if (this.floatingAquilesVisible) {
-          this.addSupportChatMessage(
-            'assistant',
-            'Listo, tu ticket fue creado correctamente. El equipo de soporte ya puede revisarlo.'
-          );
-          this.scrollSupportChatToBottom();
-        } else {
-          setTimeout(() => {
-            this.activeSupportTab = 'list';
-          }, 500);
-        }
-
+        this.addSupportChatMessage(
+          'assistant',
+          'Listo, ya creé el ticket y lo envié al equipo de soporte.'
+        );
+        this.scrollSupportChatToBottom();
         this.savingTicket = false;
       },
       error: (err) => {
-        console.error('Error creating ticket from navbar:', err);
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
           detail: getApiErrorMessage(err, 'No se pudo crear el ticket de soporte')
         });
+        this.addSupportChatMessage(
+          'assistant',
+          'Entendí el caso, pero no pude crear el ticket ahora mismo. Escríbeme “intenta de nuevo” y vuelvo a enviarlo.'
+        );
+        this.scrollSupportChatToBottom();
         this.savingTicket = false;
       }
     });
@@ -1632,7 +2126,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
         const hasChanged = selected.time !== previous?.time
           || selected.lastMessage !== previous?.lastMessage;
         this.selectedFloatingCommunicationChat = selected;
-        if (hasChanged) this.loadFloatingCommunicationMessages();
+        if (hasChanged) this.loadFloatingCommunicationMessages(false);
       });
 
     this.communicationNotifications.floatingAssignedChatRequested$
@@ -1645,6 +2139,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.communicationNotifications.floatingTechniciansRequested$
       .pipe(takeUntil(this.destroy$))
       .subscribe(groupId => this.openFloatingTechnicians(groupId));
+
+    this.communicationNotifications.floatingAdminRequested$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(groupId => this.openFloatingAdmin(groupId));
 
     this.loadFloatingTechnicianGroups();
 
@@ -1719,6 +2217,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.clearSupportGreetingTimeout();
     this.stopFloatingTechnicianPolling();
     this.stopFloatingTechnicianAutoScroll();
     this.destroy$.next();

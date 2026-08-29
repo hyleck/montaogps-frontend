@@ -133,15 +133,39 @@
                             <div class="comm-contact__assignee"
                                 [class.comm-contact__assignee--ester]="!conv.assignee_id"
                                 [class.comm-contact__assignee--ester-disabled]="isEsterAutoReplyDisabled(conv)"
-                                [class.comm-contact__assignee--mine]="isConversationAssignedToMe(conv)">
-                                <i class="pi" [ngClass]="conv.assignee_id ? 'pi-user' : 'pi-bolt'"></i>
+                                [class.comm-contact__assignee--ester-paused]="isEsterConversationPaused(conv)"
+                                [class.comm-contact__assignee--mine]="isConversationAssignedToMe(conv)"
+                                [title]="getEsterPauseReason(conv) || ('Asignada a ' + getConversationAssigneeLabel(conv))">
+                                <i class="pi" [ngClass]="conv.assignee_id
+                                    ? 'pi-user'
+                                    : isEsterConversationPaused(conv)
+                                        ? 'pi-pause-circle'
+                                        : 'pi-bolt'"></i>
                                 <span *ngIf="conv.assignee_id && conv.assignee_online"
                                     class="comm-assignee-presence-dot"
                                     title="Empleado dentro de esta conversación"
                                     aria-label="En la conversación"></span>
-                                {{ isConversationAssignedToMe(conv)
-                                    ? 'Asignada a ti'
-                                    : 'Asignada a ' + getConversationAssigneeLabel(conv) }}
+                                <span class="comm-contact__assignee-label">
+                                    {{ isConversationAssignedToMe(conv)
+                                        ? 'Asignada a ti'
+                                        : 'Asignada a ' + getConversationAssigneeLabel(conv) }}
+                                </span>
+                                <ng-container *ngIf="isEsterConversationPaused(conv)">
+                                    <span class="comm-contact__assignee-separator">·</span>
+                                    <span class="comm-contact__assignee-reason">
+                                        En pausa: {{ getEsterPauseReason(conv) }}
+                                    </span>
+                                    <button
+                                        *ngIf="shouldShowEsterPauseReasonButton(conv)"
+                                        type="button"
+                                        class="comm-contact__pause-reason-button"
+                                        title="Ver motivo completo"
+                                        aria-label="Ver el motivo completo de la pausa"
+                                        (click)="openEsterPauseReasonDialog(conv, $event)">
+                                        <i class="pi pi-ellipsis-h"></i>
+                                        <span>Ver motivo</span>
+                                    </button>
+                                </ng-container>
                             </div>
                         </div>
                         <div *ngIf="conv.unread_count > 0" class="comm-contact__badge">{{ conv.unread_count }}</div>
@@ -815,24 +839,31 @@
                 class="comm-managed-banner"
                 [class.comm-managed-banner--ester]="!selectedConversation.assignee_id"
                 [class.comm-managed-banner--ester-disabled]="isEsterAutoReplyDisabled(selectedConversation)"
+                [class.comm-managed-banner--ester-paused]="isEsterConversationPaused(selectedConversation)"
                 [class.comm-managed-banner--employee]="!!selectedConversation.assignee_id">
                 <div class="comm-managed-banner__content">
                     <span class="comm-managed-banner__icon">
                         <i [class]="selectedConversation.assignee_id
                             ? 'pi pi-user'
-                            : isEsterAutoReplyDisabled(selectedConversation)
+                            : isEsterConversationPaused(selectedConversation)
+                                ? 'pi pi-pause-circle'
+                                : isEsterAutoReplyDisabled(selectedConversation)
                                 ? 'pi pi-ban'
                                 : 'pi pi-bolt'"></i>
                     </span>
                     <strong class="comm-managed-banner__title">
-                        {{ isEsterAutoReplyDisabled(selectedConversation)
+                        {{ isEsterConversationPaused(selectedConversation)
+                            ? 'Ester Assistant está en pausa'
+                            : isEsterAutoReplyDisabled(selectedConversation)
                             ? 'Ester Assistant está desactivada'
                             : 'Gestionado por ' + getConversationManagerLabel(selectedConversation) }}
                     </strong>
                     <span class="comm-managed-banner__description">
                         {{ selectedConversation.assignee_id
                             ? 'Esta conversación está asignada a otro empleado.'
-                            : isEsterAutoReplyDisabled(selectedConversation)
+                            : isEsterConversationPaused(selectedConversation)
+                                ? getEsterPauseReason(selectedConversation)
+                                : isEsterAutoReplyDisabled(selectedConversation)
                                 ? 'La conversación sigue asignada a Ester, pero no responderá automáticamente.'
                                 : 'Esta conversación está siendo atendida de forma automática.' }}
                     </span>
@@ -851,10 +882,20 @@
                                 : 'Enviar zumbido de recordatorio' }}
                         </span>
                     </button>
+                    <button
+                        *ngIf="shouldShowEsterPauseReasonButton(selectedConversation)"
+                        type="button"
+                        class="comm-managed-banner__action comm-managed-banner__action--pause-reason"
+                        (click)="openEsterPauseReasonDialog(selectedConversation, $event)">
+                        <i class="pi pi-info-circle"></i>
+                        <span>Ver motivo completo</span>
+                    </button>
                     <button type="button" class="comm-managed-banner__action" (click)="assignToMe()">
                         <i class="pi pi-user-plus"></i>
                         <span>
-                            {{ isEsterAutoReplyDisabled(selectedConversation)
+                            {{ isEsterConversationPaused(selectedConversation)
+                                ? 'Ester está en pausa · Tomar control'
+                                : isEsterAutoReplyDisabled(selectedConversation)
                                 ? 'Ester está desactivada · Tomar control'
                                 : 'Tomar control de la conversación' }}
                         </span>
@@ -862,9 +903,37 @@
                 </div>
             </div>
         </ng-container>
-    </div>
+</div>
 
-    <!-- Contact Info Panel -->
+<p-dialog
+    [(visible)]="showEsterPauseReasonDialog"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '560px', maxWidth: '92vw' }"
+    styleClass="comm-ester-pause-dialog"
+    header="Por qué Ester está en pausa">
+    <div class="comm-ester-pause-dialog__body">
+        <span class="comm-ester-pause-dialog__icon">
+            <i class="pi pi-pause-circle"></i>
+        </span>
+        <div class="comm-ester-pause-dialog__content">
+            <small>Conversación con</small>
+            <strong>{{ esterPauseReasonDialogContact }}</strong>
+            <p>{{ esterPauseReasonDialogText }}</p>
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <button
+            type="button"
+            class="comm-ester-pause-dialog__close"
+            (click)="showEsterPauseReasonDialog = false">
+            Cerrar
+        </button>
+    </ng-template>
+</p-dialog>
+
+<!-- Contact Info Panel -->
     <div *ngIf="selectedConversation && !noInbox" class="comm-contact-panel" [class.comm-contact-panel--visible]="showContactInfo">
         <div class="comm-contact-panel__header">
             <span>Información del contacto</span>
@@ -1202,18 +1271,32 @@
                     <div class="comm-internal-message__bubble">
                         <div class="comm-internal-message__meta">
                             <strong>{{ isMyInternalMessage(msg) ? 'Tú' : getInternalAuthorName(msg) }}</strong>
-                            <span>{{ msg.createdAt | date:'HH:mm' }}</span>
+                            <div class="comm-internal-message__meta-actions">
+                                <span>{{ msg.createdAt | date:'HH:mm' }}</span>
+                                <button type="button"
+                                    title="Responder este mensaje"
+                                    [attr.aria-label]="'Responder a ' + getInternalAuthorName(msg)"
+                                    (click)="selectInternalReply(msg)">
+                                    <i class="pi pi-reply"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="comm-internal-message__text" *ngIf="msg.text">{{ msg.text | deviceLabel }}</div>
-                        <button
-                            *ngIf="msg.referenceConversationId"
-                            type="button"
-                            class="comm-internal-message__reference"
-                            (click)="openInternalMessageReference(msg)">
-                            <i class="pi pi-comments"></i>
-                            <span>{{ msg.referenceLabel || 'Ver mensaje original' }}</span>
-                            <i class="pi pi-arrow-right"></i>
-                        </button>
+                        <div *ngIf="msg.replyTo"
+                            class="comm-internal-message__reply-reference">
+                            <strong>{{ getInternalReplyAuthorName(msg) }}</strong>
+                            <span>{{ getInternalReplyPreview(msg) }}</span>
+                        </div>
+                        <div class="comm-internal-message__text"
+                            *ngIf="msg.text || msg.referenceConversationId">
+                            <span *ngIf="msg.text">{{ msg.text | deviceLabel }}</span>
+                            <button
+                                *ngIf="msg.referenceConversationId"
+                                type="button"
+                                class="comm-internal-message__reference"
+                                [title]="'Abrir el mensaje exacto de la conversación #' + msg.referenceConversationId"
+                                [attr.aria-label]="'Abrir el mensaje exacto de la conversación ' + msg.referenceConversationId"
+                                (click)="openInternalMessageReference(msg)">#{{ msg.referenceConversationId }}</button>
+                        </div>
                         <div class="comm-internal-message__attachments" *ngIf="msg.attachments?.length">
                             <div *ngFor="let att of msg.attachments" class="comm-attachment">
                                 <div *ngIf="isInternalImageAttachment(att)" class="comm-attachment__img-wrap"
@@ -1307,6 +1390,17 @@
                         </span>
                     </button>
                 </div>
+            </div>
+
+            <div *ngIf="internalReplyTarget" class="comm-internal-reply-composer">
+                <i class="pi pi-reply"></i>
+                <div>
+                    <strong>Respondiendo a {{ getInternalAuthorName(internalReplyTarget) }}</strong>
+                    <span>{{ internalReplyTarget.text || 'Archivo adjunto' }}</span>
+                </div>
+                <button type="button" (click)="clearInternalReply()" aria-label="Cancelar respuesta">
+                    <i class="pi pi-times"></i>
+                </button>
             </div>
 
             <form class="comm-internal__input" (ngSubmit)="sendInternalMessage()">

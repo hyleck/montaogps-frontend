@@ -57,4 +57,45 @@ describe('mapFloatingCommunicationMessage', () => {
 
     expect(result.authorName).toBe('Yoeli Bernabe Valdez');
   });
+
+  it('preserves documents so the floating chat can open the real file', () => {
+    const result = mapFloatingCommunicationMessage({
+      id: 14,
+      from: 'incoming',
+      content: '',
+      attachments: [{
+        data_url: 'https://files.montao.net/documentos/reporte%20gps.pdf?token=abc',
+        file_type: 'file',
+        content_type: 'application/pdf',
+        name: 'Reporte del GPS.pdf',
+      }],
+    }, currentUser, 'Elvin Estevez');
+
+    expect(result.text).toBe('');
+    expect(result.attachments).toEqual([{
+      url: 'https://files.montao.net/documentos/reporte%20gps.pdf?token=abc',
+      fileType: 'file',
+      mimeType: 'application/pdf',
+      name: 'Reporte del GPS.pdf',
+    }]);
+    expect(result.transcription).toBe('');
+  });
+
+  it('shows the transcription delivered with an audio attachment', () => {
+    const result = mapFloatingCommunicationMessage({
+      id: 15,
+      from: 'incoming',
+      content: '[audio:https://files.montao.net/notas/voz.ogg]',
+      transcription: 'El GPS no está actualizando desde anoche.',
+      attachments: [{
+        data_url: 'https://files.montao.net/notas/voz.ogg',
+        file_type: 'audio',
+        content_type: 'audio/ogg',
+      }],
+    }, currentUser, 'Elvin Estevez');
+
+    expect(result.text).toBe('');
+    expect(result.transcription).toBe('El GPS no está actualizando desde anoche.');
+    expect(result.attachments[0].fileType).toBe('audio');
+  });
 });

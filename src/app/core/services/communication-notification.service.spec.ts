@@ -270,6 +270,23 @@ describe('CommunicationNotificationService sidebar badge', () => {
     expect(requestedGroupId).toBe('technician:123');
   });
 
+  it('opens the floating employee group with the requested group', () => {
+    const service = new CommunicationNotificationService(
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+    let requestedGroupId: string | null | undefined;
+    service.floatingAdminRequested$.subscribe(groupId => {
+      requestedGroupId = groupId;
+    });
+
+    service.openFloatingAdmin('admin');
+
+    expect(requestedGroupId).toBe('admin');
+  });
+
   it('passes the preview contact to the floating chat even when it is not in the assigned list yet', () => {
     const service = new CommunicationNotificationService(
       {} as any,
@@ -314,5 +331,22 @@ describe('CommunicationNotificationService sidebar badge', () => {
     service.syncTechnicianPendingCount(7);
 
     expect(pendingCount).toBe(7);
+  });
+
+  it('publishes the unread total for the employee group', () => {
+    const service = new CommunicationNotificationService(
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+    let pendingCount = -1;
+    service.adminPendingCount$.subscribe(count => {
+      pendingCount = count;
+    });
+
+    service.syncAdminPendingCount(4);
+
+    expect(pendingCount).toBe(4);
   });
 });

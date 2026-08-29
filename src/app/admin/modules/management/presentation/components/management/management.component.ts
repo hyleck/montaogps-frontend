@@ -187,6 +187,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   assignedCommunicationChats: AssignedCommunicationChat[] = [];
   assignedCommunicationMessagePreview: CommunicationFloatingMessage | null = null;
   technicianChatUnreadCount: number = 0;
+  adminChatUnreadCount: number = 0;
   showShortcutsDialog: boolean = false;
   showMassActionButtons: boolean = false;
 
@@ -787,6 +788,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   openFloatingTechniciansChat(): void {
     this.communicationNotifications.openFloatingTechnicians();
+  }
+
+  openFloatingAdminChat(): void {
+    this.communicationNotifications.openFloatingAdmin();
   }
 
   get primaryAssignedCommunicationChat(): AssignedCommunicationChat | null {
@@ -3438,6 +3443,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.communicationNotifications.technicianPendingCount$.subscribe(count => {
         this.technicianChatUnreadCount = Math.max(0, Number(count) || 0);
+      })
+    );
+
+    this.subscriptions.push(
+      this.communicationNotifications.adminPendingCount$.subscribe(count => {
+        this.adminChatUnreadCount = Math.max(0, Number(count) || 0);
       })
     );
 

@@ -24,7 +24,7 @@ export interface SupportTicketDiagnostics {
     browser: string;
     captured_at: string;
     viewport: string;
-    console_entries: SupportConsoleDiagnostic[];
+    console_entries?: SupportConsoleDiagnostic[];
     screenshot_url?: string;
     screenshot_file_id?: string;
     screenshot_name?: string;
@@ -52,6 +52,7 @@ export interface SupportAssistantRequest {
     messages: SupportAssistantMessage[];
     route?: string;
     browser?: string;
+    page_context?: string;
     diagnostics?: string;
     screenshot_data_url?: string;
 }

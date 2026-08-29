@@ -12,7 +12,6 @@ import {
     SupportAssistantResponse,
     SupportTicketDiagnostics,
 } from '../interfaces/support.interface';
-import { UserConsoleLogService } from './user-console-log.service';
 
 @Injectable({
     providedIn: 'root'
@@ -26,7 +25,6 @@ export class SupportService {
     constructor(
         private http: HttpClient,
         private router: Router,
-        private userConsoleLogs: UserConsoleLogService,
     ) { }
 
     openFloatingAquiles(): void {
@@ -72,7 +70,6 @@ export class SupportService {
             browser: String(navigator.userAgent || '').slice(0, 300),
             captured_at: new Date().toISOString(),
             viewport: `${window.innerWidth}x${window.innerHeight} @${Math.min(window.devicePixelRatio || 1, 4)}x`,
-            console_entries: this.userConsoleLogs.getRecentDiagnostics(30),
         };
         const summary = this.buildAquilesDiagnosticSummary(diagnostics);
 
@@ -129,20 +126,11 @@ export class SupportService {
         diagnostics: SupportTicketDiagnostics,
     ): string {
         const lines = [
-            'DIAGNÓSTICO DEL NAVEGADOR CAPTURADO AUTOMÁTICAMENTE',
+            'CONTEXTO DE PANTALLA CAPTURADO AUTOMÁTICAMENTE',
             `- Pantalla: ${diagnostics.route}`,
             `- Capturado: ${diagnostics.captured_at}`,
             `- Vista: ${diagnostics.viewport}`,
-            `- Errores o advertencias recientes: ${diagnostics.console_entries.length}`,
         ];
-        diagnostics.console_entries.slice(-20).forEach(entry => {
-            lines.push(
-                `- [${entry.level.toUpperCase()}] ${entry.occurred_at} ${entry.route}: ${entry.message.slice(0, 900)}`,
-            );
-        });
-        if (!diagnostics.console_entries.length) {
-            lines.push('- No se registraron errores ni advertencias recientes en esta sesión.');
-        }
         return lines.join('\n').slice(0, 20_000);
     }
 

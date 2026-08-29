@@ -29,6 +29,7 @@ import {
 } from './agent-signature';
 import { buildCustomerSignatureLabel } from './customer-signature';
 import { resolveConversationMessageTranslationLanguage } from './conversation-translation';
+import { resolveEsterPauseState } from './conversation-ester-pause';
 import { orderConversationsByAttention } from './conversation-order';
 import {
   buildConversationListPreview,
@@ -64,6 +65,9 @@ interface ChatConversation {
   has_unread?: boolean;
   waiting_for_reply?: boolean;
   priority_urgent?: boolean;
+  ai_handoff_requested?: boolean;
+  ai_handoff_reason?: string;
+  ai_handoff_at?: string | null;
   inbox_id?: number;
   last_message_type?: number;
   last_message_preview?: ConversationLastMessagePreview | null;
@@ -448,6 +452,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   // Transfer Modal
   showTransferModal: boolean = false;
+  showEsterPauseReasonDialog: boolean = false;
+  esterPauseReasonDialogText: string = '';
+  esterPauseReasonDialogContact: string = '';
   transferAgents: any[] = [];
   selectedTransferAgentId: string | null = null;
   isTransferring: boolean = false;
@@ -571,6 +578,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   internalGroupSearchTerm: string = '';
   internalGroupChatOpen: boolean = false;
   internalChatInput: string = '';
+  internalReplyTarget: InternalChatMessage | null = null;
   loadingInternalMessages: boolean = false;
   sendingInternalMessage: boolean = false;
   internalChatError: string = '';
@@ -637,6 +645,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         if (changed && this.activeTab === 'grupo' && this.internalGroups.length) {
           this.ensureSelectedInternalGroup();
           this.internalMessages = [];
+          this.internalReplyTarget = null;
           this.stopInternalChatPolling();
           this.loadInternalChat();
         } else if (this.activeTab === 'grupo' && !this.internalGroups.length) {
@@ -745,6 +754,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       if (changedGroup) {
         this.internalMessages = [];
         this.internalChatInput = '';
+        this.internalReplyTarget = null;
       }
       this.loadInternalGroups(true);
     } else {
@@ -1769,6 +1779,45 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return !!conv
       && !conv.assignee_id
       && this.esterAutoReplyActive === false;
+  }
+
+  isEsterConversationPaused(
+    conv: ChatConversation | null = this.selectedConversation,
+  ): boolean {
+    return !!resolveEsterPauseState(
+      conv,
+      this.esterAutoReplyActive,
+    );
+  }
+
+  getEsterPauseReason(
+    conv: ChatConversation | null = this.selectedConversation,
+  ): string {
+    return resolveEsterPauseState(
+      conv,
+      this.esterAutoReplyActive,
+    )?.reason || '';
+  }
+
+  shouldShowEsterPauseReasonButton(
+    conv: ChatConversation | null = this.selectedConversation,
+  ): boolean {
+    return this.getEsterPauseReason(conv).length > 90;
+  }
+
+  openEsterPauseReasonDialog(
+    conv: ChatConversation | null = this.selectedConversation,
+    event?: Event,
+  ): void {
+    event?.preventDefault();
+    event?.stopPropagation();
+    const reason = this.getEsterPauseReason(conv);
+    if (!conv || !reason) return;
+
+    this.esterPauseReasonDialogText = reason;
+    this.esterPauseReasonDialogContact =
+      this.getConversationContactDisplayName(conv);
+    this.showEsterPauseReasonDialog = true;
   }
 
   private refreshEsterAutoReplyStatus(force = false): void {
@@ -3427,6 +3476,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (changed) {
       this.internalMessages = [];
       this.internalChatInput = '';
+      this.internalReplyTarget = null;
       this.stopInternalChatPolling();
     }
     this.router.navigate(['/admin/communication', 'grupo'], {
@@ -3437,6 +3487,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   showInternalGroupList(): void {
     this.internalGroupChatOpen = false;
+    this.internalReplyTarget = null;
     this.stopInternalChatPolling();
     this.stopActiveEmployeesPolling();
     this.showInternalEmojiPicker = false;
@@ -3571,6 +3622,14 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         ) return;
         this.loadingInternalMessages = false;
         this.internalMessages = res.messages || [];
+        if (
+          this.internalReplyTarget
+          && !this.internalMessages.some(
+            message => message._id === this.internalReplyTarget?._id,
+          )
+        ) {
+          this.internalReplyTarget = null;
+        }
         this.markSelectedInternalGroupRead(groupId);
         this.scrollInternalChatToBottom();
         this.startInternalChatPolling();
@@ -3608,13 +3667,16 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (!text || this.sendingInternalMessage) return;
 
     const groupId = this.selectedInternalGroupId;
+    const replyTarget = this.internalReplyTarget;
     this.sendingInternalMessage = true;
     this.internalChatInput = '';
+    this.internalReplyTarget = null;
     this.internalChatService.sendMessage(
       text,
       [],
       'text',
       groupId,
+      replyTarget?._id,
     ).subscribe({
       next: (res) => {
         this.sendingInternalMessage = false;
@@ -3631,6 +3693,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.sendingInternalMessage = false;
         if (groupId === this.selectedInternalGroupId) {
           this.internalChatInput = text;
+          this.internalReplyTarget = replyTarget;
         }
         this.messageService.add({
           severity: 'error',
@@ -3645,12 +3708,17 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (!file || this.uploadingInternalAttachment || !!this.internalChatError) return;
 
     const groupId = this.selectedInternalGroupId;
+    const replyTarget = this.internalReplyTarget;
     this.uploadingInternalAttachment = true;
+    this.internalReplyTarget = null;
     this.internalChatService.uploadAttachment(file).subscribe({
       next: (res) => {
         const attachment = res?.attachment;
         if (!attachment?.url) {
           this.uploadingInternalAttachment = false;
+          if (groupId === this.selectedInternalGroupId) {
+            this.internalReplyTarget = replyTarget;
+          }
           this.messageService.add({ severity: 'error', summary: 'No se pudo subir', detail: 'El archivo no retornó una URL válida.' });
           return;
         }
@@ -3661,6 +3729,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           [attachment],
           attachment.fileType || 'file',
           groupId,
+          replyTarget?._id,
         ).subscribe({
           next: (messageRes) => {
             this.uploadingInternalAttachment = false;
@@ -3678,6 +3747,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             if (!forcedText && groupId === this.selectedInternalGroupId) {
               this.internalChatInput = text;
             }
+            if (groupId === this.selectedInternalGroupId) {
+              this.internalReplyTarget = replyTarget;
+            }
             this.messageService.add({
               severity: 'error',
               summary: 'No se pudo enviar',
@@ -3688,6 +3760,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         this.uploadingInternalAttachment = false;
+        if (groupId === this.selectedInternalGroupId) {
+          this.internalReplyTarget = replyTarget;
+        }
         this.messageService.add({
           severity: 'error',
           summary: 'No se pudo subir',
@@ -3714,7 +3789,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (!sticker?.url || this.sendingStickerId) return;
 
     const groupId = this.selectedInternalGroupId;
+    const replyTarget = this.internalReplyTarget;
     this.sendingStickerId = sticker.id;
+    this.internalReplyTarget = null;
     const attachment: InternalChatAttachment = {
       url: sticker.url,
       name: sticker.name,
@@ -3727,6 +3804,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       [attachment],
       'sticker',
       groupId,
+      replyTarget?._id,
     ).subscribe({
       next: (res) => {
         this.sendingStickerId = null;
@@ -3742,6 +3820,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         this.sendingStickerId = null;
+        if (groupId === this.selectedInternalGroupId) {
+          this.internalReplyTarget = replyTarget;
+        }
         this.messageService.add({
           severity: 'error',
           summary: 'No se pudo enviar',
@@ -3794,6 +3875,31 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   getInternalAuthorInitials(message: InternalChatMessage): string {
     return this.getInitials(this.getInternalAuthorName(message));
+  }
+
+  selectInternalReply(message: InternalChatMessage): void {
+    if (!message?._id) return;
+    this.internalReplyTarget = message;
+    this.showInternalEmojiPicker = false;
+    this.showStickerPicker = false;
+  }
+
+  clearInternalReply(): void {
+    this.internalReplyTarget = null;
+  }
+
+  getInternalReplyAuthorName(message: InternalChatMessage): string {
+    const author = message?.replyTo?.author;
+    const name = `${author?.name || ''} ${author?.last_name || ''}`.trim();
+    return name || author?.email || 'Mensaje';
+  }
+
+  getInternalReplyPreview(message: InternalChatMessage): string {
+    const reply = message?.replyTo;
+    const text = String(reply?.text || '').replace(/\s+/g, ' ').trim();
+    if (text) return text;
+    const attachment = reply?.attachments?.[0];
+    return attachment?.name || (reply?.type === 'sticker' ? 'Sticker' : 'Archivo adjunto');
   }
 
   isInternalImageAttachment(attachment: InternalChatAttachment): boolean {

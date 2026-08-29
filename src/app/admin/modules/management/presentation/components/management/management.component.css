@@ -53,6 +53,64 @@
   align-items: center;
 }
 
+.floating-buttons > .floating-contact-action,
+.floating-buttons > button {
+  opacity: 0;
+  visibility: hidden;
+  animation: floating-actions-enter 380ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.floating-buttons > :nth-last-child(2) {
+  animation-delay: 180ms;
+}
+
+.floating-buttons > :nth-last-child(3) {
+  animation-delay: 360ms;
+}
+
+.floating-buttons > :nth-last-child(4) {
+  animation-delay: 540ms;
+}
+
+.floating-buttons > :nth-last-child(5) {
+  animation-delay: 720ms;
+}
+
+.floating-buttons > :nth-last-child(6) {
+  animation-delay: 900ms;
+}
+
+@keyframes floating-actions-enter {
+  0% {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(22px) scale(0.88);
+  }
+
+  1% {
+    visibility: visible;
+  }
+
+  68% {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-4px) scale(1.025);
+  }
+
+  100% {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes floating-actions-reveal {
+  to {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
 .floating-contact-action {
   position: relative;
   height: 40px;
@@ -210,6 +268,7 @@
 
 .floating-priority-btn,
 .floating-help-btn,
+.floating-admin-btn,
 .floating-technicians-btn,
 .floating-contact-btn {
   /* Position properties moved to container */
@@ -237,7 +296,13 @@
   background: linear-gradient(135deg, #7c3aed, #4f46e5);
 }
 
-.floating-technicians-btn__badge {
+.floating-admin-btn {
+  position: relative;
+  background: linear-gradient(135deg, #0369a1, #0891b2);
+}
+
+.floating-technicians-btn__badge,
+.floating-admin-btn__badge {
   min-width: 18px;
   height: 18px;
   display: inline-grid;
@@ -249,6 +314,10 @@
   background: #ef4444;
   font-size: 0.58rem;
   line-height: 1;
+}
+
+.floating-admin-btn__badge {
+  border-color: #0e7490;
 }
 
 .floating-contact-btn {
@@ -321,6 +390,7 @@
 
 .floating-shortcuts-btn:hover,
 .floating-help-btn:hover,
+.floating-admin-btn:hover,
 .floating-technicians-btn:hover,
 .floating-contact-btn:hover {
   transform: translateY(-2px);
@@ -330,6 +400,7 @@
 
 .floating-shortcuts-btn:active,
 .floating-help-btn:active,
+.floating-admin-btn:active,
 .floating-technicians-btn:active,
 .floating-contact-btn:active {
   transform: translateY(0);
@@ -337,6 +408,7 @@
 
 .floating-shortcuts-btn i,
 .floating-help-btn i,
+.floating-admin-btn i,
 .floating-technicians-btn i {
   font-size: 0.95rem;
 }
@@ -381,6 +453,13 @@
 
   .floating-contact-preview::after {
     left: 25px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating-buttons > .floating-contact-action,
+  .floating-buttons > button {
+    animation: floating-actions-reveal 0s linear forwards;
   }
 }
 

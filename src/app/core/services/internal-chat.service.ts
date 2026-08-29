@@ -25,6 +25,14 @@ export interface InternalChatMessage {
   referenceMessageId?: number;
   referenceProviderMessageId?: string;
   referenceLabel?: string;
+  mentions?: InternalChatAuthor[];
+  replyTo?: {
+    _id: string;
+    text: string;
+    type: string;
+    attachments?: InternalChatAttachment[];
+    author: InternalChatAuthor;
+  };
   author: InternalChatAuthor;
 }
 
@@ -106,10 +114,16 @@ export class InternalChatService {
     return this.http.get<InternalChatMessagesResponse>(`${this.apiUrl}/messages`, { params });
   }
 
-  sendMessage(text: string, attachments: InternalChatAttachment[] = [], type = 'text', groupId?: string): Observable<{ message: InternalChatMessage }> {
+  sendMessage(
+    text: string,
+    attachments: InternalChatAttachment[] = [],
+    type = 'text',
+    groupId?: string,
+    replyToMessageId?: string,
+  ): Observable<{ message: InternalChatMessage }> {
     return this.http.post<{ message: InternalChatMessage }>(
       `${this.apiUrl}/messages`,
-      { text, attachments, type, groupId },
+      { text, attachments, type, groupId, replyToMessageId },
     );
   }
 
