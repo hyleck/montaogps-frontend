@@ -2370,6 +2370,27 @@
     border-radius: 4px;
 }
 
+.comm-conversation-load-more,
+.comm-conversation-scroll-hint {
+    display: flex;
+    min-height: 3rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.75rem;
+    color: var(--text-color-secondary, #94a3b8);
+    font-size: 0.72rem;
+    font-weight: 650;
+}
+
+.comm-conversation-load-more i {
+    color: var(--globalColorMainBackgroundStart2, #3b82f6);
+}
+
+.comm-conversation-scroll-hint {
+    opacity: 0.72;
+}
+
 .comm-contact {
     display: flex;
     align-items: center;

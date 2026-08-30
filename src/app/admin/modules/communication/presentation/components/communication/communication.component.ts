@@ -250,6 +250,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   filteredConversations: ChatConversation[] = [];
   searchTerm: string = '';
   loadingConversations: boolean = false;
+  loadingMoreConversations: boolean = false;
+  hasMoreConversations: boolean = false;
+  conversationPage: number = 1;
+  conversationTotalPages: number = 1;
   selectedConversation: ChatConversation | null = null;
   noInbox: boolean = false;
   sidebarDisplayed = true;
@@ -263,6 +267,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     { id: 'unread' as const, label: 'Sin leer' },
   ];
   private conversationSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  private conversationListGeneration: number = 0;
+  private refreshingConversationPages: boolean = false;
   autoResponse: boolean = false;
   esterAutoReplyActive: boolean | null = null;
   showContactInfo: boolean = false;
@@ -1661,10 +1667,14 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.refreshEsterAutoReplyStatus();
     const cacheKey = `whatsapp_convs_${this.userInboxId}_all`;
     const querySignature = this.getConversationListQuerySignature();
-    if (!this.conversations.length) {
-      this.filteredConversations = [];
-      this.selectedConversation = null;
-    }
+    const requestGeneration = ++this.conversationListGeneration;
+
+    this.conversationPage = 1;
+    this.conversationTotalPages = 1;
+    this.hasMoreConversations = false;
+    this.loadingMoreConversations = false;
+    this.conversations = [];
+    this.filteredConversations = [];
 
     this.loadingConversations = true;
     this.whatsappApi.getConversations(
@@ -1674,12 +1684,20 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       true,
       this.searchTerm,
       this.conversationAttentionFilter,
+      false,
+      5,
     ).subscribe({
       next: (res: any) => {
-        if (querySignature !== this.getConversationListQuerySignature()) return;
+        if (
+          requestGeneration !== this.conversationListGeneration
+          || querySignature !== this.getConversationListQuerySignature()
+        ) return;
         this.loadingConversations = false;
         if (res.success) {
-          this.conversations = this.sortConversations(res.conversations || []);
+          this.conversations = this.mergeUniqueConversationPages([
+            res.conversations || [],
+          ]);
+          this.applyConversationPagination(res.meta, 1);
           if (
             this.userInboxId
             && !this.searchTerm.trim()
@@ -1708,11 +1726,113 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         }
       },
       error: () => {
-        if (querySignature !== this.getConversationListQuerySignature()) return;
+        if (
+          requestGeneration !== this.conversationListGeneration
+          || querySignature !== this.getConversationListQuerySignature()
+        ) return;
         this.loadingConversations = false;
         this.noInbox = true;
       }
     });
+  }
+
+  onConversationsScroll(event: Event): void {
+    const container = event.target as HTMLElement;
+    const remaining = container.scrollHeight
+      - container.scrollTop
+      - container.clientHeight;
+    if (remaining <= 90) {
+      this.loadMoreConversations();
+    }
+  }
+
+  onConversationsWheel(event: WheelEvent): void {
+    if (event.deltaY <= 0) return;
+    const container = event.currentTarget as HTMLElement;
+    if (container.scrollHeight <= container.clientHeight + 1) {
+      this.loadMoreConversations();
+    }
+  }
+
+  loadMoreConversations(): void {
+    if (
+      this.loadingConversations
+      || this.loadingMoreConversations
+      || !this.hasMoreConversations
+    ) {
+      return;
+    }
+
+    const nextPage = this.conversationPage + 1;
+    const querySignature = this.getConversationListQuerySignature();
+    const requestGeneration = this.conversationListGeneration;
+    this.loadingMoreConversations = true;
+
+    this.whatsappApi.getConversations(
+      this.userInboxId,
+      nextPage,
+      this.whatsappAgentId,
+      true,
+      this.searchTerm,
+      this.conversationAttentionFilter,
+      false,
+      5,
+    ).pipe(finalize(() => {
+      if (requestGeneration === this.conversationListGeneration) {
+        this.loadingMoreConversations = false;
+      }
+    })).subscribe({
+      next: (res: any) => {
+        if (
+          requestGeneration !== this.conversationListGeneration
+          || querySignature !== this.getConversationListQuerySignature()
+          || !res?.success
+        ) {
+          return;
+        }
+
+        this.conversations = this.mergeUniqueConversationPages([
+          this.conversations,
+          res.conversations || [],
+        ]);
+        this.applyConversationPagination(res.meta, nextPage);
+        this.conversationsFingerprint = this.getConversationsFingerprint(
+          this.conversations,
+        );
+        this.filterConversations();
+      },
+      error: () => {
+        if (requestGeneration !== this.conversationListGeneration) return;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudieron cargar más conversaciones',
+          detail: 'Desplázate nuevamente para reintentar.',
+        });
+      },
+    });
+  }
+
+  private applyConversationPagination(meta: any, fallbackPage: number): void {
+    const currentPage = Number(meta?.current_page || fallbackPage);
+    const totalPages = Number(meta?.total_pages || currentPage || 1);
+    this.conversationPage = Math.max(1, currentPage);
+    this.conversationTotalPages = Math.max(1, totalPages);
+    this.hasMoreConversations = typeof meta?.has_more === 'boolean'
+      ? meta.has_more
+      : this.conversationPage < this.conversationTotalPages;
+  }
+
+  private mergeUniqueConversationPages(
+    pages: ChatConversation[][],
+  ): ChatConversation[] {
+    const seen = new Set<number>();
+    const merged: ChatConversation[] = [];
+    for (const conversation of pages.flat()) {
+      if (!conversation || seen.has(conversation.id)) continue;
+      seen.add(conversation.id);
+      merged.push(conversation);
+    }
+    return merged;
   }
 
   onConversationSearchChange(): void {
@@ -3174,8 +3294,14 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.stopConversationsPolling();
     this.conversationsPollingInterval = setInterval(() => {
       this.refreshEsterAutoReplyStatus();
-      if (this.searchTerm.trim()) return;
+      if (
+        this.loadingConversations
+        || this.loadingMoreConversations
+        || this.refreshingConversationPages
+      ) return;
       const querySignature = this.getConversationListQuerySignature();
+      const requestGeneration = this.conversationListGeneration;
+      this.refreshingConversationPages = true;
       this.whatsappApi.getConversations(
         this.userInboxId,
         1,
@@ -3183,11 +3309,41 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         true,
         this.searchTerm,
         this.conversationAttentionFilter,
-      ).subscribe({
-        next: (res: any) => {
-          if (querySignature !== this.getConversationListQuerySignature()) return;
-          if (res.success) {
-            const newConvs = this.sortConversations(res.conversations || []);
+        false,
+        5,
+      ).pipe(finalize(() => {
+        this.refreshingConversationPages = false;
+      })).subscribe({
+        next: (response: any) => {
+          if (
+            requestGeneration !== this.conversationListGeneration
+            || querySignature !== this.getConversationListQuerySignature()
+            || !response?.success
+          ) return;
+
+            const firstPage = response.conversations || [];
+            const firstPageIds = new Set<number>(
+              firstPage.map((conversation: ChatConversation) => conversation.id),
+            );
+            const retainedPages = this.conversations.filter(
+              conversation => !firstPageIds.has(conversation.id),
+            );
+            const totalCount = Math.max(
+              0,
+              Number(response.meta?.count || 0),
+            );
+            const loadedCount = Math.min(
+              totalCount,
+              Math.max(firstPage.length, this.conversations.length),
+            );
+            const newConvs = this.mergeUniqueConversationPages([
+              firstPage,
+              retainedPages,
+            ]).slice(0, loadedCount);
+            const totalPages = Math.max(1, Number(response.meta?.total_pages || 1));
+            this.conversationTotalPages = totalPages;
+            this.conversationPage = Math.min(this.conversationPage, totalPages);
+            this.hasMoreConversations = this.conversationPage < totalPages;
             const newFingerprint = this.getConversationsFingerprint(newConvs);
             if (newFingerprint !== this.conversationsFingerprint) {
               const couldParticipate = this.canParticipateInConversation();
@@ -3214,7 +3370,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
               }
               this.filterConversations();
             }
-          }
         }
       });
     }, 5000);

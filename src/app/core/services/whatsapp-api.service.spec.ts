@@ -60,6 +60,34 @@ describe('WhatsAppApiService', () => {
         request.flush({ success: true, conversations: [] });
     });
 
+    it('requests the next backend page with the active search and filter', () => {
+        service.getConversations(
+            5,
+            2,
+            'employee-id',
+            true,
+            'cliente santiago',
+            'waiting',
+            false,
+            5,
+        ).subscribe();
+
+        const request = httpController.expectOne(candidate => (
+            candidate.url === `${environment.apiUrl}/whatsapp/conversations`
+            && candidate.params.get('page') === '2'
+            && candidate.params.get('search') === 'cliente santiago'
+            && candidate.params.get('attention') === 'waiting'
+            && candidate.params.get('include_all') === 'true'
+            && candidate.params.get('page_size') === '5'
+        ));
+        expect(request.request.method).toBe('GET');
+        request.flush({
+            success: true,
+            conversations: [],
+            meta: { current_page: 2, page_size: 5, has_more: true },
+        });
+    });
+
     it('can request only conversations assigned to the current employee', () => {
         service.getConversations(
             5,

@@ -90,6 +90,7 @@ export class WhatsAppApiService {
         search: string = '',
         attention: 'all' | 'recent' | 'urgent' | 'waiting' | 'unread' = 'all',
         assignedOnly: boolean = false,
+        pageSize?: number,
     ): Observable<any> {
         const params: any = { page: page.toString() };
         if (inboxId) {
@@ -109,6 +110,9 @@ export class WhatsAppApiService {
         }
         if (assignedOnly) {
             params.assigned_only = 'true';
+        }
+        if (Number.isFinite(pageSize) && Number(pageSize) > 0) {
+            params.page_size = String(Math.floor(Number(pageSize)));
         }
         return this.http.get(`${this.apiUrl}/conversations`, { params });
     }

@@ -252,7 +252,7 @@ export class CommunicationNotificationService implements OnDestroy {
     const loadPage = (page: number) => this.whatsappApi.getConversations(
       this.inboxId,
       page,
-      undefined,
+      this.agentId,
       true,
       '',
       'all',
@@ -326,7 +326,7 @@ export class CommunicationNotificationService implements OnDestroy {
       assignedConversations || conversations
     )
       .filter(conversation => (
-        Boolean(String(conversation?.assignee_id || '').trim())
+        this.isAssignedToCurrentUser(conversation)
         && this.isActiveAssignedConversation(conversation)
       ))
       .map(conversation => ({
@@ -342,7 +342,6 @@ export class CommunicationNotificationService implements OnDestroy {
       }))
       .filter(chat => Boolean(chat.conversationId));
     let shouldPlayAssignedToMe = false;
-    let shouldPlayOtherConversation = false;
     let totalPending = 0;
     let esterPending = 0;
 
@@ -384,10 +383,8 @@ export class CommunicationNotificationService implements OnDestroy {
       if (hasNewLastMessage && isIncoming) {
         if (this.isAssignedToCurrentUser(conversation)) {
           shouldPlayAssignedToMe = true;
-        } else {
-          shouldPlayOtherConversation = true;
+          this.emitFloatingMessage(conversation);
         }
-        this.emitFloatingMessage(conversation);
         continue;
       }
 
@@ -399,24 +396,21 @@ export class CommunicationNotificationService implements OnDestroy {
       ) {
         if (this.isAssignedToCurrentUser(conversation)) {
           shouldPlayAssignedToMe = true;
-        } else {
-          shouldPlayOtherConversation = true;
+          this.emitFloatingMessage(conversation);
         }
-        this.emitFloatingMessage(conversation);
       }
 
       if (unreadCount > 0 && !previousState) {
         if (this.isAssignedToCurrentUser(conversation)) {
           shouldPlayAssignedToMe = true;
-        } else {
-          shouldPlayOtherConversation = true;
+          this.emitFloatingMessage(conversation);
         }
-        this.emitFloatingMessage(conversation);
       }
     }
 
     this.conversationState = nextState;
     this.publishAssignedChats(assignedChats);
+    this.clearUnassignedWhatsAppPreview(assignedChats);
     this.whatsappPendingCount = totalPending;
     this.emitWhatsAppPendingCount();
     this.esterPendingCountSubject.next(esterPending);
@@ -427,6 +421,7 @@ export class CommunicationNotificationService implements OnDestroy {
         .filter(conversation => (
           Number(conversation.unread_count || 0) > 0
           && this.isIncomingMessage(conversation)
+          && this.isAssignedToCurrentUser(conversation)
         ))
         .sort((left, right) => (
           Number(right.last_message_time || 0) - Number(left.last_message_time || 0)
@@ -437,9 +432,7 @@ export class CommunicationNotificationService implements OnDestroy {
       return;
     }
 
-    if (shouldPlayOtherConversation) {
-      this.playOtherConversationNotificationSound();
-    } else if (shouldPlayAssignedToMe) {
+    if (shouldPlayAssignedToMe) {
       this.playNotificationSound();
     }
   }
@@ -670,7 +663,10 @@ export class CommunicationNotificationService implements OnDestroy {
   }
 
   private emitFloatingMessage(conversation: WhatsAppConversationSummary): void {
-    if (!this.isIncomingMessage(conversation)) return;
+    if (
+      !this.isIncomingMessage(conversation)
+      || !this.isAssignedToCurrentUser(conversation)
+    ) return;
 
     this.publishFloatingMessage({
       source: 'whatsapp',
@@ -682,6 +678,18 @@ export class CommunicationNotificationService implements OnDestroy {
       time: conversation.last_message_time || null,
       assigneeName: conversation.assignee_name || conversation.assignee_email || undefined,
     });
+  }
+
+  private clearUnassignedWhatsAppPreview(chats: AssignedCommunicationChat[]): void {
+    const preview = this.floatingMessageSubject.value;
+    if (!preview || preview.source !== 'whatsapp') return;
+
+    const remainsAssigned = chats.some(chat => (
+      chat.conversationId === preview.conversationId
+    ));
+    if (!remainsAssigned) {
+      this.clearFloatingMessage();
+    }
   }
 
   private isIncomingMessage(conversation: WhatsAppConversationSummary): boolean {

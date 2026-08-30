@@ -67,9 +67,11 @@
         </div>
 
         <!-- Conversation List -->
-        <div class="comm-sidebar__contacts">
+        <div class="comm-sidebar__contacts"
+            (scroll)="onConversationsScroll($event)"
+            (wheel)="onConversationsWheel($event)">
             <div *ngIf="loadingConversations" class="comm-conversation-skeletons">
-                <div *ngFor="let item of [1,2,3,4,5,6,7,8]" class="comm-contact comm-contact--skeleton">
+                <div *ngFor="let item of [1,2,3,4,5]" class="comm-contact comm-contact--skeleton">
                     <div class="comm-skeleton comm-skeleton--avatar"></div>
                     <div class="comm-contact__info">
                         <div class="comm-contact__top">
@@ -171,6 +173,16 @@
                         <div *ngIf="conv.unread_count > 0" class="comm-contact__badge">{{ conv.unread_count }}</div>
                     </div>
                 </div>
+            </div>
+
+            <div *ngIf="loadingMoreConversations" class="comm-conversation-load-more" aria-live="polite">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Cargando más conversaciones…</span>
+            </div>
+            <div *ngIf="!loadingConversations && !loadingMoreConversations && hasMoreConversations"
+                class="comm-conversation-scroll-hint">
+                <i class="pi pi-angle-down"></i>
+                <span>Desplázate para ver más</span>
             </div>
         </div>
     </div>

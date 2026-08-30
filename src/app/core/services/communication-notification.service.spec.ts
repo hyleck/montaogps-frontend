@@ -22,7 +22,7 @@ describe('CommunicationNotificationService sidebar badge', () => {
     expect(sidebarCount).toBe(2);
   });
 
-  it('publishes every active assigned conversation visible to the employee', () => {
+  it('publishes only active conversations assigned to the current employee', () => {
     const service = new CommunicationNotificationService(
       {} as any,
       {} as any,
@@ -65,7 +65,7 @@ describe('CommunicationNotificationService sidebar badge', () => {
       },
     ]);
 
-    expect(assignedChats.map(chat => chat.conversationId)).toEqual([10, 11]);
+    expect(assignedChats.map(chat => chat.conversationId)).toEqual([10]);
     expect(assignedChats[0]).toEqual(jasmine.objectContaining({
       contactName: 'Cliente asignado',
       avatar: 'https://media.montao.net/users/cliente.jpg',
@@ -125,6 +125,7 @@ describe('CommunicationNotificationService sidebar badge', () => {
       whatsappApi as any,
       {} as any,
     );
+    (service as any).agentId = 'employee-1';
     let conversationIds: number[] = [];
 
     (service as any).loadAllAssignedConversations().subscribe((response: any) => {
@@ -133,7 +134,8 @@ describe('CommunicationNotificationService sidebar badge', () => {
 
     expect(conversationIds).toEqual([1, 2]);
     expect(whatsappApi.getConversations).toHaveBeenCalledTimes(2);
-    expect(whatsappApi.getConversations.calls.argsFor(0)[2]).toBeUndefined();
+    expect(whatsappApi.getConversations.calls.argsFor(0)[2]).toBe('employee-1');
+    expect(whatsappApi.getConversations.calls.argsFor(1)[2]).toBe('employee-1');
     expect(whatsappApi.getConversations.calls.argsFor(0)[6]).toBeTrue();
   });
 
@@ -203,6 +205,16 @@ describe('CommunicationNotificationService sidebar badge', () => {
         last_message_type: 0,
         contact: { name: 'Otro cliente' },
       },
+      {
+        id: 32,
+        status: 'open',
+        assignee_id: null,
+        unread_count: 1,
+        last_message: 'Este mensaje está asignado a Ester',
+        last_message_time: 102,
+        last_message_type: 0,
+        contact: { name: 'Cliente de Ester' },
+      },
     ]);
 
     expect(previews).toEqual([
@@ -212,12 +224,8 @@ describe('CommunicationNotificationService sidebar badge', () => {
         avatar: 'https://media.montao.net/users/cliente.jpg',
         message: 'Necesito ayuda con mi GPS',
       }),
-      jasmine.objectContaining({
-        conversationId: 31,
-        contactName: 'Otro cliente',
-        message: 'Este mensaje pertenece a otro agente',
-      }),
     ]);
+    expect((service as any).playOtherConversationNotificationSound).not.toHaveBeenCalled();
   });
 
   it('keeps the latest unread preview available while Management finishes loading', () => {
@@ -227,11 +235,13 @@ describe('CommunicationNotificationService sidebar badge', () => {
       {} as any,
       {} as any,
     );
+    (service as any).agentId = 'employee-1';
 
     (service as any).processConversations([
       {
         id: 40,
         status: 'open',
+        assignee_id: 'employee-1',
         unread_count: 1,
         last_message: 'Mensaje pendiente',
         last_message_time: 200,
@@ -251,6 +261,42 @@ describe('CommunicationNotificationService sidebar badge', () => {
       message: 'Mensaje pendiente',
     }));
     (service as any).clearFloatingMessage();
+  });
+
+  it('removes an existing Management preview when the conversation is reassigned to Ester', () => {
+    const service = new CommunicationNotificationService(
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+    (service as any).agentId = 'employee-1';
+
+    (service as any).processConversations([{
+      id: 41,
+      status: 'open',
+      assignee_id: 'employee-1',
+      unread_count: 1,
+      last_message: 'Mensaje asignado',
+      last_message_time: 201,
+      last_message_type: 0,
+      contact: { name: 'Cliente' },
+    }]);
+
+    expect((service as any).floatingMessageSubject.value?.conversationId).toBe(41);
+
+    (service as any).processConversations([{
+      id: 41,
+      status: 'open',
+      assignee_id: null,
+      unread_count: 2,
+      last_message: 'Mensaje para Ester',
+      last_message_time: 202,
+      last_message_type: 0,
+      contact: { name: 'Cliente' },
+    }]);
+
+    expect((service as any).floatingMessageSubject.value).toBeNull();
   });
 
   it('opens the floating technician chats with the requested group', () => {
