@@ -720,6 +720,8 @@ export class CommunicationNotificationService implements OnDestroy {
   }
 
   private emitInternalFloatingMessage(message: InternalChatMessage): void {
+    if (this.isEsterEmployeeGroupMessage(message)) return;
+
     this.publishFloatingMessage({
       source: 'internal',
       conversationId: 0,
@@ -731,6 +733,15 @@ export class CommunicationNotificationService implements OnDestroy {
       message: message.text || 'Nuevo mensaje en el grupo',
       time: message.createdAt ? Math.floor(new Date(message.createdAt).getTime() / 1000) : null,
     });
+  }
+
+  private isEsterEmployeeGroupMessage(message: InternalChatMessage): boolean {
+    if (String(message?.groupId || 'admin') !== 'admin') return false;
+    const authorId = String(message?.author?._id || '').trim().toLowerCase();
+    const affiliation = String(
+      message?.author?.affiliation_type_id || '',
+    ).trim().toLowerCase();
+    return authorId === 'ester-assistant' || affiliation === 'assistant';
   }
 
   private publishFloatingMessage(message: CommunicationFloatingMessage): void {

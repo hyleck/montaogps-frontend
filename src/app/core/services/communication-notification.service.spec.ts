@@ -287,6 +287,32 @@ describe('CommunicationNotificationService sidebar badge', () => {
     expect(requestedGroupId).toBe('admin');
   });
 
+  it('does not publish the legacy floating toast for Ester messages in the employee group', () => {
+    const service = new CommunicationNotificationService(
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+    const previews: any[] = [];
+    service.floatingMessage$.subscribe(message => previews.push(message));
+
+    (service as any).emitInternalFloatingMessage({
+      _id: 'ester-message',
+      groupId: 'admin',
+      text: 'Equipo, revisemos este caso.',
+      type: 'text',
+      createdAt: '2026-08-29T23:40:00.000Z',
+      author: {
+        _id: 'ester-assistant',
+        name: 'Ester',
+        affiliation_type_id: 'assistant',
+      },
+    });
+
+    expect(previews).toEqual([]);
+  });
+
   it('passes the preview contact to the floating chat even when it is not in the assigned list yet', () => {
     const service = new CommunicationNotificationService(
       {} as any,
