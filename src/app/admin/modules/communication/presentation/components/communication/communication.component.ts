@@ -455,6 +455,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   showEsterPauseReasonDialog: boolean = false;
   esterPauseReasonDialogText: string = '';
   esterPauseReasonDialogContact: string = '';
+  resumingEsterConversation: boolean = false;
   transferAgents: any[] = [];
   selectedTransferAgentId: string | null = null;
   isTransferring: boolean = false;
@@ -1803,6 +1804,79 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     conv: ChatConversation | null = this.selectedConversation,
   ): boolean {
     return this.getEsterPauseReason(conv).length > 90;
+  }
+
+  canResumeEsterConversation(
+    conv: ChatConversation | null = this.selectedConversation,
+  ): boolean {
+    return !!conv
+      && !String(conv.assignee_id || '').trim()
+      && conv.ai_handoff_requested === true
+      && this.esterAutoReplyActive !== false;
+  }
+
+  resumeEsterConversation(event?: Event): void {
+    event?.preventDefault();
+    event?.stopPropagation();
+    const conversation = this.selectedConversation;
+    if (
+      !this.canResumeEsterConversation(conversation)
+      || this.resumingEsterConversation
+      || !conversation
+    ) {
+      return;
+    }
+
+    const conversationId = conversation.id;
+    this.resumingEsterConversation = true;
+    this.whatsappApi.resumeEsterConversation(conversationId)
+      .pipe(finalize(() => {
+        this.resumingEsterConversation = false;
+      }))
+      .subscribe({
+        next: (response) => {
+          if (!response?.success) {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'No se pudo reanudar a Ester',
+              detail: getApiErrorMessage(
+                response,
+                'La pausa sigue activa. Inténtalo nuevamente.',
+              ),
+            });
+            return;
+          }
+
+          const resumeState = {
+            ai_handoff_requested: false,
+            ai_handoff_reason: '',
+            ai_handoff_at: null,
+          };
+          Object.assign(conversation, resumeState);
+          this.conversations = this.conversations.map(item =>
+            item.id === conversationId
+              ? { ...item, ...resumeState }
+              : item,
+          );
+          this.filterConversations();
+          this.showEsterPauseReasonDialog = false;
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Ester reanudada',
+            detail: 'Ester puede volver a responder en esta conversación.',
+          });
+        },
+        error: (error) => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'No se pudo reanudar a Ester',
+            detail: getApiErrorMessage(
+              error,
+              'La pausa sigue activa. Inténtalo nuevamente.',
+            ),
+          });
+        },
+      });
   }
 
   openEsterPauseReasonDialog(

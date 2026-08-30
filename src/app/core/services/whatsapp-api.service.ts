@@ -366,6 +366,12 @@ export class WhatsAppApiService {
         return this.http.post(`${this.apiUrl}/conversation-assign`, { conversation_id: conversationId, agent_id: agentId });
     }
 
+    resumeEsterConversation(conversationId: number): Observable<any> {
+        return this.http.post(`${this.apiUrl}/conversation-resume-ester`, {
+            conversation_id: conversationId,
+        });
+    }
+
     sendConversationReminder(conversationId: number): Observable<{
         success: boolean;
         sentTo?: string;

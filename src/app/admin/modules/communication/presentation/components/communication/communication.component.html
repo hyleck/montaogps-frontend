@@ -890,6 +890,19 @@
                         <i class="pi pi-info-circle"></i>
                         <span>Ver motivo completo</span>
                     </button>
+                    <button
+                        *ngIf="canResumeEsterConversation(selectedConversation)"
+                        type="button"
+                        class="comm-managed-banner__action comm-managed-banner__action--resume"
+                        (click)="resumeEsterConversation($event)"
+                        [disabled]="resumingEsterConversation">
+                        <i
+                            class="pi"
+                            [ngClass]="resumingEsterConversation ? 'pi-spin pi-spinner' : 'pi-play-circle'"></i>
+                        <span>
+                            {{ resumingEsterConversation ? 'Reanudando…' : 'Reanudar Ester' }}
+                        </span>
+                    </button>
                     <button type="button" class="comm-managed-banner__action" (click)="assignToMe()">
                         <i class="pi pi-user-plus"></i>
                         <span>

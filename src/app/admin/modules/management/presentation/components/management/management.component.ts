@@ -787,18 +787,26 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   openFloatingTechniciansChat(): void {
+    if (!this.canAccessManagementCommunicationChats) return;
     this.communicationNotifications.openFloatingTechnicians();
   }
 
   openFloatingAdminChat(): void {
+    if (!this.canAccessManagementCommunicationChats) return;
     this.communicationNotifications.openFloatingAdmin();
   }
 
+  get canAccessManagementCommunicationChats(): boolean {
+    return this.currentUserAffiliationTypeId === 'empleado';
+  }
+
   get primaryAssignedCommunicationChat(): AssignedCommunicationChat | null {
+    if (!this.canAccessManagementCommunicationChats) return null;
     return this.assignedCommunicationChats[0] || null;
   }
 
   get activeFloatingCommunicationContact(): AssignedCommunicationChat | null {
+    if (!this.canAccessManagementCommunicationChats) return null;
     const preview = this.assignedCommunicationMessagePreview;
     if (!preview) return this.primaryAssignedCommunicationChat;
     return this.assignedCommunicationChats.find(
@@ -846,6 +854,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   openFloatingAssignedCommunicationChat(conversationId?: number): void {
+    if (!this.canAccessManagementCommunicationChats) return;
     const requestedConversationId = Number(
       conversationId || this.activeFloatingCommunicationContact?.conversationId || 0,
     );
@@ -999,6 +1008,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
 
   ngOnInit(): void {
+    this.currentUserAffiliationTypeId = String(
+      this.authService.getCurrentUser()?.affiliation_type_id || '',
+    ).trim();
+
     // Sincronizar la selección actual con el servicio
     this.currentMapSelection = this.mapProviderService.selectedMap;
 
@@ -3429,12 +3442,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private setupSubscriptions(): void {
     this.subscriptions.push(
       this.communicationNotifications.assignedChats$.subscribe(chats => {
-        this.assignedCommunicationChats = chats;
+        this.assignedCommunicationChats =
+          this.canAccessManagementCommunicationChats ? chats : [];
       })
     );
 
     this.subscriptions.push(
       this.communicationNotifications.floatingMessage$.subscribe(message => {
+        if (!this.canAccessManagementCommunicationChats) {
+          this.assignedCommunicationMessagePreview = null;
+          return;
+        }
         if ((message.source || 'whatsapp') !== 'whatsapp') return;
         this.assignedCommunicationMessagePreview = message;
       })
@@ -3442,13 +3460,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
     this.subscriptions.push(
       this.communicationNotifications.technicianPendingCount$.subscribe(count => {
-        this.technicianChatUnreadCount = Math.max(0, Number(count) || 0);
+        this.technicianChatUnreadCount = this.canAccessManagementCommunicationChats
+          ? Math.max(0, Number(count) || 0)
+          : 0;
       })
     );
 
     this.subscriptions.push(
       this.communicationNotifications.adminPendingCount$.subscribe(count => {
-        this.adminChatUnreadCount = Math.max(0, Number(count) || 0);
+        this.adminChatUnreadCount = this.canAccessManagementCommunicationChats
+          ? Math.max(0, Number(count) || 0)
+          : 0;
       })
     );
 

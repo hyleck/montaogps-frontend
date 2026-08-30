@@ -1835,7 +1835,7 @@
 <!-- Botones flotantes -->
 <div class="floating-buttons">
     <div class="floating-contact-action"
-        *ngIf="!showMaps && activeFloatingCommunicationContact as assignedChat">
+        *ngIf="canAccessManagementCommunicationChats && !showMaps && activeFloatingCommunicationContact as assignedChat">
         <div *ngIf="assignedCommunicationMessagePreview as preview"
             class="floating-contact-preview" aria-live="polite">
             <button type="button" class="floating-contact-preview__open"
@@ -1883,7 +1883,7 @@
     </div>
 
     <button class="floating-admin-btn"
-        *ngIf="currentUserAffiliationTypeId === 'empleado' && !showMaps"
+        *ngIf="canAccessManagementCommunicationChats && !showMaps"
         (click)="openFloatingAdminChat()"
         title="Abrir chat del grupo de empleados" aria-label="Abrir chat administrativo">
         <i class="pi pi-users"></i>
@@ -1894,7 +1894,7 @@
     </button>
 
     <button class="floating-technicians-btn"
-        *ngIf="currentUserAffiliationTypeId === 'empleado' && !showMaps"
+        *ngIf="canAccessManagementCommunicationChats && !showMaps"
         (click)="openFloatingTechniciansChat()"
         title="Abrir chats de técnicos" aria-label="Abrir chats de técnicos">
         <i class="pi pi-wrench"></i>

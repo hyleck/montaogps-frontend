@@ -109,6 +109,17 @@ describe('WhatsAppApiService', () => {
         });
     });
 
+    it('resumes Ester without assigning the conversation to an employee', () => {
+        service.resumeEsterConversation(202).subscribe();
+
+        const request = httpController.expectOne(
+            `${environment.apiUrl}/whatsapp/conversation-resume-ester`,
+        );
+        expect(request.request.method).toBe('POST');
+        expect(request.request.body).toEqual({ conversation_id: 202 });
+        request.flush({ success: true });
+    });
+
     it('requests an improved employee reply without sending the message', () => {
         service.improveEmployeeReply(202, 'ta bien vamos a revisarlo').subscribe(response => {
             expect(response).toEqual({
