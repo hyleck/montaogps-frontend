@@ -89,7 +89,7 @@ export interface AnalyzeDeviceParams {
 }
 
 // ========================
-// INTERFACES DE PROGRESO 
+// INTERFACES DE PROGRESO
 // ========================
 
 // Progreso de un dispositivo individual
@@ -174,4 +174,83 @@ export interface CurrentDeviceResponse {
   message: string;
   currentDevice: CurrentDeviceInfo;
   analysisInfo: CurrentAnalysisInfo;
+}
+
+export interface RetentionServerStatus {
+  enabled: boolean;
+  archiveReady: boolean;
+  serverId: string | null;
+  serverName: string | null;
+  retentionDays: number;
+  safeBefore: string | null;
+  coverageMode: string | null;
+  verificationVersion: number;
+  verifiedSafeBefore: string | null;
+  retentionVerifiedAt: string | null;
+  deviceSetDigest: string | null;
+  deviceCount: number;
+  archiveCoverageFrom: string | null;
+  archiveCoverageTo: string | null;
+  lastSuccessFrom: string | null;
+  lastSuccessTo: string | null;
+  lastSuccessAt: string | null;
+  reason: string | null;
+}
+
+export interface ArchiveRun {
+  id: string;
+  serverId: string | null;
+  serverName: string;
+  status: 'running' | 'completed' | 'failed' | 'cancelled';
+  fromDate: string | null;
+  toDate: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  failedAt: string | null;
+  totalDevices: number;
+  completedDevices: number;
+  failedDevices: number;
+  totalPositionsFound: number;
+  insertedPositions: number;
+  retentionSafeBefore: string | null;
+  retentionDeviceCount: number;
+  retentionVerifiedPositionCount: number;
+  error: string | null;
+}
+
+export interface ArchiveDashboardResponse {
+  success: boolean;
+  generatedAt: string;
+  worker: {
+    enabled: boolean;
+    archiveSchedule: string;
+    cleanupSchedule: string;
+    timezone: string;
+    startupRecovery: boolean;
+    chunkHours: number;
+    concurrency: number;
+    retentionDays: number;
+  };
+  summary: {
+    totalServers: number;
+    protectedServers: number;
+    blockedServers: number;
+    runningRuns: number;
+  };
+  retention: {
+    enabled: boolean;
+    archiveReady: boolean;
+    retentionDays: number;
+    safeBefore: string | null;
+    reason: string | null;
+    servers: RetentionServerStatus[];
+  };
+  recentRuns: ArchiveRun[];
+}
+
+export interface TriggerArchiveResponse {
+  success: boolean;
+  accepted: boolean;
+  message: string;
+  servers?: Array<{ id: string; name: string }>;
 }

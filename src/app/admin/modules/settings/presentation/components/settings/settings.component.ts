@@ -149,8 +149,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
             this.initializeBreadcrumb();
         });
 
-        // Iniciar monitoreo del estado de historiales
-        this.startHistorialesStatusMonitoring();
+        // El panel histórico es exclusivo de root y monitorea el flujo automático.
+        if (this.isRootUser()) {
+            this.startHistorialesStatusMonitoring();
+        }
     }
 
     // Método para verificar si tiene algún permiso en system
@@ -278,8 +280,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
         // Verificar inmediatamente
         this.checkHistorialesStatus();
 
-        // Verificar cada 5 segundos
-        this.historialStatusSubscription = interval(5000).subscribe(() => {
+        // Verificar cada 15 segundos sin cargar innecesariamente el backend.
+        this.historialStatusSubscription = interval(15000).subscribe(() => {
             this.checkHistorialesStatus();
         });
     }
@@ -295,18 +297,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Verificar si hay un análisis de historiales en progreso
+     * Verificar si hay una corrida automática o manual en progreso.
      */
     private checkHistorialesStatus(): void {
-        this.historialesService.getCurrentProgress().subscribe({
+        this.historialesService.getArchiveDashboard(1).subscribe({
             next: (response) => {
-                if (response.success && response.progress) {
-                    // Hay un análisis activo si el estado es 'running'
-                    this.isHistorialesAnalysisRunning = response.progress.status === 'running';
-                } else {
-                    // No hay análisis en progreso
-                    this.isHistorialesAnalysisRunning = false;
-                }
+                this.isHistorialesAnalysisRunning =
+                    response.success && response.summary.runningRuns > 0;
             },
             error: () => {
                 // No hay análisis en progreso o error de conexión

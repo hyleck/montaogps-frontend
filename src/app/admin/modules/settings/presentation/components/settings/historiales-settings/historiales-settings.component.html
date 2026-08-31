@@ -1,377 +1,436 @@
-  <div class="historiales-settings">
-    <p-toast></p-toast>
-  
-  <div *ngIf="loading" class="loading-container">
-    <p-progressSpinner></p-progressSpinner>
-    <span>{{ 'settings.historiales.messages.loading_devices' | translate }}</span>
+<div class="history-ops">
+  <p-toast></p-toast>
+
+  <div class="loading-state" *ngIf="loading">
+    <i class="pi pi-spin pi-spinner"></i>
+    <strong>Consultando protección histórica</strong>
+    <span>Revisando cada servidor y su última verificación.</span>
   </div>
 
-  <!-- Banner informativo para análisis existente -->
-  <div *ngIf="!loading && analyzing && currentProgress && !showResults" class="analysis-detected-banner">
-    <div class="banner-content">
-      <i class="pi pi-info-circle"></i>
-      <div class="banner-text">
-        <h4>{{ 'settings.historiales.messages.analysis_in_progress' | translate }}</h4>
-        <p>{{ 'settings.historiales.messages.analysis_in_progress_detail' | translate : {
-            progress: (currentProgress.overallProgress | number:'1.1-1'),
-            devices: currentProgress.completedDevices,
-            total: currentProgress.totalDevices
-          } }}</p>
+  <div class="error-state" *ngIf="!loading && errorMessage && !dashboard">
+    <i class="pi pi-exclamation-triangle"></i>
+    <div>
+      <strong>No se pudo cargar el estado</strong>
+      <p>{{ errorMessage }}</p>
+    </div>
+    <button
+      type="button"
+      class="btn btn-secondary"
+      (click)="loadDashboard(true)"
+    >
+      <i class="pi pi-refresh"></i> Reintentar
+    </button>
+  </div>
+
+  <ng-container *ngIf="!loading && dashboard as data">
+    <header class="ops-header">
+      <div class="ops-heading">
+        <span class="eyebrow">ARCHIVADO Y RETENCIÓN SEGURA</span>
+        <h2>Protección de historiales</h2>
+        <p>
+          Traccar conserva los últimos {{ data.worker.retentionDays }} días. Lo
+          anterior solo se elimina después de copiarse y verificarse exactamente
+          en MongoDB.
+        </p>
       </div>
-      <div class="banner-actions">
-        <button type="button" class="button-danger" (click)="cancelAnalysis()">
-          <i class="pi pi-stop"></i>
-          {{ 'settings.historiales.actions.cancel_analysis' | translate }}
+      <div class="ops-actions">
+        <span
+          class="global-state"
+          [class.global-state--ok]="data.retention.enabled"
+        >
+          <i
+            class="pi"
+            [ngClass]="data.retention.enabled ? 'pi-shield' : 'pi-lock'"
+          ></i>
+          {{
+            data.retention.enabled
+              ? "Limpieza autorizada"
+              : "Limpieza bloqueada"
+          }}
+        </span>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="loadDashboard(false)"
+          [disabled]="refreshing"
+        >
+          <i
+            class="pi"
+            [ngClass]="refreshing ? 'pi-spin pi-spinner' : 'pi-refresh'"
+          ></i>
+          Actualizar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="requestArchiveRun()"
+          [disabled]="triggering || isRunning || !data.worker.enabled"
+        >
+          <i
+            class="pi"
+            [ngClass]="
+              triggering || isRunning ? 'pi-spin pi-spinner' : 'pi-play'
+            "
+          ></i>
+          {{ isRunning ? "Procesando" : "Ejecutar ahora" }}
         </button>
       </div>
+    </header>
+
+    <div class="worker-warning" *ngIf="!data.worker.enabled">
+      <i class="pi pi-exclamation-circle"></i>
+      <div>
+        <strong>El worker está desactivado en esta instancia</strong>
+        <span
+          >La consulta sigue disponible, pero no es posible iniciar una corrida
+          desde aquí.</span
+        >
+      </div>
     </div>
-  </div>
-  
-  <div *ngIf="!loading" class="historiales-settings__form">
-    <div class="config-grid">
-      
-      <!-- Card de Configuración -->
-      <div class="config-card span-2-cols">
-        <div class="config-card-header">
-          <h3>{{ 'settings.historiales.form.title' | translate }}</h3>
-          <button type="button" class="button-refresh" (click)="refreshDates()" title="Actualizar fechas">
-            <i class="pi pi-refresh"></i>
-            Actualizar fechas
-          </button>
-        </div>
-        <div class="config-card-content">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="fromDate">{{ 'settings.historiales.form.from_date' | translate }}</label>
-              <p-calendar
-                id="fromDate"
-                [(ngModel)]="fromDate"
-                [showIcon]="true"
-                [dateFormat]="'dd/mm/yy'"
-                [readonlyInput]="true"
-                [disabled]="true"
-                styleClass="readonly-field"
-                [placeholder]="'settings.historiales.form.select_date' | translate">
-              </p-calendar>
-              <small class="field-hint">📅 Automático: Hace 60 días</small>
-            </div>
-            
-            <div class="form-group">
-              <label for="toDate">{{ 'settings.historiales.form.to_date' | translate }}</label>
-              <p-calendar
-                id="toDate"
-                [(ngModel)]="toDate"
-                [showIcon]="true"
-                [dateFormat]="'dd/mm/yy'"
-                [readonlyInput]="true"
-                [disabled]="true"
-                styleClass="readonly-field"
-                [placeholder]="'settings.historiales.form.select_date' | translate">
-              </p-calendar>
-              <small class="field-hint">📅 Automático: Mañana</small>
-            </div>
-          </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="intervalHours">{{ 'settings.historiales.form.interval_hours' | translate }}</label>
-              <select 
-                id="intervalHours"
-                [(ngModel)]="intervalHours"
-                name="intervalHours">
-                <option *ngFor="let option of intervalOptions" [value]="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-            <div class="form-group">
-              <!-- Espacio vacío para mantener el grid -->
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <button type="button" class="button-primary" 
-                    [disabled]="!isFormValid() || analyzing"
-                    (click)="analyzeAllDevices()">
-              <i class="pi pi-chart-line" *ngIf="!analyzing"></i>
-              <i class="pi pi-spin pi-spinner" *ngIf="analyzing"></i>
-              {{ 'settings.historiales.actions.analyze_all' | translate }}
-            </button>
-            
-            <!-- Indicador de estado cuando no está analizando -->
-            <div class="analysis-status" *ngIf="!analyzing && !showProgress && !showCurrentDevice">
-              <i class="pi pi-check-circle"></i>
-              <span>Listo para nuevo análisis</span>
-            </div>
-            
-            <button type="button" class="button-danger" *ngIf="analyzing && showProgress" (click)="cancelAnalysis()">
-              <i class="pi pi-stop"></i>
-              {{ 'settings.historiales.actions.cancel_analysis' | translate }}
-            </button>
-            
-            <button type="button" class="button-secondary" *ngIf="showResults" (click)="clearResults()">
-              <i class="pi pi-times"></i>
-              {{ 'settings.historiales.actions.clear_results' | translate }}
-            </button>
-          </div>
+    <section class="metrics-grid">
+      <article class="metric-card">
+        <span class="metric-icon metric-icon--green"
+          ><i class="pi pi-server"></i
+        ></span>
+        <div>
+          <small>Servidores protegidos</small>
+          <strong
+            >{{ data.summary.protectedServers }} /
+            {{ data.summary.totalServers }}</strong
+          >
+          <span>{{ data.summary.blockedServers }} requieren atención</span>
         </div>
+      </article>
+      <article class="metric-card">
+        <span class="metric-icon"><i class="pi pi-calendar"></i></span>
+        <div>
+          <small>Corte seguro más antiguo</small>
+          <strong>{{
+            earliestSafeBefore
+              ? (earliestSafeBefore | date: "dd MMM yyyy, HH:mm")
+              : "Sin autorizar"
+          }}</strong>
+          <span>Hora de Santo Domingo</span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <span class="metric-icon"><i class="pi pi-database"></i></span>
+        <div>
+          <small>Última copia válida</small>
+          <strong>{{
+            latestSuccessAt
+              ? (latestSuccessAt | date: "dd MMM yyyy, HH:mm")
+              : "Sin completar"
+          }}</strong>
+          <span>MongoDB verificado</span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <span class="metric-icon" [class.metric-icon--pulse]="isRunning"
+          ><i class="pi pi-sync"></i
+        ></span>
+        <div>
+          <small>Corridas activas</small>
+          <strong>{{ data.summary.runningRuns }}</strong>
+          <span>Archivado diario a las {{ data.worker.archiveSchedule }}</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel flow-panel">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">FLUJO ACTUAL</span>
+          <h3>Cómo se protege cada posición</h3>
+        </div>
+        <span class="auto-label"
+          ><i class="pi pi-clock"></i> Automático · America/Santo_Domingo</span
+        >
       </div>
 
-      <!-- Card de Dispositivo Actual Procesándose -->
-      <div class="config-card span-2-cols" *ngIf="showCurrentDevice && currentDeviceInfo">
-        <div class="config-card-header">
-          <h3>🔄 Dispositivo en Procesamiento</h3>
-          <div class="progress-status">
-            <span class="status-badge" [ngClass]="'status-' + currentDeviceInfo.status">
-              {{ currentDeviceInfo.status === 'processing' ? 'PROCESANDO' : currentDeviceInfo.status.toUpperCase() }}
+      <div class="flow-grid">
+        <article
+          class="flow-step"
+          [class.flow-step--complete]="data.retention.archiveReady"
+          [class.flow-step--active]="isRunning"
+          [class.flow-step--blocked]="
+            !data.retention.archiveReady && !isRunning
+          "
+        >
+          <span class="step-number">1</span>
+          <i class="pi pi-cloud-download step-icon"></i>
+          <h4>Copiar desde Traccar</h4>
+          <p>
+            Recupera por servidor y por dispositivo solo el rango pendiente, con
+            solapamiento seguro.
+          </p>
+          <small>{{
+            isRunning
+              ? "Copiando ahora"
+              : data.retention.archiveReady
+                ? "Copia reciente disponible"
+                : "Copia pendiente o incompleta"
+          }}</small>
+        </article>
+        <span class="flow-arrow"><i class="pi pi-angle-right"></i></span>
+        <article
+          class="flow-step"
+          [class.flow-step--complete]="verificationReady"
+          [class.flow-step--blocked]="!verificationReady"
+        >
+          <span class="step-number">2</span>
+          <i class="pi pi-verified step-icon"></i>
+          <h4>Verificar en MongoDB</h4>
+          <p>
+            Compara cantidad y SHA-256 de los IDs contra MySQL, API de Traccar y
+            MongoDB.
+          </p>
+          <small>{{
+            verificationReady
+              ? "Verificación v3 vigente"
+              : "Falta una certificación completa"
+          }}</small>
+        </article>
+        <span class="flow-arrow"><i class="pi pi-angle-right"></i></span>
+        <article
+          class="flow-step"
+          [class.flow-step--complete]="data.retention.enabled"
+          [class.flow-step--blocked]="!data.retention.enabled"
+        >
+          <span class="step-number">3</span>
+          <i class="pi pi-shield step-icon"></i>
+          <h4>Autorizar el corte</h4>
+          <p>
+            Firma el conjunto de dispositivos y publica el límite exacto que
+            puede eliminarse.
+          </p>
+          <small>{{
+            data.retention.enabled
+              ? "Corte seguro emitido"
+              : "No hay permiso de eliminación"
+          }}</small>
+        </article>
+        <span class="flow-arrow"><i class="pi pi-angle-right"></i></span>
+        <article
+          class="flow-step"
+          [class.flow-step--complete]="data.retention.enabled"
+          [class.flow-step--blocked]="!data.retention.enabled"
+        >
+          <span class="step-number">4</span>
+          <i class="pi pi-trash step-icon"></i>
+          <h4>Limpiar Traccar</h4>
+          <p>
+            El servidor elimina en lotes únicamente posiciones anteriores al
+            corte autorizado.
+          </p>
+          <small>{{
+            data.retention.enabled
+              ? "Próxima ventana: " + data.worker.cleanupSchedule
+              : "La limpieza no puede ejecutarse"
+          }}</small>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel servers-panel">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">COBERTURA</span>
+          <h3>Estado por servidor</h3>
+        </div>
+        <span class="updated-at"
+          >Actualizado {{ data.generatedAt | date: "HH:mm:ss" }}</span
+        >
+      </div>
+
+      <div class="server-grid" *ngIf="servers.length; else noServers">
+        <article
+          class="server-card"
+          *ngFor="let server of servers; trackBy: trackServer"
+          [class.server-card--ok]="server.enabled"
+          [class.server-card--blocked]="!server.enabled"
+        >
+          <div class="server-header">
+            <div class="server-identity">
+              <span class="server-icon"><i class="pi pi-server"></i></span>
+              <div>
+                <h4>{{ server.serverName || "Servidor sin nombre" }}</h4>
+                <small>{{ server.serverId }}</small>
+              </div>
+            </div>
+            <span class="status-pill" [class.status-pill--ok]="server.enabled">
+              <i
+                class="pi"
+                [ngClass]="server.enabled ? 'pi-check-circle' : 'pi-lock'"
+              ></i>
+              {{ getServerStatusLabel(server) }}
             </span>
           </div>
-        </div>
-        <div class="config-card-content">
-          
-          <!-- Información del Dispositivo Actual -->
-          <div class="current-device-overview">
-            <div class="device-header">
-              <div class="device-main-info">
-                <h4>{{ (currentDeviceInfo.deviceName) | deviceLabel }}</h4>
-                <small>IMEI: {{ currentDeviceInfo.deviceImei }}</small>
-                <small>Dispositivo {{ currentDeviceInfo.deviceIndex }} de {{ currentAnalysisInfo?.totalDevices }}</small>
-              </div>
-              <div class="device-progress-circle">
-                <div class="progress-circle">
-                  <span class="progress-value">{{ currentDeviceInfo.progress | number:'1.0-0' }}%</span>
-                </div>
-              </div>
+
+          <div class="server-facts">
+            <div>
+              <small>Cobertura archivada</small>
+              <strong
+                >{{
+                  server.archiveCoverageFrom
+                    ? (server.archiveCoverageFrom | date: "dd/MM/yy")
+                    : "—"
+                }}
+                →
+                {{
+                  server.archiveCoverageTo
+                    ? (server.archiveCoverageTo | date: "dd/MM/yy HH:mm")
+                    : "—"
+                }}</strong
+              >
             </div>
-
-            <!-- Progreso Detallado del Dispositivo -->
-            <div class="device-detailed-progress">
-              <div class="progress-bar-container">
-                <div class="progress-label">
-                  <span>Progreso de Bloques</span>
-                  <span>{{ currentDeviceInfo.chunksProcessed }}/{{ currentDeviceInfo.totalChunks }}</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill" [style.width.%]="currentDeviceInfo.progress"></div>
-                </div>
-              </div>
-
-              <!-- Estadísticas del Dispositivo Actual -->
-              <div class="current-device-stats">
-                <div class="stat-item">
-                  <span class="stat-label">Posiciones Encontradas</span>
-                  <span class="stat-value">{{ currentDeviceInfo.positionsFound | number }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Tiempo Procesando</span>
-                  <span class="stat-value">{{ formatDuration(currentDeviceInfo.processingTimeMs) }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Tiempo Estimado Restante</span>
-                  <span class="stat-value">{{ formatEstimatedTime(currentDeviceInfo.estimatedTimeRemaining) }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Bloques por Segundo</span>
-                  <span class="stat-value">{{ (currentDeviceInfo.chunksProcessed / (currentDeviceInfo.processingTimeSeconds || 1)) | number:'1.1-1' }}</span>
-                </div>
-              </div>
-
-              <!-- Mensaje del Análisis Actual -->
-              <div class="current-device-message" *ngIf="currentAnalysisInfo?.currentMessage">
-                <i class="pi pi-cog pi-spin"></i>
-                <span>{{ currentAnalysisInfo?.currentMessage }}</span>
-              </div>
-
-              <!-- Error del Dispositivo Actual -->
-              <div class="current-device-error" *ngIf="currentDeviceInfo.error">
-                <i class="pi pi-exclamation-triangle"></i>
-                <span>{{ currentDeviceInfo.error }}</span>
-              </div>
+            <div>
+              <small>Corte verificado</small>
+              <strong>{{
+                server.verifiedSafeBefore
+                  ? (server.verifiedSafeBefore | date: "dd/MM/yyyy HH:mm")
+                  : "Sin verificar"
+              }}</strong>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Card de Progreso en Tiempo Real -->
-      <div class="config-card span-2-cols" *ngIf="showProgress && currentProgress">
-        <div class="config-card-header">
-          <h3>{{ 'settings.historiales.progress.title' | translate }}</h3>
-          <div class="progress-status">
-            <span class="status-badge" [ngClass]="'status-' + currentProgress.status">
-              {{ ('settings.historiales.progress.status.' + currentProgress.status) | translate }}
-            </span>
-          </div>
-        </div>
-        <div class="config-card-content">
-          
-          <!-- Progreso General -->
-          <div class="progress-overview">
-            <div class="progress-main">
-              <!-- Barra de progreso general -->
-              <div class="progress-bar-container">
-                <div class="progress-label">
-                  <span>{{ 'settings.historiales.progress.overall' | translate }}</span>
-                  <span class="progress-percentage">{{ currentProgress.overallProgress | number:'1.1-1' }}%</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill" [style.width.%]="currentProgress.overallProgress"></div>
-                </div>
-              </div>
-              
-              <div class="progress-message">
-                <i class="pi pi-info-circle"></i>
-                <span>{{ currentProgress.currentMessage }}</span>
-              </div>
+            <div>
+              <small>Dispositivos certificados</small>
+              <strong>{{ server.deviceCount | number }}</strong>
             </div>
-            
-            <!-- Estadísticas del Progreso -->
-            <div class="progress-stats">
-              <div class="stat-item">
-                <span class="stat-label">{{ 'settings.historiales.progress.devices_completed' | translate }}</span>
-                <span class="stat-value">{{ currentProgress.completedDevices }}/{{ currentProgress.totalDevices }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">{{ 'settings.historiales.progress.devices_failed' | translate }}</span>
-                <span class="stat-value error">{{ currentProgress.failedDevices }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">{{ 'settings.historiales.progress.positions_found' | translate }}</span>
-                <span class="stat-value">{{ currentProgress.totalPositionsFound | number }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">{{ 'settings.historiales.progress.elapsed_time' | translate }}</span>
-                <span class="stat-value">{{ formatDuration(currentProgress.elapsedTimeMs) }}</span>
-              </div>
+            <div>
+              <small>Última verificación</small>
+              <strong>{{
+                server.retentionVerifiedAt
+                  ? (server.retentionVerifiedAt | date: "dd/MM/yy HH:mm")
+                  : "Nunca"
+              }}</strong>
             </div>
           </div>
 
-          <!-- Lista de Progreso por Dispositivo -->
-          <div class="device-progress-list" *ngIf="currentProgress.deviceProgress && currentProgress.deviceProgress.length > 0">
-            <h4>{{ 'settings.historiales.progress.device_details' | translate }}</h4>
-            <div class="device-progress-grid">
-              <div *ngFor="let deviceProgress of currentProgress.deviceProgress" 
-                   class="device-progress-item"
-                   [ngClass]="getDeviceStatusClass(deviceProgress.status)">
-                
-                <!-- Header de la tarjeta: nombre y status -->
-                <div class="device-info">
-                  <div>
-                    <div class="device-name">{{ (deviceProgress.deviceName) | deviceLabel }}</div>
-                    <div class="device-imei">{{ deviceProgress.deviceImei }}</div>
-                  </div>
-                  <div class="device-status">
-                    <span class="status-badge" [ngClass]="getDeviceStatusClass(deviceProgress.status)">
-                      {{ ('settings.historiales.progress.device_status.' + deviceProgress.status) | translate }}
-                    </span>
-                  </div>
-                </div>
+          <div class="integrity-row">
+            <span
+              ><i class="pi pi-key"></i>
+              {{ shortDigest(server.deviceSetDigest) }}</span
+            >
+            <span>Verificación v{{ server.verificationVersion || 0 }}</span>
+          </div>
 
-                <!-- Barra de progreso -->
-                <div class="device-progress-bar">
-                  <div class="progress-bar small">
-                    <div class="progress-fill" [style.width.%]="deviceProgress.progress"></div>
-                  </div>
-                  <span class="progress-text">{{ deviceProgress.progress | number:'1.0-0' }}%</span>
-                </div>
+          <div class="blocking-box" *ngIf="!server.enabled">
+            <strong
+              ><i class="pi pi-exclamation-triangle"></i> Por qué está
+              bloqueado</strong
+            >
+            <ul>
+              <li *ngFor="let reason of getBlockingReasons(server.reason)">
+                {{ reason }}
+              </li>
+            </ul>
+          </div>
+          <div class="safe-box" *ngIf="server.enabled">
+            <i class="pi pi-shield"></i>
+            <span
+              >Puede eliminarse de Traccar lo anterior al
+              <strong>{{ server.safeBefore | date: "dd/MM/yyyy HH:mm" }}</strong
+              >.</span
+            >
+          </div>
+        </article>
+      </div>
+      <ng-template #noServers>
+        <div class="empty-state">
+          <i class="pi pi-server"></i>
+          <strong>No hay servidores configurados para el archivador</strong>
+          <span
+            >Revisa HISTORY_ARCHIVE_SERVERS y la configuración de
+            servidores.</span
+          >
+        </div>
+      </ng-template>
+    </section>
 
-                <!-- Detalles del progreso -->
-                <div class="device-details" *ngIf="deviceProgress.currentBlock || deviceProgress.positionsFound">
-                  <small *ngIf="deviceProgress.currentBlock">
-                    {{ 'settings.historiales.progress.block' | translate }}: {{ deviceProgress.currentBlock }}/{{ deviceProgress.totalBlocks }}
-                  </small>
-                  <small *ngIf="deviceProgress.positionsFound">
-                    {{ 'settings.historiales.progress.positions' | translate }}: {{ deviceProgress.positionsFound | number }}
-                  </small>
-                </div>
-                <div class="device-error" *ngIf="deviceProgress.error">
-                  <small class="error-text">{{ deviceProgress.error }}</small>
-                </div>
-              </div>
+    <section class="panel runs-panel">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">AUDITORÍA</span>
+          <h3>Corridas recientes</h3>
+        </div>
+        <span class="auto-label"
+          ><i class="pi pi-history"></i> Últimas
+          {{ data.recentRuns.length }}</span
+        >
+      </div>
+
+      <div class="runs-list" *ngIf="data.recentRuns.length; else noRuns">
+        <article
+          class="run-row"
+          *ngFor="let run of data.recentRuns; trackBy: trackRun"
+        >
+          <span class="run-state" [ngClass]="'run-state--' + run.status">
+            <i
+              class="pi"
+              [ngClass]="
+                run.status === 'completed'
+                  ? 'pi-check'
+                  : run.status === 'running'
+                    ? 'pi-spin pi-spinner'
+                    : 'pi-times'
+              "
+            ></i>
+          </span>
+          <div class="run-main">
+            <div class="run-title">
+              <strong>{{ run.serverName }}</strong>
+              <span
+                class="status-pill"
+                [ngClass]="'status-pill--' + run.status"
+                >{{ getRunStatusLabel(run.status) }}</span
+              >
+              <small>{{ run.startedAt | date: "dd/MM/yyyy HH:mm" }}</small>
+            </div>
+            <div class="run-progress">
+              <span [style.width.%]="getRunProgress(run)"></span>
+            </div>
+            <div class="run-meta">
+              <span
+                ><i class="pi pi-server"></i> {{ run.completedDevices }}/{{
+                  run.totalDevices
+                }}
+                dispositivos</span
+              >
+              <span
+                ><i class="pi pi-map-marker"></i>
+                {{ run.totalPositionsFound | number }} encontradas</span
+              >
+              <span
+                ><i class="pi pi-save"></i>
+                {{ run.insertedPositions | number }} nuevas</span
+              >
+              <span
+                ><i class="pi pi-clock"></i> {{ formatRunDuration(run) }}</span
+              >
+            </div>
+            <div class="run-error" *ngIf="run.error">
+              <i class="pi pi-exclamation-circle"></i> {{ run.error }}
             </div>
           </div>
-        </div>
+        </article>
       </div>
+      <ng-template #noRuns>
+        <div class="empty-state compact">
+          <i class="pi pi-history"></i>
+          <strong>Aún no hay corridas registradas</strong>
+          <span>La primera aparecerá al ejecutarse el archivador.</span>
+        </div>
+      </ng-template>
+    </section>
 
-      <!-- Card de Lista de Dispositivos -->
-      <div class="config-card span-2-cols" *ngIf="devices.length > 0">
-        <div class="config-card-header">
-          <h3>{{ 'settings.historiales.devices.title' | translate }} ({{ devices.length }})</h3>
-        </div>
-        <div class="config-card-content">
-          <p-table 
-            [value]="devices" 
-            [paginator]="true" 
-            [rows]="8"
-            [showCurrentPageReport]="true"
-            currentPageReportTemplate="{first} - {last} de {totalRecords} dispositivos">
-            
-            <ng-template pTemplate="header">
-              <tr>
-                <th>{{ 'settings.historiales.devices.name' | translate }}</th>
-                <th>{{ 'settings.historiales.devices.imei' | translate }}</th>
-                <th>{{ 'settings.historiales.devices.api_id' | translate }}</th>
-                <th>{{ 'settings.historiales.devices.status' | translate }}</th>
-              </tr>
-            </ng-template>
-            
-            <ng-template pTemplate="body" let-device>
-              <tr>
-                <td>{{ (device.name) | deviceLabel }}</td>
-                <td>{{ device.device_imei }}</td>
-                <td>{{ device.api_device_id }}</td>
-                <td>
-                  <span 
-                    class="status-badge"
-                    [ngClass]="device.status === 'active' ? 'status-active' : 'status-inactive'">
-                    {{ device.status === 'active' ? 'Activo' : 'Inactivo' }}
-                  </span>
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
-        </div>
-      </div>
-
-      <!-- Card de Resultados -->
-      <div class="config-card span-2-cols" *ngIf="showResults && analysisResults">
-        <div class="config-card-header">
-          <h3>{{ 'settings.historiales.results.analysis_summary' | translate }}</h3>
-        </div>
-        <div class="config-card-content">
-          <div class="results-grid">
-            <div class="result-item">
-              <span class="result-label">{{ 'settings.historiales.results.successful_devices' | translate }}</span>
-              <span class="result-value success">{{ analysisResults.summary.successfulDevices }}</span>
-            </div>
-            <div class="result-item">
-              <span class="result-label">{{ 'settings.historiales.results.failed_devices' | translate }}</span>
-              <span class="result-value error">{{ analysisResults.summary.failedDevices }}</span>
-            </div>
-            <div class="result-item">
-              <span class="result-label">{{ 'settings.historiales.results.total_positions' | translate }}</span>
-              <span class="result-value">{{ analysisResults.summary.totalPositionsFound | number }}</span>
-            </div>
-            <div class="result-item">
-              <span class="result-label">{{ 'settings.historiales.results.processing_time' | translate }}</span>
-              <span class="result-value">{{ formatDuration(analysisResults.summary.processingTimeMs) }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Estado vacío -->
-      <div class="config-card span-2-cols" *ngIf="devices.length === 0">
-        <div class="config-card-content empty-state">
-          <i class="pi pi-info-circle"></i>
-          <h4>{{ 'settings.historiales.messages.no_devices' | translate }}</h4>
-          <p>{{ 'settings.historiales.messages.no_devices_detail' | translate }}</p>
-          <button type="button" class="button-secondary" (click)="loadDevices()">
-            <i class="pi pi-refresh"></i>
-            {{ 'settings.historiales.actions.reload_devices' | translate }}
-          </button>
-        </div>
-      </div>
-
-    </div>
-  </div>
+    <footer class="safety-note">
+      <i class="pi pi-info-circle"></i>
+      <p>
+        <strong>Importante:</strong> esta pantalla autoriza y audita el corte
+        seguro. La eliminación física se ejecuta en cada servidor Traccar, en
+        lotes de 10,000 filas y con una ventana máxima de 45 minutos.
+      </p>
+    </footer>
+  </ng-container>
 </div>

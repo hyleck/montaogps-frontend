@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { 
+import {
   HistoryDevicesResponse,
   AnalyzeHistoryRequest,
   AnalyzeHistoryResponse,
@@ -10,11 +10,13 @@ import {
   AnalyzeDeviceParams,
   ProgressResponse,
   CancelResponse,
-  CurrentDeviceResponse
+  CurrentDeviceResponse,
+  ArchiveDashboardResponse,
+  TriggerArchiveResponse,
 } from '../../admin/modules/settings/presentation/components/settings/historiales-settings/historiales.interface';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class HistorialesService {
   private readonly apiUrl = `${environment.apiUrl}/history`;
@@ -33,31 +35,42 @@ export class HistorialesService {
    * Analizar historial de TODOS los dispositivos
    * POST /history/analyze
    */
-  analyzeAllDevices(request: AnalyzeHistoryRequest): Observable<AnalyzeHistoryResponse> {
-    return this.http.post<AnalyzeHistoryResponse>(`${this.apiUrl}/analyze`, request);
+  analyzeAllDevices(
+    request: AnalyzeHistoryRequest,
+  ): Observable<AnalyzeHistoryResponse> {
+    return this.http.post<AnalyzeHistoryResponse>(
+      `${this.apiUrl}/analyze`,
+      request,
+    );
   }
 
   /**
    * Analizar historial de un dispositivo específico
    * GET /history/analyze/device/:deviceImei
    */
-  analyzeDevice(deviceImei: string, params: AnalyzeDeviceParams): Observable<AnalyzeDeviceResponse> {
+  analyzeDevice(
+    deviceImei: string,
+    params: AnalyzeDeviceParams,
+  ): Observable<AnalyzeDeviceResponse> {
     let httpParams = new HttpParams()
       .set('fromDate', params.fromDate)
       .set('toDate', params.toDate);
-    
+
     if (params.intervalHours) {
-      httpParams = httpParams.set('intervalHours', params.intervalHours.toString());
+      httpParams = httpParams.set(
+        'intervalHours',
+        params.intervalHours.toString(),
+      );
     }
 
     return this.http.get<AnalyzeDeviceResponse>(
       `${this.apiUrl}/analyze/device/${deviceImei}`,
-      { params: httpParams }
+      { params: httpParams },
     );
   }
 
   // ========================
-  // MÉTODOS DE PROGRESO 
+  // MÉTODOS DE PROGRESO
   // ========================
 
   /**
@@ -73,7 +86,9 @@ export class HistorialesService {
    * GET /history/progress/:analysisId
    */
   getProgressById(analysisId: string): Observable<ProgressResponse> {
-    return this.http.get<ProgressResponse>(`${this.apiUrl}/progress/${analysisId}`);
+    return this.http.get<ProgressResponse>(
+      `${this.apiUrl}/progress/${analysisId}`,
+    );
   }
 
   /**
@@ -89,7 +104,9 @@ export class HistorialesService {
    * DELETE /history/cancel/:analysisId
    */
   cancelAnalysis(analysisId: string): Observable<CancelResponse> {
-    return this.http.delete<CancelResponse>(`${this.apiUrl}/cancel/${analysisId}`);
+    return this.http.delete<CancelResponse>(
+      `${this.apiUrl}/cancel/${analysisId}`,
+    );
   }
 
   // ========================
@@ -101,6 +118,23 @@ export class HistorialesService {
    * GET /history/progress/current-device
    */
   getCurrentDeviceProgress(): Observable<CurrentDeviceResponse> {
-    return this.http.get<CurrentDeviceResponse>(`${this.apiUrl}/progress/current-device`);
+    return this.http.get<CurrentDeviceResponse>(
+      `${this.apiUrl}/progress/current-device`,
+    );
+  }
+
+  getArchiveDashboard(limit = 12): Observable<ArchiveDashboardResponse> {
+    const params = new HttpParams().set('limit', String(limit));
+    return this.http.get<ArchiveDashboardResponse>(
+      `${this.apiUrl}/archive/dashboard`,
+      { params },
+    );
+  }
+
+  triggerArchive(server?: string): Observable<TriggerArchiveResponse> {
+    return this.http.post<TriggerArchiveResponse>(
+      `${this.apiUrl}/archive/run`,
+      server ? { server } : {},
+    );
   }
 }
