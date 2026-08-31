@@ -134,11 +134,11 @@ export class AdminComponent implements OnInit, OnDestroy {
             this.floatingTimer = null;
         }
         if (source === 'internal') {
-            this.router.navigate(['/admin/communication', 'grupo'], {
-                queryParams: {
-                    groupId: groupId || 'admin',
-                },
-            });
+            if (String(groupId || '').startsWith('technician:')) {
+                this.communicationNotifications.openFloatingTechnicians(groupId);
+            } else {
+                this.communicationNotifications.openFloatingAdmin(groupId || 'admin');
+            }
             return;
         }
         if (!conversationId) return;

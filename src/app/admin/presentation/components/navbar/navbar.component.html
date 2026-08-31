@@ -447,6 +447,15 @@
                         <time>{{ message.createdAt | date:'shortTime' }}</time>
                     </div>
                     <p *ngIf="message.text">{{ message.text | deviceLabel }}</p>
+                    <button
+                        *ngIf="message.referenceConversationId"
+                        type="button"
+                        class="technician-floating-chat__reference"
+                        [title]="'Abrir el mensaje exacto de la conversación #' + message.referenceConversationId"
+                        [attr.aria-label]="'Abrir el mensaje exacto de la conversación ' + message.referenceConversationId"
+                        (click)="openFloatingInternalMessageReference(message)">
+                        #{{ message.referenceConversationId }}
+                    </button>
                     <div *ngIf="message.attachments?.length" class="technician-floating-chat__attachments">
                         <ng-container *ngFor="let attachment of message.attachments">
                             <a *ngIf="isFloatingTechnicianImage(attachment)"

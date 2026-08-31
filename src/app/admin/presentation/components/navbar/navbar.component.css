@@ -5619,6 +5619,34 @@ button.floating-chat-history-state {
   overflow-wrap: anywhere;
 }
 
+.technician-floating-chat__reference {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding: 0.28rem 0.58rem;
+  border: 1px solid rgba(34, 211, 238, 0.42);
+  border-radius: 999px;
+  color: #67e8f9;
+  background: rgba(8, 145, 178, 0.12);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 1.2;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.technician-floating-chat__reference:hover {
+  border-color: rgba(103, 232, 249, 0.8);
+  background: rgba(8, 145, 178, 0.24);
+  transform: translateY(-1px);
+}
+
+.technician-floating-chat__reference:focus-visible {
+  outline: 2px solid #67e8f9;
+  outline-offset: 2px;
+}
+
 .technician-floating-chat__attachments {
   display: grid;
   gap: 0.45rem;
@@ -5763,6 +5791,12 @@ button.floating-chat-history-state {
 
 .aquiles-floating-chat--light.admin-floating-chat .technician-floating-chat__meta strong {
   color: #0369a1;
+}
+
+.aquiles-floating-chat--light.admin-floating-chat .technician-floating-chat__reference {
+  border-color: #0891b2;
+  color: #0e7490;
+  background: #ecfeff;
 }
 
 .aquiles-floating-chat--light.admin-floating-chat .technician-floating-chat__message--me .technician-floating-chat__meta strong,

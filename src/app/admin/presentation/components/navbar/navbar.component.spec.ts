@@ -315,6 +315,32 @@ describe('NavbarComponent realtime links', () => {
     component.ngOnDestroy();
   });
 
+  it('opens an Admin message reference in the exact customer conversation', () => {
+    const { component, router } = createComponent();
+    component.floatingTechniciansVisible = true;
+
+    component.openFloatingInternalMessageReference({
+      _id: 'admin-message-1',
+      groupId: 'admin',
+      text: 'Miren, aquí pueden ver el mensaje exacto:',
+      type: 'text',
+      createdAt: '2026-08-31T10:16:00.000Z',
+      referenceConversationId: 1787412043813291,
+      referenceMessageId: 847,
+      author: {
+        _id: 'ester',
+        name: 'Ester',
+      },
+    });
+
+    expect(component.floatingTechniciansVisible).toBeFalse();
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/admin/communication', 'chat', 1787412043813291],
+      { queryParams: { messageId: 847 } },
+    );
+    component.ngOnDestroy();
+  });
+
   it('loads the previous client message page and preserves the visible scroll position', fakeAsync(() => {
     const { component, whatsappApi } = createComponent();
     const currentMessage: FloatingCommunicationMessage = {

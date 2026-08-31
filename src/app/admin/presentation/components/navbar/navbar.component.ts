@@ -1277,6 +1277,20 @@ export class NavbarComponent implements OnInit, OnDestroy {
     return this.getFloatingChatInitials(this.getFloatingTechnicianAuthorName(message));
   }
 
+  openFloatingInternalMessageReference(message: InternalChatMessage): void {
+    const conversationId = Number(message?.referenceConversationId || 0);
+    if (!conversationId) return;
+
+    const messageId = Number(message?.referenceMessageId || 0);
+    this.closeFloatingTechnicians();
+    void this.router.navigate(
+      ['/admin/communication', 'chat', conversationId],
+      {
+        queryParams: messageId > 0 ? { messageId } : undefined,
+      },
+    );
+  }
+
   shouldShowFloatingTechnicianDate(index: number): boolean {
     return shouldShowChatDateSeparator(
       this.floatingTechnicianMessages[index]?.createdAt,
