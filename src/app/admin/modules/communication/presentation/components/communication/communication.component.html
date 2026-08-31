@@ -880,7 +880,7 @@
                                 : 'Esta conversación está siendo atendida de forma automática.' }}
                     </span>
                     <button
-                        *ngIf="selectedConversation.assignee_id && selectedConversation.reminder_eligible"
+                        *ngIf="selectedConversation.assignee_id && !isConversationAssignedToMe(selectedConversation)"
                         type="button"
                         class="comm-managed-banner__action comm-managed-banner__action--reminder"
                         (click)="sendConversationReminder()"

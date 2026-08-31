@@ -6192,8 +6192,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   sendConversationReminder(): void {
     const conversation = this.selectedConversation;
     if (
-      !conversation?.reminder_eligible
-      || !conversation.assignee_id
+      !conversation?.assignee_id
       || this.isConversationAssignedToMe(conversation)
       || this.sendingConversationReminder
     ) {
@@ -6207,15 +6206,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       }))
       .subscribe({
         next: (response) => {
-          conversation.reminder_eligible = false;
-          const listedConversation = this.conversations.find(
-            item => item.id === conversation.id,
-          );
-          if (listedConversation) {
-            listedConversation.reminder_eligible = false;
-          }
-          this.conversationsFingerprint =
-            this.getConversationsFingerprint(this.conversations);
           this.messageService.add({
             severity: 'success',
             summary: 'Zumbido enviado',
