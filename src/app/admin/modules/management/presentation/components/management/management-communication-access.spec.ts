@@ -26,6 +26,8 @@ describe('Management communication chat access', () => {
       unreadCount: 1,
     }];
     component.assignedCommunicationMessagePreview = null;
+    component.assignedCommunicationReminderBuzz = null;
+    component.assignedCommunicationReminderBuzzing = false;
   });
 
   it('hides and blocks client, admin and technician chats for non-employees', () => {
@@ -59,5 +61,35 @@ describe('Management communication chat access', () => {
     );
     expect(notifications.openFloatingAdmin).toHaveBeenCalled();
     expect(notifications.openFloatingTechnicians).toHaveBeenCalled();
+  });
+
+  it('vibrates and points the contact button to the reminded conversation', () => {
+    component.currentUserAffiliationTypeId = 'empleado';
+    component.assignedCommunicationChats.push({
+      conversationId: 77,
+      contactName: 'María Taveras',
+      contactPhone: '8095550177',
+      avatar: '',
+      lastMessage: 'Sigo esperando',
+      time: 20,
+      unreadCount: 0,
+    });
+
+    component.showAssignedCommunicationReminderBuzz({
+      conversationId: 77,
+      contactName: 'María Taveras',
+      senderName: 'Supervisor',
+    });
+
+    expect(component.assignedCommunicationReminderBuzzing).toBeTrue();
+    expect(component.activeFloatingCommunicationContact?.conversationId).toBe(77);
+
+    component.openFloatingAssignedCommunicationChat();
+
+    expect(notifications.openFloatingAssignedChat).toHaveBeenCalledWith(
+      77,
+      jasmine.objectContaining({ contactName: 'María Taveras' }),
+    );
+    expect(component.assignedCommunicationReminderBuzzing).toBeFalse();
   });
 });

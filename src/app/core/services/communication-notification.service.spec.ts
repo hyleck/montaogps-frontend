@@ -421,4 +421,39 @@ describe('CommunicationNotificationService sidebar badge', () => {
 
     expect(pendingCount).toBe(4);
   });
+
+  it('publishes the targeted reminder and plays its dedicated sound', () => {
+    const service = new CommunicationNotificationService(
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+    const reminderAudio = {
+      currentTime: 14,
+      play: jasmine.createSpy('play').and.returnValue(Promise.resolve()),
+    };
+    (service as any).audio = {};
+    (service as any).otherConversationAudio = {};
+    (service as any).internalAudio = {};
+    (service as any).reminderAudio = reminderAudio;
+    let received: any = null;
+    service.conversationReminderBuzz$.subscribe(reminder => {
+      received = reminder;
+    });
+
+    service.playReminderBuzz({
+      conversationId: 202,
+      contactName: 'María Taveras',
+      senderName: 'Supervisor',
+    });
+
+    expect(reminderAudio.currentTime).toBe(0);
+    expect(reminderAudio.play).toHaveBeenCalledTimes(1);
+    expect(received).toEqual({
+      conversationId: 202,
+      contactName: 'María Taveras',
+      senderName: 'Supervisor',
+    });
+  });
 });

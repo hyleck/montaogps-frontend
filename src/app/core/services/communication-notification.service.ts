@@ -58,6 +58,12 @@ export interface FloatingAssignedChatRequest {
   chat?: AssignedCommunicationChat;
 }
 
+export interface ConversationReminderBuzz {
+  conversationId: number;
+  contactName: string;
+  senderName?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -88,6 +94,8 @@ export class CommunicationNotificationService implements OnDestroy {
   floatingTechniciansRequested$ = this.floatingTechniciansRequestedSubject.asObservable();
   private floatingAdminRequestedSubject = new Subject<string | null>();
   floatingAdminRequested$ = this.floatingAdminRequestedSubject.asObservable();
+  private conversationReminderBuzzSubject = new Subject<ConversationReminderBuzz>();
+  conversationReminderBuzz$ = this.conversationReminderBuzzSubject.asObservable();
 
   private pollingSubscription?: Subscription;
   private internalPollingSubscription?: Subscription;
@@ -95,6 +103,7 @@ export class CommunicationNotificationService implements OnDestroy {
   private audio?: HTMLAudioElement;
   private otherConversationAudio?: HTMLAudioElement;
   private internalAudio?: HTMLAudioElement;
+  private reminderAudio?: HTMLAudioElement;
   private initialized = false;
   private internalInitialized = false;
   private currentUserId = '';
@@ -587,8 +596,11 @@ export class CommunicationNotificationService implements OnDestroy {
     return next;
   }
 
-  playReminderBuzz(): void {
-    this.playNotificationSound();
+  playReminderBuzz(reminder?: ConversationReminderBuzz): void {
+    this.playReminderNotificationSound();
+    if (reminder?.conversationId) {
+      this.conversationReminderBuzzSubject.next(reminder);
+    }
   }
 
   private emitWhatsAppPendingCount(): void {
@@ -636,6 +648,12 @@ export class CommunicationNotificationService implements OnDestroy {
       this.internalAudio.preload = 'auto';
       this.internalAudio.load();
     }
+
+    if (!this.reminderAudio) {
+      this.reminderAudio = new Audio('/assets/conversation-reminder-buzz.mp3');
+      this.reminderAudio.preload = 'auto';
+      this.reminderAudio.load();
+    }
   }
 
   private playNotificationSound(): void {
@@ -644,6 +662,14 @@ export class CommunicationNotificationService implements OnDestroy {
 
     this.audio.currentTime = 0;
     this.audio.play().catch(() => undefined);
+  }
+
+  private playReminderNotificationSound(): void {
+    this.prepareAudio();
+    if (!this.reminderAudio) return;
+
+    this.reminderAudio.currentTime = 0;
+    this.reminderAudio.play().catch(() => undefined);
   }
 
   private playOtherConversationNotificationSound(): void {

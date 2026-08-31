@@ -1865,6 +1865,7 @@
         </div>
 
         <button type="button" class="floating-contact-btn"
+            [class.floating-contact-btn--buzzing]="assignedCommunicationReminderBuzzing"
             (click)="openFloatingAssignedCommunicationChat()"
             [title]="'Abrir conversación con ' + assignedChat.contactName"
             [attr.aria-label]="'Abrir conversación con ' + assignedChat.contactName">

@@ -55,7 +55,11 @@ export class AdminComponent implements OnInit, OnDestroy {
                     if (!reminder?.conversationId) return;
                     this.conversationReminder = reminder;
                     this.showConversationReminderModal = true;
-                    this.communicationNotifications.playReminderBuzz();
+                    this.communicationNotifications.playReminderBuzz({
+                        conversationId: Number(reminder.conversationId),
+                        contactName: reminder.contactName,
+                        senderName: reminder.senderName,
+                    });
                 });
 
         this.floatingSub = this.communicationNotifications.floatingMessage$.subscribe((message) => {

@@ -11,12 +11,12 @@ describe('AdminComponent', () => {
     const firebaseNotifications = {
       chatTransferReceived$,
       conversationReminderReceived$,
-      playReminderBuzz: jasmine.createSpy('playReminderBuzz'),
     };
     const communicationNotifications = {
       floatingMessage$,
       openFloatingTechnicians: jasmine.createSpy('openFloatingTechnicians'),
       openFloatingAdmin: jasmine.createSpy('openFloatingAdmin'),
+      playReminderBuzz: jasmine.createSpy('playReminderBuzz'),
     };
     const authService = {
       getSupportImpersonationState: jasmine.createSpy('getSupportImpersonationState')
@@ -37,6 +37,7 @@ describe('AdminComponent', () => {
     return {
       component,
       floatingMessage$,
+      conversationReminderReceived$,
       communicationNotifications,
       router,
     };
@@ -73,6 +74,30 @@ describe('AdminComponent', () => {
     expect(communicationNotifications.openFloatingAdmin).not.toHaveBeenCalled();
     expect(router.navigate).not.toHaveBeenCalled();
     expect(component.floatingMessage).toBeNull();
+    component.ngOnDestroy();
+  });
+
+  it('forwards the targeted reminder to the Management contact button', () => {
+    const {
+      component,
+      conversationReminderReceived$,
+      communicationNotifications,
+    } = createComponent();
+
+    conversationReminderReceived$.next({
+      conversationId: '202',
+      contactName: 'María Taveras',
+      senderName: 'Supervisor',
+      targetAgentId: 'assigned-employee',
+      messages: [],
+    });
+
+    expect(component.showConversationReminderModal).toBeTrue();
+    expect(communicationNotifications.playReminderBuzz).toHaveBeenCalledWith({
+      conversationId: 202,
+      contactName: 'María Taveras',
+      senderName: 'Supervisor',
+    });
     component.ngOnDestroy();
   });
 });

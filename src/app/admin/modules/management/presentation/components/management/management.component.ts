@@ -37,6 +37,7 @@ import {
   AssignedCommunicationChat,
   CommunicationFloatingMessage,
   CommunicationNotificationService,
+  ConversationReminderBuzz,
 } from '@core/services/communication-notification.service';
 import {
   UserConsoleLevel,
@@ -186,6 +187,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   shortcuts: any[] = [];
   assignedCommunicationChats: AssignedCommunicationChat[] = [];
   assignedCommunicationMessagePreview: CommunicationFloatingMessage | null = null;
+  assignedCommunicationReminderBuzz: ConversationReminderBuzz | null = null;
+  assignedCommunicationReminderBuzzing: boolean = false;
   technicianChatUnreadCount: number = 0;
   adminChatUnreadCount: number = 0;
   showShortcutsDialog: boolean = false;
@@ -729,6 +732,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // PROPIEDADES PRIVADAS - SUSCRIPCIONES
   // ====================================
   private subscriptions: Subscription[] = [];
+  private assignedCommunicationReminderBuzzTimer?: ReturnType<typeof setTimeout>;
 
   // ====================================
   // PROPIEDADES PRIVADAS - POLLING
@@ -807,6 +811,20 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   get activeFloatingCommunicationContact(): AssignedCommunicationChat | null {
     if (!this.canAccessManagementCommunicationChats) return null;
+    const reminder = this.assignedCommunicationReminderBuzz;
+    if (reminder) {
+      return this.assignedCommunicationChats.find(
+        chat => chat.conversationId === reminder.conversationId,
+      ) || {
+        conversationId: reminder.conversationId,
+        contactName: reminder.contactName || 'Cliente',
+        contactPhone: '',
+        avatar: '',
+        lastMessage: 'Recordatorio pendiente',
+        time: Math.floor(Date.now() / 1000),
+        unreadCount: 0,
+      };
+    }
     const preview = this.assignedCommunicationMessagePreview;
     if (!preview) return this.primaryAssignedCommunicationChat;
     return this.assignedCommunicationChats.find(
@@ -867,6 +885,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         : null
     );
     this.clearAssignedCommunicationMessagePreview();
+    this.clearAssignedCommunicationReminderBuzz();
     this.communicationNotifications.openFloatingAssignedChat(
       requestedConversationId,
       requestedChat,
@@ -1067,6 +1086,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       clearTimeout(this.scrollTimeout);
     }
     this.clearAssignedCommunicationMessagePreview();
+    this.clearAssignedCommunicationReminderBuzz();
     this.stopChatPolling();
   }
 
@@ -3459,6 +3479,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
     );
 
     this.subscriptions.push(
+      this.communicationNotifications.conversationReminderBuzz$.subscribe(reminder => {
+        if (!this.canAccessManagementCommunicationChats) return;
+        this.showAssignedCommunicationReminderBuzz(reminder);
+      })
+    );
+
+    this.subscriptions.push(
       this.communicationNotifications.technicianPendingCount$.subscribe(count => {
         this.technicianChatUnreadCount = this.canAccessManagementCommunicationChats
           ? Math.max(0, Number(count) || 0)
@@ -3773,6 +3800,36 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   private clearAssignedCommunicationMessagePreview(): void {
     this.assignedCommunicationMessagePreview = null;
+  }
+
+  private showAssignedCommunicationReminderBuzz(
+    reminder: ConversationReminderBuzz,
+  ): void {
+    const conversationId = Number(reminder?.conversationId || 0);
+    if (!conversationId) return;
+
+    if (this.assignedCommunicationReminderBuzzTimer) {
+      clearTimeout(this.assignedCommunicationReminderBuzzTimer);
+    }
+    this.assignedCommunicationReminderBuzz = {
+      ...reminder,
+      conversationId,
+    };
+    this.assignedCommunicationReminderBuzzing = true;
+    this.assignedCommunicationReminderBuzzTimer = setTimeout(() => {
+      this.assignedCommunicationReminderBuzzing = false;
+      this.assignedCommunicationReminderBuzz = null;
+      this.assignedCommunicationReminderBuzzTimer = undefined;
+    }, 5000);
+  }
+
+  private clearAssignedCommunicationReminderBuzz(): void {
+    if (this.assignedCommunicationReminderBuzzTimer) {
+      clearTimeout(this.assignedCommunicationReminderBuzzTimer);
+      this.assignedCommunicationReminderBuzzTimer = undefined;
+    }
+    this.assignedCommunicationReminderBuzzing = false;
+    this.assignedCommunicationReminderBuzz = null;
   }
 
   /**
