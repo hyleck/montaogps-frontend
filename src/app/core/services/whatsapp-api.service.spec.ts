@@ -108,6 +108,29 @@ describe('WhatsAppApiService', () => {
         request.flush({ success: true, conversations: [] });
     });
 
+    it('can request conversations assigned to other employees', () => {
+        service.getConversations(
+            5,
+            1,
+            'employee-id',
+            true,
+            '',
+            'all',
+            false,
+            5,
+            true,
+        ).subscribe();
+
+        const request = httpController.expectOne(candidate => (
+            candidate.url === `${environment.apiUrl}/whatsapp/conversations`
+            && candidate.params.get('agent_id') === 'employee-id'
+            && candidate.params.get('assigned_others') === 'true'
+            && candidate.params.get('page_size') === '5'
+        ));
+        expect(request.request.method).toBe('GET');
+        request.flush({ success: true, conversations: [] });
+    });
+
     it('clears a conversation while preserving the chat', () => {
         service.clearConversation(202).subscribe();
 

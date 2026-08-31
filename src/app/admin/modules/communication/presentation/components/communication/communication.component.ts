@@ -235,6 +235,15 @@ interface WhatsAppSticker {
   file_size: number;
 }
 
+type ConversationAttentionFilter =
+  | 'all'
+  | 'recent'
+  | 'urgent'
+  | 'waiting'
+  | 'unread'
+  | 'assigned'
+  | 'assignedOthers';
+
 
 @Component({
   selector: 'app-communication',
@@ -258,9 +267,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   noInbox: boolean = false;
   sidebarDisplayed = true;
   activeTab: 'chat' | 'correo' | 'foro' | 'grupo' = 'chat';
-  conversationAttentionFilter: 'all' | 'recent' | 'urgent' | 'waiting' | 'unread' = 'recent';
+  conversationAttentionFilter: ConversationAttentionFilter = 'recent';
   readonly conversationAttentionFilters = [
     { id: 'all' as const, label: 'Todos' },
+    { id: 'assigned' as const, label: 'Asignados a mí' },
+    { id: 'assignedOthers' as const, label: 'Asignados a otros' },
     { id: 'recent' as const, label: 'Más recientes' },
     { id: 'urgent' as const, label: 'Urgentes' },
     { id: 'waiting' as const, label: 'Por responder' },
@@ -1683,9 +1694,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       this.whatsappAgentId,
       true,
       this.searchTerm,
-      this.conversationAttentionFilter,
-      false,
+      this.getConversationAttentionQuery(),
+      this.isAssignedToMeConversationFilter(),
       5,
+      this.isAssignedToOthersConversationFilter(),
     ).subscribe({
       next: (res: any) => {
         if (
@@ -1774,9 +1786,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       this.whatsappAgentId,
       true,
       this.searchTerm,
-      this.conversationAttentionFilter,
-      false,
+      this.getConversationAttentionQuery(),
+      this.isAssignedToMeConversationFilter(),
       5,
+      this.isAssignedToOthersConversationFilter(),
     ).pipe(finalize(() => {
       if (requestGeneration === this.conversationListGeneration) {
         this.loadingMoreConversations = false;
@@ -1852,7 +1865,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   setConversationAttentionFilter(
-    filter: 'all' | 'recent' | 'urgent' | 'waiting' | 'unread',
+    filter: ConversationAttentionFilter,
   ): void {
     if (this.conversationAttentionFilter === filter) return;
     this.conversationAttentionFilter = filter;
@@ -1878,6 +1891,25 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       this.searchTerm.trim().toLocaleLowerCase(),
       this.conversationAttentionFilter,
     ].join('|');
+  }
+
+  private getConversationAttentionQuery():
+    'all' | 'recent' | 'urgent' | 'waiting' | 'unread' {
+    if (
+      this.conversationAttentionFilter === 'assigned'
+      || this.conversationAttentionFilter === 'assignedOthers'
+    ) {
+      return 'all';
+    }
+    return this.conversationAttentionFilter;
+  }
+
+  private isAssignedToMeConversationFilter(): boolean {
+    return this.conversationAttentionFilter === 'assigned';
+  }
+
+  private isAssignedToOthersConversationFilter(): boolean {
+    return this.conversationAttentionFilter === 'assignedOthers';
   }
 
   getConversationAssigneeLabel(conv: ChatConversation): string {
@@ -3308,9 +3340,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.whatsappAgentId,
         true,
         this.searchTerm,
-        this.conversationAttentionFilter,
-        false,
+        this.getConversationAttentionQuery(),
+        this.isAssignedToMeConversationFilter(),
         5,
+        this.isAssignedToOthersConversationFilter(),
       ).pipe(finalize(() => {
         this.refreshingConversationPages = false;
       })).subscribe({
