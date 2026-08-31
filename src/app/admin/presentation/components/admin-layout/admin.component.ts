@@ -2,10 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import {
-    ConversationReminderNotification,
-    FirebaseNotificationsService,
-} from '@core/services/firebase-notifications.service';
+import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
 import { CommunicationFloatingMessage, CommunicationNotificationService } from '@core/services/communication-notification.service';
 import { AuthService } from '@core/services/auth.service';
 
@@ -19,8 +16,6 @@ export class AdminComponent implements OnInit, OnDestroy {
     showChatTransferModal: boolean = false;
     transferConversationId: string | null = null;
     transferSummaryText: string | null = null;
-    showConversationReminderModal: boolean = false;
-    conversationReminder: ConversationReminderNotification | null = null;
     floatingMessage: CommunicationFloatingMessage | null = null;
     supportImpersonation: any | null = null;
     endingSupportImpersonation: boolean = false;
@@ -53,8 +48,6 @@ export class AdminComponent implements OnInit, OnDestroy {
             this.firebaseNotifications.conversationReminderReceived$
                 .subscribe((reminder) => {
                     if (!reminder?.conversationId) return;
-                    this.conversationReminder = reminder;
-                    this.showConversationReminderModal = true;
                     this.communicationNotifications.playReminderBuzz({
                         conversationId: Number(reminder.conversationId),
                         contactName: reminder.contactName,
@@ -100,31 +93,6 @@ export class AdminComponent implements OnInit, OnDestroy {
         } else {
             this.router.navigate(['/admin/communication', 'chat']);
         }
-    }
-
-    openReminderConversation(): void {
-        const conversationId = this.conversationReminder?.conversationId;
-        this.showConversationReminderModal = false;
-        this.conversationReminder = null;
-        if (!conversationId) return;
-        this.router.navigate([
-            '/admin/communication',
-            'chat',
-            conversationId,
-        ]);
-    }
-
-    closeConversationReminder(): void {
-        this.showConversationReminderModal = false;
-        this.conversationReminder = null;
-    }
-
-    formatReminderTime(timestamp: number): string {
-        if (!timestamp) return '';
-        return new Date(timestamp * 1000).toLocaleTimeString('es-DO', {
-            hour: '2-digit',
-            minute: '2-digit',
-        });
     }
 
     openFloatingConversation(): void {

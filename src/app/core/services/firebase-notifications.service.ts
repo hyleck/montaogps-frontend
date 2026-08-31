@@ -198,6 +198,7 @@ export class FirebaseNotificationsService {
             payload.data?.['messages'],
           ),
         });
+        return;
       }
 
       if (typeof Notification === 'undefined') {

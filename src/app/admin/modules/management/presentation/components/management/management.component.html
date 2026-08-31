@@ -1836,7 +1836,29 @@
 <div class="floating-buttons">
     <div class="floating-contact-action"
         *ngIf="canAccessManagementCommunicationChats && !showMaps && activeFloatingCommunicationContact as assignedChat">
-        <div *ngIf="assignedCommunicationMessagePreview as preview"
+        <div *ngIf="assignedCommunicationReminderBuzz as reminder"
+            class="floating-contact-preview floating-contact-preview--reminder" aria-live="assertive">
+            <button type="button" class="floating-contact-preview__open"
+                (click)="openFloatingAssignedCommunicationChat(reminder.conversationId)"
+                [attr.aria-label]="'Abrir el zumbido de ' + reminder.contactName">
+                <span class="floating-contact-preview__avatar floating-contact-preview__avatar--reminder">
+                    <i class="pi pi-bell"></i>
+                </span>
+                <span class="floating-contact-preview__content">
+                    <small><i class="pi pi-bell"></i> Zumbido de recordatorio</small>
+                    <strong>{{ reminder.senderName }} te envió un aviso</strong>
+                    <span>{{ reminder.contactName }} espera una respuesta</span>
+                    <em>Haz clic para abrir esta conversación</em>
+                </span>
+            </button>
+            <button type="button" class="floating-contact-preview__close"
+                (click)="dismissAssignedCommunicationReminderBuzz($event)"
+                aria-label="Cerrar aviso del zumbido">
+                <i class="pi pi-times"></i>
+            </button>
+        </div>
+
+        <div *ngIf="!assignedCommunicationReminderBuzz && assignedCommunicationMessagePreview as preview"
             class="floating-contact-preview" aria-live="polite">
             <button type="button" class="floating-contact-preview__open"
                 (click)="openFloatingAssignedCommunicationChat(preview.conversationId)"

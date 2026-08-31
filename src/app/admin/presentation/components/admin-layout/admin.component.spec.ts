@@ -77,7 +77,7 @@ describe('AdminComponent', () => {
     component.ngOnDestroy();
   });
 
-  it('forwards the targeted reminder to the Management contact button', () => {
+  it('forwards the targeted reminder without opening a global modal', () => {
     const {
       component,
       conversationReminderReceived$,
@@ -92,7 +92,6 @@ describe('AdminComponent', () => {
       messages: [],
     });
 
-    expect(component.showConversationReminderModal).toBeTrue();
     expect(communicationNotifications.playReminderBuzz).toHaveBeenCalledWith({
       conversationId: 202,
       contactName: 'María Taveras',

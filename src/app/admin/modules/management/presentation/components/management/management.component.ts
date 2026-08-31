@@ -897,6 +897,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.clearAssignedCommunicationMessagePreview();
   }
 
+  dismissAssignedCommunicationReminderBuzz(event: Event): void {
+    event.stopPropagation();
+    this.clearAssignedCommunicationReminderBuzz();
+  }
+
   // ====================================
   // MÉTODOS DE VALIDACIÓN DE PRIVILEGIOS
   // ====================================
@@ -3818,7 +3823,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.assignedCommunicationReminderBuzzing = true;
     this.assignedCommunicationReminderBuzzTimer = setTimeout(() => {
       this.assignedCommunicationReminderBuzzing = false;
-      this.assignedCommunicationReminderBuzz = null;
       this.assignedCommunicationReminderBuzzTimer = undefined;
     }, 5000);
   }
