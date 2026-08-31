@@ -315,6 +315,42 @@ describe('NavbarComponent realtime links', () => {
     component.ngOnDestroy();
   });
 
+  it('opens the technician with unread messages instead of the previous chat', () => {
+    const { component, internalChatService } = createComponent();
+    component.selectedFloatingTechnicianGroup = {
+      id: 'technician:amauris',
+      name: 'Instalaciones Amauris',
+      type: 'installation',
+      unreadCount: 0,
+    };
+    internalChatService.getGroups.and.returnValue(of({
+      groups: [
+        {
+          id: 'technician:amauris',
+          name: 'Instalaciones Amauris',
+          type: 'installation',
+          unreadCount: 0,
+        },
+        {
+          id: 'technician:juan',
+          name: 'Instalaciones Juan',
+          type: 'installation',
+          unreadCount: 1,
+        },
+      ],
+      canClearMessages: false,
+    }));
+
+    component.openFloatingTechnicians();
+
+    expect(component.selectedFloatingTechnicianGroup?.id).toBe('technician:juan');
+    expect(internalChatService.getMessages).toHaveBeenCalledWith({
+      limit: 20,
+      groupId: 'technician:juan',
+    });
+    component.ngOnDestroy();
+  });
+
   it('opens an Admin message reference in the exact customer conversation', () => {
     const { component, router } = createComponent();
     component.floatingTechniciansVisible = true;

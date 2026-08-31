@@ -1444,7 +1444,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
           const previousId = this.selectedFloatingTechnicianGroup?.id || '';
           this.floatingTechnicianGroups = groups;
 
+          const unreadGroup = !requestedGroupId && loadMessages
+            ? groups.find(group => Math.max(0, Number(group.unreadCount) || 0) > 0)
+            : null;
           const selected = groups.find(group => group.id === requestedGroupId)
+            || unreadGroup
             || groups.find(group => group.id === previousId)
             || groups[0]
             || null;
