@@ -358,8 +358,10 @@ export class MapUtils {
       } else {
         // Crear elemento con favicon
         const img = document.createElement('img');
-        img.src = `${window.location.origin}/logo/favicon.png`;
-        img.style.cssText = `width: 32px; height: 32px; cursor: pointer; filter: ${isOffline ? 'grayscale(100%) brightness(0.75)' : 'none'};`;
+        img.src = isOffline
+          ? `${window.location.origin}/logo/favicon-gray.png`
+          : `${window.location.origin}/logo/favicon.png`;
+        img.style.cssText = 'width: 32px; height: 32px; cursor: pointer;';
 
         if (provider === 'osm') {
           const wrapper = document.createElement('div');

@@ -396,14 +396,7 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
 
     private getMarkerIconUrl(): string {
         const base = window.location.origin;
-        const iconLink = document.querySelector("link[rel*='icon']") as HTMLLinkElement | null;
-        const href = iconLink?.href ?? '/logo/favicon.png';
-        const normalized = href.startsWith('http')
-            ? href
-            : href.startsWith('/')
-                ? `${base}${href}`
-                : `${base}/logo/favicon.png`;
-        return normalized;
+        return `${base}/logo/favicon.png`;
     }
 
     private getMarkerIconUrlOffline(): string {

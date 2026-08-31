@@ -1071,7 +1071,19 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       this.currentMarker.setLngLat([lng, lat]);
       const el = this.currentMarker.getElement?.();
       if (el) {
-        MapUtils.updateCarSpriteElement(el, course, isOffline);
+        if (markerType === 'vehicle') {
+          MapUtils.updateCarSpriteElement(el, course, isOffline);
+        } else {
+          const markerImage = el instanceof HTMLImageElement
+            ? el
+            : el.querySelector('img') as HTMLImageElement | null;
+
+          if (markerImage) {
+            markerImage.src = isOffline
+              ? `${window.location.origin}/logo/favicon-gray.png`
+              : `${window.location.origin}/logo/favicon.png`;
+          }
+        }
       }
 
       if (this.currentPopup && this.currentPopup.setHTML) {
@@ -2039,21 +2051,12 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       return this.cachedMarkerIconUrl;
     }
 
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
+    if (typeof window === 'undefined') {
       this.cachedMarkerIconUrl = '/logo/favicon.png';
       return this.cachedMarkerIconUrl;
     }
 
-    const iconLink =
-      (document.querySelector("link[rel*='icon']") as HTMLLinkElement | null) ??
-      null;
-    const href = iconLink?.href ?? '/logo/favicon.png';
-    const normalized = href.startsWith('http')
-      ? href
-      : href.startsWith('/')
-        ? `${window.location.origin}${href}`
-        : `${window.location.origin}/logo/favicon.png`;
-    this.cachedMarkerIconUrl = normalized;
+    this.cachedMarkerIconUrl = `${window.location.origin}/logo/favicon.png`;
 
     return this.cachedMarkerIconUrl;
   }
