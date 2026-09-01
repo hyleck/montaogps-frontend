@@ -1513,7 +1513,7 @@
         </div>
     </p-dialog>
 
-    <p-dialog header="Tipo de cuenta" [(visible)]="registrationLinkAffiliationDialogVisible" [modal]="true"
+    <p-dialog header="Tipo de cuenta y rol" [(visible)]="registrationLinkAffiliationDialogVisible" [modal]="true"
         [resizable]="false" [draggable]="false" [style]="{width: '430px', maxWidth: '92vw'}"
         styleClass="create-account-method-dialog">
         <div class="create-account-method">
@@ -1536,6 +1536,22 @@
                     <span>Subcliente</span>
                 </button>
             </div>
+
+            <label class="registration-parent-field">
+                <span>Rol del usuario:</span>
+                <p-dropdown
+                    [(ngModel)]="selectedRegistrationLinkRoleId"
+                    [options]="availableRegistrationLinkRoles"
+                    optionLabel="name"
+                    optionValue="_id"
+                    [loading]="registrationLinkRolesLoading"
+                    [showClear]="true"
+                    appendTo="body"
+                    placeholder="Selecciona el rol"
+                    styleClass="registration-parent-autocomplete">
+                </p-dropdown>
+                <small>Este rol quedará firmado en el enlace y se asignará automáticamente al completar el registro.</small>
+            </label>
 
             <label class="registration-parent-field">
                 <span>Por debajo de:</span>
@@ -1569,7 +1585,7 @@
                 Volver
             </button>
             <button type="button" class="button button--primary-flat-red"
-                [disabled]="creatingRegistrationLink"
+                [disabled]="creatingRegistrationLink || registrationLinkRolesLoading || !selectedRegistrationLinkRoleId"
                 (click)="createRegistrationLinkForSelectedTargets()">
                 <i class="pi" [ngClass]="creatingRegistrationLink ? 'pi-spin pi-spinner' : 'pi-link'"></i>
                 Crear link
@@ -1598,6 +1614,9 @@
             <input pInputText type="text" readonly [value]="registrationLinkUrl">
             <small *ngIf="registrationLinkExpiresAt">
                 Expira: {{ registrationLinkExpiresAt | date:'dd/MM/yyyy, h:mm a' }}
+            </small>
+            <small *ngIf="registrationLinkRoleName">
+                Rol asignado al registrarse: {{ registrationLinkRoleName }}
             </small>
         </div>
 

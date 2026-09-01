@@ -1,4 +1,5 @@
 import { ManagementComponent } from './management.component';
+import { of } from 'rxjs';
 
 describe('Management communication chat access', () => {
   let component: any;
@@ -91,5 +92,52 @@ describe('Management communication chat access', () => {
       jasmine.objectContaining({ contactName: 'María Taveras' }),
     );
     expect(component.assignedCommunicationReminderBuzzing).toBeFalse();
+  });
+
+  it('signs the explicitly selected role into a registration link request', async () => {
+    const roleId = '507f1f77bcf86cd799439099';
+    const createRegistrationLink = jasmine.createSpy('createRegistrationLink')
+      .and.returnValue(of({
+        short_code: 'abc123',
+        expires_at: '2026-09-08T12:00:00.000Z',
+        target_count: 0,
+      }));
+    component.currentUserAffiliationTypeId = 'empleado';
+    component.authService = {
+      getCurrentUser: () => ({
+        id: '507f1f77bcf86cd799439011',
+        affiliation_type_id: 'empleado',
+      }),
+    };
+    component.route = {
+      snapshot: { params: { user: '507f1f77bcf86cd799439012' } },
+    };
+    component.userService = { createRegistrationLink };
+    component.messageService = { add: jasmine.createSpy('add') };
+    component.selectedUser = {
+      _id: '507f1f77bcf86cd799439012',
+      email: 'cliente@example.com',
+    };
+    component.pendingCreateUserTransferTargets = [];
+    component.registrationLinkFlow = 'create';
+    component.registrationLinkParentEmail = 'cliente@example.com';
+    component.selectedRegistrationLinkAffiliation = 'cliente';
+    component.selectedRegistrationLinkRoleId = roleId;
+    component.registrationLinkRoles = [{
+      _id: roleId,
+      name: 'Cliente limitado',
+      description: '',
+      status: 'active',
+      createdAt: new Date(),
+      privileges: [],
+    }];
+
+    await component.createRegistrationLinkForSelectedTargets();
+
+    expect(createRegistrationLink).toHaveBeenCalledWith(jasmine.objectContaining({
+      access_level_id: roleId,
+      affiliation_type_id: 'cliente',
+    }));
+    expect(component.registrationLinkRoleName).toBe('Cliente limitado');
   });
 });

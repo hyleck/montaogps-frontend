@@ -11,10 +11,12 @@ import { TranslateService } from '@ngx-translate/core';
 
 // Application imports
 import { User, BasicUser, ExtendedUser, convertToExtendedUser } from '@core/interfaces';
+import { UserRole } from '@core/interfaces/user-role.interface';
 import { Target } from '@core/interfaces/target.interface';
 import { Tag } from '@core/interfaces/tag.interface';
 import { AuthService } from '@core/services/auth.service';
 import { UserLatestLocation, UserService, UsersResponse } from '@core/services/user.service';
+import { UserRolesService } from '@core/services/user-roles.service';
 import { HistoryBlockResponse, TargetsService, TargetsResponse } from '@core/services/targets.service';
 import { StatusService } from '@shared/services/status.service';
 import { ManagementService } from '@management/presentation/services/management.service';
@@ -147,6 +149,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
   creatingRegistrationLink: boolean = false;
   registrationLinkFlow: 'create' | 'transfer' = 'transfer';
   selectedRegistrationLinkAffiliation: 'cliente' | 'subcliente' = 'cliente';
+  registrationLinkRoles: UserRole[] = [];
+  registrationLinkRolesLoading: boolean = false;
+  selectedRegistrationLinkRoleId: string = '';
+  registrationLinkRoleName: string = '';
   registrationLinkParentEmail: string = '';
   registrationLinkParentSuggestions: User[] = [];
   registrationLinkUrl: string = '';
@@ -762,6 +768,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private status: StatusService,
     private authService: AuthService,
     private userService: UserService,
+    private userRolesService: UserRolesService,
     private targetsService: TargetsService,
     private tagsService: TagsService,
     public translate: TranslateService,
@@ -1566,20 +1573,52 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (this.creatingRegistrationLink) return;
     if (this.registrationLinkFlow === 'transfer' && this.pendingCreateUserTransferTargets.length === 0) return;
     const currentUser: any = this.authService.getCurrentUser();
-
-    if (!this.isLoggedEmployee()) {
-      this.selectedRegistrationLinkAffiliation = 'subcliente';
-      this.registrationLinkParentEmail = this.selectedUser?.email || currentUser?.email || '';
-      this.createAccountTransferMethodDialogVisible = false;
-      this.createRegistrationLinkForSelectedTargets();
-      return;
-    }
-
-    this.selectedRegistrationLinkAffiliation = 'cliente';
+    this.selectedRegistrationLinkAffiliation = this.isLoggedEmployee()
+      ? 'cliente'
+      : 'subcliente';
+    this.selectedRegistrationLinkRoleId = '';
+    this.registrationLinkRoleName = '';
     this.registrationLinkParentEmail = this.selectedUser?.email || currentUser?.email || '';
     this.registrationLinkParentSuggestions = [];
     this.createAccountTransferMethodDialogVisible = false;
     this.registrationLinkAffiliationDialogVisible = true;
+    this.loadRegistrationLinkRoles();
+  }
+
+  get availableRegistrationLinkRoles(): UserRole[] {
+    const activeRoles = this.registrationLinkRoles.filter(
+      role => String(role?.status || '').toLowerCase() !== 'deleted',
+    );
+    if (this.isLoggedEmployee()) return activeRoles;
+
+    const currentUser: any = this.authService.getCurrentUser();
+    const currentRoleId = String(
+      currentUser?.access_level_id?._id
+      || currentUser?.access_level_id?.id
+      || currentUser?.access_level_id
+      || '',
+    ).trim();
+    return activeRoles.filter(role => String(role?._id || '') === currentRoleId);
+  }
+
+  private loadRegistrationLinkRoles(): void {
+    this.registrationLinkRolesLoading = true;
+    this.userRolesService.getAllRoles().subscribe({
+      next: roles => {
+        this.registrationLinkRoles = Array.isArray(roles) ? roles : [];
+        this.registrationLinkRolesLoading = false;
+      },
+      error: error => {
+        console.error('Error cargando roles para el link de registro:', error);
+        this.registrationLinkRoles = [];
+        this.registrationLinkRolesLoading = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudieron cargar los roles',
+          detail: 'Intenta abrir nuevamente el generador del enlace.',
+        });
+      },
+    });
   }
 
   searchRegistrationLinkParents(event: { query?: string }) {
@@ -1628,6 +1667,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (this.registrationLinkFlow === 'transfer' && this.pendingCreateUserTransferTargets.length === 0) return;
 
     const isEmployee = this.isLoggedEmployee();
+    const selectedRoleId = String(this.selectedRegistrationLinkRoleId || '').trim();
+    if (!selectedRoleId) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Rol requerido',
+        detail: 'Selecciona el rol que tendrá la persona cuando complete el registro.'
+      });
+      return;
+    }
     const parentEmail = String(this.registrationLinkParentEmail || '').trim();
     if (isEmployee && !parentEmail) {
       this.messageService.add({
@@ -1638,10 +1686,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const currentUser: any = this.authService.getCurrentUser();
-    const accessLevelId = typeof currentUser?.access_level_id === 'string'
-      ? currentUser.access_level_id
-      : currentUser?.access_level_id?._id;
     const targetIds = this.pendingCreateUserTransferTargets
       .map(target => target?._id)
       .filter(Boolean);
@@ -1670,7 +1714,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const response = await lastValueFrom(this.userService.createRegistrationLink({
         parent_id: parentId,
         target_ids: targetIds,
-        access_level_id: accessLevelId,
+        access_level_id: selectedRoleId,
         affiliation_type_id: this.selectedRegistrationLinkAffiliation
       }));
       const registrationCode = response.short_code || response.token;
@@ -1680,6 +1724,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.registrationLinkUrl = `${window.location.origin}/registro/${registrationCode}`;
       this.registrationLinkExpiresAt = response.expires_at;
       this.registrationLinkTargetCount = response.target_count;
+      this.registrationLinkRoleName = this.availableRegistrationLinkRoles.find(
+        role => String(role._id) === selectedRoleId,
+      )?.name || 'Rol seleccionado';
       this.createAccountTransferMethodDialogVisible = false;
       this.registrationLinkAffiliationDialogVisible = false;
       this.registrationLinkDialogVisible = true;

@@ -253,7 +253,7 @@ export class UserService {
     return this.http.post<User>(this.apiUrl, createUserDto);
   }
 
-  createRegistrationLink(payload: { parent_id: string; target_ids?: string[]; access_level_id?: string; affiliation_type_id?: 'cliente' | 'subcliente' }): Observable<RegistrationLinkResponse> {
+  createRegistrationLink(payload: { parent_id: string; target_ids?: string[]; access_level_id: string; affiliation_type_id?: 'cliente' | 'subcliente' }): Observable<RegistrationLinkResponse> {
     return this.http.post<RegistrationLinkResponse>(`${this.apiUrl}/registration-link`, payload);
   }
 
