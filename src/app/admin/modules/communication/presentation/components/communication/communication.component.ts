@@ -3876,6 +3876,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.internalChatService.getMessages({
       limit: 50,
       groupId,
+      includeTotal: false,
     }).subscribe({
       next: (res) => {
         if (
@@ -4207,6 +4208,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         limit: 50,
         after: lastId,
         groupId: this.selectedInternalGroupId,
+        includeTotal: false,
       }).subscribe({
         next: (res) => {
           const newMessages = (res.messages || []).filter(

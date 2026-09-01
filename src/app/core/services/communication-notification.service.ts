@@ -451,7 +451,11 @@ export class CommunicationNotificationService implements OnDestroy {
     this.internalInitialized = false;
     this.lastInternalMessageId = '';
 
-    this.internalChatService.getMessages({ limit: 1, allGroups: true }).pipe(
+    this.internalChatService.getMessages({
+      limit: 1,
+      allGroups: true,
+      includeTotal: false,
+    }).pipe(
       catchError(() => of(null)),
     ).subscribe((response) => {
       const latest = response?.messages?.[response.messages.length - 1];
@@ -465,13 +469,15 @@ export class CommunicationNotificationService implements OnDestroy {
           limit?: number;
           after?: string;
           allGroups?: boolean;
+          includeTotal?: boolean;
         } = this.lastInternalMessageId
           ? {
             limit: 50,
             after: this.lastInternalMessageId,
             allGroups: true,
+            includeTotal: false,
           }
-          : { limit: 1, allGroups: true };
+          : { limit: 1, allGroups: true, includeTotal: false };
         return this.internalChatService.getMessages(options).pipe(catchError(() => of(null)));
       }),
     ).subscribe((response) => {

@@ -462,11 +462,12 @@
                                 class="technician-floating-chat__image" [href]="attachment.url"
                                 target="_blank" rel="noopener noreferrer">
                                 <img [src]="attachment.url" [alt]="getFloatingTechnicianAttachmentName(attachment)"
+                                    loading="lazy" decoding="async"
                                     (load)="onFloatingTechnicianMediaReady()"
                                     (error)="onFloatingTechnicianMediaReady()">
                             </a>
                             <video *ngIf="isFloatingTechnicianVideo(attachment)"
-                                [src]="attachment.url" controls preload="metadata"
+                                [src]="attachment.url" controls preload="none"
                                 (loadedmetadata)="onFloatingTechnicianMediaReady()"></video>
                             <audio *ngIf="isFloatingTechnicianAudio(attachment)"
                                 [src]="attachment.url" controls preload="metadata"

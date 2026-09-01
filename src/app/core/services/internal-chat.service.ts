@@ -64,7 +64,8 @@ export interface InternalChatAttachment {
 
 export interface InternalChatMessagesResponse {
   messages: InternalChatMessage[];
-  total: number;
+  total?: number;
+  hasMore?: boolean;
   groupId: string;
 }
 
@@ -103,13 +104,14 @@ export class InternalChatService {
     );
   }
 
-  getMessages(options: { limit?: number; before?: string; after?: string; groupId?: string; allGroups?: boolean } = {}): Observable<InternalChatMessagesResponse> {
+  getMessages(options: { limit?: number; before?: string; after?: string; groupId?: string; allGroups?: boolean; includeTotal?: boolean } = {}): Observable<InternalChatMessagesResponse> {
     let params = new HttpParams();
     if (options.limit) params = params.set('limit', String(options.limit));
     if (options.before) params = params.set('before', options.before);
     if (options.after) params = params.set('after', options.after);
     if (options.groupId) params = params.set('groupId', options.groupId);
     if (options.allGroups) params = params.set('allGroups', 'true');
+    if (options.includeTotal === false) params = params.set('includeTotal', 'false');
 
     return this.http.get<InternalChatMessagesResponse>(`${this.apiUrl}/messages`, { params });
   }

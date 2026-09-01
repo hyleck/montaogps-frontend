@@ -64,6 +64,7 @@ describe('NavbarComponent realtime links', () => {
       getMessages: jasmine.createSpy('getMessages').and.returnValue(of({
         messages: [],
         total: 0,
+        hasMore: false,
         groupId: '',
       })),
       markGroupRead: jasmine.createSpy('markGroupRead').and.returnValue(of({
@@ -309,8 +310,9 @@ describe('NavbarComponent realtime links', () => {
     expect(communicationNotifications.syncAdminPendingCount).toHaveBeenCalledWith(3);
     expect(communicationNotifications.syncTechnicianPendingCount).toHaveBeenCalledWith(2);
     expect(internalChatService.getMessages).toHaveBeenCalledWith({
-      limit: 20,
+      limit: 8,
       groupId: 'admin',
+      includeTotal: false,
     });
     component.ngOnDestroy();
   });
@@ -345,8 +347,9 @@ describe('NavbarComponent realtime links', () => {
 
     expect(component.selectedFloatingTechnicianGroup?.id).toBe('technician:juan');
     expect(internalChatService.getMessages).toHaveBeenCalledWith({
-      limit: 20,
+      limit: 8,
       groupId: 'technician:juan',
+      includeTotal: false,
     });
     component.ngOnDestroy();
   });
@@ -480,7 +483,7 @@ describe('NavbarComponent realtime links', () => {
     };
     internalChatService.getMessages.and.returnValue(of({
       messages: [olderMessage],
-      total: 2,
+      hasMore: false,
       groupId: 'group-1',
     }));
 
@@ -490,6 +493,7 @@ describe('NavbarComponent realtime links', () => {
       limit: 20,
       before: 'message-30',
       groupId: 'group-1',
+      includeTotal: false,
     });
     expect(component.floatingTechnicianMessages.map(message => message._id))
       .toEqual(['message-10', 'message-30']);

@@ -568,6 +568,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private floatingTechnicianPollingInterval?: ReturnType<typeof setInterval>;
   private floatingTechnicianScrollTimeout?: ReturnType<typeof setTimeout>;
   private floatingTechnicianScrollSequence: number = 0;
+  private readonly floatingTechnicianInitialPageSize: number = 8;
   private readonly floatingTechnicianPageSize: number = 20;
   private floatingTechnicianPinnedToBottom: boolean = true;
   private floatingTechnicianLastScrollTop: number = 0;
@@ -1368,6 +1369,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       limit: this.floatingTechnicianPageSize,
       before: oldestMessageId,
       groupId,
+      includeTotal: false,
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -1385,8 +1387,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
             ...olderMessages,
             ...this.floatingTechnicianMessages,
           ];
-          this.floatingTechnicianHasOlder = this.floatingTechnicianMessages.length
-            < Math.max(0, Number(response?.total || 0));
+          this.floatingTechnicianHasOlder = Boolean(response?.hasMore);
           setTimeout(() => {
             const currentElement = this.floatingTechnicianScroll?.nativeElement;
             if (!currentElement || groupId !== this.selectedFloatingTechnicianGroup?.id) return;
@@ -1491,8 +1492,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.floatingTechnicianError = '';
 
     this.internalChatService.getMessages({
-      limit: this.floatingTechnicianPageSize,
+      limit: this.floatingTechnicianInitialPageSize,
       groupId,
+      includeTotal: false,
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -1503,8 +1505,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
           ) return;
           this.loadingFloatingTechnicianMessages = false;
           this.floatingTechnicianMessages = response?.messages || [];
-          this.floatingTechnicianHasOlder = this.floatingTechnicianMessages.length
-            < Math.max(0, Number(response?.total || 0));
+          this.floatingTechnicianHasOlder = Boolean(response?.hasMore);
           this.setFloatingTechnicianGroupRead(groupId);
           this.scrollFloatingTechnicianToBottom();
           this.startFloatingTechnicianPolling();
@@ -1549,7 +1550,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
       const groupId = this.selectedFloatingTechnicianGroup?.id;
       if (!groupId) return;
       const lastId = this.floatingTechnicianMessages[this.floatingTechnicianMessages.length - 1]?._id;
-      this.internalChatService.getMessages({ limit: 50, after: lastId, groupId })
+      this.internalChatService.getMessages({
+        limit: 50,
+        after: lastId,
+        groupId,
+        includeTotal: false,
+      })
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: response => {

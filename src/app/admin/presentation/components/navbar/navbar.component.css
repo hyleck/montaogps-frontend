@@ -5656,6 +5656,7 @@ button.floating-chat-history-state {
 .technician-floating-chat__image,
 .technician-floating-chat__attachments video {
   width: min(240px, 100%);
+  aspect-ratio: 4 / 3;
   display: block;
   overflow: hidden;
   border-radius: 10px;
@@ -5665,6 +5666,7 @@ button.floating-chat-history-state {
 .technician-floating-chat__image img,
 .technician-floating-chat__attachments video {
   width: 100%;
+  height: 100%;
   max-height: 230px;
   display: block;
   object-fit: cover;
