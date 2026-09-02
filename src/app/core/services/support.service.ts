@@ -8,6 +8,7 @@ import {
     Ticket,
     CreateTicketDto,
     SupportDiagnosticCapture,
+    SupportImageAttachment,
     SupportAssistantRequest,
     SupportAssistantResponse,
     SupportTicketDiagnostics,
@@ -62,6 +63,74 @@ export class SupportService {
 
     chatWithAquiles(request: SupportAssistantRequest): Observable<SupportAssistantResponse> {
         return this.http.post<SupportAssistantResponse>(`${this.apiUrl}/assistant`, request);
+    }
+
+    async prepareAquilesImage(file: File): Promise<SupportImageAttachment> {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'] as const;
+        if (!allowedTypes.includes(file.type as typeof allowedTypes[number])) {
+            throw new Error('Usa una foto JPG, PNG o WebP.');
+        }
+        if (!file.size || file.size > 12_000_000) {
+            throw new Error('La foto debe pesar 12 MB o menos.');
+        }
+
+        const sourcePreviewUrl = URL.createObjectURL(file);
+        let keepSourcePreview = false;
+        try {
+            const image = await this.loadAquilesImage(sourcePreviewUrl);
+            const originalDataUrl = await this.blobToDataUrl(file);
+            if (originalDataUrl.length <= 2_850_000) {
+                keepSourcePreview = true;
+                return {
+                    name: this.normalizeAquilesImageName(file.name),
+                    mimeType: file.type as SupportImageAttachment['mimeType'],
+                    dataUrl: originalDataUrl,
+                    previewUrl: sourcePreviewUrl,
+                    file,
+                };
+            }
+
+            for (const attempt of [
+                { maxDimension: 1600, quality: 0.8 },
+                { maxDimension: 1300, quality: 0.7 },
+                { maxDimension: 1000, quality: 0.62 },
+            ]) {
+                const scale = Math.min(
+                    1,
+                    attempt.maxDimension / Math.max(image.naturalWidth, image.naturalHeight, 1),
+                );
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+                canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+                const context = canvas.getContext('2d');
+                if (!context) throw new Error('No se pudo preparar la foto.');
+                context.fillStyle = '#ffffff';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                const compressedBlob = await this.canvasToBlob(
+                    canvas,
+                    'image/jpeg',
+                    attempt.quality,
+                );
+                const dataUrl = await this.blobToDataUrl(compressedBlob);
+                if (dataUrl.length > 2_850_000) continue;
+                const compressedFile = new File(
+                    [compressedBlob],
+                    this.normalizeAquilesImageName(file.name).replace(/\.[^.]+$/, '') + '.jpg',
+                    { type: 'image/jpeg' },
+                );
+                return {
+                    name: compressedFile.name,
+                    mimeType: 'image/jpeg',
+                    dataUrl,
+                    previewUrl: URL.createObjectURL(compressedBlob),
+                    file: compressedFile,
+                };
+            }
+            throw new Error('No pude reducir la foto al tamaño permitido.');
+        } finally {
+            if (!keepSourcePreview) URL.revokeObjectURL(sourcePreviewUrl);
+        }
     }
 
     async captureAquilesDiagnostics(): Promise<SupportDiagnosticCapture> {
@@ -155,14 +224,34 @@ export class SupportService {
             });
     }
 
-    private canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+    private canvasToBlob(
+        canvas: HTMLCanvasElement,
+        type = 'image/jpeg',
+        quality = 0.62,
+    ): Promise<Blob> {
         return new Promise((resolve, reject) => {
             canvas.toBlob(
                 blob => blob ? resolve(blob) : reject(new Error('No se pudo generar la captura.')),
-                'image/jpeg',
-                0.62,
+                type,
+                quality,
             );
         });
+    }
+
+    private loadAquilesImage(url: string): Promise<HTMLImageElement> {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = () => reject(new Error('El archivo no contiene una foto válida.'));
+            image.src = url;
+        });
+    }
+
+    private normalizeAquilesImageName(value: string): string {
+        return String(value || 'foto-aquiles.jpg')
+            .replace(/[\\/\u0000-\u001f\u007f]+/g, '-')
+            .trim()
+            .slice(0, 120) || 'foto-aquiles.jpg';
     }
 
     private blobToDataUrl(blob: Blob): Promise<string> {

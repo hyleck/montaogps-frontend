@@ -125,6 +125,8 @@
                     <i [class]="message.role === 'assistant' ? 'pi pi-user' : 'pi pi-user-edit'"></i>
                     {{ message.role === 'assistant' ? 'Aquiles' : 'Tú' }}
                 </strong>
+                <img *ngIf="message.imagePreviewUrl" class="support-chat-message__image"
+                    [src]="message.imagePreviewUrl" [alt]="message.imageName || 'Foto enviada a Aquiles'">
                 <p>{{ message.content }}</p>
                 <time>{{ message.createdAt | date:'shortTime' }}</time>
             </div>
@@ -139,12 +141,38 @@
 
     </div>
 
+    <div *ngIf="supportImageAttachment || preparingSupportImage" class="aquiles-floating-chat__attachment"
+        aria-live="polite">
+        <ng-container *ngIf="supportImageAttachment; else preparingAquilesImage">
+            <img [src]="supportImageAttachment.previewUrl" [alt]="supportImageAttachment.name">
+            <span>
+                <strong>{{ supportImageAttachment.name }}</strong>
+                <small>Lista para enviar a Aquiles</small>
+            </span>
+            <button type="button" (click)="removeSupportImage()" aria-label="Quitar foto adjunta">
+                <i class="pi pi-times"></i>
+            </button>
+        </ng-container>
+        <ng-template #preparingAquilesImage>
+            <i class="pi pi-spin pi-spinner"></i>
+            <span><strong>Preparando la foto...</strong></span>
+        </ng-template>
+    </div>
+
     <form class="support-chat-composer aquiles-floating-chat__composer" (ngSubmit)="sendSupportChatMessage()">
+        <input #supportImageInput class="support-chat-composer__file" type="file"
+            accept="image/jpeg,image/png,image/webp" (change)="onSupportImageSelected($event)">
+        <button type="button" class="support-chat-composer__attach" (click)="openSupportImagePicker()"
+            [disabled]="supportAssistantThinking || savingTicket || preparingSupportImage"
+            aria-label="Adjuntar foto para Aquiles" title="Adjuntar foto">
+            <i class="pi pi-image"></i>
+        </button>
         <textarea name="floatingSupportChatInput" [(ngModel)]="supportChatInput"
             (keydown)="onSupportChatKeydown($event)" rows="1" maxlength="2500"
-            [disabled]="supportAssistantThinking || savingTicket"
+            [disabled]="supportAssistantThinking || savingTicket || preparingSupportImage"
             placeholder="Cuéntale a Aquiles qué ocurre..." aria-label="Mensaje para Aquiles"></textarea>
-        <button type="submit" [disabled]="!supportChatInput.trim() || supportAssistantThinking || savingTicket"
+        <button type="submit"
+            [disabled]="(!supportChatInput.trim() && !supportImageAttachment) || supportAssistantThinking || savingTicket || preparingSupportImage"
             aria-label="Enviar mensaje a Aquiles">
             <i class="pi pi-send"></i>
         </button>

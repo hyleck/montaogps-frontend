@@ -86,6 +86,7 @@ describe('NavbarComponent realtime links', () => {
       floatingAquilesRequested$: of(),
       captureAquilesDiagnostics: jasmine.createSpy('captureAquilesDiagnostics')
         .and.resolveTo(supportCapture),
+      prepareAquilesImage: jasmine.createSpy('prepareAquilesImage'),
       chatWithAquiles: jasmine.createSpy('chatWithAquiles'),
       createTicket: jasmine.createSpy('createTicket'),
       getTickets: jasmine.createSpy('getTickets').and.returnValue(of([])),
@@ -242,6 +243,39 @@ describe('NavbarComponent realtime links', () => {
       'Listo, actualicé el nombre del GPS y confirmé el cambio.',
     );
     expect(component.supportAssistantThinking).toBeFalse();
+    component.ngOnDestroy();
+  }));
+
+  it('sends an attached photo to Aquiles even when the user writes no text', fakeAsync(() => {
+    const { component, supportService } = createComponent();
+    const imageFile = new File(['image'], 'gps-frontal.jpg', { type: 'image/jpeg' });
+    component.supportImageAttachment = {
+      name: imageFile.name,
+      mimeType: 'image/jpeg',
+      dataUrl: 'data:image/jpeg;base64,aW1hZ2U=',
+      previewUrl: 'blob:aquiles-photo',
+      file: imageFile,
+    };
+    supportService.chatWithAquiles.and.returnValue(of({
+      message: 'Veo la foto. Voy a revisar ese GPS.',
+      ready: false,
+      title: '',
+      description: '',
+      priority: 'medium',
+      outcome: 'conversation',
+    }));
+
+    component.sendSupportChatMessage();
+    tick();
+
+    const request = supportService.chatWithAquiles.calls.mostRecent().args[0];
+    expect(request.image_data_url).toBe('data:image/jpeg;base64,aW1hZ2U=');
+    expect(request.messages.at(-1)?.content).toBe(
+      'Te envío esta foto para que la revises.',
+    );
+    expect(component.supportChatMessages[0].imageName).toBe('gps-frontal.jpg');
+    expect(component.supportChatMessages[0].imagePreviewUrl).toBe('blob:aquiles-photo');
+    expect(component.supportImageAttachment).toBeNull();
     component.ngOnDestroy();
   }));
 

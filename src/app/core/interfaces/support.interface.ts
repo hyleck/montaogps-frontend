@@ -37,6 +37,14 @@ export interface SupportDiagnosticCapture {
     screenshotFile?: File;
 }
 
+export interface SupportImageAttachment {
+    name: string;
+    mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
+    dataUrl: string;
+    previewUrl: string;
+    file: File;
+}
+
 export interface CreateTicketDto {
     title: string;
     description: string;
@@ -55,6 +63,7 @@ export interface SupportAssistantRequest {
     page_context?: string;
     diagnostics?: string;
     screenshot_data_url?: string;
+    image_data_url?: string;
 }
 
 export interface SupportAssistantResponse {

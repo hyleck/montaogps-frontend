@@ -4837,7 +4837,7 @@ body .p-dialog-mask {
   height: min(650px, calc(100vh - 128px));
   min-height: 430px;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 20px;
@@ -4982,6 +4982,62 @@ body .p-dialog-mask {
   padding: 0.65rem 0.75rem 0.4rem;
 }
 
+.aquiles-floating-chat__attachment {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  color: #dbeafe;
+  background: #111827;
+}
+
+.aquiles-floating-chat__attachment > img {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.aquiles-floating-chat__attachment > span {
+  min-width: 0;
+  display: grid;
+  gap: 0.12rem;
+}
+
+.aquiles-floating-chat__attachment strong,
+.aquiles-floating-chat__attachment small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aquiles-floating-chat__attachment strong {
+  font-size: 0.75rem;
+}
+
+.aquiles-floating-chat__attachment small {
+  color: rgba(226, 232, 240, 0.56);
+  font-size: 0.64rem;
+}
+
+.aquiles-floating-chat__attachment > button {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  border: 0;
+  border-radius: 50%;
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.14);
+  cursor: pointer;
+}
+
 .aquiles-floating-chat__help {
   padding: 0 0.8rem 0.65rem;
 }
@@ -5072,10 +5128,20 @@ body .p-dialog-mask {
 }
 
 .aquiles-floating-chat--light .support-chat-composer,
-.aquiles-floating-chat--light .support-chat-help {
+.aquiles-floating-chat--light .support-chat-help,
+.aquiles-floating-chat--light .aquiles-floating-chat__attachment {
   border-top-color: #cbd5e1;
   color: #475569;
   background: #fff;
+}
+
+.aquiles-floating-chat--light .aquiles-floating-chat__attachment small {
+  color: #64748b;
+}
+
+.aquiles-floating-chat--light .aquiles-floating-chat__attachment > button {
+  color: #334155;
+  background: #e2e8f0;
 }
 
 .aquiles-floating-chat--light .support-chat-composer textarea {
@@ -6076,6 +6142,15 @@ button.floating-chat-history-state {
   overflow-wrap: anywhere;
 }
 
+.support-chat-message__image {
+  width: min(230px, 100%);
+  max-height: 220px;
+  display: block;
+  margin: 0.15rem 0 0.5rem;
+  border-radius: 11px;
+  object-fit: cover;
+}
+
 .support-chat-bubble time {
   display: block;
   margin-top: 0.3rem;
@@ -6327,6 +6402,25 @@ button.floating-chat-history-state {
   background: #1a3a4a;
   cursor: pointer;
   box-shadow: none;
+}
+
+.support-chat-composer > .support-chat-composer__attach {
+  color: #cbd5e1;
+  background: #27272a;
+}
+
+.support-chat-composer > .support-chat-composer__attach:hover:not(:disabled) {
+  color: #fff;
+  background: #3f3f46;
+}
+
+.support-chat-composer__file {
+  display: none;
+}
+
+.aquiles-floating-chat--light .support-chat-composer > .support-chat-composer__attach {
+  color: #334155;
+  background: #e2e8f0;
 }
 
 .support-chat-composer > button:disabled {

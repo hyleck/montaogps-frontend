@@ -39,6 +39,7 @@ import {
   CreateTicketDto,
   SupportDiagnosticCapture,
   SupportAssistantMessage,
+  SupportImageAttachment,
   Ticket,
 } from '../../../../core/interfaces/support.interface';
 import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
@@ -107,6 +108,8 @@ interface ManualAlertOption {
 interface AquilesChatMessage extends SupportAssistantMessage {
   id: number;
   createdAt: Date;
+  imageName?: string;
+  imagePreviewUrl?: string;
 }
 
 @Component({
@@ -521,14 +524,18 @@ export class NavbarComponent implements OnInit, OnDestroy {
   floatingAquilesVisible: boolean = false;
   supportDiagnosticCapture: SupportDiagnosticCapture | null = null;
   capturingSupportDiagnostics: boolean = false;
+  supportImageAttachment: SupportImageAttachment | null = null;
+  preparingSupportImage: boolean = false;
   private supportChatMessageSequence: number = 0;
   private supportDiagnosticRequestSequence: number = 0;
   private supportCaptureRequestSequence: number = 0;
+  private supportImageRequestSequence: number = 0;
   private lastSupportUserAction: string = '';
   private supportGreetingTimeout?: ReturnType<typeof setTimeout>;
   private readonly supportGreetingDelayMs = 1200;
   @ViewChild('supportChatScroll') supportChatScroll?: ElementRef<HTMLDivElement>;
   @ViewChild('floatingSupportChatScroll') floatingSupportChatScroll?: ElementRef<HTMLDivElement>;
+  @ViewChild('supportImageInput') supportImageInput?: ElementRef<HTMLInputElement>;
 
   // Chat flotante de conversaciones asignadas
   assignedCommunicationChats: AssignedCommunicationChat[] = [];
@@ -1644,6 +1651,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   resetSupportChat(): void {
     const firstName = String(this.currentUser?.name || '').trim().split(/\s+/)[0];
     this.clearSupportGreetingTimeout();
+    this.releaseSupportImagePreviews();
     this.newTicket = {
       title: '',
       description: '',
@@ -1653,8 +1661,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.supportAssistantThinking = false;
     this.supportDiagnosticCapture = null;
     this.capturingSupportDiagnostics = false;
+    this.preparingSupportImage = false;
     this.supportDiagnosticRequestSequence += 1;
     this.supportCaptureRequestSequence += 1;
+    this.supportImageRequestSequence += 1;
     this.supportChatMessages = [];
     this.supportChatMessageSequence = 0;
     this.supportAssistantThinking = true;
@@ -1679,16 +1689,70 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   sendSupportChatMessage(): void {
-    const content = this.supportChatInput.trim();
-    if (!content || this.supportAssistantThinking || this.savingTicket) return;
+    const imageAttachment = this.supportImageAttachment;
+    const content = this.supportChatInput.trim()
+      || (imageAttachment ? 'Te envío esta foto para que la revises.' : '');
+    if (
+      !content
+      || this.supportAssistantThinking
+      || this.savingTicket
+      || this.preparingSupportImage
+    ) return;
 
-    this.addSupportChatMessage('user', content);
+    this.addSupportChatMessage('user', content, imageAttachment);
     this.supportChatInput = '';
+    this.supportImageAttachment = null;
     this.supportAssistantThinking = true;
     this.scrollSupportChatToBottom();
 
     const diagnosticRequestId = ++this.supportDiagnosticRequestSequence;
-    this.requestAquilesResponse(diagnosticRequestId);
+    this.requestAquilesResponse(diagnosticRequestId, imageAttachment);
+  }
+
+  openSupportImagePicker(): void {
+    if (this.supportAssistantThinking || this.savingTicket || this.preparingSupportImage) return;
+    this.supportImageInput?.nativeElement.click();
+  }
+
+  onSupportImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    const requestId = ++this.supportImageRequestSequence;
+    this.preparingSupportImage = true;
+    void this.supportService.prepareAquilesImage(file)
+      .then(attachment => {
+        if (requestId !== this.supportImageRequestSequence) {
+          URL.revokeObjectURL(attachment.previewUrl);
+          return;
+        }
+        if (this.supportImageAttachment?.previewUrl) {
+          URL.revokeObjectURL(this.supportImageAttachment.previewUrl);
+        }
+        this.supportImageAttachment = attachment;
+        this.preparingSupportImage = false;
+        this.scrollSupportChatToBottom();
+      })
+      .catch(error => {
+        if (requestId !== this.supportImageRequestSequence) return;
+        this.preparingSupportImage = false;
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Foto no disponible',
+          detail: error?.message || 'No se pudo preparar la foto para Aquiles.',
+        });
+      });
+  }
+
+  removeSupportImage(): void {
+    this.supportImageRequestSequence += 1;
+    this.preparingSupportImage = false;
+    if (this.supportImageAttachment?.previewUrl) {
+      URL.revokeObjectURL(this.supportImageAttachment.previewUrl);
+    }
+    this.supportImageAttachment = null;
   }
 
   captureSupportScreen(): void {
@@ -1719,7 +1783,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     });
   }
 
-  private requestAquilesResponse(diagnosticRequestId: number): void {
+  private requestAquilesResponse(
+    diagnosticRequestId: number,
+    imageAttachment: SupportImageAttachment | null = null,
+  ): void {
     const capture = this.supportDiagnosticCapture;
 
     this.supportService.chatWithAquiles({
@@ -1731,6 +1798,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       browser: this.getSupportBrowserContext(),
       page_context: this.buildSupportPageContext(),
       screenshot_data_url: capture?.screenshotDataUrl,
+      image_data_url: imageAttachment?.dataUrl,
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -1747,7 +1815,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
               description: response.description.trim(),
               priority: response.priority || 'medium',
             };
-            this.createSupportTicketInBackground(this.supportDiagnosticCapture);
+            this.createSupportTicketInBackground(
+              this.buildSupportTicketCapture(this.supportDiagnosticCapture, imageAttachment),
+            );
           }
           this.scrollSupportChatToBottom();
         },
@@ -1957,7 +2027,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.sendSupportChatMessage();
   }
 
-  private addSupportChatMessage(role: 'user' | 'assistant', content: string): void {
+  private addSupportChatMessage(
+    role: 'user' | 'assistant',
+    content: string,
+    imageAttachment: SupportImageAttachment | null = null,
+  ): void {
     this.supportChatMessageSequence += 1;
     this.supportChatMessages = [
       ...this.supportChatMessages,
@@ -1966,8 +2040,44 @@ export class NavbarComponent implements OnInit, OnDestroy {
         role,
         content,
         createdAt: new Date(),
+        ...(imageAttachment
+          ? {
+              imageName: imageAttachment.name,
+              imagePreviewUrl: imageAttachment.previewUrl,
+            }
+          : {}),
       },
     ];
+  }
+
+  private buildSupportTicketCapture(
+    capture: SupportDiagnosticCapture | null,
+    imageAttachment: SupportImageAttachment | null,
+  ): SupportDiagnosticCapture | null {
+    if (!imageAttachment) return capture;
+    const diagnostics = capture?.diagnostics || {
+      route: this.router.url || window.location.pathname || '/',
+      browser: this.getSupportBrowserContext(),
+      captured_at: new Date().toISOString(),
+      viewport: `${window.innerWidth}x${window.innerHeight} @${Math.min(window.devicePixelRatio || 1, 4)}x`,
+    };
+    return {
+      diagnostics,
+      summary: capture?.summary || 'FOTO ADJUNTA POR EL USUARIO PARA SOPORTE',
+      screenshotDataUrl: imageAttachment.dataUrl,
+      screenshotFile: imageAttachment.file,
+    };
+  }
+
+  private releaseSupportImagePreviews(): void {
+    const previewUrls = new Set(
+      [
+        this.supportImageAttachment?.previewUrl,
+        ...this.supportChatMessages.map(message => message.imagePreviewUrl),
+      ].filter((value): value is string => Boolean(value)),
+    );
+    previewUrls.forEach(url => URL.revokeObjectURL(url));
+    this.supportImageAttachment = null;
   }
 
   private scrollSupportChatToBottom(): void {
@@ -2249,6 +2359,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.clearSupportGreetingTimeout();
+    this.supportImageRequestSequence += 1;
+    this.releaseSupportImagePreviews();
     this.stopFloatingTechnicianPolling();
     this.stopFloatingTechnicianAutoScroll();
     this.destroy$.next();
