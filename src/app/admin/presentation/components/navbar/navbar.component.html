@@ -1570,6 +1570,13 @@
                             </span>
                         </div>
                         <div class="target-actions">
+                            <button *ngIf="currentUser?.affiliation_type_id === 'empleado' && target.cancellationDisposition === 'retained_by_client'"
+                                type="button" class="release-btn"
+                                [disabled]="releasingCanceledTargetId === target._id"
+                                (click)="releaseCanceledTargetReservation(target)"
+                                title="Liberar dispositivo y devolverlo al inventario">
+                                <i class="pi" [ngClass]="releasingCanceledTargetId === target._id ? 'pi-spin pi-spinner' : 'pi-unlock'"></i>
+                            </button>
                             <button *ngIf="currentUser?.affiliation_type_id === 'empleado' && target.cancellationDisposition !== 'retained_by_client'" type="button" class="restore-btn" (click)="restoreTarget(target._id!)"
                                 title="{{ 'navbar.restoreTarget' | translate }}">
                                 <i class="pi pi-refresh"></i>
@@ -1886,6 +1893,13 @@
     </ng-template>
 
     <ng-template pTemplate="footer">
+        <button *ngIf="currentUser?.affiliation_type_id === 'empleado' && selectedTargetDetails?.cancellationDisposition === 'retained_by_client'"
+            type="button" (click)="releaseCanceledTargetReservation(selectedTargetDetails!)"
+            class="button button--primary"
+            [disabled]="releasingCanceledTargetId === selectedTargetDetails?._id">
+            <i class="pi" [ngClass]="releasingCanceledTargetId === selectedTargetDetails?._id ? 'pi-spin pi-spinner' : 'pi-unlock'"></i>
+            Liberar dispositivo
+        </button>
         <button *ngIf="currentUser?.affiliation_type_id === 'empleado' && selectedTargetDetails?.cancellationDisposition !== 'retained_by_client'" type="button" (click)="restoreTarget(selectedTargetDetails?._id!)" class="button button--primary">
             <i class="pi pi-refresh"></i>
             {{ 'navbar.restoreTarget' | translate }}

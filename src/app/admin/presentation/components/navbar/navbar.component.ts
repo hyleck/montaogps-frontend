@@ -142,6 +142,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   canceledDrawerVisible: boolean = false;
   canceledTargets: Target[] = [];
   loadingCanceledTargets: boolean = false;
+  releasingCanceledTargetId: string | null = null;
 
   // Paginación para targets cancelados
   canceledTargetsOffset: number = 0;
@@ -5251,6 +5252,51 @@ export class NavbarComponent implements OnInit, OnDestroy {
         detail: getApiErrorMessage(error, 'Error al procesar la restauración')
       });
     }
+  }
+
+  /**
+   * Libera un GPS cancelado que había quedado reservado para reinstalación.
+   */
+  releaseCanceledTargetReservation(target: Target) {
+    const targetId = String(target?._id || '').trim();
+    if (!targetId || this.releasingCanceledTargetId) return;
+
+    const label = target.name || target.device_imei || target.imei || 'este dispositivo';
+    this.confirmationService.confirm({
+      message: `¿Deseas liberar ${label}? El GPS dejará de estar reservado para este cliente y volverá a estar disponible en Inventario.`,
+      header: 'Liberar dispositivo',
+      icon: 'pi pi-unlock',
+      acceptLabel: 'Sí, liberar',
+      rejectLabel: 'Cancelar',
+      accept: async () => {
+        this.releasingCanceledTargetId = targetId;
+        try {
+          await this.targetsService.releaseCanceledTargetReservation(targetId);
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Dispositivo liberado',
+            detail: 'El GPS ya está disponible en Inventario.',
+          });
+          await this.loadCanceledTargets();
+          this.selectionService.notifyTargetsUpdated();
+
+          if (this.targetDetailsVisible && this.selectedTargetDetails?._id === targetId) {
+            this.closeTargetDetails();
+          }
+        } catch (error: any) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'No se pudo liberar',
+            detail: getApiErrorMessage(
+              error,
+              'No fue posible liberar la reserva del dispositivo.',
+            ),
+          });
+        } finally {
+          this.releasingCanceledTargetId = null;
+        }
+      },
+    });
   }
 
   /**

@@ -304,6 +304,14 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
+  async releaseCanceledTargetReservation(id: string): Promise<any> {
+    const observable = this.http.patch(
+      `${this.apiUrl}/${id}/release-reservation`,
+      {},
+    );
+    return await lastValueFrom(observable);
+  }
+
   async searchTargets(query: string, parentId?: string, offset: number = 0, limit: number = 30, status?: 'online' | 'offline' | 'all', tag?: string, simCompany?: string): Promise<TargetsResponse> {
     let params: any = {
       q: query,
