@@ -63,4 +63,6 @@ export interface SupportAssistantResponse {
     title: string;
     description: string;
     priority: 'low' | 'medium' | 'high' | 'critical';
+    outcome?: 'conversation' | 'resolved' | 'needs_confirmation' | 'ticket';
+    action_summary?: string;
 }

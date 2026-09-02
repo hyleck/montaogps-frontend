@@ -1659,7 +1659,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.supportAssistantThinking = false;
       this.addSupportChatMessage(
         'assistant',
-        `Hola${firstName ? `, ${firstName}` : ''}. Cuéntame qué pasó y te ayudo a dejar el ticket bien explicado.`
+        `Hola${firstName ? `, ${firstName}` : ''}. Cuéntame qué necesitas: intentaré resolverlo y, si hace falta intervención humana, crearé el ticket.`
       );
       this.scrollSupportChatToBottom();
     }, this.supportGreetingDelayMs);

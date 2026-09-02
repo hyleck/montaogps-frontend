@@ -156,7 +156,7 @@ describe('NavbarComponent realtime links', () => {
     expect(component.supportAssistantThinking).toBeFalse();
     expect(component.supportChatMessages.length).toBe(1);
     expect(component.supportChatMessages[0].content).toBe(
-      'Hola, Frankely. Cuéntame qué pasó y te ayudo a dejar el ticket bien explicado.',
+      'Hola, Frankely. Cuéntame qué necesitas: intentaré resolverlo y, si hace falta intervención humana, crearé el ticket.',
     );
     component.ngOnDestroy();
   }));
@@ -204,6 +204,30 @@ describe('NavbarComponent realtime links', () => {
       'Listo, ya creé el ticket y lo envié al equipo de soporte.',
     );
     expect(component.savingTicket).toBeFalse();
+    component.ngOnDestroy();
+  }));
+
+  it('keeps the conversation open without a ticket when Aquiles resolves the request', fakeAsync(() => {
+    const { component, supportService } = createComponent();
+    supportService.chatWithAquiles.and.returnValue(of({
+      message: 'Listo, actualicé el nombre del GPS y confirmé el cambio.',
+      ready: false,
+      title: '',
+      description: '',
+      priority: 'medium',
+      outcome: 'resolved',
+      action_summary: 'Nombre del GPS actualizado',
+    }));
+    component.supportChatInput = 'Cambia el nombre de mi GPS a Camión 8';
+
+    component.sendSupportChatMessage();
+    tick();
+
+    expect(supportService.createTicket).not.toHaveBeenCalled();
+    expect(component.supportChatMessages.at(-1)?.content).toBe(
+      'Listo, actualicé el nombre del GPS y confirmé el cambio.',
+    );
+    expect(component.supportAssistantThinking).toBeFalse();
     component.ngOnDestroy();
   }));
 
