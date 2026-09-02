@@ -1636,6 +1636,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.scrollSupportChatToBottom();
   }
 
+  get isAquilesCodexRoot(): boolean {
+    return this.currentUser?.root === true
+      || String(this.currentUser?.root || '').trim().toLowerCase() === 'true';
+  }
+
   resetSupportChat(): void {
     const firstName = String(this.currentUser?.name || '').trim().split(/\s+/)[0];
     this.clearSupportGreetingTimeout();
@@ -1659,7 +1664,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.supportAssistantThinking = false;
       this.addSupportChatMessage(
         'assistant',
-        `Hola${firstName ? `, ${firstName}` : ''}. Cuéntame qué necesitas: intentaré resolverlo y, si hace falta intervención humana, crearé el ticket.`
+        this.isAquilesCodexRoot
+          ? `Hola${firstName ? `, ${firstName}` : ''}. Cuéntame qué necesitas: intentaré resolverlo y, si hace falta intervención humana, crearé el ticket.`
+          : `Hola${firstName ? `, ${firstName}` : ''}. Cuéntame qué ocurrió y te ayudaré a preparar el ticket para soporte.`
       );
       this.scrollSupportChatToBottom();
     }, this.supportGreetingDelayMs);

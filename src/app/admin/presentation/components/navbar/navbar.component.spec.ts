@@ -156,6 +156,20 @@ describe('NavbarComponent realtime links', () => {
     expect(component.supportAssistantThinking).toBeFalse();
     expect(component.supportChatMessages.length).toBe(1);
     expect(component.supportChatMessages[0].content).toBe(
+      'Hola, Frankely. Cuéntame qué ocurrió y te ayudaré a preparar el ticket para soporte.',
+    );
+    component.ngOnDestroy();
+  }));
+
+  it('shows the operational Aquiles greeting only to root users', fakeAsync(() => {
+    const { component } = createComponent();
+    component.currentUser = { name: 'Frankely', root: 'true' };
+
+    component.resetSupportChat();
+    tick(1200);
+
+    expect(component.isAquilesCodexRoot).toBeTrue();
+    expect(component.supportChatMessages[0].content).toBe(
       'Hola, Frankely. Cuéntame qué necesitas: intentaré resolverlo y, si hace falta intervención humana, crearé el ticket.',
     );
     component.ngOnDestroy();
