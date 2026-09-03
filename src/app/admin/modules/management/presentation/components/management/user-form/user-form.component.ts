@@ -2789,51 +2789,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
         this.sendingWa = true;
 
-        const directMessage = this.buildWaDirectMessage();
-        const contactName = `${this.userInput?.name || ''} ${this.userInput?.last_name || ''}`.trim() || this.waTemplateVars.name;
-
-        this.whatsappApi.sendWhatsAppText({
-            phone: destinationPhone,
-            message: directMessage,
-            contact_name: contactName,
-            agent_id: this.whatsappAgentId || undefined,
-            conversation_id: this.waConversationId || undefined,
-        }).subscribe({
-            next: (res: any) => {
-                if (res.success) {
-                    this.sendingWa = false;
-                    this.showWaTemplateModal = false;
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: 'Enviado',
-                        detail: `Mensaje WhatsApp enviado a ${destinationPhone}.`
-                    });
-                    return;
-                }
-
-                this.sendWaTemplateFallback(destinationPhone, res?.error);
-            },
-            error: (error) => {
-                this.sendWaTemplateFallback(
-                    destinationPhone,
-                    error?.error?.message || error?.error?.error || 'No se pudo enviar texto directo'
-                );
-            }
-        });
-    }
-
-    private buildWaDirectMessage(): string {
-        return [
-            `${this.waTemplateVars.headerUser || 'Asesor'}:`,
-            `B${this.waTemplateVars.bodySaludos || 'uenas'}, ${this.waTemplateVars.name}.`,
-            this.waTemplateVars.body,
-            '',
-            'Seguimos a tu orden por este número.',
-            'Montao GPS',
-        ].join('\n').trim();
-    }
-
-    private sendWaTemplateFallback(destinationPhone: string, directError?: string): void {
         this.whatsappApi.sendWhatsAppTemplateToUser({
             phone: destinationPhone,
             template_name: 'simple',
@@ -2855,20 +2810,21 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                         summary: 'Enviado',
                         detail: `Meta aceptó la plantilla para ${destinationPhone}.`
                     });
-                } else {
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: res?.error || directError || 'No se pudo enviar la plantilla.'
-                    });
+                    return;
                 }
+
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: res?.error || 'No se pudo enviar la plantilla.'
+                });
             },
             error: (error) => {
                 this.sendingWa = false;
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: error?.error?.message || error?.error?.error || directError || 'Error de red al enviar plantilla.'
+                    detail: error?.error?.message || error?.error?.error || 'Error de red al enviar plantilla.'
                 });
             }
         });
