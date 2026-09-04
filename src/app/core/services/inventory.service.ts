@@ -158,6 +158,9 @@ export interface ConduceCancellationPreview {
     returns: Array<{ id: string | null; name: string; quantity: number; assigned_user?: string | null }>;
     state: 'ready' | 'returned' | 'unchanged' | 'blocked';
     reason: string;
+    origin_required?: boolean;
+    manual_origin?: boolean;
+    selected_origin_id?: string | null;
   }>;
 }
 
@@ -523,12 +526,12 @@ export class InventoryService {
     return this.http.get<{ data: Conduce[]; total: number; page: number; lastPage: number }>(`${this.conducesUrl}?page=${page}&limit=${limit}`);
   }
 
-  previewConduceCancellation(id: string): Observable<ConduceCancellationPreview> {
-    return this.http.get<ConduceCancellationPreview>(`${this.conducesUrl}/${encodeURIComponent(id)}/cancellation-preview`);
+  previewConduceCancellation(id: string, origin_overrides: Array<{ kind: 'device' | 'simcard'; id: string; storage_id: string }> = []): Observable<ConduceCancellationPreview> {
+    return this.http.post<ConduceCancellationPreview>(`${this.conducesUrl}/${encodeURIComponent(id)}/cancellation-preview`, { origin_overrides });
   }
 
-  cancelConduce(id: string, preview_token: string, reason: string): Observable<Conduce> {
-    return this.http.post<Conduce>(`${this.conducesUrl}/${encodeURIComponent(id)}/cancel`, { preview_token, reason });
+  cancelConduce(id: string, preview_token: string, reason: string, origin_overrides: Array<{ kind: 'device' | 'simcard'; id: string; storage_id: string }> = []): Observable<Conduce> {
+    return this.http.post<Conduce>(`${this.conducesUrl}/${encodeURIComponent(id)}/cancel`, { preview_token, reason, origin_overrides });
   }
 
   createConduce(payload: any): Observable<Conduce> {

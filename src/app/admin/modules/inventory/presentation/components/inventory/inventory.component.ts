@@ -160,6 +160,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
   cancellationSaving = false;
   cancellationReason = '';
   cancellationError = '';
+  cancellationOrigins: Record<string, string> = {};
+  cancellationBulkOrigin = '';
   private cancellationRequest = 0;
   conducePrintDialogVisible = false;
   shippingLabelDialogVisible = false;
@@ -200,6 +202,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
   simcardCurrentPage = 1;
   simcardItemsPerPage = 50;
   totalConducesRecords = 0;
+  conducesPageFirst = 0;
+  conducesPageRows = 10;
   simcardTotalItems = 0;
   simcardIsLoadingMore = false;
 
@@ -1744,7 +1748,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // --- Shipping & Conduces Methods ---
   openConducesList(): void {
     this.conducesDialogVisible = true;
-    // La carga inicial se disparará por el onLazyLoad de p-table
+    this.loadConduces(1, this.conducesPageRows);
   }
 
   hideConducesDialog(): void {
@@ -1762,6 +1766,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   loadConduces(page = 1, limit = 10): void {
+    this.conducesPageRows = limit;
+    this.conducesPageFirst = (page - 1) * limit;
     this.isLoadingConduces = true;
     this.inventoryService.getConduces(page, limit).subscribe({
       next: (response) => {
@@ -2974,6 +2980,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.cancellationConduce = conduce;
     this.cancellationReason = conduce.cancellation_reason || '';
     this.cancellationError = '';
+    this.cancellationOrigins = {};
+    this.cancellationBulkOrigin = '';
     this.cancellationDialogVisible = true;
     this.refreshCancellationPreview();
   }
@@ -2983,11 +2991,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
     const request = ++this.cancellationRequest;
     this.cancellationPreview = null;
     this.cancellationLoading = true;
-    this.inventoryService.previewConduceCancellation(this.cancellationConduce._id).subscribe({
+    this.inventoryService.previewConduceCancellation(this.cancellationConduce._id, this.cancellationOriginOverrides()).subscribe({
       next: preview => {
         if (request !== this.cancellationRequest) return;
         this.cancellationLoading = false;
         this.cancellationPreview = preview;
+        for (const movement of preview.movements) {
+          if (movement.origin_required && movement.selected_origin_id) this.cancellationOrigins[this.cancellationOriginKey(movement)] = movement.selected_origin_id;
+        }
         if (preview.cancellation_reason) this.cancellationReason = preview.cancellation_reason;
       },
       error: error => {
@@ -2998,12 +3009,57 @@ export class InventoryComponent implements OnInit, OnDestroy {
     });
   }
 
+  cancellationOriginKey(movement: { kind: string; id: string }): string {
+    return `${movement.kind}:${movement.id}`;
+  }
+
+  cancellationOriginOverrides(): Array<{ kind: 'device' | 'simcard'; id: string; storage_id: string }> {
+    return Object.entries(this.cancellationOrigins).filter(([, storageId]) => !!storageId).map(([key, storage_id]) => {
+      const [kind, id] = key.split(':');
+      return { kind: kind as 'device' | 'simcard', id, storage_id };
+    });
+  }
+
+  hasManualCancellationOrigins(preview: ConduceCancellationPreview | null): boolean {
+    return !!preview?.movements.some(movement => movement.origin_required);
+  }
+
+  cancellationOriginRequiredCount(preview: ConduceCancellationPreview): number {
+    return preview.movements.filter(movement => movement.origin_required).length;
+  }
+
+  cancellationOriginSelectedCount(preview: ConduceCancellationPreview): number {
+    return preview.movements.filter(movement => movement.origin_required && !!this.cancellationOrigins[this.cancellationOriginKey(movement)]).length;
+  }
+
+  cancellationOtherBlockers(preview: ConduceCancellationPreview): string[] {
+    if (!this.hasManualCancellationOrigins(preview)) return preview.blockers;
+    return preview.blockers.filter(blocker => !blocker.startsWith('Indica el almacén de origen de ') || !blocker.endsWith(' de este conduce antiguo.'));
+  }
+
+  setCancellationOrigin(movement: { kind: string; id: string }, storageId: string): void {
+    const key = this.cancellationOriginKey(movement);
+    if (storageId) this.cancellationOrigins[key] = storageId;
+    else delete this.cancellationOrigins[key];
+    if (this.cancellationPreview) this.cancellationPreview.can_cancel = false;
+    this.cancellationError = 'Revisa los orígenes seleccionados antes de confirmar la cancelación.';
+  }
+
+  applyBulkCancellationOrigin(): void {
+    if (!this.cancellationBulkOrigin || !this.cancellationPreview) return;
+    for (const movement of this.cancellationPreview.movements) {
+      if (movement.origin_required) this.cancellationOrigins[this.cancellationOriginKey(movement)] = this.cancellationBulkOrigin;
+    }
+    this.cancellationError = '';
+    this.refreshCancellationPreview();
+  }
+
   confirmConduceCancellation(): void {
     const preview = this.cancellationPreview;
     if (!this.canUpdateInventory() || !this.cancellationDialogVisible || this.cancellationSaving || this.cancellationLoading || !preview?.can_cancel) return;
     this.cancellationSaving = true;
     this.cancellationError = '';
-    this.inventoryService.cancelConduce(preview.conduce_id, preview.preview_token, this.cancellationReason).subscribe({
+    this.inventoryService.cancelConduce(preview.conduce_id, preview.preview_token, this.cancellationReason, this.cancellationOriginOverrides()).subscribe({
       next: result => {
         this.cancellationSaving = false;
         this.cancellationDialogVisible = false;

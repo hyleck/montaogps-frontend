@@ -1470,108 +1470,124 @@
         </button>
       </div>
 
-      <p-table [value]="conducesList" [loading]="isLoadingConduces" responsiveLayout="scroll" [paginator]="true"
-        [lazy]="true" (onLazyLoad)="loadConducesLazy($event)" [rows]="10" [totalRecords]="totalConducesRecords"
-        [showCurrentPageReport]="true" currentPageReportTemplate="{first}-{last} de {totalRecords}"
-        styleClass="p-datatable-sm conduces-history-table">
-        <ng-template pTemplate="header">
-          <tr>
-            <th>Conduce</th>
-            <th>Fecha</th>
-            <th>Almacén destino</th>
-            <th>Contenido</th>
-            <th>Trazabilidad</th>
-            <th>Estado</th>
-            <th class="conduces-history-table__actions-heading">Acciones</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-conduce>
-          <tr>
-            <td>
+      <div class="conduces-history-list" [attr.aria-busy]="isLoadingConduces">
+        <div *ngIf="isLoadingConduces" class="conduces-loading-state" role="status">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>Cargando conduces…</span>
+        </div>
+
+        <ng-container *ngIf="!isLoadingConduces">
+          <article *ngFor="let conduce of conducesList" class="conduce-history-card"
+            [class.conduce-history-card--cancelled]="conduce.status === 'cancelled'"
+            [class.conduce-history-card--pending]="conduce.status === 'pending' || conduce.status === 'cancelling'">
+            <header class="conduce-history-card__header">
               <div class="conduce-number">
                 <span><i class="pi pi-file"></i></span>
                 <div>
                   <strong>{{ conduce.conduceNumber || 'Sin número' }}</strong>
-                  <small>Traslado</small>
+                  <small>Traslado de inventario</small>
                 </div>
               </div>
-            </td>
-            <td>
-              <time class="conduce-date" *ngIf="conduce.createdAt; else noConduceDate">
-                <strong>{{ conduce.createdAt | date: 'dd/MM/yyyy' }}</strong>
-                <small>{{ conduce.createdAt | date: 'HH:mm' }}</small>
-              </time>
-              <ng-template #noConduceDate><span class="conduce-empty-value">Sin fecha</span></ng-template>
-            </td>
-            <td>
-              <span class="conduce-destination" [title]="conduce.destination_warehouse?.name || 'Sin almacén'">
-                <i class="pi pi-building"></i>
-                <span>{{ conduce.destination_warehouse?.name || 'Sin almacén' }}</span>
-              </span>
-            </td>
-            <td>
-              <button type="button" class="conduce-content" (click)="showConduceDetails(conduce)"
-                pTooltip="Ver contenido del conduce" tooltipPosition="top">
-                <span class="conduce-content__item">
-                  <i class="pi pi-box"></i>
-                  <strong>{{ conduce.devices?.length || 0 }}</strong>
-                  <small>{{ (conduce.devices?.length || 0) === 1 ? 'equipo' : 'equipos' }}</small>
-                </span>
-                <span class="conduce-content__item conduce-content__item--simcards">
-                  <i class="pi pi-credit-card"></i>
-                  <strong>{{ conduce.simcards?.length || 0 }}</strong>
-                  <small>SIM</small>
-                </span>
-                <span *ngIf="conduce.lots?.length" class="conduce-content__item"><i class="pi pi-bolt"></i><strong>{{ conduceLotQuantity(conduce) }}</strong><small>Relay / Cables</small></span>
-              </button>
-            </td>
-            <td>
-              <div class="inventory-audit">
-                <span [title]="auditUserLabel(conduce.created_by)">
-                  <i class="pi pi-user-plus"></i><small>Creado por</small>
-                  <strong>{{ auditUserLabel(conduce.created_by) }}</strong>
-                </span>
-                <span [title]="auditUserLabel(conduce.updated_by)">
-                  <i class="pi pi-pencil"></i><small>Modificado por</small>
-                  <strong>{{ auditUserLabel(conduce.updated_by) }}</strong>
+              <div class="conduce-history-card__status">
+                <time class="conduce-date" *ngIf="conduce.createdAt; else noConduceDate">
+                  <strong>{{ conduce.createdAt | date: 'dd/MM/yyyy' }}</strong>
+                  <small>{{ conduce.createdAt | date: 'HH:mm' }}</small>
+                </time>
+                <ng-template #noConduceDate><span class="conduce-empty-value">Sin fecha</span></ng-template>
+                <span class="conduce-status" [class.conduce-status--completed]="conduce.status === 'completed'"
+                  [class.conduce-status--pending]="conduce.status === 'pending'"
+                  [class.conduce-status--cancelled]="conduce.status === 'cancelled' || conduce.status === 'cancelling'">
+                  <i [class]="conduce.status === 'completed' ? 'pi pi-check-circle' : conduce.status === 'cancelled' ? 'pi pi-times-circle' : 'pi pi-clock'"></i>
+                  {{ conduceStatusLabel(conduce) }}
                 </span>
               </div>
-            </td>
-            <td>
-              <span class="conduce-status" [class.conduce-status--completed]="conduce.status === 'completed'"
-                [class.conduce-status--pending]="conduce.status === 'pending'" [class.conduce-status--cancelled]="conduce.status === 'cancelled' || conduce.status === 'cancelling'">
-                <i [class]="conduce.status === 'completed' ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
-                {{ conduceStatusLabel(conduce) }}
-              </span>
-            </td>
-            <td>
-              <div class="conduce-actions">
-                <button *ngIf="canUpdateInventory() && conduce.status !== 'cancelled'" type="button" class="conduce-print-button conduce-cancel-button" (click)="openConduceCancellation(conduce)">
-                  <i class="pi pi-times-circle"></i>{{ conduce.status === 'cancelling' ? 'Continuar cancelación' : 'Cancelar conduce' }}
+            </header>
+
+            <div class="conduce-history-card__details">
+              <section class="conduce-history-card__section">
+                <small>Almacén destino</small>
+                <span class="conduce-destination" [title]="conduce.destination_warehouse?.name || 'Sin almacén'">
+                  <i class="pi pi-building"></i>
+                  <span>{{ conduce.destination_warehouse?.name || 'Sin almacén' }}</span>
+                </span>
+              </section>
+
+              <section class="conduce-history-card__section">
+                <small>Contenido</small>
+                <div class="conduce-content">
+                  <span class="conduce-content__item">
+                    <i class="pi pi-box"></i>
+                    <strong>{{ conduce.devices?.length || 0 }}</strong>
+                    <small>{{ (conduce.devices?.length || 0) === 1 ? 'equipo' : 'equipos' }}</small>
+                  </span>
+                  <span class="conduce-content__item conduce-content__item--simcards">
+                    <i class="pi pi-credit-card"></i>
+                    <strong>{{ conduce.simcards?.length || 0 }}</strong>
+                    <small>SIM</small>
+                  </span>
+                  <span *ngIf="conduce.lots?.length" class="conduce-content__item">
+                    <i class="pi pi-bolt"></i>
+                    <strong>{{ conduceLotQuantity(conduce) }}</strong>
+                    <small>Relay / Cables</small>
+                  </span>
+                </div>
+              </section>
+
+              <section class="conduce-history-card__section conduce-history-card__section--audit">
+                <small>Trazabilidad</small>
+                <div class="inventory-audit">
+                  <span [title]="auditUserLabel(conduce.created_by)">
+                    <i class="pi pi-user-plus"></i><small>Creado por</small>
+                    <strong>{{ auditUserLabel(conduce.created_by) }}</strong>
+                  </span>
+                  <span [title]="auditUserLabel(conduce.updated_by)">
+                    <i class="pi pi-pencil"></i><small>Modificado por</small>
+                    <strong>{{ auditUserLabel(conduce.updated_by) }}</strong>
+                  </span>
+                </div>
+              </section>
+            </div>
+
+            <p *ngIf="conduce.description" class="conduce-history-card__description">{{ conduce.description }}</p>
+
+            <footer class="conduce-history-card__footer">
+              <div class="conduce-history-card__footer-left">
+                <button type="button" class="conduce-details-button" (click)="showConduceDetails(conduce)">
+                  <i class="pi pi-eye"></i>
+                  Ver detalles
                 </button>
-                <button *ngIf="conduce.status === 'pending' && canCreateInventory()" type="button" class="conduce-print-button" [disabled]="!!resumingConduceId" (click)="resumeLotConduce(conduce)"><i class="pi pi-refresh"></i> Reintentar</button>
+                <button *ngIf="canUpdateInventory() && conduce.status !== 'cancelled'" type="button"
+                  class="conduce-cancel-link" (click)="openConduceCancellation(conduce)">
+                  <i class="pi pi-times-circle"></i>
+                  {{ conduce.status === 'cancelling' ? 'Continuar cancelación' : 'Cancelar conduce' }}
+                </button>
+              </div>
+              <div class="conduce-actions">
+                <button *ngIf="conduce.status === 'pending' && canCreateInventory()" type="button"
+                  class="conduce-print-button" [disabled]="!!resumingConduceId" (click)="resumeLotConduce(conduce)">
+                  <i class="pi pi-refresh"></i> Reintentar
+                </button>
                 <button type="button" class="conduce-print-button" (click)="openConducePrintDialog(conduce)"
-                  pTooltip="Opciones de impresión" tooltipPosition="top"
                   [attr.aria-label]="'Imprimir ' + (conduce.conduceNumber || 'conduce')">
                   <i class="pi pi-print"></i>
                   <span>Imprimir</span>
                 </button>
               </div>
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage">
-          <tr>
-            <td colspan="7">
-              <div class="conduces-empty-state">
-                <span><i class="pi pi-send"></i></span>
-                <strong>Aún no hay conduces registrados</strong>
-                <small>Crea el primer conduce para registrar un movimiento de inventario.</small>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
+            </footer>
+          </article>
+
+          <div *ngIf="!conducesList.length" class="conduces-empty-state">
+            <span><i class="pi pi-send"></i></span>
+            <strong>Aún no hay conduces registrados</strong>
+            <small>Crea el primer conduce para registrar un movimiento de inventario.</small>
+          </div>
+        </ng-container>
+      </div>
+
+      <p-paginator *ngIf="totalConducesRecords > conducesPageRows" styleClass="conduces-history-paginator"
+        [first]="conducesPageFirst" [rows]="conducesPageRows" [totalRecords]="totalConducesRecords"
+        [showCurrentPageReport]="true" currentPageReportTemplate="{first}-{last} de {totalRecords}"
+        (onPageChange)="loadConducesLazy($event)"></p-paginator>
     </ng-template>
   </p-dialog>
 
@@ -1845,35 +1861,92 @@
 
 <p-dialog [(visible)]="cancellationDialogVisible" header="Cancelar conduce" [modal]="true" appendTo="body"
   [draggable]="false" [resizable]="false" [closable]="!cancellationSaving" [closeOnEscape]="!cancellationSaving"
-  [style]="{width: '760px', maxWidth: '96vw'}" styleClass="app-dark-dialog conduce-cancellation-dialog">
+  [style]="{width: '860px', maxWidth: '96vw'}" styleClass="app-dark-dialog conduce-cancellation-dialog">
   <div class="conduce-cancellation-body">
-    <strong>{{ cancellationConduce?.conduceNumber }}</strong>
-    <p>Se desharán los traslados de este conduce. Los equipos, SIM cards y productos volverán a sus almacenes de origen y quedarán disponibles para las cuentas con acceso a esos almacenes.</p>
-    <p>El conduce permanecerá en el historial como <strong>Cancelado</strong>, con la fecha, el responsable y el motivo. Si hubo una devolución parcial, se continuará desde donde quedó.</p>
+    <div class="conduce-cancellation-summary">
+      <span><i class="pi pi-undo"></i></span>
+      <div>
+        <strong>{{ cancellationConduce?.conduceNumber }}</strong>
+        <p>Los artículos volverán a su almacén de origen. El conduce permanecerá en el historial como <b>Cancelado</b>.</p>
+      </div>
+    </div>
     <div *ngIf="cancellationLoading" role="status"><i class="pi pi-spin pi-spinner"></i> Comprobando el inventario y los movimientos…</div>
-    <div *ngIf="cancellationError" class="conduce-cancellation-alert" role="alert">{{ cancellationError }}</div>
+    <div *ngIf="cancellationError" class="conduce-cancellation-alert" [class.is-guidance]="cancellationError.startsWith('Revisa los orígenes')" role="alert">{{ cancellationError }}</div>
     <ng-container *ngIf="cancellationPreview as preview">
       <div *ngIf="preview.status === 'cancelled'" class="conduce-cancellation-audit">Este conduce ya está cancelado.</div>
-      <div *ngIf="preview.blockers.length" class="conduce-cancellation-alert" role="alert">
-        <strong>Hay movimientos que necesitan revisión</strong>
-        <ul><li *ngFor="let blocker of preview.blockers">{{ blocker }}</li></ul>
-        <p>No se iniciará una devolución mientras existan estos impedimentos.</p>
-      </div>
-      <article *ngFor="let movement of preview.movements" class="conduce-cancellation-movement" [class.is-blocked]="movement.state === 'blocked'">
-        <div><strong>{{ movement.kind === 'device' ? 'GPS' : movement.kind === 'simcard' ? 'SIM card' : 'Producto' }} · {{ movement.label }}</strong><span>{{ movement.quantity }} {{ movement.quantity === 1 ? 'unidad' : 'unidades' }}</span></div>
-        <p *ngIf="movement.state === 'ready' || movement.state === 'blocked'">Desde: {{ movement.from.name }}</p>
-        <p *ngFor="let origin of movement.returns">{{ movement.state === 'returned' ? 'Devuelto a' : 'Origen' }}: <strong>{{ origin.name }}</strong> · {{ origin.quantity }} {{ origin.quantity === 1 ? 'unidad' : 'unidades' }}</p>
-        <small *ngIf="movement.state === 'returned'">Ya devuelto; no se repetirá.</small>
-        <small *ngIf="movement.state === 'unchanged'">No se trasladó por este conduce; conservará su ubicación.</small>
-        <small *ngIf="movement.state === 'blocked'">{{ movement.reason }}</small>
+      <section *ngIf="hasManualCancellationOrigins(preview)" class="conduce-cancellation-origin-tools">
+        <div class="conduce-cancellation-origin-tools__heading">
+          <span><i class="pi pi-map-marker"></i></span>
+          <div>
+            <strong>¿De dónde salieron los equipos?</strong>
+            <small>Aplica un almacén a todos y cambia únicamente las excepciones.</small>
+          </div>
+          <em>{{ cancellationOriginSelectedCount(preview) }} de {{ cancellationOriginRequiredCount(preview) }} seleccionados</em>
+        </div>
+        <div class="conduce-cancellation-origin-tools__controls">
+          <label for="conduce-origin-all">Origen para todos</label>
+          <div>
+            <p-dropdown inputId="conduce-origin-all" [(ngModel)]="cancellationBulkOrigin" [options]="warehouses"
+              optionLabel="name" optionValue="_id" appendTo="body" [filter]="true" filterBy="name"
+              placeholder="Seleccionar almacén" [showClear]="true"></p-dropdown>
+            <button type="button" class="conduce-origin-apply-button"
+              [disabled]="!cancellationBulkOrigin || cancellationLoading || cancellationSaving" (click)="applyBulkCancellationOrigin()">
+              <i class="pi pi-check"></i>
+              Aplicar y validar
+            </button>
+          </div>
+        </div>
+      </section>
+      <ng-container *ngIf="cancellationOtherBlockers(preview) as otherBlockers">
+        <div *ngIf="otherBlockers.length" class="conduce-cancellation-alert" role="alert">
+          <strong>Hay movimientos que necesitan revisión</strong>
+          <ul><li *ngFor="let blocker of otherBlockers">{{ blocker }}</li></ul>
+        </div>
+      </ng-container>
+      <div class="conduce-cancellation-movements">
+      <article *ngFor="let movement of preview.movements" class="conduce-cancellation-movement"
+        [class.needs-origin]="movement.origin_required"
+        [class.is-blocked]="movement.state === 'blocked' && (!movement.origin_required || !!movement.selected_origin_id)">
+        <div class="conduce-cancellation-movement__summary">
+          <span><i [class]="movement.kind === 'device' ? 'pi pi-box' : movement.kind === 'simcard' ? 'pi pi-credit-card' : 'pi pi-bolt'"></i></span>
+          <div>
+            <small>{{ movement.kind === 'device' ? 'GPS' : movement.kind === 'simcard' ? 'SIM card' : 'Producto' }}</small>
+            <strong>{{ movement.label }}</strong>
+            <p>{{ movement.quantity }} {{ movement.quantity === 1 ? 'unidad' : 'unidades' }} · Actualmente en <b>{{ movement.from.name }}</b></p>
+          </div>
+        </div>
+        <div *ngIf="!movement.origin_required || (movement.manual_origin && movement.selected_origin_id === cancellationOrigins[cancellationOriginKey(movement)])" class="conduce-cancellation-movement__route">
+          <div *ngFor="let origin of movement.returns">
+            <small>{{ movement.state === 'returned' ? 'Devuelto a' : 'Volverá a' }}</small>
+            <strong>{{ origin.name }}</strong>
+            <span>{{ origin.quantity }} {{ origin.quantity === 1 ? 'unidad' : 'unidades' }}</span>
+          </div>
+        </div>
+        <div *ngIf="movement.origin_required" class="conduce-cancellation-origin-field">
+          <label [for]="'origin-' + movement.kind + '-' + movement.id">
+            <span>Origen original</span>
+            <small *ngIf="movement.manual_origin && movement.selected_origin_id === cancellationOrigins[cancellationOriginKey(movement)]" class="is-valid"><i class="pi pi-check-circle"></i> Validado</small>
+            <small *ngIf="cancellationOrigins[cancellationOriginKey(movement)] && (!movement.manual_origin || movement.selected_origin_id !== cancellationOrigins[cancellationOriginKey(movement)])" class="is-pending">Pendiente de validar</small>
+            <small *ngIf="!cancellationOrigins[cancellationOriginKey(movement)]" class="is-required">Requerido</small>
+          </label>
+          <p-dropdown [inputId]="'origin-' + movement.kind + '-' + movement.id"
+            [ngModel]="cancellationOrigins[cancellationOriginKey(movement)]"
+            (ngModelChange)="setCancellationOrigin(movement, $event)" [options]="warehouses"
+            optionLabel="name" optionValue="_id" appendTo="body" [filter]="true" filterBy="name"
+            placeholder="Seleccionar almacén" [showClear]="true"></p-dropdown>
+        </div>
+        <small *ngIf="movement.state === 'returned'" class="conduce-cancellation-movement__message">Ya fue devuelto; no se repetirá.</small>
+        <small *ngIf="movement.state === 'unchanged'" class="conduce-cancellation-movement__message">No se trasladó por este conduce; conservará su ubicación.</small>
+        <small *ngIf="movement.state === 'blocked' && (!movement.origin_required || !!movement.selected_origin_id)" class="conduce-cancellation-movement__message is-error">{{ movement.reason }}</small>
       </article>
+      </div>
       <label for="conduce-cancellation-reason">Motivo de cancelación (opcional)</label>
       <textarea id="conduce-cancellation-reason" rows="3" maxlength="1000" [(ngModel)]="cancellationReason" [disabled]="cancellationSaving || preview.status === 'cancelling'" placeholder="Explica por qué se cancela este conduce"></textarea>
     </ng-container>
   </div>
   <ng-template pTemplate="footer">
     <button pButton type="button" label="Volver" class="p-button-text" [disabled]="cancellationSaving" (click)="cancellationDialogVisible = false"></button>
-    <button pButton type="button" label="Actualizar resumen" class="p-button-outlined" [disabled]="cancellationLoading || cancellationSaving" (click)="cancellationError = ''; refreshCancellationPreview()"></button>
+    <button pButton type="button" [label]="hasManualCancellationOrigins(cancellationPreview) ? 'Validar selección' : 'Actualizar resumen'" class="p-button-outlined" [disabled]="cancellationLoading || cancellationSaving" (click)="cancellationError = ''; refreshCancellationPreview()"></button>
     <button pButton type="button" [label]="cancellationPreview?.status === 'cancelling' ? 'Continuar cancelación' : 'Confirmar cancelación'" icon="pi pi-times-circle" class="p-button-danger" [loading]="cancellationSaving" [disabled]="cancellationLoading || cancellationSaving || !cancellationPreview?.can_cancel" (click)="confirmConduceCancellation()"></button>
   </ng-template>
 </p-dialog>

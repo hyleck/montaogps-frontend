@@ -23,13 +23,32 @@ describe('Conduce cancellation confirmation', () => {
   it('loads a review without cancelling until the user confirms', () => {
     component.openConduceCancellation(row());
     expect(component.cancellationDialogVisible).toBeTrue();
-    expect(api.previewConduceCancellation).toHaveBeenCalledWith('shipment');
+    expect(api.previewConduceCancellation).toHaveBeenCalledWith('shipment', []);
     expect(api.cancelConduce).not.toHaveBeenCalled();
     component.cancellationReason = 'Destino incorrecto';
     component.confirmConduceCancellation();
-    expect(api.cancelConduce).toHaveBeenCalledWith('shipment', 'snapshot-a', 'Destino incorrecto');
+    expect(api.cancelConduce).toHaveBeenCalledWith('shipment', 'snapshot-a', 'Destino incorrecto', []);
     expect(component.cancellationDialogVisible).toBeFalse();
     expect(component.loadWarehouses).toHaveBeenCalled();
+  });
+
+  it('applies one manual origin to old items and requires server review', () => {
+    const legacy = { ...preview, can_cancel: false, blockers: ['Indica el origen'], movements: [
+      { kind: 'device' as const, id: 'gps-1', label: '111', quantity: 1, from: { id: 'to', name: 'Destino' }, returns: [], state: 'blocked' as const, reason: 'Selecciona', origin_required: true, selected_origin_id: null },
+      { kind: 'simcard' as const, id: 'sim-1', label: '222', quantity: 1, from: { id: 'to', name: 'Destino' }, returns: [], state: 'blocked' as const, reason: 'Selecciona', origin_required: true, selected_origin_id: null },
+    ] };
+    api.previewConduceCancellation.and.returnValues(of(legacy), of({ ...legacy, can_cancel: true, blockers: [], movements: legacy.movements.map(item => ({ ...item, state: 'ready', manual_origin: true, selected_origin_id: 'source' })) }));
+    component.openConduceCancellation(row());
+    component.cancellationBulkOrigin = 'source';
+    component.applyBulkCancellationOrigin();
+    expect(api.previewConduceCancellation).toHaveBeenCalledWith('shipment', [
+      { kind: 'device', id: 'gps-1', storage_id: 'source' },
+      { kind: 'simcard', id: 'sim-1', storage_id: 'source' },
+    ]);
+    expect(component.cancellationPreview?.can_cancel).toBeTrue();
+    component.setCancellationOrigin(legacy.movements[0], 'other');
+    expect(component.cancellationPreview?.can_cancel).toBeFalse();
+    expect(component.cancellationError).toContain('Revisa');
   });
 
   it('does not allow blocked movements or read-only users to cancel', () => {
