@@ -6,28 +6,28 @@ import { TranslateService } from '@ngx-translate/core';
 
 import { UserRolesService } from '@core/services/user-roles.service';
 import { MessageService } from 'primeng/api';
-import { MainAccountResponse, PersonalizedCallHistory, UserService } from '@core/services/user.service';
+import { MainAccountResponse, OpenStreetMapPlace, PersonalizedCallHistory, UserService } from '@core/services/user.service';
 import { AuthService } from '@core/services/auth.service';
 import { PrivilegeService } from './services/privilege.service';
-import { debounceTime, Subject, takeUntil } from 'rxjs';
+import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { CloudService } from '@core/services/cloud.service';
 import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
-import { SystemService } from '@core/services/system.service';
 import { MapUtils } from 'src/app/shareds/helpers/map.helper';
 import { WhatsAppApiService } from '@core/services/whatsapp-api.service';
 import { InteraccionesService, UserList } from '../../../../../interacciones/presentation/services/interacciones.service';
 import { VapiService } from '@core/services/vapi.service';
 import * as maplibregl from 'maplibre-gl';
 
-declare var google: any;
 type StaticLocationMethod = 'coordinates' | 'link' | 'search';
 interface StaticLocationSuggestion {
     description: string;
     placeId: string;
     mainText: string;
     secondaryText: string;
-    placePrediction?: any;
+    latitude: number;
+    longitude: number;
+    osmUrl: string;
 }
 
 import {
@@ -209,8 +209,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     staticLocationSearchAttempted: boolean = false;
     staticLocationSearchUnavailable: boolean = false;
     private staticLocationSearch$ = new Subject<string>();
-    private staticLocationAutocompleteService: any;
-    private staticLocationAutocompleteSessionToken: any;
     private staticLocationSearchRequestId: number = 0;
     
     selectedProvince: string = '';
@@ -295,7 +293,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         private route: ActivatedRoute,
         private privilegeService: PrivilegeService,
         private brandsService: VehicleBrandsService,
-        private systemService: SystemService,
         private cdr: ChangeDetectorRef,
         private cloudService: CloudService,
         private firebaseNotificationsService: FirebaseNotificationsService,
@@ -726,7 +723,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     ngOnInit() {
         this.staticLocationSearch$
             .pipe(
-                debounceTime(3000),
+                debounceTime(700),
                 takeUntil(this.destroy$)
             )
             .subscribe(query => void this.searchStaticLocationSuggestions(query));
@@ -1927,6 +1924,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
             /[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
             /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+            /#map=\d+(?:\.\d+)?\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)/,
         ];
 
         for (const pattern of patterns) {
@@ -1937,6 +1935,24 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
                 return { latitude, longitude };
             }
+        }
+
+        try {
+            const parsed = new URL(url);
+            const latitudeParam = parsed.searchParams.get('mlat');
+            const longitudeParam = parsed.searchParams.get('mlon');
+            const latitude = Number(latitudeParam);
+            const longitude = Number(longitudeParam);
+            if (
+                latitudeParam !== null &&
+                longitudeParam !== null &&
+                Number.isFinite(latitude) &&
+                Number.isFinite(longitude)
+            ) {
+                return { latitude, longitude };
+            }
+        } catch {
+            // Los patrones anteriores también soportan enlaces pegados sin URL completa.
         }
 
         return null;
@@ -1976,7 +1992,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     selectStaticLocationMethod(method: StaticLocationMethod): void {
         this.staticLocationMethod = method;
         if (method === 'search') {
-            setTimeout(() => void this.initializeStaticLocationSearch());
+            setTimeout(() => this.staticLocationSearchInput?.nativeElement?.focus());
         } else if (method === 'coordinates') {
             setTimeout(() => void this.initStaticCoordinatePickerMap());
         }
@@ -1985,7 +2001,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     onStaticLocationModalShow(): void {
         if (this.staticLocationMethod === 'search') {
             setTimeout(() => {
-                void this.initializeStaticLocationSearch();
                 this.staticLocationSearchInput?.nativeElement?.focus();
             });
         } else if (this.staticLocationMethod === 'coordinates') {
@@ -2094,7 +2109,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
 
         this.setStaticLocationPoint(latitude, longitude, this.user.static_location_address || 'Ubicación por coordenadas');
-        this.user.static_location_url = this.buildGoogleMapsLink(latitude, longitude);
+        this.user.static_location_url = this.buildOpenStreetMapLink(latitude, longitude);
         this.staticLocationGoogleMapsLink = this.user.static_location_url;
         this.reverseGeocodeStaticLocation(latitude, longitude);
     }
@@ -2247,47 +2262,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
     }
 
-    private async initializeStaticLocationSearch(): Promise<void> {
-        if (!this.isCurrentUserEmployee) return;
-
-        try {
-            const systemConfigsResponse = await this.systemService.getAll().toPromise();
-            const systemConfigs = systemConfigsResponse?.[0];
-            const MAP_API1_KEY = systemConfigs?.map_api1?.key;
-            if (MAP_API1_KEY) {
-                await MapUtils.loadMapScript('google', MAP_API1_KEY, systemConfigs?.map_api1?.url || 'https://maps.googleapis.com/maps/api/js');
-                await this.ensureGooglePlacesLibrary();
-            }
-        } catch (e) {
-            console.error('Error loading Google Maps API key via SystemService', e);
-        }
-
-        if (typeof google === 'undefined') return;
-        this.setupStaticLocationAutocomplete();
-    }
-
-    private async ensureGooglePlacesLibrary(): Promise<void> {
-        if (typeof google === 'undefined' || !google.maps) return;
-        if (google.maps.places) return;
-        if (typeof google.maps.importLibrary === 'function') {
-            await google.maps.importLibrary('places');
-        }
-    }
-
-    private setupStaticLocationAutocomplete(): void {
-        if (typeof google === 'undefined' || !google.maps?.places) return;
-        if (google.maps.places.AutocompleteService) {
-            this.staticLocationAutocompleteService ??= new google.maps.places.AutocompleteService();
-        }
-        if (
-            !this.staticLocationAutocompleteSessionToken &&
-            google.maps.places.AutocompleteSessionToken
-        ) {
-            this.staticLocationAutocompleteSessionToken =
-                new google.maps.places.AutocompleteSessionToken();
-        }
-    }
-
     onStaticLocationSearchInput(value: string): void {
         const query = String(value || '').trim();
         this.staticLocationSuggestions = [];
@@ -2307,86 +2281,11 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     private async searchStaticLocationSuggestions(query: string): Promise<void> {
         const currentQuery = String(this.staticLocationManualAddress || '').trim();
         if (query !== currentQuery || query.length < 3) return;
-
-        if (
-            typeof google === 'undefined' ||
-            !google.maps?.places ||
-            (
-                !google.maps.places.AutocompleteSuggestion?.fetchAutocompleteSuggestions &&
-                !this.staticLocationAutocompleteService
-            )
-        ) {
-            await this.initializeStaticLocationSearch();
-        }
-
-        const autocompleteSuggestion = google?.maps?.places?.AutocompleteSuggestion;
-        if (
-            !autocompleteSuggestion?.fetchAutocompleteSuggestions &&
-            !this.staticLocationAutocompleteService
-        ) {
-            this.searchingStaticLocation = false;
-            this.staticLocationSearchAttempted = true;
-            this.staticLocationSearchUnavailable = true;
-            this.cdr.detectChanges();
-            return;
-        }
-
         const requestId = ++this.staticLocationSearchRequestId;
-        const request = {
-            input: query,
-            language: 'es',
-            region: 'do',
-            // Favorece resultados dominicanos sin excluir lugares de otros países.
-            locationBias: {
-                west: -72.2,
-                south: 17.3,
-                east: -68.0,
-                north: 20.2
-            },
-            sessionToken: this.staticLocationAutocompleteSessionToken
-        };
-
-        if (autocompleteSuggestion?.fetchAutocompleteSuggestions) {
-            try {
-                const response = await autocompleteSuggestion.fetchAutocompleteSuggestions(request);
-                if (
-                    requestId !== this.staticLocationSearchRequestId ||
-                    query !== String(this.staticLocationManualAddress || '').trim()
-                ) {
-                    return;
-                }
-
-                this.staticLocationSuggestions = (response?.suggestions || [])
-                    .map((suggestion: any) => {
-                        const prediction = suggestion.placePrediction;
-                        const description = prediction?.text?.toString?.() || '';
-                        return {
-                            description,
-                            placeId: prediction?.placeId || '',
-                            mainText: prediction?.mainText?.toString?.() || description,
-                            secondaryText: prediction?.secondaryText?.toString?.() || '',
-                            placePrediction: prediction
-                        };
-                    })
-                    .filter((suggestion: StaticLocationSuggestion) => suggestion.description && suggestion.placeId);
-                this.searchingStaticLocation = false;
-                this.staticLocationSearchAttempted = true;
-                this.cdr.detectChanges();
-                return;
-            } catch (error) {
-                console.warn('La API nueva de sugerencias no respondió; se usará la API compatible.', error);
-            }
-        }
-
-        if (!this.staticLocationAutocompleteService) {
-            this.searchingStaticLocation = false;
-            this.staticLocationSearchAttempted = true;
-            this.staticLocationSearchUnavailable = true;
-            this.cdr.detectChanges();
-            return;
-        }
-
-        this.staticLocationAutocompleteService.getPlacePredictions(request, (predictions: any[] | null, status: any) => {
+        try {
+            const response = await firstValueFrom(
+                this.userService.searchOpenStreetMapLocations(query, 6)
+            );
             if (
                 requestId !== this.staticLocationSearchRequestId ||
                 query !== String(this.staticLocationManualAddress || '').trim()
@@ -2394,76 +2293,50 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 return;
             }
 
-            const okStatus = google.maps.places.PlacesServiceStatus?.OK || 'OK';
-            const zeroResultsStatus =
-                google.maps.places.PlacesServiceStatus?.ZERO_RESULTS || 'ZERO_RESULTS';
-            const requestSucceeded = status === okStatus;
-            this.staticLocationSuggestions = requestSucceeded && predictions
-                ? predictions.map(prediction => ({
-                    description: prediction.description,
-                    placeId: prediction.place_id,
-                    mainText: prediction.structured_formatting?.main_text || prediction.description,
-                    secondaryText: prediction.structured_formatting?.secondary_text || ''
-                }))
-                : [];
+            this.staticLocationSuggestions = (response.results || [])
+                .map((place: OpenStreetMapPlace) => ({
+                    ...place,
+                    description: place.displayName,
+                    placeId: place.id
+                }));
             this.searchingStaticLocation = false;
             this.staticLocationSearchAttempted = true;
-            this.staticLocationSearchUnavailable =
-                !requestSucceeded && status !== zeroResultsStatus;
+            this.staticLocationSearchUnavailable = false;
             this.cdr.detectChanges();
-        });
+        } catch (error) {
+            if (
+                requestId !== this.staticLocationSearchRequestId ||
+                query !== String(this.staticLocationManualAddress || '').trim()
+            ) {
+                return;
+            }
+            console.warn('No fue posible buscar la ubicación en OpenStreetMap.', error);
+            this.staticLocationSuggestions = [];
+            this.searchingStaticLocation = false;
+            this.staticLocationSearchAttempted = true;
+            this.staticLocationSearchUnavailable = true;
+            this.cdr.detectChanges();
+        }
     }
 
     async selectStaticLocationSuggestion(suggestion: StaticLocationSuggestion): Promise<void> {
-        if (typeof google === 'undefined' || !suggestion?.placeId) return;
+        if (!suggestion?.placeId) return;
 
         this.staticLocationManualAddress = suggestion.description;
         this.staticLocationSuggestions = [];
         this.staticLocationSearchAttempted = false;
         this.staticLocationSearchUnavailable = false;
-        this.searchingStaticLocation = true;
+        this.searchingStaticLocation = false;
         this.staticLocationSearchRequestId++;
-
-        if (suggestion.placePrediction?.toPlace) {
-            try {
-                const place = suggestion.placePrediction.toPlace();
-                await place.fetchFields({
-                    fields: ['formattedAddress', 'location']
-                });
-                if (place.location) {
-                    const lat = place.location.lat();
-                    const lng = place.location.lng();
-                    const address = place.formattedAddress || suggestion.description;
-                    this.setStaticLocationPoint(lat, lng, address);
-                    const googleMapsUrl = this.buildGoogleMapsLink(lat, lng);
-                    this.user.static_location_url = googleMapsUrl;
-                    this.staticLocationGoogleMapsLink = googleMapsUrl;
-                    this.finishStaticLocationSelection();
-                    return;
-                }
-            } catch (error) {
-                console.warn('No fue posible cargar el detalle moderno del lugar; se usará geocodificación.', error);
-            }
-        }
-
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ placeId: suggestion.placeId }, (results: any[], status: any) => {
-            if (status === 'OK' && results?.[0]?.geometry?.location) {
-                const result = results[0];
-                const lat = result.geometry.location.lat();
-                const lng = result.geometry.location.lng();
-                this.setStaticLocationPoint(lat, lng, suggestion.description || result.formatted_address);
-                this.user.static_location_url = this.buildGoogleMapsLink(lat, lng);
-                this.staticLocationGoogleMapsLink = this.user.static_location_url;
-            } else {
-                this.messageService.add({
-                    severity: 'warn',
-                    summary: 'Ubicación no disponible',
-                    detail: 'No fue posible obtener las coordenadas de la ubicación seleccionada.'
-                });
-            }
-            this.finishStaticLocationSelection();
-        });
+        this.setStaticLocationPoint(
+            suggestion.latitude,
+            suggestion.longitude,
+            suggestion.description
+        );
+        this.user.static_location_url = suggestion.osmUrl
+            || this.buildOpenStreetMapLink(suggestion.latitude, suggestion.longitude);
+        this.staticLocationGoogleMapsLink = this.user.static_location_url;
+        this.finishStaticLocationSelection();
     }
 
     onStaticLocationSearchKeydown(event: KeyboardEvent): void {
@@ -2490,8 +2363,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
     private finishStaticLocationSelection(): void {
         this.searchingStaticLocation = false;
-        this.staticLocationAutocompleteSessionToken = null;
-        this.setupStaticLocationAutocomplete();
         this.cdr.detectChanges();
     }
 
@@ -2513,7 +2384,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             this.setStaticLocationPoint(
                 coordinates.latitude,
                 coordinates.longitude,
-                readableAddress || 'Ubicación desde Google Maps'
+                readableAddress || 'Ubicación desde enlace de mapa'
             );
             if (!readableAddress) {
                 this.reverseGeocodeStaticLocation(coordinates.latitude, coordinates.longitude);
@@ -2532,7 +2403,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                     this.setStaticLocationPoint(
                         resolved.latitude,
                         resolved.longitude,
-                        resolved.address || 'Ubicación desde Google Maps'
+                        resolved.address || 'Ubicación desde enlace de mapa'
                     );
                     if (!resolved.address) {
                         this.reverseGeocodeStaticLocation(resolved.latitude, resolved.longitude);
@@ -2575,42 +2446,41 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.userLocationMarker = null;
     }
 
-    private geocodeStaticLocation(address: string): void {
-        if (typeof google === 'undefined') return;
+    private async geocodeStaticLocation(address: string): Promise<void> {
+        try {
+            const response = await firstValueFrom(
+                this.userService.searchOpenStreetMapLocations(address, 1)
+            );
+            const place = response.results?.[0];
+            if (!place) throw new Error('No se encontraron resultados');
 
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ address: `${address}, República Dominicana` }, (results: any, status: any) => {
-            if (status === 'OK' && results?.[0]) {
-                const location = results[0].geometry.location;
-                const lat = location.lat();
-                const lng = location.lng();
-                this.setStaticLocationPoint(lat, lng, results[0].formatted_address || address);
-                this.user.static_location_url = this.buildGoogleMapsLink(lat, lng);
-                this.staticLocationGoogleMapsLink = this.user.static_location_url;
-            } else {
-                this.messageService.add({
-                    severity: 'warn',
-                    summary: 'Dirección no encontrada',
-                    detail: 'Intenta con una dirección más específica o selecciona el punto en el mapa.'
-                });
-            }
-        });
+            this.setStaticLocationPoint(place.latitude, place.longitude, place.displayName || address);
+            this.user.static_location_url = place.osmUrl
+                || this.buildOpenStreetMapLink(place.latitude, place.longitude);
+            this.staticLocationGoogleMapsLink = this.user.static_location_url;
+        } catch {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Dirección no encontrada',
+                detail: 'Intenta con una dirección más específica o selecciona el punto en el mapa.'
+            });
+        }
     }
 
-    geocodeLocation(address: string, zoomLevel: number) {
-        if (!this.userLocationMap || typeof google === 'undefined') return;
+    async geocodeLocation(address: string, zoomLevel: number): Promise<void> {
+        if (!this.userLocationMap) return;
 
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ address: address + ', República Dominicana' }, (results: any, status: any) => {
-            if (status === 'OK' && results && results[0]) {
-                const location = results[0].geometry.location;
-                // Move map
-                this.userLocationMap.setCenter([location.lng(), location.lat()]);
-                this.userLocationMap.setZoom(zoomLevel);
-            } else {
-                console.warn('Geocoding failed for: ', address, 'Status: ', status);
-            }
-        });
+        try {
+            const response = await firstValueFrom(
+                this.userService.searchOpenStreetMapLocations(address, 1)
+            );
+            const place = response.results?.[0];
+            if (!place) return;
+            this.userLocationMap.setCenter([place.longitude, place.latitude]);
+            this.userLocationMap.setZoom(zoomLevel);
+        } catch (error) {
+            console.warn('No se pudo ubicar en el mapa:', address, error);
+        }
     }
 
     focusMapOnSelection(level: 'province' | 'municipality' | 'sector') {
@@ -2651,7 +2521,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             this.user.static_location_address || 'Punto seleccionado en mapa',
             false
         );
-        this.user.static_location_url = this.buildGoogleMapsLink(lat, lng);
+        this.user.static_location_url = this.buildOpenStreetMapLink(lat, lng);
         this.staticLocationGoogleMapsLink = this.user.static_location_url;
         this.reverseGeocodeStaticLocation(lat, lng);
     }
@@ -2682,22 +2552,20 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     private async reverseGeocodeStaticLocation(lat: number, lng: number): Promise<void> {
-        if (typeof google === 'undefined' || !google.maps?.Geocoder) {
-            await this.initializeStaticLocationSearch();
+        try {
+            const response = await firstValueFrom(
+                this.userService.reverseGeocodeOpenStreetMap(lat, lng)
+            );
+            if (!response.result?.displayName) return;
+            this.user.static_location_address = response.result.displayName;
+            this.staticLocationManualAddress = response.result.displayName;
+        } catch (error) {
+            console.warn('No fue posible obtener la dirección desde OpenStreetMap.', error);
         }
-        if (typeof google === 'undefined' || !google.maps?.Geocoder) return;
-
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: { lat, lng } }, (results: any, status: any) => {
-            if (status === 'OK' && results?.[0]?.formatted_address) {
-                this.user.static_location_address = results[0].formatted_address;
-                this.staticLocationManualAddress = results[0].formatted_address;
-            }
-        });
     }
 
-    private buildGoogleMapsLink(lat: number, lng: number): string {
-        return `https://www.google.com/maps?q=${lat},${lng}`;
+    private buildOpenStreetMapLink(lat: number, lng: number): string {
+        return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=18/${lat}/${lng}`;
     }
 
     private toNullableNumber(value: any): number | null {

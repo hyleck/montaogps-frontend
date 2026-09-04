@@ -5,6 +5,7 @@ export const TARGET_FORM_STYLES = [
     './styles/prime-ng.css',
     './styles/settings.css',
     './styles/scrollbar.css',
+    './styles/records.css',
     './styles/dark-mode.css'
 ];
 
@@ -12,4 +13,4 @@ export * from './target-form-data.constants';
 
 export * from './target-form-translations.constants';
 
-export * from './target-form.types'; 
+export * from './target-form.types';

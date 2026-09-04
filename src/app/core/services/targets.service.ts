@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { lastValueFrom, Observable } from 'rxjs';
 import { timeout } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
-import { CreateTargetDto, Target, UpdateTargetDto, StopTimeResponse, RouteHistoryResponse, CreateProcessDto, ProcessResponse } from '../interfaces';
+import { CreateTargetDto, Target, UpdateTargetDto, StopTimeResponse, RouteHistoryResponse, CreateProcessDto, ProcessResponse, DeviceRecordsResponse } from '../interfaces';
 
 // Interfaz para la respuesta con totalCount
 export interface TargetsResponse {
@@ -523,7 +523,7 @@ export class TargetsService {
 
 
 
-  async sendSMS(simCardId: string, message: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2', sim_company?: string, targetId?: string): Promise<any> {
+  async sendSMS(simCardId: string, message: string, provider: 'myorion' | 'broadcaster' | 'twilio' | 'emnify' | 'myorion2', sim_company?: string, targetId?: string): Promise<any> {
     const url = `${environment.apiUrl}/sim-card`;
     const body = {
       id: simCardId,
@@ -543,7 +543,7 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
-  async getMessages(simCardId: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2'): Promise<any> {
+  async getMessages(simCardId: string, provider: 'myorion' | 'broadcaster' | 'twilio' | 'emnify' | 'myorion2'): Promise<any> {
     const url = `${environment.apiUrl}/sim-card/messages/${simCardId}`;
     const params = { provider: provider };
 
@@ -614,6 +614,11 @@ export class TargetsService {
     const url = `${environment.apiUrl}/process/by-reference/${encodeURIComponent(reference)}`;
     const observable = this.http.get<ProcessResponse[]>(url);
     return await lastValueFrom(observable);
+  }
+
+  async getDeviceRecords(deviceId: string): Promise<DeviceRecordsResponse> {
+    const url = `${environment.apiUrl}/process/device-records/${encodeURIComponent(deviceId)}`;
+    return await lastValueFrom(this.http.get<DeviceRecordsResponse>(url));
   }
 
   async getCanceledTargets(parentId: string): Promise<Target[]> {

@@ -313,3 +313,29 @@ export interface ProcessResponse {
   updatedAt?: string;
   expanded?: boolean; // Propiedad para controlar la expansión del accordion
 }
+
+export interface DeviceRecordEntry {
+  id: string;
+  occurredAt: string;
+  category: 'device' | 'request' | 'assignment' | 'installation' | 'status' | 'process';
+  title: string;
+  description: string;
+  status: 'info' | 'success' | 'warning' | 'error';
+  icon: string;
+  actor?: {
+    id?: string;
+    name: string;
+    email?: string;
+    role?: string;
+  };
+  source: {
+    type: 'device' | 'solicitud' | 'process';
+    id: string;
+  };
+}
+
+export interface DeviceRecordsResponse {
+  deviceId: string;
+  imei: string;
+  entries: DeviceRecordEntry[];
+}

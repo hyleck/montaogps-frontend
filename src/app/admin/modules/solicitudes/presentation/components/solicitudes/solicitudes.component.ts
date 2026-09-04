@@ -21,7 +21,7 @@ import {
 } from '../../../../../../core/services/solicitudes.service';
 import { VehicleBrandsService } from '../../../../../../core/services/vehicle-brands.service';
 import { ColorsService } from '../../../../../../core/services/colors.service';
-import { UserLatestLocation, UserService } from '../../../../../../core/services/user.service';
+import { OpenStreetMapPlace, UserLatestLocation, UserService } from '../../../../../../core/services/user.service';
 import { TargetsService } from '../../../../../../core/services/targets.service';
 import { ProtocolsService } from '../../../../../../core/services/protocols.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
@@ -34,7 +34,6 @@ import {
     getDeviceCancellationReasonLabel,
 } from '../../../../../../core/constants/device-cancellation-reasons.constant';
 import { INSTALLATION_LOCATIONS } from '../../../../management/presentation/components/management/target-form/constants/target-form-data.constants';
-import { SystemService } from '../../../../../../core/services/system.service';
 import { MapUtils } from '../../../../../../shareds/helpers/map.helper';
 import * as maplibregl from 'maplibre-gl';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
@@ -69,7 +68,9 @@ interface SolicitudLocationSuggestion {
     placeId: string;
     mainText: string;
     secondaryText: string;
-    placePrediction?: any;
+    latitude: number;
+    longitude: number;
+    osmUrl: string;
 }
 
 interface SolicitudCalendarDay {
@@ -505,8 +506,6 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     locationConfigSearching = false;
     locationConfigSearchAttempted = false;
     locationConfigSearchUnavailable = false;
-    private locationConfigAutocompleteService: any;
-    private locationConfigAutocompleteSessionToken: any;
     private locationConfigSearchTimer?: ReturnType<typeof setTimeout>;
     private locationConfigSearchRequestId = 0;
     showInstallData = false;
@@ -814,7 +813,6 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         private authService: AuthService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService,
-        private systemService: SystemService,
         private router: Router,
         private cdr: ChangeDetectorRef
     ) { }
@@ -947,21 +945,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     async geocodeInstLocation(address: string, zoomLevel: number): Promise<void> {
         if (!this.locationMap) return;
-        if (typeof google === 'undefined' || !google.maps?.Geocoder) {
-            await this.initializeSolicitudLocationPlaces();
-        }
-        if (typeof google === 'undefined' || !google.maps?.Geocoder) return;
-
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ address: address + ', República Dominicana' }, (results: any, status: any) => {
-            if (status === 'OK' && results && results[0]) {
-                const location = results[0].geometry.location;
-                this.locationMap.panTo([location.lng(), location.lat()]);
-                this.locationMap.setZoom(zoomLevel);
-            } else {
-                console.warn('Geocoding failed for: ', address, 'Status: ', status);
-            }
-        });
+        const coordinates = await this.geocodeProcessLocation(address);
+        if (!coordinates) return;
+        this.locationMap.panTo([coordinates.lng, coordinates.lat]);
+        this.locationMap.setZoom(zoomLevel);
     }
 
     focusInstMapOnSelection(level: 'province' | 'municipality' | 'sector') {
@@ -1936,7 +1923,6 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.locationConfigMethod = method;
         if (method === 'search') {
             setTimeout(() => {
-                void this.initializeSolicitudLocationPlaces();
                 this.solicitudLocationSearchInput?.nativeElement?.focus();
             });
         } else if (method === 'coordinates') {
@@ -1985,7 +1971,6 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     onSolicitudLocationConfigShow(): void {
         if (this.locationConfigMethod === 'search') {
             setTimeout(() => {
-                void this.initializeSolicitudLocationPlaces();
                 this.solicitudLocationSearchInput?.nativeElement?.focus();
             });
         } else if (this.locationConfigMethod === 'coordinates') {
@@ -2014,7 +1999,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.locationConfigSearchTimer = setTimeout(() => {
             this.locationConfigSearchTimer = undefined;
             void this.searchSolicitudLocationSuggestions(query);
-        }, 3000);
+        }, 700);
     }
 
     onSolicitudLocationSearchKeydown(event: KeyboardEvent): void {
@@ -2043,42 +2028,6 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.solicitudLocationSearchInput?.nativeElement?.focus();
     }
 
-    private async initializeSolicitudLocationPlaces(): Promise<void> {
-        try {
-            const systemConfigsResponse = await this.systemService.getAll().toPromise();
-            const systemConfigs = systemConfigsResponse?.[0];
-            const key = systemConfigs?.map_api1?.key;
-            if (!key) return;
-
-            await MapUtils.loadMapScript(
-                'google',
-                key,
-                systemConfigs?.map_api1?.url || 'https://maps.googleapis.com/maps/api/js'
-            );
-            if (!google.maps.places && typeof google.maps.importLibrary === 'function') {
-                await google.maps.importLibrary('places');
-            }
-            this.setupSolicitudLocationAutocomplete();
-        } catch (error) {
-            console.error('Error cargando Google Places para solicitudes:', error);
-        }
-    }
-
-    private setupSolicitudLocationAutocomplete(): void {
-        if (typeof google === 'undefined' || !google.maps?.places) return;
-        if (google.maps.places.AutocompleteService) {
-            this.locationConfigAutocompleteService ??=
-                new google.maps.places.AutocompleteService();
-        }
-        if (
-            !this.locationConfigAutocompleteSessionToken &&
-            google.maps.places.AutocompleteSessionToken
-        ) {
-            this.locationConfigAutocompleteSessionToken =
-                new google.maps.places.AutocompleteSessionToken();
-        }
-    }
-
     private async searchSolicitudLocationSuggestions(query: string): Promise<void> {
         if (
             query !== String(this.locationConfigSearchQuery || '').trim() ||
@@ -2087,179 +2036,61 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             return;
         }
 
-        await this.initializeSolicitudLocationPlaces();
-        const autocompleteSuggestion =
-            typeof google !== 'undefined'
-                ? google.maps?.places?.AutocompleteSuggestion
-                : null;
-
-        if (
-            !autocompleteSuggestion?.fetchAutocompleteSuggestions &&
-            !this.locationConfigAutocompleteService
-        ) {
-            this.locationConfigSearching = false;
-            this.locationConfigSearchAttempted = true;
-            this.locationConfigSearchUnavailable = true;
-            this.cdr.detectChanges();
-            return;
-        }
-
         const requestId = ++this.locationConfigSearchRequestId;
-        const request = {
-            input: query,
-            language: 'es',
-            region: 'do',
-            locationBias: {
-                west: -72.2,
-                south: 17.3,
-                east: -68.0,
-                north: 20.2
-            },
-            sessionToken: this.locationConfigAutocompleteSessionToken
-        };
-
-        if (autocompleteSuggestion?.fetchAutocompleteSuggestions) {
-            try {
-                const response =
-                    await autocompleteSuggestion.fetchAutocompleteSuggestions(request);
-                if (
-                    requestId !== this.locationConfigSearchRequestId ||
-                    query !== String(this.locationConfigSearchQuery || '').trim()
-                ) {
-                    return;
-                }
-
-                this.locationConfigSuggestions = (response?.suggestions || [])
-                    .map((suggestion: any) => {
-                        const prediction = suggestion.placePrediction;
-                        const description = prediction?.text?.toString?.() || '';
-                        return {
-                            description,
-                            placeId: prediction?.placeId || '',
-                            mainText:
-                                prediction?.mainText?.toString?.() || description,
-                            secondaryText:
-                                prediction?.secondaryText?.toString?.() || '',
-                            placePrediction: prediction
-                        };
-                    })
-                    .filter((suggestion: SolicitudLocationSuggestion) =>
-                        suggestion.description && suggestion.placeId
-                    );
-                this.locationConfigSearching = false;
-                this.locationConfigSearchAttempted = true;
-                this.cdr.detectChanges();
+        try {
+            const response = await firstValueFrom(
+                this.userService.searchOpenStreetMapLocations(query, 6)
+            );
+            if (
+                requestId !== this.locationConfigSearchRequestId ||
+                query !== String(this.locationConfigSearchQuery || '').trim()
+            ) {
                 return;
-            } catch (error) {
-                console.warn(
-                    'La API moderna de Places no respondió en solicitudes; se usará la compatible.',
-                    error
-                );
             }
-        }
 
-        if (!this.locationConfigAutocompleteService) {
+            this.locationConfigSuggestions = (response.results || [])
+                .map((place: OpenStreetMapPlace) => ({
+                    ...place,
+                    description: place.displayName,
+                    placeId: place.id
+                }));
+            this.locationConfigSearching = false;
+            this.locationConfigSearchAttempted = true;
+            this.locationConfigSearchUnavailable = false;
+            this.cdr.detectChanges();
+        } catch (error) {
+            if (
+                requestId !== this.locationConfigSearchRequestId ||
+                query !== String(this.locationConfigSearchQuery || '').trim()
+            ) {
+                return;
+            }
+            console.warn('No fue posible buscar la ubicación en OpenStreetMap.', error);
+            this.locationConfigSuggestions = [];
             this.locationConfigSearching = false;
             this.locationConfigSearchAttempted = true;
             this.locationConfigSearchUnavailable = true;
             this.cdr.detectChanges();
-            return;
         }
-
-        this.locationConfigAutocompleteService.getPlacePredictions(
-            request,
-            (predictions: any[] | null, status: any) => {
-                if (
-                    requestId !== this.locationConfigSearchRequestId ||
-                    query !== String(this.locationConfigSearchQuery || '').trim()
-                ) {
-                    return;
-                }
-
-                const okStatus =
-                    google.maps.places.PlacesServiceStatus?.OK || 'OK';
-                const zeroResultsStatus =
-                    google.maps.places.PlacesServiceStatus?.ZERO_RESULTS ||
-                    'ZERO_RESULTS';
-                const requestSucceeded = status === okStatus;
-                this.locationConfigSuggestions =
-                    requestSucceeded && predictions
-                        ? predictions.map(prediction => ({
-                            description: prediction.description,
-                            placeId: prediction.place_id,
-                            mainText:
-                                prediction.structured_formatting?.main_text ||
-                                prediction.description,
-                            secondaryText:
-                                prediction.structured_formatting?.secondary_text ||
-                                ''
-                        }))
-                        : [];
-                this.locationConfigSearching = false;
-                this.locationConfigSearchAttempted = true;
-                this.locationConfigSearchUnavailable =
-                    !requestSucceeded && status !== zeroResultsStatus;
-                this.cdr.detectChanges();
-            }
-        );
     }
 
     async selectSolicitudLocationSuggestion(
         suggestion: SolicitudLocationSuggestion
     ): Promise<void> {
-        if (typeof google === 'undefined' || !suggestion?.placeId) return;
+        if (!suggestion?.placeId) return;
 
         this.locationConfigSearchQuery = suggestion.description;
         this.locationConfigSuggestions = [];
-        this.locationConfigSearching = true;
+        this.locationConfigSearching = false;
         this.locationConfigSearchAttempted = false;
         this.locationConfigSearchUnavailable = false;
         this.locationConfigSearchRequestId += 1;
 
-        if (suggestion.placePrediction?.toPlace) {
-            try {
-                const place = suggestion.placePrediction.toPlace();
-                await place.fetchFields({
-                    fields: ['formattedAddress', 'location']
-                });
-                if (place.location) {
-                    this.applySolicitudLocationPlace(
-                        place.location.lat(),
-                        place.location.lng(),
-                        place.formattedAddress || suggestion.description
-                    );
-                    return;
-                }
-            } catch (error) {
-                console.warn(
-                    'No se pudo cargar el detalle moderno del lugar en solicitudes.',
-                    error
-                );
-            }
-        }
-
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode(
-            { placeId: suggestion.placeId },
-            (results: any[] | null, status: any) => {
-                if (status === 'OK' && results?.[0]?.geometry?.location) {
-                    const result = results[0];
-                    this.applySolicitudLocationPlace(
-                        result.geometry.location.lat(),
-                        result.geometry.location.lng(),
-                        suggestion.description || result.formatted_address
-                    );
-                    return;
-                }
-
-                this.locationConfigSearching = false;
-                this.messageService.add({
-                    severity: 'warn',
-                    summary: 'Ubicación no disponible',
-                    detail: 'No fue posible obtener las coordenadas de la ubicación seleccionada.'
-                });
-                this.cdr.detectChanges();
-            }
+        this.applySolicitudLocationPlace(
+            suggestion.latitude,
+            suggestion.longitude,
+            suggestion.description,
+            suggestion.osmUrl
         );
     }
 
@@ -2267,7 +2098,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         latitude: number,
         longitude: number,
         address: string,
-        googleMapsUrl?: string
+        mapUrl?: string
     ): void {
         const normalizedAddress = String(address || '').trim();
         this.locationConfigSelectedAddress = normalizedAddress;
@@ -2276,13 +2107,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.setSolicitudLocationCoordinates(latitude, longitude, true);
 
         const mapsUrl =
-            String(googleMapsUrl || '').trim() ||
-            `https://www.google.com/maps?q=${latitude},${longitude}`;
+            String(mapUrl || '').trim() ||
+            this.buildOpenStreetMapLink(latitude, longitude);
         this.locationConfigGoogleMapsLink = mapsUrl;
         this.setSolicitudLocationLink(mapsUrl);
         this.locationConfigSearching = false;
-        this.locationConfigAutocompleteSessionToken = null;
-        this.setupSolicitudLocationAutocomplete();
         this.cdr.detectChanges();
     }
 
@@ -2300,6 +2129,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }
 
         this.setSolicitudLocationCoordinates(lat, lng, true);
+        this.locationConfigGoogleMapsLink = this.buildOpenStreetMapLink(lat, lng);
+        this.setSolicitudLocationLink(this.locationConfigGoogleMapsLink);
         this.reverseGeocodeSolicitudLocation(lat, lng);
     }
 
@@ -2338,6 +2169,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                     longitude,
                     false
                 );
+                this.locationConfigGoogleMapsLink = this.buildOpenStreetMapLink(latitude, longitude);
+                this.setSolicitudLocationLink(this.locationConfigGoogleMapsLink);
                 this.reverseGeocodeSolicitudLocation(latitude, longitude);
             });
         } catch (error) {
@@ -2358,7 +2191,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Link no válido',
-                detail: 'Debe ser un enlace HTTPS oficial de Google Maps.'
+                detail: 'Debe ser un enlace HTTPS oficial de OpenStreetMap o Google Maps.'
             });
             return;
         }
@@ -2391,7 +2224,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Ubicación aplicada',
-                    detail: 'Se obtuvieron las coordenadas del enlace de Google Maps.'
+                    detail: 'Se obtuvieron las coordenadas del enlace de mapa.'
                 });
             },
             error: (error) => {
@@ -2516,31 +2349,26 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     private async reverseGeocodeSolicitudLocation(latitude: number, longitude: number): Promise<void> {
-        if (typeof google === 'undefined' || !google.maps?.Geocoder) {
-            await this.initializeSolicitudLocationPlaces();
-        }
-        if (typeof google === 'undefined' || !google.maps?.Geocoder) return;
-
         const requestId = this.locationConfigSearchRequestId;
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode(
-            { location: { lat: latitude, lng: longitude } },
-            (results: any[] | null, status: any) => {
-                if (
-                    requestId !== this.locationConfigSearchRequestId ||
-                    status !== 'OK' ||
-                    !results?.[0]?.formatted_address
-                ) {
-                    return;
-                }
-
-                const address = results[0].formatted_address;
-                this.locationConfigSelectedAddress = address;
-                this.locationConfigSearchQuery = address;
-                this.setSolicitudLocationAddress(address);
-                this.cdr.detectChanges();
+        try {
+            const response = await firstValueFrom(
+                this.userService.reverseGeocodeOpenStreetMap(latitude, longitude)
+            );
+            if (
+                requestId !== this.locationConfigSearchRequestId ||
+                !response.result?.displayName
+            ) {
+                return;
             }
-        );
+
+            const address = response.result.displayName;
+            this.locationConfigSelectedAddress = address;
+            this.locationConfigSearchQuery = address;
+            this.setSolicitudLocationAddress(address);
+            this.cdr.detectChanges();
+        } catch (error) {
+            console.warn('No fue posible obtener la dirección desde OpenStreetMap.', error);
+        }
     }
 
     private setSolicitudLocationLink(link: string): void {
@@ -3772,7 +3600,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 this.messageService.add({
                     severity: 'warn',
                     summary: 'Link requerido',
-                    detail: 'Pega un link de Google Maps antes de aplicarlo.'
+                    detail: 'Pega un enlace de mapa antes de aplicarlo.'
                 });
             }
             return !showFeedback;
@@ -3783,7 +3611,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Link no válido',
-                detail: 'Debe ser un link válido de Google Maps.'
+                detail: 'Debe ser un enlace válido de OpenStreetMap o Google Maps.'
             });
             return false;
         }
@@ -3809,7 +3637,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Link guardado',
-                    detail: 'El enlace se conservará para abrirlo directamente en Google Maps.'
+                    detail: 'El enlace se conservará para abrirlo directamente en el mapa.'
                 });
             }
             void this.refreshTechnicianRecommendation();
@@ -3829,7 +3657,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             this.messageService.add({
                 severity: 'success',
                 summary: 'Ubicación aplicada',
-                detail: 'La ubicación exacta fue tomada desde el link de Google Maps.'
+                detail: 'La ubicación exacta fue tomada desde el enlace de mapa.'
             });
         }
         return true;
@@ -3851,8 +3679,12 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                         || hostname.startsWith('www.google.'))
                     && pathname.startsWith('/maps')
                 );
+            const isOpenStreetMapHost = hostname === 'openstreetmap.org'
+                || hostname.endsWith('.openstreetmap.org');
 
-            return isMapsShortLink || isGoogleMapsHost ? parsed.toString() : null;
+            return isMapsShortLink || isGoogleMapsHost || isOpenStreetMapHost
+                ? parsed.toString()
+                : null;
         } catch {
             return null;
         }
@@ -3866,6 +3698,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
             /[?&](?:q|query|ll|center)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
             /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+            /#map=\d+(?:\.\d+)?\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)/,
             /(?:^|[^\d.-])(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)(?:$|[^\d.-])/,
         ];
 
@@ -3883,7 +3716,33 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             }
         }
 
+        try {
+            const parsed = new URL(raw);
+            const latitudeParam = parsed.searchParams.get('mlat');
+            const longitudeParam = parsed.searchParams.get('mlon');
+            const lat = Number(latitudeParam);
+            const lng = Number(longitudeParam);
+            if (
+                latitudeParam !== null &&
+                longitudeParam !== null &&
+                this.isValidCoordinatePair(lat, lng)
+            ) {
+                return {
+                    lat: Number(lat.toFixed(6)),
+                    lng: Number(lng.toFixed(6)),
+                };
+            }
+        } catch {
+            // Los patrones anteriores también soportan texto con coordenadas.
+        }
+
         return null;
+    }
+
+    private buildOpenStreetMapLink(latitude: number, longitude: number): string {
+        const lat = Number(latitude.toFixed(6));
+        const lng = Number(longitude.toFixed(6));
+        return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=18/${lat}/${lng}`;
     }
 
     private isValidCoordinatePair(lat: number, lng: number): boolean {
@@ -3897,22 +3756,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     async geocodeRootLocation(address: string, zoomLevel: number): Promise<void> {
         if (!this.rootLocationMap) return;
-        if (typeof google === 'undefined' || !google.maps?.Geocoder) {
-            await this.initializeSolicitudLocationPlaces();
-        }
-        if (typeof google === 'undefined' || !google.maps?.Geocoder) return;
-
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ address: address + ', República Dominicana' }, (results: any, status: any) => {
-            if (status === 'OK' && results && results[0]) {
-                const location = results[0].geometry.location;
-                // Move map
-                this.rootLocationMap.panTo([location.lng(), location.lat()]);
-                this.rootLocationMap.setZoom(zoomLevel);
-            } else {
-                console.warn('Geocoding failed for: ', address, 'Status: ', status);
-            }
-        });
+        const coordinates = await this.geocodeProcessLocation(address);
+        if (!coordinates) return;
+        this.rootLocationMap.panTo([coordinates.lng, coordinates.lat]);
+        this.rootLocationMap.setZoom(zoomLevel);
     }
 
     focusRootMapOnSelection(level: 'province' | 'municipality' | 'sector') {
@@ -5159,27 +5006,28 @@ async initLocationMap(): Promise<void> {
             let coordinates = this.processLocationMapCoordinates;
             const mapsUrl = installation.google_maps_url || solicitud.google_maps_url || '';
             if (!coordinates && mapsUrl) {
-                try {
-                    const resolved = await firstValueFrom(this.userService.resolveGoogleMapsLink(mapsUrl));
-                    const lat = Number(resolved?.latitude);
-                    const lng = Number(resolved?.longitude);
-                    if (this.isValidCoordinatePair(lat, lng)) {
-                        coordinates = { lat, lng };
-                        this.processLocationMapCoordinates = coordinates;
+                coordinates = this.extractCoordinatesFromGoogleMapsLink(mapsUrl);
+                if (coordinates) {
+                    this.processLocationMapCoordinates = coordinates;
+                } else {
+                    try {
+                        const resolved = await firstValueFrom(this.userService.resolveGoogleMapsLink(mapsUrl));
+                        const lat = Number(resolved?.latitude);
+                        const lng = Number(resolved?.longitude);
+                        if (this.isValidCoordinatePair(lat, lng)) {
+                            coordinates = { lat, lng };
+                            this.processLocationMapCoordinates = coordinates;
+                        }
+                        if (resolved?.address) {
+                            this.processLocationMapAddress = resolved.address;
+                        }
+                    } catch {
+                        // La dirección guardada todavía puede convertirse en coordenadas abajo.
                     }
-                    if (resolved?.address) {
-                        this.processLocationMapAddress = resolved.address;
-                    }
-                } catch {
-                    // If the link cannot be resolved, the stored address can still be geocoded below.
                 }
             }
 
             if (!coordinates && this.processLocationMapAddress) {
-                await this.initializeSolicitudLocationPlaces();
-                if (typeof google === 'undefined' || !google.maps?.Geocoder) {
-                    throw new Error('No se pudo convertir la dirección en coordenadas.');
-                }
                 coordinates = await this.geocodeProcessLocation(this.processLocationMapAddress);
                 this.processLocationMapCoordinates = coordinates;
             }
@@ -5213,20 +5061,17 @@ async initLocationMap(): Promise<void> {
         }
     }
 
-    private geocodeProcessLocation(address: string): Promise<{ lat: number; lng: number } | null> {
-        return new Promise(resolve => {
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ address }, (results, status) => {
-                if (status !== 'OK' || !results?.[0]?.geometry?.location) {
-                    resolve(null);
-                    return;
-                }
-                resolve({
-                    lat: results[0].geometry.location.lat(),
-                    lng: results[0].geometry.location.lng(),
-                });
-            });
-        });
+    private async geocodeProcessLocation(address: string): Promise<{ lat: number; lng: number } | null> {
+        try {
+            const response = await firstValueFrom(
+                this.userService.searchOpenStreetMapLocations(address, 1)
+            );
+            const place = response.results?.[0];
+            return place ? { lat: place.latitude, lng: place.longitude } : null;
+        } catch (error) {
+            console.warn('No se pudo convertir la dirección con OpenStreetMap.', error);
+            return null;
+        }
     }
 
     getInstallationLocationLabel(value?: string): string {

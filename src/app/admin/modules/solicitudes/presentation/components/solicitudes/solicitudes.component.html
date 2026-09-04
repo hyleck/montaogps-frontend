@@ -1043,7 +1043,7 @@
             <i class="pi pi-map-marker"></i>
             <div>
                 <strong>¿Cómo deseas colocar la ubicación?</strong>
-                <span>Busca un lugar en Google Maps, escribe las coordenadas, selecciona el punto o pega un enlace.</span>
+                <span>Busca un lugar en OpenStreetMap, escribe las coordenadas, selecciona el punto o pega un enlace.</span>
             </div>
         </div>
 
@@ -1053,7 +1053,7 @@
                 (click)="selectSolicitudLocationMethod('search')">
                 <span class="sol-location-config-method__icon"><i class="pi pi-search"></i></span>
                 <span>
-                    <strong>Buscar en Google Maps</strong>
+                    <strong>Buscar en OpenStreetMap</strong>
                     <small>Negocios, ciudades, direcciones y lugares.</small>
                 </span>
             </button>
@@ -1071,8 +1071,8 @@
                 (click)="selectSolicitudLocationMethod('link')">
                 <span class="sol-location-config-method__icon"><i class="pi pi-link"></i></span>
                 <span>
-                    <strong>Link de Google Maps</strong>
-                    <small>Acepta enlaces completos o acortados.</small>
+                    <strong>Enlace de mapa</strong>
+                    <small>Acepta OpenStreetMap y Google Maps.</small>
                 </span>
             </button>
         </div>
@@ -1091,7 +1091,7 @@
                     [(ngModel)]="locationConfigSearchQuery"
                     autocomplete="off"
                     spellcheck="false"
-                    aria-label="Buscar negocios, ciudades, direcciones y lugares en Google Maps"
+                    aria-label="Buscar negocios, ciudades, direcciones y lugares en OpenStreetMap"
                     aria-autocomplete="list"
                     [attr.aria-expanded]="locationConfigSuggestions.length > 0"
                     aria-controls="solicitudLocationSuggestions"
@@ -1111,20 +1111,20 @@
             </div>
 
             <small class="sol-location-config-help">
-                Escribe al menos 3 caracteres. Google buscará 3 segundos después de que dejes de escribir.
+                Escribe al menos 3 caracteres. La búsqueda comienza poco después de que dejes de escribir.
             </small>
 
             <div class="sol-location-search-status"
                 *ngIf="locationConfigSearching"
                 aria-live="polite">
                 <i class="pi pi-spin pi-spinner"></i>
-                <span>Buscando lugares en Google Maps...</span>
+                <span>Buscando lugares en OpenStreetMap...</span>
             </div>
 
             <div id="solicitudLocationSuggestions"
                 class="sol-location-suggestions"
                 role="listbox"
-                aria-label="Sugerencias de Google Maps"
+                aria-label="Sugerencias de OpenStreetMap"
                 *ngIf="!locationConfigSearching && locationConfigSuggestions.length">
                 <button type="button"
                     class="sol-location-suggestion"
@@ -1138,7 +1138,7 @@
                     </span>
                     <i class="pi pi-angle-right sol-location-suggestion__arrow"></i>
                 </button>
-                <div class="sol-location-google-attribution">Resultados de Google Maps</div>
+                <div class="sol-location-google-attribution">© OpenStreetMap contributors</div>
             </div>
 
             <div class="sol-location-search-status"
@@ -1152,7 +1152,7 @@
                 *ngIf="!locationConfigSearching && locationConfigSearchUnavailable"
                 aria-live="polite">
                 <i class="pi pi-exclamation-triangle"></i>
-                <span>No se pudo conectar con Google Maps. Intenta nuevamente.</span>
+                <span>No se pudo consultar OpenStreetMap. Intenta nuevamente.</span>
             </div>
         </section>
 
@@ -1224,7 +1224,7 @@
         <section class="sol-location-config-option" *ngIf="locationConfigMethod === 'link'">
             <div class="sol-location-config-option__title">
                 <i class="pi pi-link"></i>
-                <span>Usar link de Google Maps</span>
+                <span>Usar enlace de mapa</span>
             </div>
             <div class="sol-location-config-link">
                 <input type="url" [(ngModel)]="locationConfigGoogleMapsLink"
@@ -1237,7 +1237,7 @@
                 </button>
             </div>
             <small class="sol-location-config-help">
-                Los enlaces acortados se resuelven automáticamente para obtener sus coordenadas.
+                Puedes usar enlaces de OpenStreetMap o Google Maps. Los enlaces acortados de Google también son compatibles.
             </small>
         </section>
 
@@ -2120,7 +2120,7 @@
     </ng-template>
 </p-dialog>
 
-<!-- Internal map for a process location; never redirects to Google Maps. -->
+<!-- Internal map for a process location. -->
 <p-dialog [(visible)]="processLocationMapDialogVisible"
     [style]="{width: '780px'}"
     [breakpoints]="{'850px': '94vw'}"

@@ -5700,6 +5700,227 @@ textarea.form-input {
   gap: .5rem;
 }
 
+/* Cancelación de conduces: superficies y contraste para modo oscuro. */
+html.app-dark .conduce-cancellation-dialog {
+  overflow: hidden;
+  border: 1px solid #343943 !important;
+  border-radius: 16px !important;
+  background: #17191e !important;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .62) !important;
+}
+
+html.app-dark .conduce-cancellation-dialog .p-dialog-header {
+  padding: 1rem 1.2rem !important;
+  border-bottom-color: #30343d !important;
+  background: #202227 !important;
+  color: #f8fafc !important;
+}
+
+html.app-dark .conduce-cancellation-dialog .p-dialog-header .p-dialog-title {
+  color: #f8fafc !important;
+}
+
+html.app-dark .conduce-cancellation-dialog .p-dialog-header-close {
+  color: #9ca6b5 !important;
+}
+
+html.app-dark .conduce-cancellation-dialog .p-dialog-header-close:hover {
+  background: rgba(255, 255, 255, .07) !important;
+  color: #fff !important;
+}
+
+html.app-dark .conduce-cancellation-dialog .p-dialog-content {
+  border-top: 0 !important;
+  background: #17191e !important;
+  color: #e8edf5 !important;
+}
+
+html.app-dark .conduce-cancellation-dialog .p-dialog-footer {
+  padding: .75rem 1.2rem !important;
+  border-top-color: #30343d !important;
+  background: #202227 !important;
+}
+
+html.app-dark .conduce-cancellation-summary {
+  border-color: #3a404b;
+  background: linear-gradient(135deg, #22252c, #1d2026);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025);
+}
+
+html.app-dark .conduce-cancellation-summary > span {
+  background: rgba(248, 81, 85, .14);
+  color: #ff6b70;
+}
+
+html.app-dark .conduce-cancellation-summary strong,
+html.app-dark .conduce-cancellation-movement__summary strong,
+html.app-dark .conduce-cancellation-movement__route strong,
+html.app-dark .conduce-cancellation-origin-tools__heading strong,
+html.app-dark .conduce-cancellation-origin-field > label,
+html.app-dark .conduce-cancellation-body > label {
+  color: #f1f5f9;
+}
+
+html.app-dark .conduce-cancellation-summary p,
+html.app-dark .conduce-cancellation-movement__summary p,
+html.app-dark .conduce-cancellation-movement__route small,
+html.app-dark .conduce-cancellation-movement__route span,
+html.app-dark .conduce-cancellation-movement__message,
+html.app-dark .conduce-cancellation-origin-tools__heading small,
+html.app-dark .conduce-cancellation-origin-tools__controls > label {
+  color: #9da8b8;
+}
+
+html.app-dark .conduce-cancellation-origin-tools {
+  border-color: rgba(96, 165, 250, .3);
+  background: linear-gradient(135deg, rgba(59, 130, 246, .14), rgba(37, 99, 235, .045));
+}
+
+html.app-dark .conduce-cancellation-origin-tools__heading > span,
+html.app-dark .conduce-cancellation-movement__summary > span {
+  background: rgba(59, 130, 246, .16);
+  color: #60a5fa;
+}
+
+html.app-dark .conduce-cancellation-origin-tools__heading em {
+  background: rgba(59, 130, 246, .16);
+  color: #93c5fd;
+}
+
+html.app-dark .conduce-cancellation-movement {
+  border-color: #353c48;
+  background: #20242b;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, .16), inset 0 1px 0 rgba(255, 255, 255, .02);
+}
+
+html.app-dark .conduce-cancellation-movement.needs-origin {
+  border-color: rgba(96, 165, 250, .38);
+}
+
+html.app-dark .conduce-cancellation-movement.is-blocked {
+  border-color: rgba(248, 113, 113, .7);
+  background: rgba(127, 29, 29, .15);
+}
+
+html.app-dark .conduce-cancellation-movement__summary small {
+  color: #60a5fa;
+}
+
+html.app-dark .conduce-cancellation-dialog p-dropdown.p-dropdown.p-select {
+  border-color: #414957 !important;
+  background: #14171c !important;
+  color: #e8edf5 !important;
+}
+
+html.app-dark .conduce-cancellation-dialog p-dropdown.p-dropdown.p-select:hover {
+  border-color: #5b6677 !important;
+}
+
+html.app-dark .conduce-cancellation-dialog p-dropdown.p-dropdown.p-select.p-focus {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, .16) !important;
+}
+
+html.app-dark .conduce-cancellation-dialog .p-select-label {
+  color: #e5eaf2 !important;
+}
+
+html.app-dark .conduce-cancellation-dialog .p-select-label.p-placeholder,
+html.app-dark .conduce-cancellation-dialog .p-select-dropdown,
+html.app-dark .conduce-cancellation-dialog .p-select-clear-icon {
+  color: #7f8998 !important;
+}
+
+html.app-dark .conduce-cancellation-body textarea {
+  border-color: #3c4350;
+  background: #12151a;
+  color: #eef2f7;
+  caret-color: #60a5fa;
+}
+
+html.app-dark .conduce-cancellation-body textarea::placeholder {
+  color: #747e8d;
+  opacity: 1;
+}
+
+html.app-dark .conduce-cancellation-body textarea:hover {
+  border-color: #525c6b;
+}
+
+html.app-dark .conduce-cancellation-body textarea:focus {
+  border-color: #60a5fa;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, .15);
+}
+
+html.app-dark .conduce-cancellation-dialog .p-dialog-footer .p-button-text {
+  color: #c3cbd7 !important;
+}
+
+html.app-dark .conduce-cancellation-dialog .p-dialog-footer .p-button-text:hover {
+  background: rgba(255, 255, 255, .06) !important;
+}
+
+html.app-dark .conduce-cancellation-dialog .p-dialog-footer .p-button-outlined {
+  border-color: #536071 !important;
+  background: rgba(255, 255, 255, .025) !important;
+  color: #d5dce6 !important;
+}
+
+html.app-dark .conduce-cancellation-dialog .p-dialog-footer .p-button-outlined:hover {
+  border-color: #708096 !important;
+  background: rgba(255, 255, 255, .065) !important;
+}
+
+html.app-dark .conduce-cancellation-dialog .p-dialog-footer .p-button-danger {
+  border-color: #ef4f55 !important;
+  background: #e5484d !important;
+  color: #fff !important;
+  box-shadow: 0 6px 18px rgba(229, 72, 77, .2);
+}
+
+html.app-dark .conduce-cancellation-dialog .p-dialog-footer .p-button-danger:hover:not(:disabled) {
+  border-color: #f26368 !important;
+  background: #f05257 !important;
+}
+
+html.app-dark .conduce-cancellation-dialog .p-dialog-footer .p-button:disabled {
+  box-shadow: none;
+  opacity: .46;
+}
+
+html.app-dark .conduce-origin-dropdown-panel {
+  overflow: hidden;
+  border: 1px solid #3d4552 !important;
+  border-radius: 11px !important;
+  background: #1b1e24 !important;
+  color: #e8edf5 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .5) !important;
+}
+
+html.app-dark .conduce-origin-dropdown-panel .p-select-filter,
+html.app-dark .conduce-origin-dropdown-panel .p-dropdown-filter {
+  border-color: #3d4552 !important;
+  background: #12151a !important;
+  color: #eef2f7 !important;
+}
+
+html.app-dark .conduce-origin-dropdown-panel .p-select-option,
+html.app-dark .conduce-origin-dropdown-panel .p-dropdown-item {
+  color: #d7dee9 !important;
+}
+
+html.app-dark .conduce-origin-dropdown-panel .p-select-option:hover,
+html.app-dark .conduce-origin-dropdown-panel .p-dropdown-item:hover {
+  background: rgba(96, 165, 250, .1) !important;
+}
+
+html.app-dark .conduce-origin-dropdown-panel .p-select-option.p-selected,
+html.app-dark .conduce-origin-dropdown-panel .p-dropdown-item.p-highlight {
+  background: rgba(59, 130, 246, .18) !important;
+  color: #bfdbfe !important;
+}
+
 @media (max-width: 720px) {
   .conduce-cancellation-origin-tools,
   .conduce-cancellation-movement {

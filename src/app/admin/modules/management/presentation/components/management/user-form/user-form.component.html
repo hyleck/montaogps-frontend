@@ -827,7 +827,7 @@
                 (click)="selectStaticLocationMethod('search')">
                 <span class="static-location-method__icon"><i class="pi pi-search"></i></span>
                 <span class="static-location-method__copy">
-                    <strong>Buscar en Google Maps</strong>
+                    <strong>Buscar en OpenStreetMap</strong>
                     <small>Negocios, ciudades, direcciones y lugares.</small>
                 </span>
             </button>
@@ -845,8 +845,8 @@
                 (click)="selectStaticLocationMethod('link')">
                 <span class="static-location-method__icon"><i class="pi pi-link"></i></span>
                 <span class="static-location-method__copy">
-                    <strong>Link de Google Maps</strong>
-                    <small>Pega un enlace completo o acortado.</small>
+                    <strong>Enlace de mapa</strong>
+                    <small>Pega un enlace de OpenStreetMap o Google Maps.</small>
                 </span>
             </button>
         </div>
@@ -867,7 +867,7 @@
                     name="staticLocationManualAddress"
                     autocomplete="off"
                     spellcheck="false"
-                    aria-label="Buscar negocios, ciudades, direcciones y lugares en Google Maps"
+                    aria-label="Buscar negocios, ciudades, direcciones y lugares en OpenStreetMap"
                     aria-autocomplete="list"
                     [attr.aria-expanded]="staticLocationSuggestions.length > 0"
                     aria-controls="staticLocationSuggestions"
@@ -887,18 +887,18 @@
             </div>
 
             <small class="static-location-help">
-                Escribe al menos 3 caracteres. La búsqueda se realizará 3 segundos después de que dejes de escribir.
+                Escribe al menos 3 caracteres. La búsqueda comienza poco después de que dejes de escribir.
             </small>
 
             <div class="static-location-search-status" *ngIf="searchingStaticLocation" aria-live="polite">
                 <i class="pi pi-spin pi-spinner"></i>
-                <span>Buscando lugares en Google Maps...</span>
+                <span>Buscando lugares en OpenStreetMap...</span>
             </div>
 
             <div id="staticLocationSuggestions"
                 class="static-location-suggestions"
                 role="listbox"
-                aria-label="Sugerencias de Google Maps"
+                aria-label="Sugerencias de OpenStreetMap"
                 *ngIf="!searchingStaticLocation && staticLocationSuggestions.length">
                 <button type="button"
                     class="static-location-suggestion"
@@ -912,7 +912,7 @@
                     </span>
                     <i class="pi pi-angle-right static-location-suggestion__arrow"></i>
                 </button>
-                <div class="static-location-google-attribution">Resultados de Google Maps</div>
+                <div class="static-location-google-attribution">© OpenStreetMap contributors</div>
             </div>
 
             <div class="static-location-search-status static-location-search-status--empty"
@@ -926,7 +926,7 @@
                 *ngIf="!searchingStaticLocation && staticLocationSearchUnavailable"
                 aria-live="polite">
                 <i class="pi pi-exclamation-triangle"></i>
-                <span>No se pudo conectar con Google Maps. Intenta nuevamente.</span>
+                <span>No se pudo consultar OpenStreetMap. Intenta nuevamente.</span>
             </div>
         </section>
 
@@ -965,7 +965,7 @@
         <section class="static-location-option" *ngIf="staticLocationMethod === 'link'">
             <div class="static-location-option__title">
                 <i class="pi pi-link"></i>
-                <span>Usar link de Google Maps</span>
+                <span>Usar enlace de mapa</span>
             </div>
             <div class="static-location-field">
                 <input type="url"
@@ -980,7 +980,7 @@
                 </button>
             </div>
             <small class="static-location-help">
-                Los enlaces acortados se resolverán automáticamente para obtener sus coordenadas.
+                Puedes usar enlaces de OpenStreetMap o Google Maps. Los enlaces acortados de Google también son compatibles.
             </small>
         </section>
 

@@ -18,7 +18,7 @@ import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.servi
 import { ColorsService } from 'src/app/core/services/colors.service';
 import { TargetsService } from 'src/app/core/services/targets.service';
 import { ServersService } from 'src/app/core/services/servers.service';
-import { CreateTargetDto, Target, UpdateTargetDto, TargetDevice, CreateProcessDto, ProcessResponse, TargetTransferHistoryEntry } from 'src/app/core/interfaces/target.interface';
+import { CreateTargetDto, Target, UpdateTargetDto, TargetDevice, CreateProcessDto, ProcessResponse, TargetTransferHistoryEntry, DeviceRecordEntry } from 'src/app/core/interfaces/target.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { Protocol } from 'src/app/core/interfaces/protocol.interface';
 import { AuthService } from 'src/app/core/services/auth.service';
@@ -259,6 +259,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Lista de procesos del target actual
     processList: ProcessResponse[] = [];
     isLoadingProcesses: boolean = false;
+    deviceRecords: DeviceRecordEntry[] = [];
+    isLoadingDeviceRecords: boolean = false;
+    private deviceRecordsRequestId = 0;
     displayInstallationRegistrationDialog: boolean = false;
     installationRegistrationStep: number = 1;
     isRegisteringInstallation: boolean = false;
@@ -1681,6 +1684,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     private async setupEditTarget(target: TargetDevice) {
         try {
+        this.deviceRecords = [];
+        this.deviceRecordsRequestId++;
         const shouldOpenInstallationRegistration = Boolean(
             (target as any)?._openInstallationRegistration
         );
@@ -1992,8 +1997,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         if (simCompany.includes('emnify') || simCompany === 'global-e') {
             provider = 'emnify';
-        } else if (simCompany.includes('twilio') || simCompany === 'nacionales') {
-            provider = 'twilio';
+        } else if (simCompany.includes('broadcaster') || simCompany.includes('twilio') || simCompany === 'nacionales') {
+            provider = 'broadcaster';
         } else if (simCompany === 'global-m') {
             provider = 'myorion';
         } else if (simCompany === 'global-m2') {
@@ -2236,6 +2241,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.incosisProfileRequestId++;
         this.isCheckingIncosisClientProfile = false;
         this.isConsignmentClient = false;
+        this.deviceRecords = [];
+        this.isLoadingDeviceRecords = false;
+        this.deviceRecordsRequestId++;
         // No modificamos showColorOptions ya que queremos que siempre esté visible
     }
 
@@ -2822,7 +2830,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.customSmsMessage = ''; // Limpiar el campo después de enviar
     }
 
-    private async sendSmsMessage(message: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2'): Promise<void> {
+    private async sendSmsMessage(message: string, provider: 'myorion' | 'broadcaster' | 'twilio' | 'emnify' | 'myorion2'): Promise<void> {
         if (!this.hasOfficeActionAuthorization()) return;
         // Validación específica para global-m2: Requiere IMSI ID cargado
         if (this.target.sim_company?.toLowerCase() === 'global-m2') {
@@ -3051,22 +3059,23 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }
     }
 
-    private getProviderFromSimCompany(): 'myorion' | 'twilio' | 'emnify' | 'myorion2' | null {
+    private getProviderFromSimCompany(): 'myorion' | 'broadcaster' | 'twilio' | 'emnify' | 'myorion2' | null {
         if (!this.target.sim_company) {
             return null;
         }
 
         // Mapear tipos de SIM card a proveedores
-        const providerMap: Record<string, 'myorion' | 'twilio' | 'emnify' | 'myorion2'> = {
+        const providerMap: Record<string, 'myorion' | 'broadcaster' | 'twilio' | 'emnify' | 'myorion2'> = {
             'myorion': 'myorion',
-            'twilio': 'twilio',
+            'broadcaster': 'broadcaster',
+            'twilio': 'broadcaster',
             'emnify': 'emnify',
             'myorion2': 'myorion2',
-            'nacionales': 'twilio', // nacionales = twilio
+            'nacionales': 'broadcaster',
             'global-e': 'emnify', // global-e = emnify
             'global-m': 'myorion', // global-m = myorion
             'global-m2': 'myorion2', // global-m2 = myorion2
-            'internacionales': 'twilio' // Mantener por compatibilidad
+            'internacionales': 'broadcaster'
         };
 
         return providerMap[this.target.sim_company.toLowerCase()] || null;
@@ -4912,7 +4921,48 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
         } finally {
             this.isLoadingProcesses = false;
+            if (this.isEmployeeRecordsViewer()) {
+                void this.loadDeviceRecords(false);
+            }
         }
+    }
+
+    async loadDeviceRecords(showErrorToast: boolean = true): Promise<void> {
+        const targetId = this.getCurrentTargetId();
+        const requestId = ++this.deviceRecordsRequestId;
+        if (!targetId || !this.isEmployeeRecordsViewer()) {
+            this.deviceRecords = [];
+            return;
+        }
+
+        try {
+            this.isLoadingDeviceRecords = true;
+            const response = await this.targetsService.getDeviceRecords(targetId);
+            if (requestId !== this.deviceRecordsRequestId || targetId !== this.getCurrentTargetId()) return;
+            this.deviceRecords = Array.isArray(response?.entries) ? response.entries : [];
+        } catch (error) {
+            if (requestId !== this.deviceRecordsRequestId) return;
+            console.error('Error al cargar los registros del dispositivo:', error);
+            this.deviceRecords = [];
+            if (showErrorToast) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: getApiErrorMessage(error, 'No se pudieron cargar los registros del dispositivo')
+                });
+            }
+        } finally {
+            if (requestId === this.deviceRecordsRequestId) {
+                this.isLoadingDeviceRecords = false;
+            }
+        }
+    }
+
+    private isEmployeeRecordsViewer(): boolean {
+        const currentUser = this.authService.getCurrentUser();
+        return String(
+            this.currentUserAffiliationTypeId || currentUser?.affiliation_type_id || ''
+        ).trim().toLowerCase() === 'empleado';
     }
 
     private getCurrentTargetId(): string {

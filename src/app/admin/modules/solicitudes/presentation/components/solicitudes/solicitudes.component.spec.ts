@@ -122,7 +122,6 @@ describe('SolicitudesComponent scheduled date editing', () => {
             confirmationService as any,
             {} as any,
             {} as any,
-            {} as any,
         );
         spyOn(component, 'initRootLocationMap');
         spyOn(component, 'openInstallationModal');

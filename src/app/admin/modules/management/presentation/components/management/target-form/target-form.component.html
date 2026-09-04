@@ -1393,6 +1393,83 @@
                             <app-cloud [targetId]="target._id"></app-cloud>
                         </div>
                     </p-tabPanel>
+
+                    <p-tabPanel *ngIf="isEditMode && currentUserAffiliationTypeId === 'empleado'">
+                        <ng-template pTemplate="header">
+                            <i class="tab-icon pi pi-list"></i>
+                            <span class="tab-text">Registros</span>
+                        </ng-template>
+
+                        <section class="device-records" aria-labelledby="device-records-title">
+                            <header class="device-records__header">
+                                <div class="device-records__heading">
+                                    <span class="device-records__heading-icon" aria-hidden="true">
+                                        <i class="pi pi-history"></i>
+                                    </span>
+                                    <div>
+                                        <h3 id="device-records-title">Registro del dispositivo</h3>
+                                        <p>Acciones realizadas con este dispositivo, ordenadas paso a paso.</p>
+                                    </div>
+                                </div>
+                                <div class="device-records__header-actions">
+                                    <span class="device-records__count" *ngIf="!isLoadingDeviceRecords">
+                                        {{ deviceRecords.length }} {{ deviceRecords.length === 1 ? 'registro' : 'registros' }}
+                                    </span>
+                                    <button type="button" class="device-records__refresh"
+                                        (click)="loadDeviceRecords(true)" [disabled]="isLoadingDeviceRecords"
+                                        aria-label="Actualizar registros">
+                                        <i class="pi"
+                                            [ngClass]="isLoadingDeviceRecords ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
+                                        <span>Actualizar</span>
+                                    </button>
+                                </div>
+                            </header>
+
+                            <div class="device-records__loading" *ngIf="isLoadingDeviceRecords">
+                                <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                                <span>Cargando el historial del dispositivo...</span>
+                            </div>
+
+                            <div class="device-records__empty"
+                                *ngIf="!isLoadingDeviceRecords && deviceRecords.length === 0">
+                                <span><i class="pi pi-inbox" aria-hidden="true"></i></span>
+                                <strong>Todavía no hay registros</strong>
+                                <p>Las solicitudes, asignaciones, instalaciones y demás acciones aparecerán aquí.</p>
+                            </div>
+
+                            <ol class="device-records__timeline"
+                                *ngIf="!isLoadingDeviceRecords && deviceRecords.length > 0">
+                                <li class="device-records__entry" *ngFor="let record of deviceRecords; let last = last"
+                                    [class.device-records__entry--last]="last">
+                                    <div class="device-records__rail" aria-hidden="true">
+                                        <span class="device-records__marker"
+                                            [ngClass]="'device-records__marker--' + record.status">
+                                            <i class="pi" [ngClass]="record.icon"></i>
+                                        </span>
+                                    </div>
+                                    <article class="device-records__card"
+                                        [ngClass]="'device-records__card--' + record.status">
+                                        <div class="device-records__card-top">
+                                            <strong>{{ record.title }}</strong>
+                                            <time [attr.datetime]="record.occurredAt">
+                                                {{ formatDateTime(record.occurredAt) }}
+                                            </time>
+                                        </div>
+                                        <p>{{ record.description }}</p>
+                                        <footer *ngIf="record.actor">
+                                            <span class="device-records__actor-icon" aria-hidden="true">
+                                                <i class="pi pi-user"></i>
+                                            </span>
+                                            <span>
+                                                <small *ngIf="record.actor.role">{{ record.actor.role }}</small>
+                                                <b>{{ record.actor.name }}</b>
+                                            </span>
+                                        </footer>
+                                    </article>
+                                </li>
+                            </ol>
+                        </section>
+                    </p-tabPanel>
                 </p-tabView>
 
                 <!-- Modal de detalles de activación -->

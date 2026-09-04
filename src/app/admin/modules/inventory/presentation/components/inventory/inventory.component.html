@@ -1888,7 +1888,8 @@
           <div>
             <p-dropdown inputId="conduce-origin-all" [(ngModel)]="cancellationBulkOrigin" [options]="warehouses"
               optionLabel="name" optionValue="_id" appendTo="body" [filter]="true" filterBy="name"
-              placeholder="Seleccionar almacén" [showClear]="true"></p-dropdown>
+              panelStyleClass="conduce-origin-dropdown-panel" placeholder="Seleccionar almacén"
+              [showClear]="true"></p-dropdown>
             <button type="button" class="conduce-origin-apply-button"
               [disabled]="!cancellationBulkOrigin || cancellationLoading || cancellationSaving" (click)="applyBulkCancellationOrigin()">
               <i class="pi pi-check"></i>
@@ -1933,7 +1934,8 @@
             [ngModel]="cancellationOrigins[cancellationOriginKey(movement)]"
             (ngModelChange)="setCancellationOrigin(movement, $event)" [options]="warehouses"
             optionLabel="name" optionValue="_id" appendTo="body" [filter]="true" filterBy="name"
-            placeholder="Seleccionar almacén" [showClear]="true"></p-dropdown>
+            panelStyleClass="conduce-origin-dropdown-panel" placeholder="Seleccionar almacén"
+            [showClear]="true"></p-dropdown>
         </div>
         <small *ngIf="movement.state === 'returned'" class="conduce-cancellation-movement__message">Ya fue devuelto; no se repetirá.</small>
         <small *ngIf="movement.state === 'unchanged'" class="conduce-cancellation-movement__message">No se trasladó por este conduce; conservará su ubicación.</small>

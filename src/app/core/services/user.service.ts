@@ -100,6 +100,30 @@ export interface ResolvedGoogleMapsLink {
   address?: string;
 }
 
+export interface OpenStreetMapPlace {
+  id: string;
+  displayName: string;
+  mainText: string;
+  secondaryText: string;
+  latitude: number;
+  longitude: number;
+  osmUrl: string;
+  category?: string;
+  type?: string;
+}
+
+export interface OpenStreetMapSearchResponse {
+  provider: 'openstreetmap';
+  attribution: string;
+  results: OpenStreetMapPlace[];
+}
+
+export interface OpenStreetMapReverseResponse {
+  provider: 'openstreetmap';
+  attribution: string;
+  result: OpenStreetMapPlace | null;
+}
+
 export interface LocatedUser {
   id: string;
   name: string;
@@ -143,8 +167,24 @@ export interface PersonalizedCallHistory {
 })
 export class UserService {
   private apiUrl = `${environment.apiUrl}/users`;
+  private geocodingApiUrl = `${environment.apiUrl}/geocoding`;
 
   constructor(private http: HttpClient) { }
+
+  searchOpenStreetMapLocations(query: string, limit: number = 6): Observable<OpenStreetMapSearchResponse> {
+    return this.http.get<OpenStreetMapSearchResponse>(`${this.geocodingApiUrl}/search`, {
+      params: { q: query, limit: String(limit) }
+    });
+  }
+
+  reverseGeocodeOpenStreetMap(
+    latitude: number,
+    longitude: number
+  ): Observable<OpenStreetMapReverseResponse> {
+    return this.http.get<OpenStreetMapReverseResponse>(`${this.geocodingApiUrl}/reverse`, {
+      params: { latitude: String(latitude), longitude: String(longitude) }
+    });
+  }
 
   getAll(parent?: string): Observable<User[]> {
     let params = {};
