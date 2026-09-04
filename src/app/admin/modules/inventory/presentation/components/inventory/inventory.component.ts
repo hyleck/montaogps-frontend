@@ -11,6 +11,7 @@ import {
   Package,
   Warehouse,
   Conduce,
+  ConduceCancellationPreview,
   UnregisteredInventorySimAlert,
   ShippingLotSelection,
 } from 'src/app/core/services/inventory.service';
@@ -152,6 +153,14 @@ export class InventoryComponent implements OnInit, OnDestroy {
   conducesTotalItems = 0;
   conduceDetailsDialogVisible = false;
   selectedConduceDetails: any = null;
+  cancellationDialogVisible = false;
+  cancellationConduce: Conduce | null = null;
+  cancellationPreview: ConduceCancellationPreview | null = null;
+  cancellationLoading = false;
+  cancellationSaving = false;
+  cancellationReason = '';
+  cancellationError = '';
+  private cancellationRequest = 0;
   conducePrintDialogVisible = false;
   shippingLabelDialogVisible = false;
   selectedConduceForPrint: Conduce | null = null;
@@ -2348,7 +2357,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(34, 40, 49);
-    doc.text("Conduce de Traslado", marginX, currentY);
+    doc.text(conduce.status === 'cancelled' ? 'Conduce CANCELADO' : conduce.status === 'cancelling' ? 'Conduce - CANCELACION PENDIENTE' : 'Conduce de Traslado', marginX, currentY);
 
     currentY += 6;
     doc.setFontSize(9);
@@ -2953,6 +2962,67 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   conduceLotQuantity(conduce: Conduce): number {
     return (conduce.lots || []).reduce((sum, line) => sum + line.quantity, 0);
+  }
+
+
+  conduceStatusLabel(conduce: Conduce): string {
+    return ({ completed: 'Completado', pending: 'Pendiente', cancelling: 'Cancelación pendiente', cancelled: 'Cancelado' } as Record<string, string>)[conduce.status || ''] || 'Registrado';
+  }
+
+  openConduceCancellation(conduce: Conduce): void {
+    if (!this.canUpdateInventory() || !conduce._id || conduce.status === 'cancelled' || this.cancellationSaving) return;
+    this.cancellationConduce = conduce;
+    this.cancellationReason = conduce.cancellation_reason || '';
+    this.cancellationError = '';
+    this.cancellationDialogVisible = true;
+    this.refreshCancellationPreview();
+  }
+
+  refreshCancellationPreview(): void {
+    if (!this.cancellationConduce?._id || this.cancellationSaving) return;
+    const request = ++this.cancellationRequest;
+    this.cancellationPreview = null;
+    this.cancellationLoading = true;
+    this.inventoryService.previewConduceCancellation(this.cancellationConduce._id).subscribe({
+      next: preview => {
+        if (request !== this.cancellationRequest) return;
+        this.cancellationLoading = false;
+        this.cancellationPreview = preview;
+        if (preview.cancellation_reason) this.cancellationReason = preview.cancellation_reason;
+      },
+      error: error => {
+        if (request !== this.cancellationRequest) return;
+        this.cancellationLoading = false;
+        this.cancellationError = getApiErrorMessage(error, 'No se pudo cargar el resumen. Puedes volver a intentarlo.');
+      },
+    });
+  }
+
+  confirmConduceCancellation(): void {
+    const preview = this.cancellationPreview;
+    if (!this.canUpdateInventory() || !this.cancellationDialogVisible || this.cancellationSaving || this.cancellationLoading || !preview?.can_cancel) return;
+    this.cancellationSaving = true;
+    this.cancellationError = '';
+    this.inventoryService.cancelConduce(preview.conduce_id, preview.preview_token, this.cancellationReason).subscribe({
+      next: result => {
+        this.cancellationSaving = false;
+        this.cancellationDialogVisible = false;
+        if (this.cancellationConduce) Object.assign(this.cancellationConduce, result);
+        this.conduceDetailsDialogVisible = false;
+        this.lotRefreshKey++;
+        this.loadConduces();
+        this.loadWarehouses();
+        this.searchAllInventory();
+        this.searchAllSimcards();
+        this.messageService.add({ severity: 'success', summary: 'Conduce cancelado', detail: 'Los artículos trasladados regresaron a sus almacenes de origen. La cancelación quedó registrada en el historial.' });
+      },
+      error: error => {
+        this.cancellationSaving = false;
+        this.cancellationError = getApiErrorMessage(error, 'No se pudo completar la cancelación. Revisa el resumen antes de continuar.');
+        this.loadConduces();
+        this.refreshCancellationPreview();
+      },
+    });
   }
 
   resumeLotConduce(conduce: Conduce): void {

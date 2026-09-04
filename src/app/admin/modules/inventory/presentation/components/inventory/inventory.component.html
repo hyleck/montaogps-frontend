@@ -1482,7 +1482,7 @@
             <th>Contenido</th>
             <th>Trazabilidad</th>
             <th>Estado</th>
-            <th class="conduces-history-table__actions-heading">Impresión</th>
+            <th class="conduces-history-table__actions-heading">Acciones</th>
           </tr>
         </ng-template>
         <ng-template pTemplate="body" let-conduce>
@@ -1539,14 +1539,17 @@
             </td>
             <td>
               <span class="conduce-status" [class.conduce-status--completed]="conduce.status === 'completed'"
-                [class.conduce-status--pending]="conduce.status !== 'completed'">
+                [class.conduce-status--pending]="conduce.status === 'pending'" [class.conduce-status--cancelled]="conduce.status === 'cancelled' || conduce.status === 'cancelling'">
                 <i [class]="conduce.status === 'completed' ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
-                {{ conduce.status === 'completed' ? 'Completado' : 'Pendiente' }}
+                {{ conduceStatusLabel(conduce) }}
               </span>
             </td>
             <td>
               <div class="conduce-actions">
-                <button *ngIf="conduce.status === 'pending' && conduce.lots?.length && canCreateInventory()" type="button" class="conduce-print-button" [disabled]="!!resumingConduceId" (click)="resumeLotConduce(conduce)"><i class="pi pi-refresh"></i> Reintentar</button>
+                <button *ngIf="canUpdateInventory() && conduce.status !== 'cancelled'" type="button" class="conduce-print-button conduce-cancel-button" (click)="openConduceCancellation(conduce)">
+                  <i class="pi pi-times-circle"></i>{{ conduce.status === 'cancelling' ? 'Continuar cancelación' : 'Cancelar conduce' }}
+                </button>
+                <button *ngIf="conduce.status === 'pending' && canCreateInventory()" type="button" class="conduce-print-button" [disabled]="!!resumingConduceId" (click)="resumeLotConduce(conduce)"><i class="pi pi-refresh"></i> Reintentar</button>
                 <button type="button" class="conduce-print-button" (click)="openConducePrintDialog(conduce)"
                   pTooltip="Opciones de impresión" tooltipPosition="top"
                   [attr.aria-label]="'Imprimir ' + (conduce.conduceNumber || 'conduce')">
@@ -1731,11 +1734,19 @@
           </div>
           <div>
             <span class="cd-badge" [ngClass]="selectedConduceDetails.status === 'completed' ? 'success' : 'warning'">
-              {{ selectedConduceDetails.status === 'completed' ? 'Completado' : 'Pendiente' }}
+              {{ conduceStatusLabel(selectedConduceDetails) }}
             </span>
           </div>
         </div>
 
+        <div class="conduce-cancellation-audit" *ngIf="selectedConduceDetails.status === 'cancelled'">
+          <strong>Conduce cancelado</strong>
+          <p *ngIf="selectedConduceDetails.cancelled_at">{{ selectedConduceDetails.cancelled_at | date:'dd/MM/yyyy HH:mm' }} · {{ auditUserLabel(selectedConduceDetails.cancelled_by) }}</p>
+          <p *ngIf="selectedConduceDetails.cancellation_reason">{{ selectedConduceDetails.cancellation_reason }}</p>
+        </div>
+        <button *ngIf="canUpdateInventory() && selectedConduceDetails.status !== 'cancelled'" type="button" class="conduce-print-button conduce-cancel-button" (click)="openConduceCancellation(selectedConduceDetails)">
+          <i class="pi pi-times-circle"></i>{{ selectedConduceDetails.status === 'cancelling' ? 'Continuar cancelación' : 'Cancelar conduce' }}
+        </button>
         <!-- Destination & Description -->
         <div class="cd-grid">
           <div>
@@ -1831,3 +1842,38 @@
 
 <p-confirmDialog></p-confirmDialog>
 <p-toast position="bottom-right"></p-toast>
+
+<p-dialog [(visible)]="cancellationDialogVisible" header="Cancelar conduce" [modal]="true" appendTo="body"
+  [draggable]="false" [resizable]="false" [closable]="!cancellationSaving" [closeOnEscape]="!cancellationSaving"
+  [style]="{width: '760px', maxWidth: '96vw'}" styleClass="app-dark-dialog conduce-cancellation-dialog">
+  <div class="conduce-cancellation-body">
+    <strong>{{ cancellationConduce?.conduceNumber }}</strong>
+    <p>Se desharán los traslados de este conduce. Los equipos, SIM cards y productos volverán a sus almacenes de origen y quedarán disponibles para las cuentas con acceso a esos almacenes.</p>
+    <p>El conduce permanecerá en el historial como <strong>Cancelado</strong>, con la fecha, el responsable y el motivo. Si hubo una devolución parcial, se continuará desde donde quedó.</p>
+    <div *ngIf="cancellationLoading" role="status"><i class="pi pi-spin pi-spinner"></i> Comprobando el inventario y los movimientos…</div>
+    <div *ngIf="cancellationError" class="conduce-cancellation-alert" role="alert">{{ cancellationError }}</div>
+    <ng-container *ngIf="cancellationPreview as preview">
+      <div *ngIf="preview.status === 'cancelled'" class="conduce-cancellation-audit">Este conduce ya está cancelado.</div>
+      <div *ngIf="preview.blockers.length" class="conduce-cancellation-alert" role="alert">
+        <strong>Hay movimientos que necesitan revisión</strong>
+        <ul><li *ngFor="let blocker of preview.blockers">{{ blocker }}</li></ul>
+        <p>No se iniciará una devolución mientras existan estos impedimentos.</p>
+      </div>
+      <article *ngFor="let movement of preview.movements" class="conduce-cancellation-movement" [class.is-blocked]="movement.state === 'blocked'">
+        <div><strong>{{ movement.kind === 'device' ? 'GPS' : movement.kind === 'simcard' ? 'SIM card' : 'Producto' }} · {{ movement.label }}</strong><span>{{ movement.quantity }} {{ movement.quantity === 1 ? 'unidad' : 'unidades' }}</span></div>
+        <p *ngIf="movement.state === 'ready' || movement.state === 'blocked'">Desde: {{ movement.from.name }}</p>
+        <p *ngFor="let origin of movement.returns">{{ movement.state === 'returned' ? 'Devuelto a' : 'Origen' }}: <strong>{{ origin.name }}</strong> · {{ origin.quantity }} {{ origin.quantity === 1 ? 'unidad' : 'unidades' }}</p>
+        <small *ngIf="movement.state === 'returned'">Ya devuelto; no se repetirá.</small>
+        <small *ngIf="movement.state === 'unchanged'">No se trasladó por este conduce; conservará su ubicación.</small>
+        <small *ngIf="movement.state === 'blocked'">{{ movement.reason }}</small>
+      </article>
+      <label for="conduce-cancellation-reason">Motivo de cancelación (opcional)</label>
+      <textarea id="conduce-cancellation-reason" rows="3" maxlength="1000" [(ngModel)]="cancellationReason" [disabled]="cancellationSaving || preview.status === 'cancelling'" placeholder="Explica por qué se cancela este conduce"></textarea>
+    </ng-container>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Volver" class="p-button-text" [disabled]="cancellationSaving" (click)="cancellationDialogVisible = false"></button>
+    <button pButton type="button" label="Actualizar resumen" class="p-button-outlined" [disabled]="cancellationLoading || cancellationSaving" (click)="cancellationError = ''; refreshCancellationPreview()"></button>
+    <button pButton type="button" [label]="cancellationPreview?.status === 'cancelling' ? 'Continuar cancelación' : 'Confirmar cancelación'" icon="pi pi-times-circle" class="p-button-danger" [loading]="cancellationSaving" [disabled]="cancellationLoading || cancellationSaving || !cancellationPreview?.can_cancel" (click)="confirmConduceCancellation()"></button>
+  </ng-template>
+</p-dialog>

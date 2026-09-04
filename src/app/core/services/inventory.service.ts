@@ -140,6 +140,27 @@ export interface SimcardItem {
   updated_by?: InventoryAuditUser | string;
 }
 
+export interface ConduceCancellationPreview {
+  conduce_id: string;
+  conduce_number: string;
+  status: string;
+  can_cancel: boolean;
+  preview_token: string;
+  blockers: string[];
+  cancellation_error?: string;
+  cancellation_reason?: string;
+  movements: Array<{
+    kind: 'device' | 'simcard' | 'lot';
+    id: string;
+    label: string;
+    quantity: number;
+    from: { id: string | null; name: string; assigned_user?: string | null };
+    returns: Array<{ id: string | null; name: string; quantity: number; assigned_user?: string | null }>;
+    state: 'ready' | 'returned' | 'unchanged' | 'blocked';
+    reason: string;
+  }>;
+}
+
 export interface Conduce {
   _id?: string;
   conduceNumber?: string;
@@ -154,6 +175,10 @@ export interface Conduce {
   updated_by?: string | any;
   createdAt?: string;
   updatedAt?: string;
+  cancelled_at?: string;
+  cancelled_by?: any;
+  cancellation_reason?: string;
+  cancellation_error?: string;
 }
 
 export type InventoryLotCategory = 'relay' | 'cables';
@@ -496,6 +521,14 @@ export class InventoryService {
 
   getConduces(page = 1, limit = 20): Observable<{ data: Conduce[]; total: number; page: number; lastPage: number }> {
     return this.http.get<{ data: Conduce[]; total: number; page: number; lastPage: number }>(`${this.conducesUrl}?page=${page}&limit=${limit}`);
+  }
+
+  previewConduceCancellation(id: string): Observable<ConduceCancellationPreview> {
+    return this.http.get<ConduceCancellationPreview>(`${this.conducesUrl}/${encodeURIComponent(id)}/cancellation-preview`);
+  }
+
+  cancelConduce(id: string, preview_token: string, reason: string): Observable<Conduce> {
+    return this.http.post<Conduce>(`${this.conducesUrl}/${encodeURIComponent(id)}/cancel`, { preview_token, reason });
   }
 
   createConduce(payload: any): Observable<Conduce> {
