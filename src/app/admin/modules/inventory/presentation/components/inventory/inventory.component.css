@@ -1161,6 +1161,23 @@ textarea.form-input {
   font-size: 0.85rem;
 }
 
+.inventory-device-form { container-type: inline-size; }
+.inventory-device-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.inventory-device-form__grid .field { min-width: 0; margin-bottom: 0; }
+.inventory-device-form__grid .field label { color: var(--managementColorTextUser, #334155); }
+.inventory-device-form__grid .form-input { min-height: 44px; }
+.inventory-device-form__sim { grid-column: 1 / -1; }
+.inventory-device-form__warehouse { grid-column: 2; }
+@container (max-width: 480px) {
+  .inventory-device-form__grid { grid-template-columns: minmax(0, 1fr); }
+  .inventory-device-form__warehouse { grid-column: auto; }
+}
+
 .inventory-package-modal-backdrop {
   position: fixed;
   inset: 0;

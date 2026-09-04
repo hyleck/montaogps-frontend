@@ -1,0 +1,100 @@
+<section class="sim-selector" aria-label="SIM card del dispositivo">
+  <div class="sim-selector__fields" [class.sim-selector__fields--two-columns]="twoColumns">
+    <div class="sim-selector__controls">
+      <label class="sim-selector__search sim-selector__code">
+        <span>SIM card <small>(opcional)</small></span>
+        <input type="text" [ngModel]="codeInput" (ngModelChange)="onCodeChange($event)"
+          [ngModelOptions]="{standalone: true}" (keydown.enter)="findCode($event)"
+          placeholder="Escribe o escanea el código" autocomplete="off" spellcheck="false" />
+      </label>
+      <div class="sim-selector__heading">
+        <button type="button" class="sim-selector__button" (click)="openPicker()" aria-haspopup="dialog">
+          <i class="pi pi-search" aria-hidden="true"></i> {{ hasIdentifier ? 'Cambiar SIM card' : 'Seleccionar simcard' }}
+        </button>
+      </div>
+    </div>
+    <ng-content select="[simcardAside]"></ng-content>
+  </div>
+  <p class="sim-selector__hint">Busca por ICCID, teléfono o ID SIM. Al encontrar una coincidencia, la SIM se seleccionará automáticamente.</p>
+  <p *ngIf="findingCode" class="sim-selector__hint" role="status"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Buscando el código en el inventario…</p>
+  <p *ngIf="codeMessage" class="sim-selector__hint" role="status">{{ codeMessage }}</p>
+  <p *ngIf="resolving" class="sim-selector__hint" role="status"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Cargando datos de la SIM card…</p>
+
+  <article *ngIf="selected as card" class="sim-selector__card">
+    <div class="sim-selector__card-header">
+      <span><i class="pi pi-id-card" aria-hidden="true"></i> {{ companyLabel(card.sim_company) }}</span>
+      <span class="sim-selector__status" [class.sim-selector__status--installed]="card.installed">{{ card.installed ? 'Instalada' : 'Disponible' }}</span>
+    </div>
+    <dl class="sim-selector__details">
+      <div class="sim-selector__identifier"><dt>{{ card.sim_company === 'nacionales' ? 'ICCID / No. teléfono' : 'ICCID' }}</dt><dd><code>{{ card.iccid }}</code></dd></div>
+      <div><dt>ID SIM</dt><dd><code>{{ card.idsim || 'No registrado' }}</code></dd></div>
+      <div><dt>APN</dt><dd>{{ card.apn_name || 'No registrado' }}</dd></div>
+      <div><dt>Almacén</dt><dd>{{ warehouseLabel(card) }}</dd></div>
+      <div><dt>Paquete</dt><dd>{{ packageLabel(card) }}</dd></div>
+      <div *ngIf="card.device_imei" class="sim-selector__identifier"><dt>IMEI asociado</dt><dd><code>{{ card.device_imei }}</code></dd></div>
+      <div><dt>Entrada al almacén</dt><dd>{{ card.storageDate ? (card.storageDate | date:'dd/MM/yyyy HH:mm') : 'No registrada' }}</dd></div>
+      <div><dt>Fecha de registro</dt><dd>{{ card.createdAt ? (card.createdAt | date:'dd/MM/yyyy HH:mm') : 'No registrada' }}</dd></div>
+      <div><dt>Registrada por</dt><dd>{{ auditLabel(card.created_by) }}</dd></div>
+      <div><dt>Actualizada por</dt><dd>{{ auditLabel(card.updated_by) }}</dd></div>
+      <div class="sim-selector__identifier"><dt>Última actualización</dt><dd>{{ card.updatedAt ? (card.updatedAt | date:'dd/MM/yyyy HH:mm') : 'No registrada' }}</dd></div>
+    </dl>
+  </article>
+
+  <div *ngIf="hasIdentifier && !selected && !resolving" class="sim-selector__legacy">
+    <strong>{{ lookupError ? 'Datos de la SIM no disponibles' : 'SIM sin coincidencia en el inventario' }}</strong>
+    <p *ngIf="sim">SIM / No. teléfono: <code>{{ sim }}</code></p>
+    <p *ngIf="idsim">ID SIM: <code>{{ idsim }}</code></p>
+    <p role="status">{{ lookupError || 'Selecciona una SIM card registrada para completar sus datos.' }}</p>
+    <button *ngIf="lookupError" type="button" class="sim-selector__link" (click)="resolveSelection()">Reintentar</button>
+  </div>
+
+  <button *ngIf="hasIdentifier" type="button" class="sim-selector__link" (click)="remove()">
+    <i class="pi pi-times" aria-hidden="true"></i> Quitar SIM del dispositivo
+  </button>
+</section>
+
+<p-dialog [(visible)]="visible" header="Seleccionar simcard" [modal]="true" appendTo="body"
+  [style]="{width: '680px', maxWidth: 'calc(100vw - 24px)'}" styleClass="app-dark-dialog"
+  [draggable]="false" [resizable]="false" [focusOnShow]="false" (onShow)="focusSearch()" (onHide)="closePicker()">
+  <ng-template pTemplate="content">
+    <div class="sim-selector__picker">
+      <label class="sim-selector__search">
+        <span>Buscar SIM card</span>
+        <input #searchInput type="search" [ngModel]="query" (ngModelChange)="query = $event; onQueryChange()"
+          [ngModelOptions]="{standalone: true}" (keydown.enter)="searchOnEnter($event)"
+          placeholder="ICCID, teléfono, ID SIM o compañía" autocomplete="off" />
+      </label>
+      <p *ngIf="loading" class="sim-selector__feedback" role="status"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Buscando SIM cards…</p>
+      <div *ngIf="searchError" class="sim-selector__feedback" role="alert">
+        <p>{{ searchError }}</p>
+        <button type="button" class="sim-selector__button" (click)="search(page)">Reintentar</button>
+      </div>
+      <p *ngIf="!loading && !searchError && !results.length" class="sim-selector__feedback" role="status">
+        {{ query.trim() ? 'No se encontraron SIM cards. Prueba con otro número o ID SIM.' : 'No hay SIM cards registradas en el inventario.' }}
+      </p>
+      <div *ngIf="results.length" class="sim-selector__results" aria-label="Resultados de SIM cards">
+        <button *ngFor="let card of results; trackBy: trackSimcard" type="button" class="sim-selector__result"
+          [class.sim-selector__result--selected]="selected?._id ? selected?._id === card._id : selected?.iccid === card.iccid"
+          (click)="select(card)" [attr.aria-label]="'Seleccionar SIM ' + card.iccid">
+          <div class="sim-selector__result-heading"><strong>{{ companyLabel(card.sim_company) }}</strong>
+            <span class="sim-selector__status" [class.sim-selector__status--installed]="card.installed">{{ card.installed ? 'Instalada' : 'Disponible' }}</span>
+          </div>
+          <code>{{ card.iccid }}</code>
+          <span>ID SIM: {{ card.idsim || 'No registrado' }} · APN: {{ card.apn_name || 'No registrado' }}</span>
+          <span>{{ warehouseLabel(card) }}<ng-container *ngIf="card.device_imei"> · IMEI: {{ card.device_imei }}</ng-container></span>
+          <span class="sim-selector__result-action">{{ selected?.iccid === card.iccid ? 'Seleccionada' : 'Seleccionar' }} <i class="pi pi-arrow-right" aria-hidden="true"></i></span>
+        </button>
+      </div>
+      <div *ngIf="!loading && !searchError && total" class="sim-selector__pagination">
+        <span role="status">{{ total }} SIM cards · Página {{ page }} de {{ lastPage }}</span>
+        <div>
+          <button type="button" class="sim-selector__button" [disabled]="page <= 1" (click)="search(page - 1)" aria-label="Página anterior"><i class="pi pi-chevron-left" aria-hidden="true"></i></button>
+          <button type="button" class="sim-selector__button" [disabled]="page >= lastPage" (click)="search(page + 1)" aria-label="Página siguiente"><i class="pi pi-chevron-right" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+  <ng-template pTemplate="footer">
+    <button type="button" class="sim-selector__button" (click)="closePicker()">Cancelar</button>
+  </ng-template>
+</p-dialog>

@@ -421,6 +421,10 @@ export class InventoryService {
     return this.http.get<SimcardItem | null>(`${this.simcardsUrl}/lookup/iccid/${iccid}`);
   }
 
+  findSimcardsByIdentifier(identifier: string): Observable<SimcardItem[]> {
+    return this.http.get<SimcardItem[]>(`${this.simcardsUrl}/lookup/identifier/${encodeURIComponent(identifier)}`);
+  }
+
   // Simcard methods
   createSimcard(simcard: SimcardItem): Observable<SimcardItem> {
     return this.http.post<SimcardItem>(this.simcardsUrl, simcard);

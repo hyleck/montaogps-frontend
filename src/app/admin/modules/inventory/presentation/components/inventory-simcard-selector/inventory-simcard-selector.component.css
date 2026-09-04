@@ -1,0 +1,67 @@
+:host { display: block; min-width: 0; }
+.sim-selector { container-type: inline-size; }
+.sim-selector, .sim-selector__picker { color: var(--managementColorTextUser, #334155); font-size: .875rem; }
+.sim-selector__heading, .sim-selector__card-header, .sim-selector__result-heading, .sim-selector__pagination {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap;
+}
+.sim-selector__fields { display: grid; gap: 1rem; align-items: start; }
+.sim-selector__fields--two-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sim-selector__controls { min-width: 0; }
+.sim-selector__heading { margin-top: .65rem; }
+.sim-selector__code small { font-weight: 400; }
+.sim-selector__hint { margin: .75rem 0; line-height: 1.5; }
+.sim-selector__button {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem; width: auto;
+  min-height: 40px; padding: .55rem .75rem; border: 1px solid var(--globalColorBorderDark, #cbd5e1);
+  border-radius: 8px; background: var(--managementColorCardBackground, #fff); color: inherit;
+  font: inherit; font-weight: 600; cursor: pointer;
+}
+.sim-selector__button:hover:not(:disabled), .sim-selector__result:hover { border-color: #ec4343; }
+.sim-selector__button:disabled { opacity: .45; cursor: default; }
+.sim-selector__button:focus-visible, .sim-selector__result:focus-visible, .sim-selector__link:focus-visible,
+.sim-selector__search input:focus-visible { outline: 2px solid #ec4343; outline-offset: 3px; }
+.sim-selector__card, .sim-selector__legacy {
+  margin-top: .8rem; border: 1px solid var(--globalColorBorderDark, #cbd5e1); border-radius: 12px;
+  padding: 1rem; background: var(--managementColorCardBackground, #fff); overflow-wrap: anywhere;
+}
+.sim-selector__card-header { padding-bottom: .75rem; border-bottom: 1px solid var(--globalColorBorderDark, #cbd5e1); font-weight: 600; }
+.sim-selector__card-header i { margin-right: .35rem; }
+.sim-selector__status { padding: .2rem .5rem; border-radius: 5px; background: rgba(16, 185, 129, .12); font-size: .75rem; font-weight: 600; white-space: nowrap; }
+.sim-selector__status--installed { background: rgba(245, 158, 11, .15); }
+.sim-selector__details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; margin: .85rem 0 0; }
+.sim-selector__details dt { font-size: .75rem; margin-bottom: .25rem; opacity: .8; }
+.sim-selector__details dd { margin: 0; line-height: 1.4; font-weight: 500; }
+.sim-selector__identifier { grid-column: 1 / -1; }
+.sim-selector code, .sim-selector__result code { font-size: .95rem; font-family: monospace; overflow-wrap: anywhere; }
+.sim-selector__link { display: inline-flex; align-items: center; gap: .4rem; margin-top: .65rem; border: 0; padding: .4rem 0; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+.sim-selector__legacy { border-style: dashed; }
+.sim-selector__legacy p { margin: .5rem 0 0; line-height: 1.5; }
+.sim-selector__picker { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.sim-selector__search { display: flex; flex-direction: column; gap: .5rem; font-weight: 600; }
+.sim-selector__code { margin: 0; gap: .4rem; font-size: .85rem; }
+.sim-selector__search input {
+  width: 100%; min-width: 0; min-height: 44px; box-sizing: border-box; padding: .7rem .8rem;
+  border: 1px solid var(--globalColorBorderDark, #cbd5e1); border-radius: 8px;
+  background: var(--managementColorCardBackground, #fff); color: inherit; font: inherit;
+}
+.sim-selector__search input::placeholder { color: inherit; opacity: .65; }
+.sim-selector__feedback { padding: 1.5rem 0; text-align: center; line-height: 1.5; }
+.sim-selector__results { display: grid; gap: .65rem; max-height: min(40vh, 420px); overflow-y: auto; padding: 3px; }
+.sim-selector__result {
+  display: flex; flex-direction: column; align-items: stretch; gap: .45rem; width: 100%; min-width: 0;
+  padding: .9rem; border: 1px solid var(--globalColorBorderDark, #cbd5e1); border-radius: 10px;
+  background: var(--managementColorCardBackground, #fff); color: inherit; font: inherit; text-align: left;
+  overflow-wrap: anywhere; cursor: pointer;
+}
+.sim-selector__result--selected { border-color: #ec4343; }
+.sim-selector__result > span { font-size: .8rem; line-height: 1.4; }
+.sim-selector__result-action { display: flex; gap: .5rem; justify-content: flex-end; align-items: center; font-weight: 600; }
+.sim-selector__pagination { font-size: .8rem; }
+.sim-selector__pagination > div { display: flex; gap: .5rem; }
+@container (max-width: 480px) {
+  .sim-selector__fields--two-columns { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 380px) {
+  .sim-selector__details { grid-template-columns: minmax(0, 1fr); }
+  .sim-selector__heading > .sim-selector__button { width: 100%; }
+}

@@ -42,6 +42,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   packageDevices: InventoryItem[] = [];
   selectedDevice: InventoryItem | null = null;
   deviceDialogVisible = false;
+  deviceSimLookupPending = false;
   isEditDeviceMode = false;
   lastSelectedStorageId: string | null = null;
 
@@ -258,6 +259,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   }
 
   saveDevice(): void {
+    if (this.deviceSimLookupPending) return;
     if (this.isEditDeviceMode && !this.canUpdateInventory()) {
       this.messageService.add({
         severity: 'error',

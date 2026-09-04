@@ -262,47 +262,47 @@
   </div>
 </div>
 
-<p-dialog [(visible)]="deviceDialogVisible" [style]="{ width: '450px' }" header="Dispositivo" [modal]="true"
+<p-dialog [(visible)]="deviceDialogVisible" [style]="{ width: '680px', maxWidth: '96vw' }" header="Dispositivo" [modal]="true"
   styleClass="p-fluid" (onShow)="focusImei()">
   <ng-template pTemplate="content">
-    <form (ngSubmit)="saveDevice()" #deviceForm="ngForm">
-      <div class="field" *ngIf="selectedDevice">
-        <label for="deviceImei">IMEI</label>
-        <input type="text" id="deviceImei" [(ngModel)]="selectedDevice.imei" name="imei" required #imeiInput autofocus
-          class="form-input" placeholder="Ingrese el IMEI" />
-      </div>
+    <form (ngSubmit)="saveDevice()" #deviceForm="ngForm" class="inventory-device-form">
+      <ng-template #deviceStorageField>
+        <div class="field" *ngIf="selectedDevice">
+          <label for="deviceStorage">Almacén</label>
+          <select id="deviceStorage" [(ngModel)]="selectedDevice.storage_id" name="storage_id" class="form-input">
+            <option [ngValue]="null">Seleccionar almacén (Opcional)</option>
+            <option *ngFor="let w of warehouses" [value]="w._id">{{ w.name }}</option>
+          </select>
+        </div>
+      </ng-template>
 
-      <div class="field" *ngIf="selectedDevice && !isDeviceAirtag(selectedDevice)">
-        <label for="deviceSim">SIM / No. teléfono</label>
-        <input type="text" id="deviceSim" [(ngModel)]="selectedDevice.sim" name="sim" class="form-input"
-          placeholder="Ingrese el número de teléfono de la SIM (opcional)" />
-        <small>Para SIM nacionales, coloque aquí el teléfono y en ID SIM su identificador.</small>
-      </div>
+      <div class="inventory-device-form__grid" *ngIf="selectedDevice">
+        <div class="field">
+          <label for="deviceImei">IMEI</label>
+          <input type="text" id="deviceImei" [(ngModel)]="selectedDevice.imei" name="imei" required #imeiInput autofocus
+            class="form-input" placeholder="Ingrese el IMEI" />
+        </div>
 
-      <div class="field" *ngIf="selectedDevice && !isDeviceAirtag(selectedDevice)">
-        <label for="deviceIdsim">ID SIM</label>
-        <input type="text" id="deviceIdsim" [(ngModel)]="selectedDevice.idsim" name="idsim" class="form-input"
-          placeholder="Ingrese el ID SIM (opcional)" />
-      </div>
+        <div class="field">
+          <label for="deviceProtocol">Protocolo</label>
+          <select id="deviceProtocol" [(ngModel)]="selectedDevice.protocol" name="protocol" required class="form-input">
+            <option value="">Seleccionar protocolo</option>
+            <option *ngFor="let protocol of protocols" [value]="protocol.value">
+              {{ (protocol.label) | deviceLabel }}
+            </option>
+          </select>
+        </div>
 
-      <div class="field" *ngIf="selectedDevice">
-        <label for="deviceStorage">Almacén</label>
-        <select id="deviceStorage" [(ngModel)]="selectedDevice.storage_id" name="storage_id" class="form-input">
-          <option [ngValue]="null">Seleccionar almacén (Opcional)</option>
-          <option *ngFor="let w of warehouses" [value]="w._id">
-            {{ w.name }}
-          </option>
-        </select>
-      </div>
+        <app-inventory-simcard-selector *ngIf="deviceDialogVisible && !isDeviceAirtag(selectedDevice)"
+          class="inventory-device-form__sim" [twoColumns]="true"
+          [(sim)]="selectedDevice.sim" [(idsim)]="selectedDevice.idsim"
+          [warehouses]="warehouses" (lookupPendingChange)="deviceSimLookupPending = $event">
+          <div simcardAside><ng-container *ngTemplateOutlet="deviceStorageField"></ng-container></div>
+        </app-inventory-simcard-selector>
 
-      <div class="field" *ngIf="selectedDevice">
-        <label for="deviceProtocol">Protocolo</label>
-        <select id="deviceProtocol" [(ngModel)]="selectedDevice.protocol" name="protocol" required class="form-input">
-          <option value="">Seleccionar protocolo</option>
-          <option *ngFor="let protocol of protocols" [value]="protocol.value">
-            {{ (protocol.label) | deviceLabel }}
-          </option>
-        </select>
+        <div *ngIf="isDeviceAirtag(selectedDevice)" class="inventory-device-form__warehouse">
+          <ng-container *ngTemplateOutlet="deviceStorageField"></ng-container>
+        </div>
       </div>
 
       <button type="submit" style="display: none;"></button>
@@ -312,7 +312,7 @@
   <ng-template pTemplate="footer">
     <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
       (click)="hideDeviceDialog()"></button>
-    <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-text" (click)="saveDevice()"></button>
+    <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-text" [disabled]="deviceSimLookupPending" (click)="saveDevice()"></button>
   </ng-template>
 </p-dialog>
 

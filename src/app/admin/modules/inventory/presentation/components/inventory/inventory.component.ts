@@ -113,6 +113,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   // Device Management Properties
   deviceDialogVisible = false;
+  deviceSimLookupPending = false;
+  shippingSimLookupPending = false;
   installDialogVisible = false;
   selectedDevice: InventoryItem | null = null;
   deviceToInstall: InventoryItem | null = null;
@@ -1290,6 +1292,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   saveDevice(): void {
+    if (this.deviceSimLookupPending) return;
     if (!this.canUpdateInventory()) return;
 
     if (!this.selectedDevice) {
@@ -2661,6 +2664,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.selectedPackageToAssign = null;
     this.selectedProtocolToAssign = null;
     this.selectedSimcardToAssign = '';
+    this.selectedIdsimToAssign = '';
     this.isNewDeviceInShipping = false;
   }
 
@@ -2668,6 +2672,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   selectedCompanyToAssignSimcard: string | null = null;
   selectedApnToAssignSimcard: string = '';
   selectedSimcardToAssign: string = '';
+  selectedIdsimToAssign = '';
 
   onShippingSimcardCompanyChange(company: string): void {
     if (!company) {
@@ -2687,6 +2692,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   assignPackageAndAdd(): void {
+    if (this.shippingSimLookupPending) return;
     if (!this.deviceToAssignPackage || !this.selectedPackageToAssign) return;
 
     if (this.isNewDeviceInShipping) {
@@ -2697,6 +2703,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
       const newDevicePayload = {
         IMEI: this.deviceToAssignPackage.imei || this.deviceToAssignPackage.IMEI,
         SIM: this.selectedSimcardToAssign || '',
+        IDSIM: this.selectedIdsimToAssign || '',
         Protocol: this.selectedProtocolToAssign,
         package: this.selectedPackageToAssign
       };
