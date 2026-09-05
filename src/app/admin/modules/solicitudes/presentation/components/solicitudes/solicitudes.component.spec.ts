@@ -39,6 +39,12 @@ describe('SolicitudesComponent scheduled date editing', () => {
             update: jasmine.createSpy('update').and.returnValue(of({})),
             correctInstallation: jasmine.createSpy('correctInstallation'),
             completeInstallationFromOffice: jasmine.createSpy('completeInstallationFromOffice'),
+            getProcessMoveCandidates: jasmine.createSpy('getProcessMoveCandidates').and.returnValue(of({
+                source: {},
+                candidates: [],
+            })),
+            previewProcessMove: jasmine.createSpy('previewProcessMove'),
+            moveProcess: jasmine.createSpy('moveProcess'),
             applyVehicleChange: jasmine.createSpy('applyVehicleChange').and.callFake((id: string) => of({
                 _id: id,
                 type: 'cambio_vehiculo',
@@ -2850,5 +2856,88 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(component.processCorrectionDraft.longitude).toBeUndefined();
         expect(component.processCorrectionDraft.location_address).toBeUndefined();
         expect(component.processCorrectionDraft.google_maps_url).toBeUndefined();
+    });
+
+    it('allows an office employee to move any completed process type', () => {
+        const { component } = createComponent();
+        component.processDetailsSolicitud = {
+            _id: 'source-request',
+            type: 'mixta',
+            status: 'en_progreso',
+        };
+        component.processDetailsInstallation = {
+            process_type: 'desinstalacion',
+            completed: true,
+            cancelled: false,
+            omitted: false,
+        };
+
+        expect(component.canMoveProcess()).toBeTrue();
+    });
+
+    it('moves the selected process with both versions and an audit reason', async () => {
+        const { component, solicitudesService, messageService } = createComponent();
+        const source: Solicitud = {
+            _id: 'source-request',
+            __v: 4,
+            type: 'mixta',
+            status: 'en_progreso',
+            client_name: 'Cliente equivocado',
+            installations: [{ process_type: 'chequeo', completed: true }],
+        };
+        const target: Solicitud = {
+            _id: 'target-request',
+            __v: 3,
+            type: 'chequeo',
+            status: 'por_confirmar',
+            client_name: 'Cliente correcto',
+            installations: [{ process_type: 'chequeo', completed: true }],
+        };
+        solicitudesService.moveProcess.and.returnValue(of({
+            source_solicitud: { ...source, __v: 5, installations: [{ process_type: 'chequeo', completed: false }] },
+            target_solicitud: target,
+            moved_process: target.installations![0],
+            inventory_changed: false,
+        }));
+        component.solicitudes = [source, { ...target, status: 'aceptada', installations: [{ process_type: 'chequeo' }] }];
+        component.processDetailsSolicitud = source;
+        component.processDetailsInstallation = source.installations![0];
+        component.processDetailsIndex = 0;
+        component.processMoveDialogVisible = true;
+        component.processMoveSelectedCandidate = {
+            solicitud_id: 'target-request',
+            version: 2,
+            client_name: 'Cliente correcto',
+            type: 'chequeo',
+            type_label: 'Chequeo',
+            status: 'aceptada',
+            slots: [{ index: 0, process_type: 'chequeo', process_label: 'Chequeo' }],
+        };
+        component.processMoveSelectedSlot = component.processMoveSelectedCandidate.slots[0];
+        component.processMovePreview = {
+            source: {} as any,
+            target: {} as any,
+            device_owner: { name: 'Cuenta Principal' },
+            resulting_target_status: 'por_confirmar',
+            effects: [],
+        };
+        component.processMoveReason = 'Se registró en la solicitud equivocada.';
+
+        await component.confirmProcessMove();
+
+        expect(solicitudesService.moveProcess).toHaveBeenCalledWith(
+            'source-request',
+            0,
+            jasmine.objectContaining({
+                target_solicitud_id: 'target-request',
+                target_installation_index: 0,
+                expected_source_version: 4,
+                expected_target_version: 2,
+                reason: 'Se registró en la solicitud equivocada.',
+            }),
+        );
+        expect(messageService.add).toHaveBeenCalledWith(
+            jasmine.objectContaining({ summary: 'Proceso movido' }),
+        );
     });
 });

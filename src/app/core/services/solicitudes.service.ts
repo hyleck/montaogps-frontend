@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface InstallationDetail {
+    _id?: string;
     process_type?: string;
     device_type?: 'gps' | 'mtag_a' | 'mtag_p';
     target_name?: string;
@@ -92,6 +93,23 @@ export interface InstallationDetail {
     retained_device_id?: string;
     retained_expiration_date?: string | Date;
     correction_history?: InstallationCorrectionHistoryEntry[];
+    movement_history?: SolicitudProcessMovementEntry[];
+}
+
+export interface SolicitudProcessMovementEntry {
+    direction: 'in' | 'out';
+    moved_at: string | Date;
+    moved_by_id: string;
+    moved_by_name: string;
+    moved_by_email?: string;
+    reason: string;
+    other_solicitud_id: string;
+    other_client_name?: string;
+    source_installation_index: number;
+    target_installation_index: number;
+    process_type?: string;
+    device_imei?: string;
+    target_name?: string;
 }
 
 export interface InstallationCorrectionHistoryEntry {
@@ -191,6 +209,67 @@ export interface Solicitud {
     client_registration_short_code?: string;
     completion_transfer_mode?: SolicitudCompletionTransferMode;
     completion_transfer_target_user_id?: string;
+    process_movement_history?: SolicitudProcessMovementEntry[];
+}
+
+export interface SolicitudProcessMoveSlot {
+    index: number;
+    id?: string;
+    process_type: string;
+    process_label: string;
+    target_name?: string;
+    device_imei?: string;
+    scheduled_date?: string | Date;
+}
+
+export interface SolicitudProcessMoveCandidate {
+    solicitud_id: string;
+    version: number;
+    client_name: string;
+    client_phone?: string;
+    type: string;
+    type_label: string;
+    status: string;
+    created_at?: string | Date;
+    scheduled_date?: string | Date;
+    mechanic_id?: string;
+    mechanic_name?: string;
+    slots: SolicitudProcessMoveSlot[];
+}
+
+export interface SolicitudProcessMoveSummary {
+    solicitud_id: string;
+    version: number;
+    client_name: string;
+    status: string;
+    process_index: number;
+    process_number: number;
+    process_type: string;
+    process_label?: string;
+    target_name?: string;
+    device_imei?: string;
+    completed_at?: string | Date;
+}
+
+export interface SolicitudProcessMovePreview {
+    source: SolicitudProcessMoveSummary;
+    target: SolicitudProcessMoveSummary;
+    device_owner: { id?: string; name: string; email?: string } | null;
+    resulting_target_status: string;
+    effects: string[];
+}
+
+export interface SolicitudProcessMoveCandidatesResponse {
+    source: SolicitudProcessMoveSummary;
+    candidates: SolicitudProcessMoveCandidate[];
+}
+
+export interface SolicitudProcessMoveResult {
+    source_solicitud: Solicitud;
+    target_solicitud: Solicitud;
+    moved_process: InstallationDetail;
+    inventory_changed: false;
+    operation_warnings?: string[];
 }
 
 export type SolicitudCompletionTransferMode = 'automatic' | 'disabled' | 'custom';
@@ -482,6 +561,51 @@ export class SolicitudesService {
             operation_warnings?: string[];
         }>(
             `${this.apiUrl}/${encodeURIComponent(solicitudId)}/installations/${installationIndex}/correction`,
+            payload,
+        );
+    }
+
+    getProcessMoveCandidates(
+        solicitudId: string,
+        installationIndex: number,
+        query = '',
+    ): Observable<SolicitudProcessMoveCandidatesResponse> {
+        let params = new HttpParams();
+        if (query.trim()) params = params.set('q', query.trim());
+        return this.http.get<SolicitudProcessMoveCandidatesResponse>(
+            `${this.apiUrl}/${encodeURIComponent(solicitudId)}/installations/${installationIndex}/move-candidates`,
+            { params },
+        );
+    }
+
+    previewProcessMove(
+        solicitudId: string,
+        installationIndex: number,
+        targetSolicitudId: string,
+        targetInstallationIndex: number,
+    ): Observable<SolicitudProcessMovePreview> {
+        return this.http.post<SolicitudProcessMovePreview>(
+            `${this.apiUrl}/${encodeURIComponent(solicitudId)}/installations/${installationIndex}/move-preview`,
+            {
+                target_solicitud_id: targetSolicitudId,
+                target_installation_index: targetInstallationIndex,
+            },
+        );
+    }
+
+    moveProcess(
+        solicitudId: string,
+        installationIndex: number,
+        payload: {
+            target_solicitud_id: string;
+            target_installation_index: number;
+            reason: string;
+            expected_source_version?: number;
+            expected_target_version?: number;
+        },
+    ): Observable<SolicitudProcessMoveResult> {
+        return this.http.post<SolicitudProcessMoveResult>(
+            `${this.apiUrl}/${encodeURIComponent(solicitudId)}/installations/${installationIndex}/move`,
             payload,
         );
     }

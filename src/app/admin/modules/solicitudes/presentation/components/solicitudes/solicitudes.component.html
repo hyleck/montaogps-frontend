@@ -2104,6 +2104,9 @@
             <button *ngIf="canCorrectProcess()" type="button" class="sol-btn sol-btn-correction" (click)="startProcessCorrection()">
                 <i class="pi pi-pencil"></i> Realizar corrección
             </button>
+            <button *ngIf="canMoveProcess()" type="button" class="sol-btn sol-btn-move-process" (click)="openProcessMove()">
+                <i class="pi pi-arrow-right-arrow-left"></i> Mover a otra solicitud
+            </button>
             <button type="button" class="sol-btn sol-btn-cancel" (click)="closeKanbanProcessDetails()">
                 <i class="pi pi-times"></i> Cerrar
             </button>
@@ -2117,6 +2120,149 @@
                 {{ processCorrectionSaving ? 'Guardando...' : 'Guardar corrección' }}
             </button>
         </ng-template>
+    </ng-template>
+</p-dialog>
+
+<!-- Administrative transfer of one completed process between requests. -->
+<p-dialog [(visible)]="processMoveDialogVisible"
+    [style]="{width: '900px'}"
+    [breakpoints]="{'960px': '95vw'}"
+    header="Mover proceso a otra solicitud"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closable]="!processMoveSaving"
+    styleClass="app-dark-dialog sol-process-move-dialog"
+    (onHide)="closeProcessMove()">
+    <ng-template pTemplate="content">
+        <div class="sol-process-move" *ngIf="processDetailsSolicitud as sourceSolicitud">
+            <section class="sol-process-move__source" *ngIf="processDetailsInstallation as sourceProcess">
+                <span class="sol-process-move__source-icon"><i class="pi pi-file-edit"></i></span>
+                <div>
+                    <small>PROCESO QUE SE VA A MOVER</small>
+                    <strong>{{ getInstallationEntityName(sourceProcess) }} #{{ processDetailsIndex + 1 }} · {{ sourceSolicitud.client_name }}</strong>
+                    <span>
+                        <ng-container *ngIf="getProcessMoveIdentifier(sourceProcess) as identifier">{{ identifier }}</ng-container>
+                        <ng-container *ngIf="sourceProcess.target_name"> · {{ sourceProcess.target_name }}</ng-container>
+                    </span>
+                </div>
+            </section>
+
+            <div class="sol-process-move__notice">
+                <i class="pi pi-shield"></i>
+                <span>El GPS conservará su cuenta y almacén actual. Solo cambiará la solicitud a la que pertenece este proceso.</span>
+            </div>
+
+            <section class="sol-process-move__picker">
+                <div class="sol-process-move__section-title">
+                    <div>
+                        <small>PASO 1</small>
+                        <h3>Selecciona la solicitud correcta</h3>
+                    </div>
+                    <button *ngIf="processMoveSelectedCandidate" type="button" class="sol-process-move__change" (click)="clearProcessMoveSelection()">
+                        Cambiar destino
+                    </button>
+                </div>
+
+                <label class="sol-process-move__search" *ngIf="!processMoveSelectedCandidate">
+                    <i class="pi pi-search"></i>
+                    <input type="search" [(ngModel)]="processMoveQuery" (input)="scheduleProcessMoveSearch()"
+                        placeholder="Buscar por cliente, teléfono, correo o ID de solicitud">
+                    <i *ngIf="processMoveCandidatesLoading" class="pi pi-spin pi-spinner"></i>
+                </label>
+
+                <div class="sol-process-move__error" *ngIf="processMoveCandidatesError">
+                    <i class="pi pi-exclamation-triangle"></i>
+                    <span>{{ processMoveCandidatesError }}</span>
+                </div>
+
+                <div class="sol-process-move__empty" *ngIf="!processMoveCandidatesLoading && !processMoveSelectedCandidate && !processMoveCandidatesError && !processMoveCandidates.length">
+                    <i class="pi pi-inbox"></i>
+                    <strong>No hay solicitudes compatibles</strong>
+                    <span>Busca una solicitud activa que tenga un renglón libre del mismo tipo.</span>
+                </div>
+
+                <div class="sol-process-move__candidates" *ngIf="!processMoveSelectedCandidate">
+                    <article class="sol-process-move__candidate" *ngFor="let candidate of processMoveCandidates">
+                        <header>
+                            <div>
+                                <strong>{{ candidate.client_name }}</strong>
+                                <span>{{ candidate.type_label }} · {{ candidate.status | titlecase }}</span>
+                            </div>
+                            <small>{{ candidate.created_at | date: 'dd/MM/yyyy, h:mm a' }}</small>
+                        </header>
+                        <div class="sol-process-move__candidate-meta">
+                            <span><i class="pi pi-hashtag"></i>{{ candidate.solicitud_id }}</span>
+                            <span *ngIf="candidate.mechanic_name"><i class="pi pi-user"></i>{{ candidate.mechanic_name }}</span>
+                        </div>
+                        <div class="sol-process-move__slots">
+                            <button type="button" *ngFor="let slot of candidate.slots"
+                                [disabled]="processMovePreviewLoading"
+                                (click)="selectProcessMoveDestination(candidate, slot)">
+                                <span>
+                                    <strong>{{ slot.process_label }} #{{ slot.index + 1 }}</strong>
+                                    <small *ngIf="slot.target_name || slot.device_imei">
+                                        {{ slot.target_name || slot.device_imei }}<ng-container *ngIf="slot.target_name && slot.device_imei"> · {{ slot.device_imei }}</ng-container>
+                                    </small>
+                                    <small *ngIf="!slot.target_name && !slot.device_imei">Renglón disponible</small>
+                                </span>
+                                <i class="pi pi-arrow-right"></i>
+                            </button>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="sol-process-move__preview-loading" *ngIf="processMovePreviewLoading">
+                    <i class="pi pi-spin pi-spinner"></i> Revisando el movimiento...
+                </div>
+
+                <section class="sol-process-move__preview" *ngIf="processMovePreview as preview">
+                    <div class="sol-process-move__route">
+                        <article>
+                            <small>SALE DE</small>
+                            <strong>{{ preview.source.client_name }}</strong>
+                            <span>Proceso #{{ preview.source.process_number }}</span>
+                        </article>
+                        <i class="pi pi-arrow-right"></i>
+                        <article class="is-target">
+                            <small>PASA A</small>
+                            <strong>{{ preview.target.client_name }}</strong>
+                            <span>Proceso #{{ preview.target.process_number }}</span>
+                        </article>
+                    </div>
+
+                    <div class="sol-process-move__owner">
+                        <i class="pi pi-lock"></i>
+                        <div>
+                            <small>PROPIETARIO ACTUAL DEL DISPOSITIVO</small>
+                            <strong>{{ preview.device_owner?.name || 'No identificado' }}</strong>
+                            <span>No será modificado por esta operación.</span>
+                        </div>
+                    </div>
+
+                    <ul class="sol-process-move__effects">
+                        <li *ngFor="let effect of preview.effects"><i class="pi pi-check-circle"></i>{{ effect }}</li>
+                    </ul>
+
+                    <label class="sol-process-move__reason">
+                        <span>Motivo del movimiento <b>Obligatorio</b></span>
+                        <textarea rows="3" maxlength="500" [(ngModel)]="processMoveReason"
+                            placeholder="Ej.: El técnico registró este proceso en la solicitud equivocada."></textarea>
+                        <small>{{ processMoveReason.trim().length }}/500 · mínimo 5 caracteres</small>
+                    </label>
+                </section>
+            </section>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel" [disabled]="processMoveSaving" (click)="closeProcessMove()">
+            Volver
+        </button>
+        <button type="button" class="sol-btn sol-btn-save sol-process-move__confirm"
+            [disabled]="!canConfirmProcessMove()" (click)="confirmProcessMove()">
+            <i class="pi" [ngClass]="processMoveSaving ? 'pi-spin pi-spinner' : 'pi-arrow-right-arrow-left'"></i>
+            {{ processMoveSaving ? 'Moviendo...' : 'Confirmar movimiento' }}
+        </button>
     </ng-template>
 </p-dialog>
 

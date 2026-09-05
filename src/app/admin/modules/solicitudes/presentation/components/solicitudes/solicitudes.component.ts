@@ -13,6 +13,9 @@ import {
     SolicitudCompletionPreview,
     SolicitudCompletionPreviewAction,
     SolicitudCompletionTransferMode,
+    SolicitudProcessMoveCandidate,
+    SolicitudProcessMovePreview,
+    SolicitudProcessMoveSlot,
     SolicitudRollbackPreview,
     SolicitudRollbackPreviewAction,
     TechnicianRecommendation,
@@ -437,6 +440,18 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     processCorrectionDraft: InstallationDetail | null = null;
     processCorrectionReason = '';
     processCorrectionModels: SelectOption[] = [];
+    processMoveDialogVisible = false;
+    processMoveQuery = '';
+    processMoveCandidates: SolicitudProcessMoveCandidate[] = [];
+    processMoveCandidatesLoading = false;
+    processMoveCandidatesError = '';
+    processMoveSelectedCandidate: SolicitudProcessMoveCandidate | null = null;
+    processMoveSelectedSlot: SolicitudProcessMoveSlot | null = null;
+    processMovePreview: SolicitudProcessMovePreview | null = null;
+    processMovePreviewLoading = false;
+    processMoveReason = '';
+    processMoveSaving = false;
+    private processMoveSearchTimer: ReturnType<typeof setTimeout> | null = null;
     processLocationMapDialogVisible = false;
     processLocationMapLoading = false;
     processLocationMapError = '';
@@ -854,6 +869,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }
         if (this.locationConfigSearchTimer) {
             clearTimeout(this.locationConfigSearchTimer);
+        }
+        if (this.processMoveSearchTimer) {
+            clearTimeout(this.processMoveSearchTimer);
         }
         if (this.requestDialogOverlayCleanupTimer) {
             clearTimeout(this.requestDialogOverlayCleanupTimer);
@@ -4150,6 +4168,198 @@ async initLocationMap(): Promise<void> {
         return elevated || affiliation === 'empleado' || affiliation === 'admin';
     }
 
+    canMoveProcess(
+        solicitud: Solicitud | null = this.processDetailsSolicitud,
+        installation: InstallationDetail | null = this.processDetailsInstallation,
+    ): boolean {
+        if (
+            !solicitud?._id
+            || !installation
+            || installation.completed !== true
+            || installation.cancelled === true
+            || installation.omitted === true
+            || ['cancelada', 'rechazada'].includes(solicitud.status)
+            || this.isSolicitudLocked(solicitud)
+        ) {
+            return false;
+        }
+        const user: any = this.authService.getCurrentUser();
+        const elevated = [user?.root, user?.developer]
+            .some(value => value === true || String(value).toLowerCase() === 'true');
+        const affiliation = String(
+            user?.affiliation_type_id || user?.affiliation_type || '',
+        ).trim().toLowerCase();
+        return elevated || affiliation === 'empleado' || affiliation === 'admin';
+    }
+
+    getProcessMoveIdentifier(installation: InstallationDetail): string {
+        return String(
+            installation.checkup_recovery?.replacement_device_imei
+            || installation.new_device_imei
+            || installation.device_imei
+            || '',
+        ).trim();
+    }
+
+    openProcessMove(): void {
+        if (!this.canMoveProcess()) return;
+        this.resetProcessMove();
+        this.processMoveDialogVisible = true;
+        void this.loadProcessMoveCandidates();
+    }
+
+    closeProcessMove(): void {
+        this.processMoveDialogVisible = false;
+        this.resetProcessMove();
+    }
+
+    scheduleProcessMoveSearch(): void {
+        if (this.processMoveSearchTimer) clearTimeout(this.processMoveSearchTimer);
+        this.processMoveSearchTimer = setTimeout(() => {
+            void this.loadProcessMoveCandidates();
+        }, 320);
+    }
+
+    async loadProcessMoveCandidates(): Promise<void> {
+        const solicitudId = String(this.processDetailsSolicitud?._id || '').trim();
+        if (!solicitudId || !this.processMoveDialogVisible) return;
+        this.processMoveCandidatesLoading = true;
+        this.processMoveCandidatesError = '';
+        try {
+            const response = await firstValueFrom(
+                this.solicitudesService.getProcessMoveCandidates(
+                    solicitudId,
+                    this.processDetailsIndex,
+                    this.processMoveQuery,
+                ),
+            );
+            this.processMoveCandidates = response.candidates || [];
+            const selectedId = this.processMoveSelectedCandidate?.solicitud_id;
+            if (selectedId && !this.processMoveCandidates.some(item => item.solicitud_id === selectedId)) {
+                this.clearProcessMoveSelection();
+            }
+        } catch (error) {
+            this.processMoveCandidates = [];
+            this.processMoveCandidatesError = getApiErrorMessage(
+                error,
+                'No se pudieron cargar las solicitudes compatibles.',
+            );
+        } finally {
+            this.processMoveCandidatesLoading = false;
+        }
+    }
+
+    async selectProcessMoveDestination(
+        candidate: SolicitudProcessMoveCandidate,
+        slot: SolicitudProcessMoveSlot,
+    ): Promise<void> {
+        const solicitudId = String(this.processDetailsSolicitud?._id || '').trim();
+        if (!solicitudId || this.processMovePreviewLoading) return;
+        this.processMoveSelectedCandidate = candidate;
+        this.processMoveSelectedSlot = slot;
+        this.processMovePreview = null;
+        this.processMovePreviewLoading = true;
+        this.processMoveCandidatesError = '';
+        try {
+            this.processMovePreview = await firstValueFrom(
+                this.solicitudesService.previewProcessMove(
+                    solicitudId,
+                    this.processDetailsIndex,
+                    candidate.solicitud_id,
+                    slot.index,
+                ),
+            );
+        } catch (error) {
+            this.processMoveCandidatesError = getApiErrorMessage(
+                error,
+                'El renglón seleccionado ya no está disponible.',
+            );
+            this.clearProcessMoveSelection();
+        } finally {
+            this.processMovePreviewLoading = false;
+        }
+    }
+
+    clearProcessMoveSelection(): void {
+        this.processMoveSelectedCandidate = null;
+        this.processMoveSelectedSlot = null;
+        this.processMovePreview = null;
+    }
+
+    canConfirmProcessMove(): boolean {
+        return Boolean(
+            this.processMovePreview
+            && this.processMoveSelectedCandidate
+            && this.processMoveSelectedSlot
+            && this.processMoveReason.trim().length >= 5
+            && !this.processMoveSaving,
+        );
+    }
+
+    async confirmProcessMove(): Promise<void> {
+        const source = this.processDetailsSolicitud;
+        const sourceId = String(source?._id || '').trim();
+        const candidate = this.processMoveSelectedCandidate;
+        const slot = this.processMoveSelectedSlot;
+        if (!source || !sourceId || !candidate || !slot || !this.canConfirmProcessMove()) return;
+        this.processMoveSaving = true;
+        try {
+            const result = await firstValueFrom(
+                this.solicitudesService.moveProcess(
+                    sourceId,
+                    this.processDetailsIndex,
+                    {
+                        target_solicitud_id: candidate.solicitud_id,
+                        target_installation_index: slot.index,
+                        reason: this.processMoveReason.trim(),
+                        expected_source_version: source.__v,
+                        expected_target_version: candidate.version,
+                    },
+                ),
+            );
+            for (const updated of [result.source_solicitud, result.target_solicitud]) {
+                const listIndex = this.solicitudes.findIndex(item => item._id === updated._id);
+                if (listIndex !== -1) this.solicitudes[listIndex] = updated;
+            }
+            this.solicitudes = [...this.solicitudes];
+            const warnings = result.operation_warnings?.join(' ');
+            this.processMoveDialogVisible = false;
+            this.closeKanbanProcessDetails();
+            this.messageService.add({
+                severity: warnings ? 'warn' : 'success',
+                summary: warnings ? 'Proceso movido con advertencias' : 'Proceso movido',
+                detail: warnings || `El proceso quedó asociado a ${result.target_solicitud.client_name || 'la solicitud seleccionada'} y su inventario se mantuvo intacto.`,
+            });
+            await this.loadSolicitudes(false, { silent: true });
+        } catch (error) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo mover el proceso',
+                detail: getApiErrorMessage(
+                    error,
+                    'Recarga las solicitudes y verifica que el destino siga disponible.',
+                ),
+            });
+        } finally {
+            this.processMoveSaving = false;
+        }
+    }
+
+    private resetProcessMove(): void {
+        if (this.processMoveSearchTimer) clearTimeout(this.processMoveSearchTimer);
+        this.processMoveSearchTimer = null;
+        this.processMoveQuery = '';
+        this.processMoveCandidates = [];
+        this.processMoveCandidatesLoading = false;
+        this.processMoveCandidatesError = '';
+        this.processMoveSelectedCandidate = null;
+        this.processMoveSelectedSlot = null;
+        this.processMovePreview = null;
+        this.processMovePreviewLoading = false;
+        this.processMoveReason = '';
+        this.processMoveSaving = false;
+    }
+
     async startProcessCorrection(): Promise<void> {
         const installation = this.processDetailsInstallation;
         const solicitud = this.processDetailsSolicitud;
@@ -4891,6 +5101,25 @@ async initLocationMap(): Promise<void> {
                     ['Campos modificados', (correction.changed_fields || [])
                         .map(field => this.getCorrectionFieldLabel(field))
                         .join(', ')],
+                ),
+            });
+        }
+
+        for (const movement of installation.movement_history || []) {
+            const inbound = movement.direction === 'in';
+            add({
+                title: inbound
+                    ? 'Proceso movido a esta solicitud'
+                    : 'Proceso movido a otra solicitud',
+                description: movement.reason,
+                icon: 'pi-arrow-right-arrow-left',
+                state: 'info',
+                timestamp: movement.moved_at,
+                details: details(
+                    ['Realizado por', movement.moved_by_name],
+                    ['Correo', movement.moved_by_email],
+                    [inbound ? 'Solicitud de origen' : 'Solicitud de destino', movement.other_solicitud_id],
+                    [inbound ? 'Cliente anterior' : 'Cliente de destino', movement.other_client_name],
                 ),
             });
         }
