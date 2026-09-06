@@ -51,7 +51,7 @@
       <div class="category-heading"><span><i class="pi pi-tag"></i>{{ categoryGroup.label }}</span><em>{{ categoryGroup.items.length }}</em></div>
       <div class="receipt-grid">
         <article class="receipt-card" *ngFor="let receipt of categoryGroup.items" (click)="openReceipt(receipt)">
-          <div class="receipt-image"><img [src]="receipt.image_url" alt="Comprobante de {{ receipt.employee_name }}"><span class="status-pill" [attr.data-status]="receipt.processing_status">{{ statusLabel(receipt.processing_status) }}</span></div>
+          <div class="receipt-image"><img *ngIf="attachmentUrls[receipt._id]" [src]="attachmentUrls[receipt._id]" alt="Comprobante de {{ receipt.employee_name }}"><span *ngIf="!attachmentUrls[receipt._id]">Adjunto protegido</span><span class="status-pill" [attr.data-status]="receipt.processing_status">{{ statusLabel(receipt.processing_status) }}</span></div>
           <div class="receipt-body">
             <div class="merchant-row"><div><small>COMERCIO</small><h3>{{ receipt.merchant_name || 'No detectado' }}</h3></div><strong>{{ displayAmount(receipt) }}</strong></div>
             <p>{{ receipt.description || receipt.raw_text || 'Sin descripción digitalizada' }}</p>
@@ -168,7 +168,7 @@
 <div class="receipt-modal" *ngIf="selectedReceipt" (click)="closeReceipt()">
   <section class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Detalle del comprobante">
     <button type="button" class="modal-close" (click)="closeReceipt()" [disabled]="receiptBusy" aria-label="Cerrar">×</button>
-    <div class="modal-image"><img [src]="selectedReceipt.image_url" alt="Comprobante ampliado"></div>
+    <div class="modal-image"><img *ngIf="attachmentUrls[selectedReceipt._id]" [src]="attachmentUrls[selectedReceipt._id]" alt="Comprobante ampliado"><p *ngIf="!attachmentUrls[selectedReceipt._id]">No se pudo mostrar el adjunto protegido.</p></div>
     <div class="modal-content">
       <div class="modal-title"><div><span>{{ categoryLabel(selectedReceipt.accounting_category) }}</span><h2>{{ selectedReceipt.merchant_name || 'Comercio no detectado' }}</h2></div><strong>{{ displayAmount(selectedReceipt) }}</strong></div>
       <div class="processing-error" *ngIf="detailError" role="alert">{{ detailError }}</div>
@@ -209,6 +209,11 @@
         <div><small>Confianza IA</small><strong>{{ selectedReceipt.ai_confidence == null ? 'No disponible' : ((selectedReceipt.ai_confidence * 100) | number:'1.0-0') + '%' }}</strong></div>
       </div>
       <p class="receipt-audit" *ngIf="selectedReceipt.edited_at">Editado por {{ selectedReceipt.edited_by_name || 'Usuario root' }} · {{ selectedReceipt.edited_at | date:'dd/MM/yyyy HH:mm' }}</p>
+      <p>Revisión documental: {{ selectedReceipt.review_status === 'reviewed' ? 'Revisado' : 'Pendiente de revisión' }}. El registro no confirma un pago.</p>
+      <ul *ngIf="selectedReceipt.warnings?.length"><li *ngFor="let warning of selectedReceipt.warnings">{{ warningLabel(warning) }}</li></ul>
+      <details *ngIf="selectedReceipt.ocr_candidate"><summary>Nueva lectura sugerida</summary><p>{{ selectedReceipt.ocr_candidate.merchant_name }} · {{ selectedReceipt.ocr_candidate.expense_date | date:'dd/MM/yyyy' }} · {{ selectedReceipt.ocr_candidate.total_amount | number:'1.2-2' }} {{ selectedReceipt.ocr_candidate.currency }}</p><p>Usa Editar para aplicar las correcciones que correspondan.</p></details>
+      <button type="button" *ngIf="canManageReceipts && selectedReceipt.review_status !== 'reviewed' && !deleteConfirmation" (click)="markReviewed()" [disabled]="receiptBusy">Confirmar revisión de los datos</button>
+      <details><summary>Historial de cambios</summary><p *ngIf="historyError">{{ historyError }}</p><p *ngIf="!receiptHistory.length && !historyError">Sin revisiones registradas.</p><div *ngFor="let entry of receiptHistory"><strong>{{ historyAction(entry.action) }}</strong> · {{ entry.actorName }} · {{ entry.at | date:'dd/MM/yyyy HH:mm' }}<p>{{ entry.snapshot.merchant_name }} · {{ entry.snapshot.total_amount | number:'1.2-2' }} {{ entry.snapshot.currency }} · {{ entry.snapshot.ncf || entry.snapshot.receipt_number }}</p></div></details>
       <div class="raw-text"><small>DATOS DIGITALIZADOS</small><p>{{ selectedReceipt.raw_text || selectedReceipt.description || 'La IA no pudo extraer texto.' }}</p></div>
       <div class="processing-error" *ngIf="selectedReceipt.processing_error"><i class="pi pi-exclamation-triangle"></i><span>{{ selectedReceipt.processing_error }}</span></div>
       <div class="receipt-actions" *ngIf="canManageReceipts && !deleteConfirmation"><button type="button" (click)="startEditing(selectedReceipt)" [disabled]="receiptBusy"><i class="pi pi-pencil"></i> Editar</button><button type="button" class="delete-receipt-btn" (click)="requestDelete(selectedReceipt)" [disabled]="receiptBusy"><i class="pi pi-trash"></i> Borrar</button></div>

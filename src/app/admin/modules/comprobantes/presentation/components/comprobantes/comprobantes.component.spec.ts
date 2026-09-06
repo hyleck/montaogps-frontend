@@ -63,6 +63,7 @@ describe('ComprobantesComponent', () => {
     const employees = [{ employee_id: 'employee-other-page', employee_name: 'Luis García' }];
     const service = {
       getAll: jasmine.createSpy('getAll').and.returnValue(of({ data: [receipt({})], total: 61 })),
+      getAttachment: jasmine.createSpy().and.returnValue(of(new Blob())),
       getEmployees: jasmine.createSpy('getEmployees').and.returnValue(of(employees)),
     };
     const component = new ComprobantesComponent(service as any, rootAuth);
@@ -137,6 +138,7 @@ describe('ComprobantesComponent', () => {
     });
     const service = {
       getAll: jasmine.createSpy('getAll').and.returnValue(of({ data: [uploaded], total: 1 })),
+      getAttachment: jasmine.createSpy().and.returnValue(of(new Blob())),
       upload: jasmine.createSpy('upload').and.returnValue(of(uploaded)),
       getEmployees: jasmine.createSpy('getEmployees').and.returnValue(of([])),
     };

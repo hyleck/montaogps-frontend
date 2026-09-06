@@ -7,6 +7,7 @@ import {
   ExpenseReceiptsService,
 } from '../../../../../../core/services/expense-receipts.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
+import { catchError, from, map, mergeMap, of, Subscription } from 'rxjs';
 
 interface ReceiptCategoryGroup {
   category: string;
@@ -64,6 +65,11 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   deletingReceipt = false;
   deleteConfirmation = false;
   detailError = '';
+  attachmentUrls: Record<string, string> = {};
+  receiptHistory: Array<{ revision: number; action: string; actorName: string; at: string; snapshot: Partial<ExpenseReceipt> }> = [];
+  historyError = '';
+  private attachmentRequests?: Subscription;
+  private historyRequest?: Subscription;
   private readonly dateKeyFormatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Santo_Domingo',
     year: 'numeric',
@@ -122,6 +128,8 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.releaseUploadPreview();
+    this.releaseAttachments();
+    this.historyRequest?.unsubscribe();
   }
 
   get totalPages(): number {
@@ -180,6 +188,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: response => {
         this.receipts = response.data || [];
+        this.loadAttachments();
         this.total = Number(response.total || 0);
         this.loading = false;
       },
@@ -234,11 +243,14 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
     this.deleteConfirmation = false;
     this.detailError = '';
     this.selectedReceipt = receipt;
+    this.loadReceiptHistory(receipt._id);
   }
 
   closeReceipt(): void {
     if (this.receiptBusy) return;
     this.selectedReceipt = null;
+    this.historyRequest?.unsubscribe();
+    this.receiptHistory = [];
     this.editingReceipt = false;
     this.deleteConfirmation = false;
     this.detailError = '';
@@ -259,7 +271,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
       subtotal: receipt.subtotal ?? null,
       tax_amount: receipt.tax_amount ?? null,
       total_amount: receipt.total_amount ?? null,
-      currency: receipt.currency || 'DOP',
+      currency: receipt.currency || '',
       category: receipt.category || 'otros',
       accounting_category: receipt.accounting_category,
       description: receipt.description || '',
@@ -432,18 +444,68 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
     event?.stopPropagation();
     if (!this.canManageReceipts || this.receiptBusy || this.editingReceipt || this.deleteConfirmation) return;
     this.reprocessingId = receipt._id;
-    this.receiptsService.reprocess(receipt._id).subscribe({
+    this.receiptsService.reprocess(receipt._id, receipt.updatedAt).subscribe({
       next: updated => {
         const index = this.receipts.findIndex(item => item._id === updated._id);
         if (index >= 0) this.receipts[index] = updated;
         if (this.selectedReceipt?._id === updated._id) this.selectedReceipt = updated;
         this.reprocessingId = '';
+        if (this.selectedReceipt?._id === updated._id) this.loadReceiptHistory(updated._id);
       },
       error: error => {
         this.error = error?.error?.message || 'No se pudo reintentar la digitalización.';
         this.reprocessingId = '';
       },
     });
+  }
+
+  private releaseAttachments(): void {
+    this.attachmentRequests?.unsubscribe();
+    Object.values(this.attachmentUrls).forEach(url => URL.revokeObjectURL(url));
+    this.attachmentUrls = {};
+  }
+
+  private loadAttachments(): void {
+    this.releaseAttachments();
+    this.attachmentRequests = from(this.receipts).pipe(mergeMap(receipt =>
+      this.receiptsService.getAttachment(receipt._id).pipe(map(blob => ({ id: receipt._id, blob })), catchError(() => of(null))), 3),
+    ).subscribe(result => {
+      if (result) this.attachmentUrls[result.id] = URL.createObjectURL(result.blob);
+    });
+  }
+
+  private loadReceiptHistory(id: string): void {
+    this.historyRequest?.unsubscribe();
+    this.receiptHistory = [];
+    this.historyError = '';
+    this.historyRequest = this.receiptsService.getHistory(id).subscribe({
+      next: rows => { if (this.selectedReceipt?._id === id) this.receiptHistory = rows; },
+      error: () => { this.historyError = 'No se pudo cargar el historial.'; },
+    });
+  }
+
+  markReviewed(): void {
+    const receipt = this.selectedReceipt;
+    if (!receipt || !this.canManageReceipts || this.receiptBusy) return;
+    this.savingReceipt = true;
+    this.detailError = '';
+    this.receiptsService.review(receipt._id, receipt.updatedAt).subscribe({
+      next: updated => {
+        this.savingReceipt = false;
+        this.selectedReceipt = updated;
+        this.loadReceiptHistory(updated._id);
+        this.loadReceipts();
+      },
+      error: error => { this.savingReceipt = false; this.detailError = this.receiptErrorMessage(error, 'No se pudo revisar.'); },
+    });
+  }
+
+  warningLabel(code: string): string {
+    return ({ invalid_or_missing_date: 'Falta una fecha válida', invalid_or_missing_total: 'Falta un total válido', invalid_or_missing_subtotal: 'Falta un subtotal válido', invalid_or_missing_tax: 'Falta un impuesto válido', amounts_do_not_reconcile: 'Subtotal e impuesto no coinciden con el total', invalid_or_missing_currency: 'Falta indicar la moneda', missing_merchant: 'Falta identificar el comercio', low_ocr_confidence: 'La lectura requiere revisión', ocr_candidate_pending: 'Hay una nueva lectura sugerida; tus correcciones se conservaron', ocr_failed: 'No se pudo digitalizar' } as Record<string, string>)[code] || 'Dato pendiente de revisión';
+  }
+
+  historyAction(action: string): string {
+    return ({ created: 'Registro', edited: 'Corrección', reprocessed: 'Nueva lectura', reviewed: 'Revisión', deleted: 'Borrado', before_edited: 'Estado anterior', before_reprocessed: 'Estado anterior', before_deleted: 'Estado anterior', before_reviewed: 'Estado anterior' } as Record<string, string>)[action] || 'Actualización';
   }
 
   categoryLabel(category?: string): string {
@@ -479,7 +541,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   }
 
   displayReceiptDate(receipt: ExpenseReceipt, includeTime = false): string {
-    const value = receipt.expense_date || receipt.createdAt;
+    const value = receipt.expense_date;
     if (!value) return 'Fecha no detectada';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return 'Fecha no detectada';
@@ -494,9 +556,10 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
 
   displayAmount(receipt: ExpenseReceipt): string {
     if (receipt.total_amount === undefined || receipt.total_amount === null) return 'Monto no detectado';
+    if (!/^[A-Z]{3}$/.test(receipt.currency || '')) return new Intl.NumberFormat('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(receipt.total_amount) + ' (moneda no detectada)';
     return new Intl.NumberFormat('es-DO', {
       style: 'currency',
-      currency: receipt.currency || 'DOP',
+      currency: receipt.currency,
       maximumFractionDigits: 2,
     }).format(receipt.total_amount);
   }
@@ -537,7 +600,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   }
 
   private getDateKey(receipt: ExpenseReceipt): string {
-    const value = receipt.expense_date || receipt.createdAt;
+    const value = receipt.expense_date;
     if (!value) return 'sin-fecha';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return 'sin-fecha';

@@ -35,6 +35,10 @@ export interface ExpenseReceipt {
   updatedAt?: string;
   edited_at?: string;
   edited_by_name?: string;
+  source_revision?: number;
+  warnings?: string[];
+  review_status?: 'pending_review' | 'reviewed';
+  ocr_candidate?: Partial<ExpenseReceipt>;
 }
 
 export interface ExpenseReceiptUpdate {
@@ -120,8 +124,20 @@ export class ExpenseReceiptsService {
     return this.http.get<ExpenseReceiptEmployee[]>(`${this.apiUrl}/eligible-employees`);
   }
 
-  reprocess(id: string): Observable<ExpenseReceipt> {
-    return this.http.post<ExpenseReceipt>(`${this.apiUrl}/${id}/reprocess`, {});
+  reprocess(id: string, expectedUpdatedAt?: string): Observable<ExpenseReceipt> {
+    return this.http.post<ExpenseReceipt>(`${this.apiUrl}/${id}/reprocess`, { expected_updated_at: expectedUpdatedAt });
+  }
+
+  getAttachment(id: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/${id}/attachment`, { responseType: 'blob' });
+  }
+
+  getHistory(id: string): Observable<Array<{ revision: number; action: string; actorName: string; at: string; snapshot: Partial<ExpenseReceipt> }>> {
+    return this.http.get<any[]>(`${this.apiUrl}/${id}/history`);
+  }
+
+  review(id: string, expectedUpdatedAt?: string): Observable<ExpenseReceipt> {
+    return this.http.post<ExpenseReceipt>(`${this.apiUrl}/${id}/review`, { expected_updated_at: expectedUpdatedAt });
   }
 
   update(id: string, changes: ExpenseReceiptUpdate): Observable<ExpenseReceipt> {

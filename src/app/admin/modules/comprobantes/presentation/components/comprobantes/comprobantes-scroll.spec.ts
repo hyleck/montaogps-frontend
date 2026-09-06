@@ -37,6 +37,8 @@ describe('Comprobantes scroll layout', () => {
         { provide: AuthService, useValue: { getCurrentUser: () => ({ root: true }) } },
         { provide: ExpenseReceiptsService, useValue: {
         getAll,
+        getAttachment: () => of(new Blob()),
+        getHistory: () => of([]),
         getEmployees: () => of([
           { employee_id: 'employee-1', employee_name: 'Ana Pérez' },
           { employee_id: 'employee-2', employee_name: 'Luis Alberto García Rodríguez', employee_email: 'luis-alberto.garcia@example.com' },

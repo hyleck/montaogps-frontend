@@ -19,6 +19,33 @@ describe('ExpenseReceiptsService employee filter', () => {
 
   afterEach(() => http.verify());
 
+  it('downloads the protected attachment as bytes without a public storage URL', () => {
+    service.getAttachment('receipt-1').subscribe();
+    const request = http.expectOne(`${apiUrl}/receipt-1/attachment`);
+    expect(request.request.responseType).toBe('blob');
+    request.flush(new Blob(['fixture'], { type: 'image/png' }));
+  });
+
+  it('sends explicit revision preconditions when reviewing and reprocessing', () => {
+    const revision = '2026-09-05T12:00:00.000Z';
+    service.review('receipt-1', revision).subscribe();
+    let request = http.expectOne(`${apiUrl}/receipt-1/review`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ expected_updated_at: revision });
+    request.flush({ _id: 'receipt-1', review_status: 'reviewed' });
+    service.reprocess('receipt-1', revision).subscribe();
+    request = http.expectOne(`${apiUrl}/receipt-1/reprocess`);
+    expect(request.request.body).toEqual({ expected_updated_at: revision });
+    request.flush({ _id: 'receipt-1', review_status: 'pending_review' });
+  });
+
+  it('requests immutable receipt history', () => {
+    service.getHistory('receipt-1').subscribe();
+    const request = http.expectOne(`${apiUrl}/receipt-1/history`);
+    expect(request.request.method).toBe('GET');
+    request.flush([]);
+  });
+
   it('patches the requested receipt using the editable fields and the known revision', () => {
     const changes = { total_amount: 125, expected_updated_at: '2026-08-28T14:00:00Z' };
     service.update('receipt-1', changes).subscribe();

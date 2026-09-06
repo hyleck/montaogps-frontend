@@ -14,6 +14,8 @@ describe('Root receipt management', () => {
 
   function setup(root: boolean | string = true) {
     const service = {
+      getHistory: jasmine.createSpy().and.returnValue(of([])),
+      getAttachment: jasmine.createSpy().and.returnValue(of(new Blob())),
       update: jasmine.createSpy('update').and.returnValue(of({ ...receipt, total_amount: 200 })),
       remove: jasmine.createSpy('remove').and.returnValue(of({ deleted: true, id: receipt._id })),
       getEligibleEmployees: jasmine.createSpy().and.returnValue(of([{ employee_id: 'employee-2', employee_name: 'Luis' }])),
