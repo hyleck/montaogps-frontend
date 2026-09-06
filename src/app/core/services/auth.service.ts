@@ -251,10 +251,25 @@ export class AuthService {
     }
   }
 
-  startSupportImpersonation(targetUserId: string, reason: string): Observable<any> {
+  canStartSupportSession(): boolean {
     const currentUser = this.getCurrentUser();
-    if (!currentUser?.root || this.isSupportImpersonating()) {
-      throw new Error('Solo una sesión root normal puede iniciar el acceso de soporte.');
+    const affiliationType = String(currentUser?.affiliation_type_id || '').trim().toLowerCase();
+    return currentUser?.root === true || affiliationType === 'empleado';
+  }
+
+  canStartSupportSessionFor(targetUser: User): boolean {
+    if (!this.canStartSupportSession()) return false;
+
+    const currentUser = this.getCurrentUser();
+    if (currentUser?.root === true) return true;
+
+    const targetAffiliation = String(targetUser?.affiliation_type_id || '').trim().toLowerCase();
+    return ['cliente', 'subcliente'].includes(targetAffiliation);
+  }
+
+  startSupportImpersonation(targetUserId: string, reason: string): Observable<any> {
+    if (!this.canStartSupportSession() || this.isSupportImpersonating()) {
+      throw new Error('Solo una sesión normal de empleado puede iniciar el acceso de soporte.');
     }
 
     return this._httpClient.post<any>(
@@ -266,7 +281,7 @@ export class AuthService {
           throw new Error('El servidor no devolvió una sesión de soporte válida.');
         }
 
-        // La consulta se hace todavía con la sesión root. Solo reemplazamos la
+        // La consulta se hace todavía con la sesión del empleado. Solo reemplazamos la
         // sesión local cuando ya contamos con todos los datos del usuario destino.
         return this.userService.getById(response.user.id).pipe(
           map(userData => ({ response, userData })),
@@ -276,7 +291,7 @@ export class AuthService {
         const originalToken = this.getToken();
         const originalUser = localStorage.getItem(this.USER_KEY);
         if (!originalToken || !originalUser) {
-          throw new Error('No se encontró la sesión root que se debe conservar.');
+          throw new Error('No se encontró la sesión del empleado que se debe conservar.');
         }
 
         sessionStorage.setItem(this.SUPPORT_SESSION_KEY, JSON.stringify({
@@ -304,9 +319,8 @@ export class AuthService {
     targetUserId: string,
     reason: string,
   ): Observable<any> {
-    const currentUser = this.getCurrentUser();
-    if (!currentUser?.root || this.isSupportImpersonating()) {
-      throw new Error('Solo una sesión root normal puede iniciar el acceso de soporte.');
+    if (!this.canStartSupportSession() || this.isSupportImpersonating()) {
+      throw new Error('Solo una sesión normal de empleado puede iniciar el acceso de soporte.');
     }
 
     return this._httpClient.post<any>(
