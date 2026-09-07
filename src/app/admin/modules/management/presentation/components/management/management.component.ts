@@ -1173,7 +1173,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   canStartSupportAccess(user: User): boolean {
     const currentUser = this.authService.getCurrentUser();
-    return this.isCurrentUserRoot
+    return this.authService.canStartSupportSessionFor(user)
       && !this.authService.isSupportImpersonating()
       && !!user?._id
       && user._id !== currentUser?.id

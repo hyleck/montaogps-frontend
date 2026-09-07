@@ -39,7 +39,7 @@ export const errorInterceptor: HttpInterceptorFn = (
                 return throwError(() => error);
               }
             } catch (restoreError) {
-              console.error('No fue posible restaurar la sesión root de soporte:', restoreError);
+              console.error('No fue posible restaurar la sesión original de soporte:', restoreError);
             }
           }
 
