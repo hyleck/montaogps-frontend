@@ -86,6 +86,34 @@ export class AuthService {
     );
   }
 
+  exchangeIndexAuthorizationCode(code: string): Observable<any> {
+    return this._httpClient
+      .post<any>(environment.apiUrl + '/auth/sso/exchange', { code })
+      .pipe(
+        tap(response => {
+          if (response.access_token) {
+            this.saveToken(response.access_token);
+          }
+          if (response.session_date) {
+            localStorage.setItem('session_date', response.session_date);
+          }
+          if (response.user) {
+            this.saveUser(response.user);
+          }
+        }),
+        switchMap(response => {
+          if (!response.user?.id) return of(response);
+          return this.userService.getById(response.user.id).pipe(
+            tap(userData => {
+              this.updateUserWithPrivileges(userData);
+              this.configureUserSettings(userData);
+            }),
+            map(() => response)
+          );
+        })
+      );
+  }
+
   completeSsoLogin(token: string, user: BasicUser, sessionDate?: string): Observable<any> {
     this.clearStoredSession({ keepRememberedEmail: false, clearSessionStorage: true });
     this.saveToken(token);
