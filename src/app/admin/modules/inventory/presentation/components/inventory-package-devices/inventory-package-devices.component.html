@@ -68,7 +68,7 @@
       <div class="receipt-table-scroll"><table class="receipt-table">
         <thead><tr><th>Artículo</th><th>Esperadas</th><th>Registradas</th><th>Pendientes</th><th><span class="sr-only">Acción</span></th></tr></thead>
         <tbody><tr *ngFor="let row of receipt.rows" [class.receipt-row-done]="!row.pending && !row.excess">
-          <td><strong>{{ row.name }}</strong><small>{{ row.kind === 'gps' ? 'GPS · por IMEI' : 'Accesorio · por cantidad' }}</small></td>
+          <td><strong>{{ row.name }}</strong><small>{{ row.kind === 'gps' ? 'GPS · por IMEI' : 'Accesorio · por cantidad' }}</small><small *ngIf="row.purchasePrice !== undefined">Compra/ud.: {{ row.purchasePrice | currency:(receiving?.currency || 'USD'):'symbol':'1.2-2' }} · Venta/ud.: {{ row.salePrice | currency:(receiving?.currency || 'USD'):'symbol':'1.2-2' }}</small></td>
           <td>{{ row.expected }}</td><td>{{ row.received }}<small *ngIf="row.excess" class="receipt-warning">{{ row.excess }} adicionales</small></td>
           <td><strong class="receipt-remaining" [class.done]="!row.pending">{{ row.pending }}</strong></td>
           <td class="receipt-action"><button type="button" *ngIf="row.pending && canCreateInventory()" (click)="receiveLine(row)" [disabled]="receivingLoading || !!receivingError" [attr.aria-label]="'Dar entrada a ' + row.name"><i class="pi pi-plus"></i> Dar entrada</button><span *ngIf="!row.pending && !row.excess" class="receipt-done"><i class="pi pi-check"></i> {{ row.expected ? 'Completo' : 'No incluido' }}</span></td>

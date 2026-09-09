@@ -341,16 +341,17 @@
           <div>
             <span class="packages-section-kicker">Paquetes registrados</span>
             <h2>Entradas de inventario</h2>
+            <p class="packages-order-hint">Incosis primero · Más recientes primero en cada grupo</p>
           </div>
           <span class="packages-total">{{ packages.length }} paquete{{ packages.length === 1 ? '' : 's' }}</span>
         </div>
 
         <div class="packages-grid">
-          <article *ngFor="let package of packages" class="package-card" (click)="viewPackageDevices(package)">
+          <article *ngFor="let package of packages" class="package-card" [class.package-card--incosis]="isIncosisPackage(package)" (click)="viewPackageDevices(package)">
             <div class="package-card-header">
               <div class="package-card-type">
                 <span class="package-card-icon"><i class="pi pi-box"></i></span>
-                <span>Paquete</span>
+                <span>{{ isIncosisPackage(package) ? 'INCOSIS' : 'Paquete' }}</span>
               </div>
               <div class="package-actions">
                 <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm"
@@ -366,6 +367,7 @@
             </div>
 
             <div class="package-card-body">
+              <span *ngIf="isIncosisPackage(package)" class="package-origin-badge"><i class="pi pi-link" aria-hidden="true"></i> Compra registrada en Incosis</span>
               <h3 [title]="package.title">{{ package.title }}</h3>
               <p class="package-description" [class.package-description--empty]="!package.description">
                 {{ package.description || 'Sin descripción adicional' }}
@@ -375,8 +377,8 @@
                 <div class="info-item">
                   <i class="pi pi-calendar"></i>
                   <span>
-                    <small>Fecha</small>
-                    <strong>{{ package.date | date: 'dd/MM/yyyy' }}</strong>
+                    <small>Registrado</small>
+                    <strong>{{ package.createdAt ? (package.createdAt | date: 'dd/MM/yyyy HH:mm') : 'Sin fecha de registro' }}</strong>
                   </span>
                 </div>
                 <div class="info-item">
@@ -389,7 +391,7 @@
               </div>
 
               <div *ngIf="package.declaredContent as content" class="package-declared-content">
-                <strong>Contenido declarado desde Incosis</strong>
+                <strong>{{ isIncosisPackage(package) ? 'Compra con desglose de artículos' : 'Contenido declarado' }}</strong>
                 <p>{{ content.gpsQuantity }} GPS · {{ content.cableQuantity }} cables · {{ content.relayQuantity }} relés</p>
                 <ul><li *ngFor="let model of content.models">{{ model.modelName }} <strong>× {{ model.quantity }}</strong></li></ul>
                 <small>Las unidades con IMEI se registran al recibir el inventario.</small>
@@ -409,7 +411,7 @@
 
             <button type="button" class="package-card-footer"
               (click)="viewPackageDevices(package); $event.stopPropagation()">
-              <span>Ver contenido</span>
+              <span>{{ isIncosisPackage(package) ? 'Revisar recepción del paquete' : 'Ver contenido' }}</span>
               <i class="pi pi-arrow-right"></i>
             </button>
           </article>

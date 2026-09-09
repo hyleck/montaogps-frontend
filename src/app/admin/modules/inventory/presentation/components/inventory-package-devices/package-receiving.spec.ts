@@ -57,6 +57,15 @@ describe('Package receiving screen', () => {
     component.receiving = { packageId: summary.packageId, title: 'Old', reception: null }; fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.receipt-panel')).toBeNull(); expect(fixture.nativeElement.querySelector('.package-add-button')).not.toBeNull();
   });
+  it('shows saved unit prices in the package currency and leaves historical prices blank', () => {
+    expect(fixture.nativeElement.querySelector('.receipt-table').textContent).not.toContain('Compra/ud.');
+    component.receiving!.currency = 'DOP';
+    Object.assign(component.receiving!.reception!.rows[0], { purchasePrice: 100.50, salePrice: 150 });
+    fixture.detectChanges();
+    const table = fixture.nativeElement.querySelector('.receipt-table').textContent;
+    expect(table).toContain('Compra/ud.: DOP100.50');
+    expect(table).toContain('Venta/ud.: DOP150.00');
+  });
   it('shows a skeleton while loading and an explicit retry after failure', () => {
     const response = new Subject(); api.packageReceiving.and.returnValue(response); component.receiving = null; component.loadReceiving(); fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.receipt-skeleton')).not.toBeNull(); response.error({ status: 500 }); fixture.detectChanges();

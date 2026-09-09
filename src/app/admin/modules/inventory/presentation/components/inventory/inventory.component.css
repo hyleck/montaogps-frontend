@@ -5949,3 +5949,13 @@ html.app-dark .conduce-origin-dropdown-panel .p-dropdown-item.p-highlight {
 .package-declared-content p { margin: .4rem 0; }
 .package-declared-content ul { margin: .4rem 0; padding-left: 1rem; }
 .package-declared-content li { padding: .15rem 0; }
+.packages-order-hint { margin: .4rem 0 0; font-size: .75rem; color: var(--inventory-muted-text); }
+.package-card.package-card--incosis { border: 1px solid #c82c3b; border-top: 5px solid #c82c3b; background: color-mix(in srgb, var(--managementColorCardBackground, #fff) 96%, #c82c3b); }
+.package-card--incosis::before { display: none; }
+.package-card--incosis .package-card-icon { background: #b42332; color: #fff; }
+.package-card--incosis .package-card-type { color: var(--managementColorTextUser); font-weight: 900; letter-spacing: .1em; }
+.package-origin-badge { display: inline-flex; align-self: flex-start; align-items: center; gap: .4rem; padding: .35rem .55rem; margin: 0 0 .6rem; border-radius: 5px; background: #b42332; color: #fff; font-size: .68rem; font-weight: 700; line-height: 1.4; }
+.package-card--incosis .package-actions { opacity: 1; }
+.package-card--incosis .package-card-footer { background: #b42332; color: #fff; border-color: #b42332; }
+.package-card--incosis:hover .package-card-footer { background: #941d29; color: #fff; }
+.package-card--incosis:focus-within { outline: 2px solid #b42332; outline-offset: 3px; }

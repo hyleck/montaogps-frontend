@@ -92,6 +92,8 @@ export interface UnregisteredInventorySimAlertResponse {
 }
 
 export interface PackageReceivingRow {
+  purchasePrice?: number;
+  salePrice?: number;
   key: string;
   kind: 'gps' | 'cables' | 'relay';
   name: string;
@@ -101,12 +103,14 @@ export interface PackageReceivingRow {
   excess: number;
 }
 export interface PackageReceiving {
+  currency?: string;
   packageId: string;
   title: string;
   reception: { rows: PackageReceivingRow[]; expected: number; received: number; pending: number; excess: number; unexpectedGps: number; progress: number; status: 'pending' | 'complete' | 'review' } | null;
 }
 
 export interface Package {
+  incosisExpense?: { expenseId?: string; companyId?: string };
   currency?: 'DOP' | 'USD';
   declaredContent?: { gpsQuantity: number; cableQuantity: number; relayQuantity: number; models: Array<{ modelId: string; modelName: string; quantity: number }> };
   _id?: string;

@@ -27,6 +27,7 @@ import autoTable from 'jspdf-autotable';
 import * as QRCode from 'qrcode';
 import { firstValueFrom } from 'rxjs';
 import { formatConduceSimcardCode } from './conduce-simcard-code.util';
+import { isIncosisPackage, orderPackages } from './package-order.util';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 interface ShippingLabelForm {
@@ -53,6 +54,7 @@ type ShippingLabelSocialIcons = Record<ShippingLabelSocialNetwork, HTMLImageElem
   encapsulation: ViewEncapsulation.None
 })
 export class InventoryComponent implements OnInit, OnDestroy {
+  readonly isIncosisPackage = isIncosisPackage;
   items: MenuItem[] = [{ label: 'Inventario' }];
   home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
 
@@ -545,7 +547,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.inventoryService.findAllPackages().subscribe({
       next: (packages) => {
-        this.packages = packages || [];
+        this.packages = orderPackages(packages || []);
         this.loading = false;
       },
       error: (error) => {
