@@ -16,6 +16,8 @@ import { AuthService } from 'src/app/core/services/auth.service';
 import {
   InventoryItem,
   InventoryService,
+  PackageReceiving,
+  PackageReceivingRow,
 } from 'src/app/core/services/inventory.service';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
@@ -23,12 +25,13 @@ import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util'
 @Component({
   selector: 'app-inventory-package-devices',
   templateUrl: './inventory-package-devices.component.html',
-  styleUrls: ['../inventory/inventory.component.css'],
+  styleUrls: ['../inventory/inventory.component.css', './package-receiving.css'],
   providers: [{ provide: MessageService, useClass: DeviceLabelMessageService }, { provide: ConfirmationService, useClass: DeviceLabelConfirmationService }],
   standalone: false,
 })
 export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   @ViewChild('imeiInput') imeiInput!: ElementRef;
+  @ViewChild('accessoryDialog') accessoryDialog?: ElementRef<HTMLDialogElement>;
 
   items: MenuItem[] = [{ label: 'Inventario' }];
   home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
@@ -48,6 +51,17 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
 
   currentPackageId: string | null = null;
   loading = true;
+  receiving: PackageReceiving | null = null;
+  receivingLoading = false;
+  receivingError = '';
+  accessoryRow: PackageReceivingRow | null = null;
+  accessoryQuantity = 1;
+  accessoryWarehouse = '';
+  accessorySaving = false;
+  accessoryError = '';
+  private accessoryRequest: Parameters<InventoryService['createLot']>[0] | null = null;
+  private receivingSub?: Subscription;
+  private accessorySub?: Subscription;
   protocols: { label: string; value: string }[] = [];
   loadedProtocols: any[] = [];
   packageSearchQuery = '';
@@ -104,6 +118,65 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.routeSub?.unsubscribe();
+    this.receivingSub?.unsubscribe();
+    this.accessorySub?.unsubscribe();
+  }
+
+  loadReceiving(): void {
+    const id = this.currentPackageId;
+    if (!id) return;
+    this.receivingSub?.unsubscribe();
+    if (this.receiving?.packageId !== id) this.receiving = null;
+    this.receivingLoading = true;
+    this.receivingError = '';
+    this.receivingSub = this.inventoryService.packageReceiving(id).subscribe({ next: value => {
+      this.receiving = value; this.receivingLoading = false;
+    }, error: () => { this.receivingLoading = false; this.receivingError = 'No se pudo consultar la recepción del paquete.'; } });
+  }
+
+  receiveLine(row: PackageReceivingRow): void {
+    if (!this.canCreateInventory() || this.receivingLoading || this.receivingError) return;
+    if (row.kind === 'gps') {
+      this.openNewDevice();
+      if (this.selectedDevice) this.selectedDevice.protocol = row.key;
+      return;
+    }
+    this.accessoryRow = row;
+    this.accessoryQuantity = row.pending || 1;
+    this.accessoryWarehouse = this.lastSelectedStorageId || '';
+    this.accessoryRequest = null;
+    this.accessoryError = '';
+    setTimeout(() => this.accessoryDialog?.nativeElement.showModal());
+  }
+
+  get accessoryUnconfirmed(): boolean { return !!this.accessoryRequest; }
+  closeAccessory(): void {
+    if (this.accessorySaving || this.accessoryUnconfirmed) return;
+    this.accessoryDialog?.nativeElement.close();
+    this.accessoryRow = null;
+  }
+  saveAccessory(): void {
+    if (this.accessorySaving || !this.accessoryRow || !this.currentPackageId || !this.canCreateInventory()) return;
+    if (!this.accessoryRequest) {
+      if (!Number.isSafeInteger(this.accessoryQuantity) || this.accessoryQuantity < 1 || this.accessoryQuantity > 100000 || !this.accessoryWarehouse) {
+        this.accessoryError = 'Indica una cantidad entera mayor que cero y selecciona el almacén.'; return;
+      }
+      this.accessoryRequest = { category: this.accessoryRow.kind as 'cables' | 'relay', name: `${this.accessoryRow.name} · ${this.receiving?.title || 'Paquete'}`.slice(0, 120), quantity: this.accessoryQuantity,
+        storage_id: this.accessoryWarehouse, package_id: this.currentPackageId, request_id: crypto.randomUUID() };
+    }
+    this.accessorySaving = true;
+    this.accessoryError = '';
+    this.accessorySub = this.inventoryService.createLot(this.accessoryRequest).subscribe({ next: () => {
+      this.lastSelectedStorageId = this.accessoryWarehouse;
+      this.accessoryDialog?.nativeElement.close();
+      this.accessorySaving = false; this.accessoryRequest = null; this.accessoryRow = null;
+      this.loadReceiving();
+      this.messageService.add({ severity: 'success', summary: 'Entrada registrada', detail: 'El lote quedó vinculado al paquete y al almacén seleccionado.' });
+    }, error: error => {
+      this.accessorySaving = false;
+      if (error.status >= 400 && error.status < 500 && error.status !== 408) this.accessoryRequest = null;
+      this.accessoryError = this.accessoryRequest ? 'No se confirmó la entrada. Reintenta la misma solicitud para evitar duplicados.' : getApiErrorMessage(error, 'No se pudo registrar la entrada.');
+    } });
   }
 
   // Privilege helpers
@@ -165,6 +238,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     }
 
     this.currentPackageId = packageId;
+    if (resetPage) this.loadReceiving();
     this.inventoryService.getDevicesByPackage(packageId, this.currentPage, this.itemsPerPage).subscribe({
       next: (response) => {
         const mappedDevices = (response.data || []).map(d => ({ 

@@ -91,7 +91,24 @@ export interface UnregisteredInventorySimAlertResponse {
   lastPage: number;
 }
 
+export interface PackageReceivingRow {
+  key: string;
+  kind: 'gps' | 'cables' | 'relay';
+  name: string;
+  expected: number;
+  received: number;
+  pending: number;
+  excess: number;
+}
+export interface PackageReceiving {
+  packageId: string;
+  title: string;
+  reception: { rows: PackageReceivingRow[]; expected: number; received: number; pending: number; excess: number; unexpectedGps: number; progress: number; status: 'pending' | 'complete' | 'review' } | null;
+}
+
 export interface Package {
+  currency?: 'DOP' | 'USD';
+  declaredContent?: { gpsQuantity: number; cableQuantity: number; relayQuantity: number; models: Array<{ modelId: string; modelName: string; quantity: number }> };
   _id?: string;
   title: string;
   date: string;
@@ -197,6 +214,7 @@ export interface ShippingLotSelection extends ConduceLotLine {
   available: number;
 }
 export interface InventoryLot {
+  package_id?: string;
   _id: string;
   category: InventoryLotCategory;
   name: string;
@@ -344,6 +362,10 @@ export class InventoryService {
 
   findOnePackage(id: string): Observable<Package> {
     return this.http.get<Package>(`${this.packagesUrl}/${id}`);
+  }
+
+  packageReceiving(id: string): Observable<PackageReceiving> {
+    return this.http.get<PackageReceiving>(`${this.packagesUrl}/${encodeURIComponent(id)}/receiving`);
   }
 
   updatePackage(id: string, packageData: Partial<Package>): Observable<Package> {
@@ -502,7 +524,7 @@ export class InventoryService {
     return this.http.get<InventoryLotPage>(`${this.apiUrl}/lots`, { params: { category, storage_id: storageId, q, page, limit: 30 } });
   }
 
-  createLot(payload: { category: InventoryLotCategory; name: string; quantity: number; storage_id: string | null; description?: string; request_id: string }): Observable<InventoryLot> {
+  createLot(payload: { category: InventoryLotCategory; name: string; quantity: number; storage_id: string | null; description?: string; request_id: string; package_id?: string }): Observable<InventoryLot> {
     return this.http.post<InventoryLot>(`${this.apiUrl}/lots`, payload);
   }
 

@@ -19,13 +19,13 @@
           <span>Volver a paquetes</span>
         </button>
         <div class="package-devices-heading">
-          <span>Contenido del paquete</span>
-          <h1>Dispositivos</h1>
+          <span>{{ receiving?.reception ? 'Recepción de compra · Incosis' : 'Contenido del paquete' }}</span>
+          <h1>{{ receiving?.reception ? receiving?.title : 'Dispositivos' }}</h1>
         </div>
       </div>
 
       <div class="package-devices-header__actions">
-        <span class="package-devices-total">
+        <span class="package-devices-total" *ngIf="!receiving?.reception">
           <strong>{{ totalItems }}</strong>
           {{ totalItems === 1 ? 'dispositivo' : 'dispositivos' }}
         </span>
@@ -39,7 +39,7 @@
           <i [class]="packageFiltersVisible ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
         </button>
         <button type="button" class="package-add-button" (click)="openNewDevice()"
-          *ngIf="canCreateInventory()">
+          *ngIf="canCreateInventory() && !receiving?.reception">
           <i class="pi pi-plus"></i>
           <span>Agregar dispositivo</span>
         </button>
@@ -49,6 +49,33 @@
         </div>
       </div>
     </header>
+
+    <div class="receipt-skeleton" *ngIf="receivingLoading && !receiving" role="status" aria-label="Cargando recepción del paquete"><span></span><span></span><span></span></div>
+    <div *ngIf="receivingError" class="receipt-error" role="alert">{{ receivingError }} <button type="button" (click)="loadReceiving()">Reintentar</button></div>
+
+    <section class="receipt-panel" *ngIf="receiving?.reception as receipt" [attr.aria-busy]="receivingLoading" aria-labelledby="receipt-title">
+      <header class="receipt-heading">
+        <div><h2 id="receipt-title">Por dar entrada</h2><p>Compara el contenido de la compra con las unidades registradas.</p></div>
+        <span class="receipt-status" [class.complete]="receipt.status === 'complete'" [class.review]="receipt.status === 'review'">{{ receipt.status === 'complete' ? 'Recepción completa' : receipt.status === 'review' ? 'Revisar diferencias' : 'Recepción pendiente' }}</span>
+      </header>
+      <div class="receipt-overview">
+        <div><span>Esperadas</span><strong>{{ receipt.expected }}</strong></div>
+        <div><span>Recibidas de la compra</span><strong>{{ receipt.received }}</strong></div>
+        <div class="receipt-pending"><span>Pendientes</span><strong>{{ receipt.pending }}</strong></div>
+        <label class="receipt-progress"><span>{{ receipt.progress }}% recibido</span><progress [value]="receipt.received" [max]="receipt.expected || 1"></progress></label>
+      </div>
+      <p *ngIf="receipt.excess" class="receipt-warning" role="status">Hay {{ receipt.excess }} unidades adicionales o de modelos no incluidos en la compra. Revisa el registro; no se descuentan de otros modelos pendientes.</p>
+      <div class="receipt-table-scroll"><table class="receipt-table">
+        <thead><tr><th>Artículo</th><th>Esperadas</th><th>Registradas</th><th>Pendientes</th><th><span class="sr-only">Acción</span></th></tr></thead>
+        <tbody><tr *ngFor="let row of receipt.rows" [class.receipt-row-done]="!row.pending && !row.excess">
+          <td><strong>{{ row.name }}</strong><small>{{ row.kind === 'gps' ? 'GPS · por IMEI' : 'Accesorio · por cantidad' }}</small></td>
+          <td>{{ row.expected }}</td><td>{{ row.received }}<small *ngIf="row.excess" class="receipt-warning">{{ row.excess }} adicionales</small></td>
+          <td><strong class="receipt-remaining" [class.done]="!row.pending">{{ row.pending }}</strong></td>
+          <td class="receipt-action"><button type="button" *ngIf="row.pending && canCreateInventory()" (click)="receiveLine(row)" [disabled]="receivingLoading || !!receivingError" [attr.aria-label]="'Dar entrada a ' + row.name"><i class="pi pi-plus"></i> Dar entrada</button><span *ngIf="!row.pending && !row.excess" class="receipt-done"><i class="pi pi-check"></i> {{ row.expected ? 'Completo' : 'No incluido' }}</span></td>
+        </tr></tbody>
+      </table></div>
+      <footer class="receipt-footnote">Las cantidades no cambian al filtrar, trasladar o instalar equipos. Los lotes de accesorios deben registrarse desde este paquete para vincular su recepción.<button type="button" (click)="loadReceiving()" [disabled]="receivingLoading">{{ receivingLoading ? 'Actualizando…' : 'Actualizar cantidades' }}</button></footer>
+    </section>
 
     <section id="package-device-filters" class="package-filter-panel" *ngIf="packageFiltersVisible">
       <div class="package-filter-panel__intro">
@@ -114,7 +141,7 @@
     <section class="package-device-list">
       <div class="package-device-list__header">
         <div>
-          <h2>Listado del paquete</h2>
+          <h2>{{ receiving?.reception ? 'GPS registrados en este paquete' : 'Listado del paquete' }}</h2>
           <span>{{ packageDevices.length }} de {{ totalItems }} cargados</span>
         </div>
         <span *ngIf="packageSearchQuery || selectedWarehouseFilter || selectedProtocolFilter || packageSearchStatus"
@@ -322,6 +349,20 @@
   (visibleChange)="!$event && cancelInstallation()"
   (assigned)="onInventoryDeviceAssigned()">
 </app-inventory-device-assignment-dialog>
+
+<dialog #accessoryDialog *ngIf="accessoryRow" class="receipt-accessory-dialog" aria-labelledby="accessory-title" (cancel)="$event.preventDefault(); closeAccessory()">
+  <header><div><small>Entrada de accesorios</small><h2 id="accessory-title">{{ accessoryRow.name }}</h2></div><button type="button" aria-label="Cerrar" (click)="closeAccessory()" [disabled]="accessorySaving || accessoryUnconfirmed">×</button></header>
+  <form (ngSubmit)="saveAccessory()">
+    <p>{{ accessoryRow.pending }} pendientes de {{ accessoryRow.expected }} esperados. Puedes registrar una entrega parcial.</p>
+    <p *ngIf="accessoryError" class="receipt-error" role="alert">{{ accessoryError }}</p>
+    <fieldset [disabled]="accessorySaving || accessoryUnconfirmed">
+      <label>Cantidad recibida<input type="number" name="accessoryQuantity" [(ngModel)]="accessoryQuantity" min="1" max="100000" step="1" required autofocus /></label>
+      <label>Almacén de entrada<select name="accessoryWarehouse" [(ngModel)]="accessoryWarehouse" required><option value="">Selecciona un almacén</option><option *ngFor="let warehouse of warehouses" [value]="warehouse._id">{{ warehouse.name }}</option></select></label>
+    </fieldset>
+    <p *ngIf="accessoryQuantity > accessoryRow.pending" class="receipt-warning">La cantidad supera lo pendiente. La diferencia quedará señalada para revisión.</p>
+    <footer><button type="button" (click)="closeAccessory()" [disabled]="accessorySaving || accessoryUnconfirmed">Cancelar</button><button type="submit" class="receipt-submit" [disabled]="accessorySaving">{{ accessorySaving ? 'Registrando…' : accessoryUnconfirmed ? 'Reintentar entrada' : 'Registrar entrada' }}</button></footer>
+  </form>
+</dialog>
 
 <p-confirmDialog></p-confirmDialog>
 <p-toast></p-toast>

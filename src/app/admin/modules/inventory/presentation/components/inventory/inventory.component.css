@@ -5944,3 +5944,8 @@ html.app-dark .conduce-origin-dropdown-panel .p-dropdown-item.p-highlight {
     max-height: 48vh;
   }
 }
+
+.package-declared-content { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--surface-border, #d5dce4); font-size: .85rem; }
+.package-declared-content p { margin: .4rem 0; }
+.package-declared-content ul { margin: .4rem 0; padding-left: 1rem; }
+.package-declared-content li { padding: .15rem 0; }

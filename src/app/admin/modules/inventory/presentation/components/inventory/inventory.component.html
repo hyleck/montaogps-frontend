@@ -383,9 +383,16 @@
                   <i class="pi pi-wallet"></i>
                   <span>
                     <small>Valor</small>
-                    <strong>{{ package.price | currency: 'USD':'symbol':'1.2-2' }}</strong>
+                    <strong>{{ package.price | currency: (package.currency || 'USD'):'symbol':'1.2-2' }}</strong>
                   </span>
                 </div>
+              </div>
+
+              <div *ngIf="package.declaredContent as content" class="package-declared-content">
+                <strong>Contenido declarado desde Incosis</strong>
+                <p>{{ content.gpsQuantity }} GPS · {{ content.cableQuantity }} cables · {{ content.relayQuantity }} relés</p>
+                <ul><li *ngFor="let model of content.models">{{ model.modelName }} <strong>× {{ model.quantity }}</strong></li></ul>
+                <small>Las unidades con IMEI se registran al recibir el inventario.</small>
               </div>
 
               <div class="inventory-audit inventory-audit--card">
@@ -450,7 +457,7 @@
                 <label for="packagePrice" class="font-bold">Precio</label>
                 <p-inputNumber id="packagePrice" [ngModel]="selectedPackage?.price"
                   (ngModelChange)="selectedPackage && (selectedPackage.price = $event)" mode="currency"
-                  currency="USD" locale="en-US" placeholder="$0.00" [style]="{'width':'100%'}"
+                  [currency]="selectedPackage?.currency || 'USD'" locale="en-US" placeholder="$0.00" [style]="{'width':'100%'}"
                   inputStyleClass="w-full"></p-inputNumber>
               </div>
             </div>
