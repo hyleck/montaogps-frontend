@@ -5959,3 +5959,14 @@ html.app-dark .conduce-origin-dropdown-panel .p-dropdown-item.p-highlight {
 .package-card--incosis .package-card-footer { background: #b42332; color: #fff; border-color: #b42332; }
 .package-card--incosis:hover .package-card-footer { background: #941d29; color: #fff; }
 .package-card--incosis:focus-within { outline: 2px solid #b42332; outline-offset: 3px; }
+.deleted-package-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .85rem 0;
+  border-bottom: 1px solid var(--managementColorBorder, #d9dfe7);
+}
+.deleted-package-row > div { min-width: 0; overflow-wrap: anywhere; }
+.deleted-package-row small { display: block; margin-top: .3rem; }
+.deleted-package-row button { flex-shrink: 0; }

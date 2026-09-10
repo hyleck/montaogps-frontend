@@ -58,6 +58,11 @@
         <i class="pi pi-send"></i>
         <span>Conduces</span>
       </button>
+      <button *ngIf="currentView === 'devices' && canUpdateInventory()" type="button"
+        class="inventory-tool-button" (click)="openDeletedPackages()">
+        <i class="pi pi-history" aria-hidden="true"></i>
+        <span>Paquetes eliminados</span>
+      </button>
       <button *ngIf="currentView === 'devices' && canCreateInventory()" type="button"
         class="inventory-primary-button" (click)="openNewPackage()">
         <i class="pi pi-plus"></i>
@@ -72,6 +77,28 @@
   </div>
 
   <app-inventory-lots *ngIf="currentView === 'relay' || currentView === 'cables'" [category]="currentView === 'cables' ? 'cables' : 'relay'" [warehouses]="warehouses" [canCreate]="canCreateInventory()" [canUpdate]="canUpdateInventory()" [canDelete]="canDeleteInventory()" [refreshKey]="lotRefreshKey" (selectLot)="addLotToShipping($event)"></app-inventory-lots>
+
+  <p-dialog [(visible)]="deletedPackagesVisible" header="Paquetes eliminados" [modal]="true"
+    [style]="{width: '760px', maxWidth: '95vw'}" [closable]="!restoringPackageId" [closeOnEscape]="!restoringPackageId" [draggable]="false">
+    <p>Recupera el paquete original y los GPS/SIM eliminados junto con él, sin duplicar registros ni reenviar facturas.</p>
+    <p *ngIf="loadingDeletedPackages" role="status">Cargando paquetes eliminados…</p>
+    <div *ngIf="deletedPackagesError" role="alert">
+      <p>{{ deletedPackagesError }}</p>
+      <button type="button" class="inventory-tool-button" (click)="openDeletedPackages()">Reintentar</button>
+    </div>
+    <p *ngIf="!loadingDeletedPackages && !deletedPackagesError && !deletedPackages.length">No hay paquetes eliminados.</p>
+    <div *ngFor="let pkg of deletedPackages" class="deleted-package-row">
+      <div>
+        <strong>{{ pkg.title }}</strong>
+        <small>{{ isIncosisPackage(pkg) ? 'Incosis · ' : '' }}Eliminado: {{ pkg.deletedAt ? (pkg.deletedAt | date:'dd/MM/yyyy HH:mm') : 'Sin fecha' }}</small>
+      </div>
+      <button type="button" class="inventory-tool-button" [disabled]="!!restoringPackageId"
+        (click)="restorePackage(pkg)" [attr.aria-label]="'Restaurar paquete ' + pkg.title">
+        <i [class]="restoringPackageId === pkg._id ? 'pi pi-spin pi-spinner' : 'pi pi-history'" aria-hidden="true"></i>
+        {{ restoringPackageId === pkg._id ? 'Restaurando…' : 'Restaurar' }}
+      </button>
+    </div>
+  </p-dialog>
 
   <div class="global-search-section" *ngIf="currentView === 'devices' || currentView === 'simcards'">
     <!-- Search Section: Dispositivos -->

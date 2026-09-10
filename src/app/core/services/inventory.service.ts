@@ -110,6 +110,7 @@ export interface PackageReceiving {
 }
 
 export interface Package {
+  deletedAt?: string;
   incosisExpense?: { expenseId?: string; companyId?: string };
   currency?: 'DOP' | 'USD';
   declaredContent?: { gpsQuantity: number; cableQuantity: number; relayQuantity: number; models: Array<{ modelId: string; modelName: string; quantity: number }> };
@@ -362,6 +363,14 @@ export class InventoryService {
 
   findAllPackages(): Observable<Package[]> {
     return this.http.get<Package[]>(this.packagesUrl);
+  }
+
+  findDeletedPackages(): Observable<Package[]> {
+    return this.http.get<Package[]>(`${this.packagesUrl}/deleted`);
+  }
+
+  restorePackage(id: string): Observable<Package> {
+    return this.http.post<Package>(`${this.packagesUrl}/${encodeURIComponent(id)}/restore`, {});
   }
 
   findOnePackage(id: string): Observable<Package> {

@@ -65,6 +65,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   packages: Package[] = [];
+  deletedPackages: Package[] = [];
+  deletedPackagesVisible = false;
+  loadingDeletedPackages = false;
+  deletedPackagesError = '';
+  restoringPackageId = '';
   warehouses: Warehouse[] = [];
   selectedPackage: Package | null = null;
   selectedWarehouse: Warehouse | null = null;
@@ -557,6 +562,46 @@ export class InventoryComponent implements OnInit, OnDestroy {
           severity: 'error',
           summary: 'Error',
           detail: getApiErrorMessage(error, 'Error al cargar paquetes'),
+        });
+      },
+    });
+  }
+
+  openDeletedPackages(): void {
+    if (!this.canReadInventory() || !this.canUpdateInventory()) return;
+    this.deletedPackagesVisible = true;
+    this.loadingDeletedPackages = true;
+    this.deletedPackagesError = '';
+    this.deletedPackages = [];
+    this.inventoryService.findDeletedPackages().subscribe({
+      next: rows => { this.deletedPackages = rows; this.loadingDeletedPackages = false; },
+      error: error => {
+        this.loadingDeletedPackages = false;
+        this.deletedPackagesError = getApiErrorMessage(error, 'No se pudieron cargar los paquetes eliminados.');
+      },
+    });
+  }
+
+  restorePackage(pkg: Package): void {
+    if (!pkg._id || this.restoringPackageId || !this.canReadInventory() || !this.canUpdateInventory()) return;
+    this.confirmationService.confirm({
+      header: 'Restaurar paquete',
+      message: `¿Restaurar "${pkg.title}" y los GPS/SIM eliminados junto con él? No se reenviará ni se cobrará ninguna factura.`,
+      icon: 'pi pi-history',
+      accept: () => {
+        if (this.restoringPackageId) return;
+        this.restoringPackageId = pkg._id!;
+        this.inventoryService.restorePackage(pkg._id!).subscribe({
+          next: () => {
+            this.restoringPackageId = '';
+            this.deletedPackages = this.deletedPackages.filter(row => row._id !== pkg._id);
+            this.loadPackages();
+            this.messageService.add({ severity: 'success', summary: 'Paquete restaurado', detail: 'Se recuperaron los registros originales. La conciliación de la factura se revisa por separado en Incosis.' });
+          },
+          error: error => {
+            this.restoringPackageId = '';
+            this.messageService.add({ severity: 'error', summary: 'No se completó la restauración', detail: getApiErrorMessage(error, 'No se pudo completar la restauración. Puedes reintentar sin duplicar el paquete.') });
+          },
         });
       },
     });
