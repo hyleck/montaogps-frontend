@@ -13,6 +13,8 @@ export interface ExpenseReceipt {
   registered_by_email?: string;
   image_url: string;
   image_name?: string;
+  image_mime_type?: string;
+  image_size?: number;
   merchant_name?: string;
   tax_id?: string;
   receipt_number?: string;
@@ -91,12 +93,12 @@ export class ExpenseReceiptsService {
   constructor(private readonly http: HttpClient) {}
 
   upload(
-    image: File,
+    receiptFile: File,
     accountingCategory: ExpenseReceiptAccountingCategory,
     employeeId: string,
   ): Observable<ExpenseReceipt> {
     const formData = new FormData();
-    formData.append('image', image, image.name);
+    formData.append('image', receiptFile, receiptFile.name);
     formData.append('accounting_category', accountingCategory);
     formData.append('employee_id', employeeId);
     return this.http.post<ExpenseReceipt>(this.apiUrl, formData);

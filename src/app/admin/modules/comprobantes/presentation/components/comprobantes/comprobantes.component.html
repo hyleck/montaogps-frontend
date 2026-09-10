@@ -66,7 +66,10 @@
         <tbody>
           <tr class="receipt-row" *ngFor="let receipt of receipts" tabindex="0" (click)="openReceipt(receipt)" (keydown.enter)="$event.target === $event.currentTarget && openReceipt(receipt)">
             <td class="receipt-summary-cell">
-              <span class="receipt-thumbnail"><img [src]="receipt.image_url" alt="Comprobante de {{ receipt.employee_name }}"></span>
+              <span class="receipt-thumbnail" [class.pdf-thumbnail]="isPdfReceipt(receipt)">
+                <i *ngIf="isPdfReceipt(receipt); else receiptImage" class="pi pi-file-pdf" aria-hidden="true"></i>
+                <ng-template #receiptImage><img [src]="receipt.image_url" alt="Comprobante de {{ receipt.employee_name }}"></ng-template>
+              </span>
               <span class="receipt-summary-copy">
                 <strong>{{ receipt.merchant_name || 'Comercio no detectado' }}</strong>
                 <small>{{ categoryLabel(receipt.accounting_category) }}</small>
@@ -103,7 +106,7 @@
       <div>
         <span>NUEVO REGISTRO</span>
         <h2 id="uploadReceiptTitle">Subir comprobante</h2>
-        <p>La imagen se guardará y la IA extraerá sus datos automáticamente.</p>
+        <p>Selecciona varias fotos o PDF y la IA procesará cada comprobante automáticamente.</p>
       </div>
       <button type="button" class="upload-modal-close" (click)="closeUploadModal()" [disabled]="uploading" aria-label="Cerrar">×</button>
     </header>
@@ -142,33 +145,49 @@
         id="receiptUploadInput"
         class="hidden-file-input"
         type="file"
-        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+        multiple
+        accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
         (change)="onUploadFileSelected($event)"
       >
 
       <label
         for="receiptUploadInput"
         class="upload-dropzone"
-        [class.has-preview]="!!uploadPreviewUrl"
+        [class.has-files]="!!uploadFiles.length"
         [class.is-disabled]="uploading"
         (dragover)="onUploadDragOver($event)"
         (drop)="onUploadFileDropped($event)"
       >
-        <ng-container *ngIf="!uploadPreviewUrl; else uploadPreview">
-          <span class="dropzone-icon"><i class="pi pi-image"></i></span>
-          <strong>Seleccione o arrastre la imagen</strong>
-          <small>JPG, PNG o WEBP · máximo 12 MB</small>
-        </ng-container>
-        <ng-template #uploadPreview>
-          <img [src]="uploadPreviewUrl" alt="Vista previa del comprobante">
-          <span class="replace-upload-image"><i class="pi pi-refresh"></i> Cambiar imagen</span>
-        </ng-template>
+        <span class="dropzone-icon"><i class="pi" [ngClass]="uploadFiles.length ? 'pi-plus' : 'pi-images'"></i></span>
+        <strong>{{ uploadFiles.length ? 'Agregar más comprobantes' : 'Seleccionar fotos o PDF' }}</strong>
+        <small>Hasta 30 archivos · máximo 20 MB cada uno</small>
       </label>
 
-      <div class="selected-upload-file" *ngIf="uploadFile">
-        <i class="pi pi-file"></i>
-        <div><strong>{{ uploadFile.name }}</strong><span>{{ (uploadFile.size / 1048576) | number:'1.1-1' }} MB</span></div>
-        <button type="button" (click)="clearUploadFile()" [disabled]="uploading" aria-label="Quitar imagen"><i class="pi pi-times"></i></button>
+      <section class="selected-upload-files" *ngIf="uploadFiles.length" aria-label="Comprobantes seleccionados">
+        <header>
+          <strong>{{ uploadFiles.length }} {{ uploadFiles.length === 1 ? 'archivo seleccionado' : 'archivos seleccionados' }}</strong>
+          <span>{{ (uploadTotalSize / 1048576) | number:'1.1-1' }} MB en total</span>
+        </header>
+        <div class="selected-upload-list">
+          <article class="selected-upload-file" *ngFor="let file of uploadFiles" [class.has-error]="uploadFileErrors.has(file)">
+            <span class="selected-file-preview">
+              <i *ngIf="isFileUploading(file)" class="pi pi-spin pi-spinner"></i>
+              <i *ngIf="!isFileUploading(file) && isPdfFile(file)" class="pi pi-file-pdf"></i>
+              <img *ngIf="!isFileUploading(file) && !isPdfFile(file)" [src]="uploadPreviewFor(file)" alt="">
+            </span>
+            <div>
+              <strong>{{ file.name }}</strong>
+              <span>{{ (file.size / 1048576) | number:'1.1-1' }} MB · {{ isPdfFile(file) ? 'PDF' : 'Imagen' }}</span>
+              <small *ngIf="uploadFileErrors.get(file)">{{ uploadFileErrors.get(file) }}</small>
+            </div>
+            <button type="button" (click)="clearUploadFile(file)" [disabled]="uploading" [attr.aria-label]="'Quitar ' + file.name"><i class="pi pi-times"></i></button>
+          </article>
+        </div>
+      </section>
+
+      <div class="upload-progress" *ngIf="uploading" role="status">
+        <span><i class="pi pi-spin pi-spinner"></i> Procesando {{ uploadCompleted }} de {{ uploadTotal }}</span>
+        <progress [value]="uploadCompleted" [max]="uploadTotal"></progress>
       </div>
 
       <div class="upload-error" *ngIf="uploadError"><i class="pi pi-exclamation-triangle"></i><span>{{ uploadError }}</span></div>
@@ -177,9 +196,9 @@
 
     <footer class="upload-modal-footer">
       <button type="button" class="upload-cancel-btn" (click)="closeUploadModal()" [disabled]="uploading">Cerrar</button>
-      <button type="button" class="upload-submit-btn" (click)="submitReceipt()" [disabled]="uploading || uploadEmployeesLoading || !!uploadEmployeesError || !uploadFile || !uploadCategory || !uploadEmployeeId">
+      <button type="button" class="upload-submit-btn" (click)="submitReceipt()" [disabled]="uploading || uploadEmployeesLoading || !!uploadEmployeesError || !uploadFiles.length || !uploadCategory || !uploadEmployeeId">
         <i class="pi" [ngClass]="uploading ? 'pi-spin pi-spinner' : 'pi-sparkles'"></i>
-        {{ uploading ? 'Digitalizando comprobante…' : 'Digitalizar y guardar' }}
+        {{ uploading ? 'Procesando ' + uploadCompleted + ' de ' + uploadTotal + '…' : (uploadFiles.length === 1 ? 'Digitalizar y guardar' : 'Digitalizar y guardar ' + uploadFiles.length) }}
       </button>
     </footer>
   </section>
@@ -188,7 +207,15 @@
 <div class="receipt-modal" *ngIf="selectedReceipt" (click)="closeReceipt()">
   <section class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Detalle del comprobante">
     <button type="button" class="modal-close" (click)="closeReceipt()" [disabled]="receiptBusy" aria-label="Cerrar">×</button>
-    <div class="modal-image"><img [src]="selectedReceipt.image_url" alt="Comprobante ampliado"></div>
+    <div class="modal-image" [class.pdf-document]="isPdfReceipt(selectedReceipt)">
+      <ng-container *ngIf="isPdfReceipt(selectedReceipt); else enlargedReceiptImage">
+        <i class="pi pi-file-pdf" aria-hidden="true"></i>
+        <strong>Comprobante en PDF</strong>
+        <span>{{ selectedReceipt.image_name || 'Documento PDF' }}</span>
+        <a [href]="selectedReceipt.image_url" target="_blank" rel="noopener noreferrer"><i class="pi pi-external-link"></i> Abrir PDF</a>
+      </ng-container>
+      <ng-template #enlargedReceiptImage><img [src]="selectedReceipt.image_url" alt="Comprobante ampliado"></ng-template>
+    </div>
     <div class="modal-content">
       <div class="modal-title"><div><span>{{ categoryLabel(selectedReceipt.accounting_category) }}</span><h2>{{ selectedReceipt.merchant_name || 'Comercio no detectado' }}</h2></div><strong>{{ displayAmount(selectedReceipt) }}</strong></div>
       <div class="processing-error" *ngIf="detailError" role="alert">{{ detailError }}</div>

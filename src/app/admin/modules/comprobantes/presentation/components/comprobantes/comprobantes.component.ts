@@ -1,4 +1,5 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { catchError, defer, finalize, from, map, mergeMap, of, toArray } from 'rxjs';
 import {
   ExpenseReceipt,
   ExpenseReceiptAccountingCategory,
@@ -49,8 +50,10 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   selectedReceipt: ExpenseReceipt | null = null;
   reprocessingId = '';
   uploadModalOpen = false;
-  uploadFile: File | null = null;
-  uploadPreviewUrl = '';
+  uploadFiles: File[] = [];
+  uploadFileErrors = new Map<File, string>();
+  uploadCompleted = 0;
+  uploadTotal = 0;
   uploadCategory: ExpenseReceiptAccountingCategory | '' = '';
   uploadEmployeeId = '';
   uploadEmployees: ExpenseReceiptEmployee[] = [];
@@ -64,6 +67,10 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   deletingReceipt = false;
   deleteConfirmation = false;
   detailError = '';
+  private readonly maximumUploadFiles = 30;
+  private readonly uploadConcurrency = 3;
+  private readonly uploadPreviewUrls = new Map<File, string>();
+  private readonly uploadingFiles = new Set<File>();
   private readonly dateKeyFormatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Santo_Domingo',
     year: 'numeric',
@@ -109,6 +116,27 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
     return this.savingReceipt || this.deletingReceipt || !!this.reprocessingId;
   }
 
+  get uploadFile(): File | null {
+    return this.uploadFiles[0] || null;
+  }
+
+  set uploadFile(file: File | null) {
+    this.releaseUploadPreviews();
+    this.uploadFiles = file ? [file] : [];
+    this.uploadFileErrors.clear();
+    if (file && !this.isPdfFile(file)) {
+      this.uploadPreviewUrls.set(file, URL.createObjectURL(file));
+    }
+  }
+
+  get uploadPreviewUrl(): string {
+    return this.uploadFile ? this.uploadPreviewFor(this.uploadFile) : '';
+  }
+
+  get uploadTotalSize(): number {
+    return this.uploadFiles.reduce((total, file) => total + file.size, 0);
+  }
+
   get editEmployees(): ExpenseReceiptEmployee[] {
     const current = this.selectedReceipt;
     if (!current || this.uploadEmployees.some(item => item.employee_id === current.employee_id)) return this.uploadEmployees;
@@ -121,7 +149,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.releaseUploadPreview();
+    this.releaseUploadPreviews();
   }
 
   get totalPages(): number {
@@ -365,9 +393,9 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
 
   onUploadFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] || null;
+    const files = Array.from(input.files || []);
     input.value = '';
-    if (file) this.selectUploadFile(file);
+    this.addUploadFiles(files);
   }
 
   onUploadDragOver(event: DragEvent): void {
@@ -378,15 +406,22 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   onUploadFileDropped(event: DragEvent): void {
     event.preventDefault();
     if (this.uploading) return;
-    const file = event.dataTransfer?.files?.[0];
-    if (file) this.selectUploadFile(file);
+    this.addUploadFiles(Array.from(event.dataTransfer?.files || []));
   }
 
-  clearUploadFile(): void {
+  clearUploadFile(file?: File): void {
     if (this.uploading) return;
-    this.uploadFile = null;
+    if (!file) {
+      this.releaseUploadPreviews();
+      this.uploadFiles = [];
+      this.uploadFileErrors.clear();
+      this.uploadError = '';
+      return;
+    }
+    this.releaseUploadPreview(file);
+    this.uploadFiles = this.uploadFiles.filter(item => item !== file);
+    this.uploadFileErrors.delete(file);
     this.uploadError = '';
-    this.releaseUploadPreview();
   }
 
   submitReceipt(): void {
@@ -399,31 +434,74 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
       this.uploadError = 'Seleccione el empleado que generó el gasto.';
       return;
     }
-    if (!this.uploadFile) {
-      this.uploadError = 'Seleccione la imagen del comprobante.';
+    if (!this.uploadFiles.length) {
+      this.uploadError = 'Seleccione uno o varios comprobantes.';
       return;
     }
 
     this.uploading = true;
     this.uploadError = '';
-    this.receiptsService.upload(this.uploadFile, this.uploadCategory, this.uploadEmployeeId).subscribe({
-      next: receipt => {
+    this.uploadFileErrors.clear();
+    this.uploadCompleted = 0;
+    const selectedFiles = [...this.uploadFiles];
+    this.uploadTotal = selectedFiles.length;
+    from(selectedFiles).pipe(
+      mergeMap(file => defer(() => {
+        this.uploadingFiles.add(file);
+        return this.receiptsService.upload(
+          file,
+          this.uploadCategory as ExpenseReceiptAccountingCategory,
+          this.uploadEmployeeId,
+        ).pipe(
+          map(receipt => ({ file, receipt, error: '' })),
+          catchError(error => of({
+            file,
+            receipt: null,
+            error: this.receiptErrorMessage(error, 'No se pudo subir este comprobante.'),
+          })),
+          finalize(() => this.uploadingFiles.delete(file)),
+        );
+      }), this.uploadConcurrency),
+      map(result => {
+        this.uploadCompleted += 1;
+        return result;
+      }),
+      toArray(),
+    ).subscribe({
+      next: results => {
         this.uploading = false;
+        const completed = results.filter(result => !!result.receipt);
+        const failed = results.filter(result => !result.receipt);
+        for (const result of completed) this.releaseUploadPreview(result.file);
+        this.uploadFiles = failed.map(result => result.file);
+        this.uploadFileErrors.clear();
+        failed.forEach(result => this.uploadFileErrors.set(result.file, result.error));
+
+        if (completed.length) {
+          const needsAttention = completed.filter(result =>
+            ['failed', 'needs_review'].includes(String(result.receipt?.processing_status || '')),
+          ).length;
+          this.success = `${completed.length} de ${selectedFiles.length} comprobante${completed.length === 1 ? '' : 's'} guardado${completed.length === 1 ? '' : 's'}${needsAttention ? '' : ` y digitalizado${completed.length === 1 ? '' : 's'}`}.`
+            + (needsAttention ? ` ${needsAttention} requiere${needsAttention === 1 ? '' : 'n'} revisión de la digitalización.` : '');
+          this.page = 1;
+          this.loadReceipts();
+          this.loadEmployees();
+        }
+
+        if (failed.length) {
+          this.uploadError = `${failed.length} comprobante${failed.length === 1 ? '' : 's'} ${failed.length === 1 ? 'no se pudo' : 'no se pudieron'} subir. Revisa el detalle y vuelve a intentarlo.`;
+          return;
+        }
+
         this.uploadModalOpen = false;
         this.resetUploadForm();
-        this.success = receipt.processing_status === 'failed'
-          ? 'El comprobante se guardó, pero la digitalización requiere atención.'
-          : 'Comprobante subido y digitalizado correctamente.';
-        this.page = 1;
-        this.loadReceipts();
-        this.loadEmployees();
       },
       error: error => {
         this.uploading = false;
-        const message = error?.error?.message;
-        this.uploadError = Array.isArray(message)
-          ? message.join(' ')
-          : String(message || 'No se pudo subir el comprobante. Intente nuevamente.');
+        this.uploadError = this.receiptErrorMessage(
+          error,
+          'No se pudieron subir los comprobantes. Intente nuevamente.',
+        );
       },
     });
   }
@@ -478,6 +556,27 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
     return labels[status] || status;
   }
 
+  isPdfReceipt(receipt: ExpenseReceipt): boolean {
+    return String(receipt.image_mime_type || '').toLowerCase() === 'application/pdf'
+      || /\.pdf(?:$|[?#])/i.test(String(receipt.image_name || ''))
+      || /\.pdf(?:$|[?#])/i.test(String(receipt.image_url || ''));
+  }
+
+  isPdfFile(file: File | null): boolean {
+    return !!file && (
+      String(file.type || '').toLowerCase() === 'application/pdf'
+      || /\.pdf$/i.test(file.name)
+    );
+  }
+
+  uploadPreviewFor(file: File): string {
+    return this.uploadPreviewUrls.get(file) || '';
+  }
+
+  isFileUploading(file: File): boolean {
+    return this.uploadingFiles.has(file);
+  }
+
   displayReceiptDate(receipt: ExpenseReceipt, includeTime = false): string {
     const value = receipt.expense_date || receipt.createdAt;
     if (!value) return 'Fecha no detectada';
@@ -502,38 +601,93 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   }
 
   private selectUploadFile(file: File): void {
-    const supportedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!supportedTypes.includes(String(file.type || '').toLowerCase())) {
-      this.uploadError = 'Use una imagen JPG, PNG o WEBP.';
-      return;
-    }
-    if (file.size > 12 * 1024 * 1024) {
-      this.uploadError = 'La imagen no puede superar 12 MB.';
-      return;
-    }
-    if (!file.size) {
-      this.uploadError = 'La imagen seleccionada está vacía.';
-      return;
+    this.addUploadFiles([file]);
+  }
+
+  private addUploadFiles(files: File[]): void {
+    if (this.uploading || !files.length) return;
+    const selectedKeys = new Set(this.uploadFiles.map(file => this.uploadFileKey(file)));
+    const availableSlots = Math.max(0, this.maximumUploadFiles - this.uploadFiles.length);
+    let invalidCount = 0;
+    let duplicateCount = 0;
+    let acceptedCount = 0;
+
+    for (const file of files) {
+      const validationError = this.validateUploadFile(file);
+      if (validationError) {
+        invalidCount += 1;
+        continue;
+      }
+      const key = this.uploadFileKey(file);
+      if (selectedKeys.has(key)) {
+        duplicateCount += 1;
+        continue;
+      }
+      if (acceptedCount >= availableSlots) continue;
+      selectedKeys.add(key);
+      this.uploadFiles.push(file);
+      acceptedCount += 1;
+      if (!this.isPdfFile(file)) {
+        this.uploadPreviewUrls.set(file, URL.createObjectURL(file));
+      }
     }
 
-    this.uploadError = '';
-    this.releaseUploadPreview();
-    this.uploadFile = file;
-    this.uploadPreviewUrl = URL.createObjectURL(file);
+    const limitExceeded = files.length - invalidCount - duplicateCount > availableSlots;
+    if (limitExceeded) {
+      this.uploadError = `Puede subir hasta ${this.maximumUploadFiles} comprobantes por grupo.`;
+    } else if (invalidCount) {
+      this.uploadError = `${invalidCount} archivo${invalidCount === 1 ? '' : 's'} no se agregó porque el formato, tamaño o contenido no es válido.`;
+    } else if (duplicateCount) {
+      this.uploadError = `${duplicateCount} archivo${duplicateCount === 1 ? '' : 's'} ya estaba seleccionado.`;
+    } else {
+      this.uploadError = '';
+    }
+  }
+
+  private validateUploadFile(file: File): string {
+    const supportedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    const normalizedType = String(file.type || '').toLowerCase();
+    const isPdf = normalizedType === 'application/pdf'
+      || ((!normalizedType || normalizedType === 'application/octet-stream') && /\.pdf$/i.test(file.name));
+    if (!supportedTypes.includes(normalizedType) && !isPdf) {
+      return 'Use un archivo PDF o una imagen JPG, PNG o WEBP.';
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      return 'El archivo no puede superar 20 MB.';
+    }
+    if (!file.size) {
+      return 'El archivo seleccionado está vacío.';
+    }
+    return '';
   }
 
   private resetUploadForm(): void {
-    this.uploadFile = null;
+    this.releaseUploadPreviews();
+    this.uploadFiles = [];
+    this.uploadFileErrors.clear();
+    this.uploadCompleted = 0;
+    this.uploadTotal = 0;
     this.uploadCategory = '';
     this.uploadEmployeeId = '';
     this.uploadEmployeesError = '';
     this.uploadError = '';
-    this.releaseUploadPreview();
   }
 
-  private releaseUploadPreview(): void {
-    if (this.uploadPreviewUrl) URL.revokeObjectURL(this.uploadPreviewUrl);
-    this.uploadPreviewUrl = '';
+  private releaseUploadPreview(file: File): void {
+    const previewUrl = this.uploadPreviewUrls.get(file);
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    this.uploadPreviewUrls.delete(file);
+  }
+
+  private releaseUploadPreviews(): void {
+    for (const previewUrl of this.uploadPreviewUrls.values()) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    this.uploadPreviewUrls.clear();
+  }
+
+  private uploadFileKey(file: File): string {
+    return `${file.name.toLowerCase()}|${file.size}|${file.lastModified}`;
   }
 
   private getDateKey(receipt: ExpenseReceipt): string {

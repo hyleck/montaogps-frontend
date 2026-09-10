@@ -161,6 +161,46 @@ describe('ComprobantesComponent', () => {
     expect(component.uploadEmployeeId).toBe('');
   });
 
+  it('accepts PDF receipts in the upload form', () => {
+    const component = new ComprobantesComponent({} as any, rootAuth);
+    const pdf = new File(['%PDF-1.7'], 'factura.pdf', { type: 'application/pdf' });
+
+    (component as any).selectUploadFile(pdf);
+
+    expect(component.uploadFile).toBe(pdf);
+    expect(component.isPdfFile(pdf)).toBeTrue();
+    expect(component.uploadError).toBe('');
+  });
+
+  it('uploads several receipts and keeps only failed files available for retry', () => {
+    const uploaded = receipt({ _id: 'uploaded-receipt' });
+    const service = {
+      upload: jasmine.createSpy('upload').and.callFake((file: File) =>
+        file.name === 'duplicado.pdf'
+          ? throwError(() => ({ error: { message: 'Este comprobante ya está registrado.' } }))
+          : of(uploaded)),
+      getAll: jasmine.createSpy('getAll').and.returnValue(of({ data: [uploaded], total: 1 })),
+      getEmployees: jasmine.createSpy('getEmployees').and.returnValue(of([])),
+    };
+    const component = new ComprobantesComponent(service as any, rootAuth);
+    const image = new File(['image'], 'foto.jpg', { type: 'image/jpeg' });
+    const duplicate = new File(['%PDF-1.7'], 'duplicado.pdf', { type: 'application/pdf' });
+    (component as any).addUploadFiles([image, duplicate]);
+    component.uploadModalOpen = true;
+    component.uploadCategory = 'gasto_operativo';
+    component.uploadEmployeeId = 'employee-1';
+    component.uploadEmployees = [{ employee_id: 'employee-1', employee_name: 'Ana Pérez' }];
+
+    component.submitReceipt();
+
+    expect(service.upload).toHaveBeenCalledTimes(2);
+    expect(component.uploadCompleted).toBe(2);
+    expect(component.uploadFiles).toEqual([duplicate]);
+    expect(component.uploadFileErrors.get(duplicate)).toContain('ya está registrado');
+    expect(component.success).toContain('1 de 2');
+    expect(component.uploadModalOpen).toBeTrue();
+  });
+
   it('requires a category before uploading from gps-frontend', () => {
     const service = {
       getAll: jasmine.createSpy('getAll').and.returnValue(of({ data: [], total: 0 })),
