@@ -9,7 +9,7 @@ import {
 import { ComprobantesComponent } from './comprobantes.component';
 import { AuthService } from '../../../../../../core/services/auth.service';
 
-describe('Comprobantes scroll layout', () => {
+describe('Comprobantes table layout', () => {
   let fixture: ComponentFixture<ComprobantesComponent>;
   let viewport: HTMLDivElement;
   let page: HTMLElement;
@@ -28,6 +28,8 @@ describe('Comprobantes scroll layout', () => {
       category: 'otros',
       accounting_category: 'gasto_operativo',
       processing_status: 'completed',
+      total_amount: 1180,
+      currency: 'DOP',
     }));
     getAll = jasmine.createSpy('getAll').and.returnValue(of({ data: receipts, total: 61 }));
     await TestBed.configureTestingModule({
@@ -75,9 +77,9 @@ describe('Comprobantes scroll layout', () => {
       page.scrollTop = page.scrollHeight;
 
       expect(page.scrollTop).toBeGreaterThan(0);
-      const lastCard = page.querySelector<HTMLElement>('.receipt-card:last-child')!;
+      const lastRow = page.querySelector<HTMLElement>('.receipt-row:last-child')!;
       const pagination = page.querySelector<HTMLElement>('.pagination')!;
-      expect(lastCard.getBoundingClientRect().bottom).toBeLessThanOrEqual(page.getBoundingClientRect().bottom);
+      expect(lastRow.getBoundingClientRect().bottom).toBeLessThanOrEqual(page.getBoundingClientRect().bottom);
       expect(pagination.getBoundingClientRect().top).toBeGreaterThanOrEqual(page.getBoundingClientRect().top);
       expect(pagination.getBoundingClientRect().bottom).toBeLessThanOrEqual(page.getBoundingClientRect().bottom);
       expect(viewport.scrollTop).toBe(0);
@@ -90,6 +92,16 @@ describe('Comprobantes scroll layout', () => {
     viewport.style.height = '620px';
     expect(page.clientHeight).toBe(620);
     expect(page.scrollHeight).toBeGreaterThan(page.clientHeight);
+  });
+
+  it('keeps the table inside a horizontal scroller on mobile', () => {
+    viewport.style.width = '375px';
+    const wrapper = page.querySelector<HTMLElement>('.receipts-table-wrap')!;
+    const table = wrapper.querySelector<HTMLTableElement>('.receipts-table')!;
+
+    expect(table.scrollWidth).toBeGreaterThan(wrapper.clientWidth);
+    expect(wrapper.scrollWidth).toBeGreaterThan(wrapper.clientWidth);
+    expect(page.scrollWidth).toBeLessThanOrEqual(page.clientWidth);
   });
 
   it('scrolls the receipts panel, not the window, when changing pages', () => {
@@ -167,41 +179,37 @@ describe('Comprobantes scroll layout', () => {
     expect(submit.disabled).toBeFalse();
   });
 
-  it('shows the expense owner and registrar on cards and in the detail modal', () => {
-    const card = page.querySelector<HTMLElement>('.receipt-card')!;
-    expect(card.textContent).toContain('Gasto generado porAna Pérez');
-    expect(card.textContent).toContain('Registrado porSoporte Admin');
+  it('shows the expense owner, registrar and total in the table and detail modal', () => {
+    const table = page.querySelector<HTMLTableElement>('.receipts-table')!;
+    const row = table.querySelector<HTMLElement>('.receipt-row')!;
+    expect(table.textContent).toContain('Gasto generado por');
+    expect(table.textContent).toContain('Registrado por');
+    expect(row.textContent).toContain('Ana Pérez');
+    expect(row.textContent).toContain('Soporte Admin');
+    expect(row.textContent).toContain('1,180.00');
 
-    card.click();
+    row.click();
     fixture.detectChanges();
     const details = fixture.nativeElement.querySelector('.detail-grid') as HTMLElement;
     expect(details.textContent).toContain('Gasto generado porAna Pérez');
     expect(details.textContent).toContain('Registrado porSoporte Admin');
+    expect(details.textContent).toContain('Total de la factura');
+    expect(details.querySelector('.detail-total')?.textContent).toContain('1,180.00');
   });
 
-  it('does not define hover effects or transitions for receipt cards and their images', () => {
-    const card = page.querySelector<HTMLElement>('.receipt-card')!;
-    const image = card.querySelector('img')!;
-    expect(getComputedStyle(card).transitionDuration).toBe('0s');
+  it('renders receipts as table rows instead of cards without image transitions', () => {
+    const table = page.querySelector<HTMLTableElement>('.receipts-table')!;
+    const row = table.querySelector<HTMLTableRowElement>('.receipt-row')!;
+    const image = row.querySelector('img')!;
+    expect(table.tagName).toBe('TABLE');
+    expect(row.tagName).toBe('TR');
+    expect(page.querySelector('.receipt-card')).toBeNull();
     expect(getComputedStyle(image).transitionDuration).toBe('0s');
-    expect(getComputedStyle(card).transform).toBe('none');
     expect(getComputedStyle(image).transform).toBe('none');
-
-    const checkRules = (rules: CSSRuleList) => {
-      for (const rule of Array.from(rules)) {
-        if (rule instanceof CSSStyleRule && rule.selectorText.includes('.receipt-card')) {
-          expect(rule.selectorText).not.toContain(':hover');
-        }
-        if (rule instanceof CSSMediaRule) checkRules(rule.cssRules);
-      }
-    };
-    for (const sheet of Array.from(document.styleSheets)) {
-      if (!sheet.href || sheet.href.startsWith(location.origin)) checkRules(sheet.cssRules);
-    }
   });
 
   it('opens an editable root form without losing the current employee and allows cancelling', async () => {
-    page.querySelector<HTMLButtonElement>('.receipt-actions button')!.click();
+    page.querySelector<HTMLButtonElement>('.receipt-table-actions button[title="Editar"]')!.click();
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -223,14 +231,15 @@ describe('Comprobantes scroll layout', () => {
   it('hides editing and deletion controls for a non-root account', () => {
     spyOn(TestBed.inject(AuthService), 'getCurrentUser').and.returnValue({ root: false } as any);
     fixture.detectChanges();
-    expect(page.querySelector('.receipt-actions')).toBeNull();
-    page.querySelector<HTMLElement>('.receipt-card')!.click();
+    expect(page.querySelector('.receipt-table-actions button[title="Editar"]')).toBeNull();
+    expect(page.querySelector('.receipt-table-actions .delete-receipt-btn')).toBeNull();
+    page.querySelector<HTMLElement>('.receipt-row')!.click();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.modal-content .receipt-actions')).toBeNull();
   });
 
   it('shows a specific confirmation before deleting a receipt', () => {
-    page.querySelector<HTMLButtonElement>('.receipt-actions .delete-receipt-btn')!.click();
+    page.querySelector<HTMLButtonElement>('.receipt-table-actions .delete-receipt-btn')!.click();
     fixture.detectChanges();
     const confirmation = fixture.nativeElement.querySelector('.delete-confirmation') as HTMLElement;
     expect(confirmation.textContent).toContain('¿Borrar este comprobante?');

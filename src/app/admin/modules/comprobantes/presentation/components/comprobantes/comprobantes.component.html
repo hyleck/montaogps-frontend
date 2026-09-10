@@ -44,32 +44,52 @@
   <div class="loading-state" *ngIf="loading"><span class="loader"></span><strong>Cargando comprobantes…</strong></div>
   <div class="empty-state" *ngIf="!loading && receipts.length === 0"><i class="pi pi-receipt"></i><h2>No hay comprobantes</h2><p>No encontramos registros con los filtros seleccionados.</p></div>
 
-  <section class="date-group" *ngFor="let group of dateGroups">
-    <div class="date-heading"><div><i class="pi pi-calendar"></i><h2>{{ group.label }}</h2></div><span>{{ group.count }} {{ group.count === 1 ? 'comprobante' : 'comprobantes' }}</span></div>
-
-    <div class="category-group" *ngFor="let categoryGroup of group.categories">
-      <div class="category-heading"><span><i class="pi pi-tag"></i>{{ categoryGroup.label }}</span><em>{{ categoryGroup.items.length }}</em></div>
-      <div class="receipt-grid">
-        <article class="receipt-card" *ngFor="let receipt of categoryGroup.items" (click)="openReceipt(receipt)">
-          <div class="receipt-image"><img [src]="receipt.image_url" alt="Comprobante de {{ receipt.employee_name }}"><span class="status-pill" [attr.data-status]="receipt.processing_status">{{ statusLabel(receipt.processing_status) }}</span></div>
-          <div class="receipt-body">
-            <div class="merchant-row"><div><small>COMERCIO</small><h3>{{ receipt.merchant_name || 'No detectado' }}</h3></div><strong>{{ displayAmount(receipt) }}</strong></div>
-            <p>{{ receipt.description || receipt.raw_text || 'Sin descripción digitalizada' }}</p>
-            <dl>
-              <div><dt>Gasto generado por</dt><dd>{{ expenseEmployeeName(receipt) }}</dd></div>
-              <div><dt>Registrado por</dt><dd>{{ registeredByName(receipt) }}</dd></div>
-              <div><dt>Fecha</dt><dd>{{ displayReceiptDate(receipt) }}</dd></div>
-              <div *ngIf="receipt.ncf"><dt>NCF</dt><dd>{{ receipt.ncf }}</dd></div>
-              <div *ngIf="receipt.tax_id"><dt>RNC</dt><dd>{{ receipt.tax_id }}</dd></div>
-            </dl>
-            <div class="receipt-actions" *ngIf="canManageReceipts">
-              <button type="button" (click)="startEditing(receipt, $event)" [disabled]="receiptBusy"><i class="pi pi-pencil"></i> Editar</button>
-              <button type="button" class="delete-receipt-btn" (click)="requestDelete(receipt, $event)" [disabled]="receiptBusy"><i class="pi pi-trash"></i> Borrar</button>
-            </div>
-            <button type="button" class="retry-btn" *ngIf="receipt.processing_status === 'failed' || receipt.processing_status === 'needs_review'" (click)="reprocess(receipt, $event)" [disabled]="!!reprocessingId"><i class="pi" [ngClass]="reprocessingId === receipt._id ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>{{ reprocessingId === receipt._id ? 'Procesando…' : 'Reintentar IA' }}</button>
-          </div>
-        </article>
-      </div>
+  <section class="receipts-table-section" *ngIf="!loading && receipts.length > 0">
+    <div class="table-heading">
+      <div><i class="pi pi-list"></i><h2>Listado de comprobantes</h2></div>
+      <span>{{ receipts.length }} {{ receipts.length === 1 ? 'registro visible' : 'registros visibles' }}</span>
+    </div>
+    <div class="receipts-table-wrap">
+      <table class="receipts-table">
+        <thead>
+          <tr>
+            <th scope="col">Comprobante</th>
+            <th scope="col">Gasto generado por</th>
+            <th scope="col">Registrado por</th>
+            <th scope="col">Fecha</th>
+            <th scope="col">NCF / RNC</th>
+            <th scope="col">Estado IA</th>
+            <th scope="col" class="amount-column">Total</th>
+            <th scope="col" class="actions-column">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="receipt-row" *ngFor="let receipt of receipts" tabindex="0" (click)="openReceipt(receipt)" (keydown.enter)="$event.target === $event.currentTarget && openReceipt(receipt)">
+            <td class="receipt-summary-cell">
+              <span class="receipt-thumbnail"><img [src]="receipt.image_url" alt="Comprobante de {{ receipt.employee_name }}"></span>
+              <span class="receipt-summary-copy">
+                <strong>{{ receipt.merchant_name || 'Comercio no detectado' }}</strong>
+                <small>{{ categoryLabel(receipt.accounting_category) }}</small>
+                <span>{{ receipt.description || receipt.raw_text || 'Sin descripción digitalizada' }}</span>
+              </span>
+            </td>
+            <td><strong class="cell-primary">{{ expenseEmployeeName(receipt) }}</strong></td>
+            <td><strong class="cell-primary">{{ registeredByName(receipt) }}</strong></td>
+            <td><span class="cell-nowrap">{{ displayReceiptDate(receipt) }}</span></td>
+            <td><strong class="cell-primary">{{ receipt.ncf || 'Sin NCF' }}</strong><small class="cell-secondary">{{ receipt.tax_id || 'Sin RNC' }}</small></td>
+            <td><span class="status-pill" [attr.data-status]="receipt.processing_status">{{ statusLabel(receipt.processing_status) }}</span></td>
+            <td class="amount-cell"><strong>{{ displayAmount(receipt) }}</strong></td>
+            <td class="actions-cell">
+              <div class="receipt-table-actions">
+                <button type="button" class="view-receipt-btn" (click)="openReceipt(receipt); $event.stopPropagation()" aria-label="Ver detalle del comprobante" title="Ver detalle"><i class="pi pi-eye"></i><span>Ver</span></button>
+                <button type="button" *ngIf="canManageReceipts" (click)="startEditing(receipt, $event)" [disabled]="receiptBusy" aria-label="Editar comprobante" title="Editar"><i class="pi pi-pencil"></i><span>Editar</span></button>
+                <button type="button" class="delete-receipt-btn" *ngIf="canManageReceipts" (click)="requestDelete(receipt, $event)" [disabled]="receiptBusy" aria-label="Borrar comprobante" title="Borrar"><i class="pi pi-trash"></i><span>Borrar</span></button>
+                <button type="button" class="retry-btn" *ngIf="receipt.processing_status === 'failed' || receipt.processing_status === 'needs_review'" (click)="reprocess(receipt, $event)" [disabled]="!!reprocessingId" aria-label="Reintentar digitalización" title="Reintentar IA"><i class="pi" [ngClass]="reprocessingId === receipt._id ? 'pi-spin pi-spinner' : 'pi-refresh'"></i><span>{{ reprocessingId === receipt._id ? 'Procesando…' : 'Reintentar IA' }}</span></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </section>
 
@@ -204,6 +224,7 @@
         <div><small>No. de comprobante</small><strong>{{ selectedReceipt.receipt_number || 'No detectado' }}</strong></div>
         <div><small>Subtotal</small><strong>{{ selectedReceipt.subtotal == null ? 'No detectado' : (selectedReceipt.subtotal | number:'1.2-2') }}</strong></div>
         <div><small>ITBIS</small><strong>{{ selectedReceipt.tax_amount == null ? 'No detectado' : (selectedReceipt.tax_amount | number:'1.2-2') }}</strong></div>
+        <div class="detail-total"><small>Total de la factura</small><strong>{{ displayAmount(selectedReceipt) }}</strong></div>
         <div><small>Método de pago</small><strong>{{ selectedReceipt.payment_method || 'No detectado' }}</strong></div>
         <div><small>Tipo detectado por IA</small><strong>{{ detectedCategoryLabel(selectedReceipt.category) }}</strong></div>
         <div><small>Confianza IA</small><strong>{{ selectedReceipt.ai_confidence == null ? 'No disponible' : ((selectedReceipt.ai_confidence * 100) | number:'1.0-0') + '%' }}</strong></div>
