@@ -117,6 +117,10 @@ export class ExpenseReceiptsService {
     return this.http.get<ExpenseReceiptPage>(this.apiUrl, { params });
   }
 
+  getOne(id: string): Observable<ExpenseReceipt> {
+    return this.http.get<ExpenseReceipt>(`${this.apiUrl}/${encodeURIComponent(id)}`);
+  }
+
   getEmployees(): Observable<ExpenseReceiptEmployee[]> {
     return this.http.get<ExpenseReceiptEmployee[]>(`${this.apiUrl}/employees`);
   }

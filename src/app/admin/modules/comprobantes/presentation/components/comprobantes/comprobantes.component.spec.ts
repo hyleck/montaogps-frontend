@@ -16,6 +16,119 @@ describe('ComprobantesComponent', () => {
     };
   }
 
+  describe('background PDF reading', () => {
+    beforeEach(() => jasmine.clock().install());
+    afterEach(() => jasmine.clock().uninstall());
+
+    it('refreshes pending PDFs without hiding the table and stops once completed', () => {
+      const pending = receipt({ processing_status: 'pending' });
+      const completed = receipt({ processing_status: 'completed', total_amount: 1180 });
+      const response = new Subject<any>();
+      const service = { getAll: jasmine.createSpy('getAll').and.returnValues(of({ data: [pending], total: 1 }), response) };
+      const component = new ComprobantesComponent(service as any, rootAuth);
+      component.selectedReceipt = pending;
+      component.loadReceipts();
+      jasmine.clock().tick(5000);
+      expect(component.loading).toBeFalse();
+      expect(component.receipts).toEqual([pending]);
+      response.next({ data: [completed], total: 1 });
+      response.complete();
+      expect(component.selectedReceipt).toEqual(completed);
+      expect(component.pendingCount).toBe(0);
+      jasmine.clock().tick(20000);
+      expect(service.getAll).toHaveBeenCalledTimes(2);
+      component.ngOnDestroy();
+    });
+
+    it('keeps saved data during polling errors and cancels refresh on destruction', () => {
+      const pending = receipt({ processing_status: 'pending' });
+      const service = { getAll: jasmine.createSpy('getAll').and.returnValues(of({ data: [pending], total: 1 }), throwError(() => new Error('offline'))) };
+      const component = new ComprobantesComponent(service as any, rootAuth);
+      component.loadReceipts();
+      jasmine.clock().tick(5000);
+      expect(component.receipts).toEqual([pending]);
+      expect(component.loading).toBeFalse();
+      expect(component.pollingError).toContain('siguen guardados');
+      component.ngOnDestroy();
+      jasmine.clock().tick(20000);
+      expect(service.getAll).toHaveBeenCalledTimes(2);
+    });
+
+    it('refreshes the open PDF even when it moves off the page after OCR', () => {
+      const pending = receipt({ processing_status: 'pending' });
+      const completed = receipt({ processing_status: 'completed', total_amount: 1180 });
+      const service = {
+        getAll: jasmine.createSpy('getAll').and.returnValue(of({ data: [], total: 0 })),
+        getOne: jasmine.createSpy('getOne').and.returnValue(of(completed)),
+      };
+      const component = new ComprobantesComponent(service as any, rootAuth);
+      component.selectedReceipt = pending;
+      component.loadReceipts(true);
+      expect(service.getOne).toHaveBeenCalledWith(pending._id);
+      expect(component.selectedReceipt).toEqual(completed);
+      jasmine.clock().tick(10000);
+      expect(service.getAll).toHaveBeenCalledTimes(1);
+      component.ngOnDestroy();
+    });
+
+    it('cancels an in-flight status request when leaving the screen', () => {
+      const response = new Subject<any>();
+      const service = { getAll: jasmine.createSpy('getAll').and.returnValue(response) };
+      const component = new ComprobantesComponent(service as any, rootAuth);
+      component.loadReceipts();
+      component.ngOnDestroy();
+      response.next({ data: [receipt({ processing_status: 'pending' })], total: 1 });
+      expect(component.receipts).toEqual([]);
+      jasmine.clock().tick(10000);
+      expect(service.getAll).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not overwrite the open editor while refreshing background results', () => {
+      const pending = receipt({ processing_status: 'pending' });
+      const completed = receipt({ processing_status: 'completed', merchant_name: 'Detected' });
+      const service = { getAll: jasmine.createSpy('getAll').and.returnValue(of({ data: [completed], total: 1 })) };
+      const component = new ComprobantesComponent(service as any, rootAuth);
+      component.selectedReceipt = pending;
+      component.editingReceipt = true;
+      component.loadReceipts(true);
+      expect(component.selectedReceipt).toBe(pending);
+      component.ngOnDestroy();
+    });
+
+    it('discards stale responses after changing filters', () => {
+      const old = new Subject<any>();
+      const service = { getAll: jasmine.createSpy('getAll').and.returnValues(old, of({ data: [receipt({ _id: 'new' })], total: 1 })) };
+      const component = new ComprobantesComponent(service as any, rootAuth);
+      component.loadReceipts(true);
+      component.applyFilters();
+      old.next({ data: [receipt({ _id: 'old', processing_status: 'pending' })], total: 1 });
+      expect(component.receipts[0]._id).toBe('new');
+      component.ngOnDestroy();
+    });
+
+    it('confirms a saved PDF without falsely claiming it is already digitized', () => {
+      const pending = receipt({ processing_status: 'pending', image_name: 'receipt.pdf' });
+      const service = {
+        upload: jasmine.createSpy('upload').and.returnValue(of(pending)),
+        getAll: jasmine.createSpy('getAll').and.returnValue(of({ data: [pending], total: 1 })),
+        getEmployees: jasmine.createSpy('getEmployees').and.returnValue(of([])),
+      };
+      const component = new ComprobantesComponent(service as any, rootAuth);
+      component.uploadFile = new File(['%PDF-1.7'], 'receipt.pdf', { type: 'application/pdf' });
+      component.uploadCategory = 'gasto_operativo';
+      component.uploadEmployeeId = 'employee-1';
+      component.uploadEmployees = [{ employee_id: 'employee-1', employee_name: 'Ana' }];
+      component.uploadModalOpen = true;
+      component.submitReceipt();
+      expect(component.uploading).toBeFalse();
+      expect(component.uploadModalOpen).toBeFalse();
+      expect(component.success).toContain('segundo plano');
+      expect(component.success).not.toContain(' y digitalizado');
+      expect(component.statusLabel('pending')).toBe('Guardado · Leyendo');
+      component.ngOnDestroy();
+    });
+  });
+
   it('groups receipts first by date and then by the employee-selected category', () => {
     const service = { getAll: jasmine.createSpy('getAll').and.returnValue(of({ data: [], total: 0 })) };
     const component = new ComprobantesComponent(service as any, rootAuth);

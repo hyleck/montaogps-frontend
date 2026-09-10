@@ -1,5 +1,5 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { catchError, defer, finalize, from, map, mergeMap, of, toArray } from 'rxjs';
+import { catchError, defer, finalize, from, map, mergeMap, of, Subject, switchMap, takeUntil, toArray } from 'rxjs';
 import {
   ExpenseReceipt,
   ExpenseReceiptAccountingCategory,
@@ -150,7 +150,28 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
+    clearTimeout(this.pollTimer);
+    this.destroy$.next();
+    this.destroy$.complete();
     this.releaseUploadPreviews();
+  }
+
+  private readonly destroy$ = new Subject<void>();
+  private destroyed = false;
+  private pollTimer?: ReturnType<typeof setTimeout>;
+  private receiptRequest = 0;
+  pollingError = '';
+
+  get pendingCount(): number {
+    return this.receipts.filter(item => item.processing_status === 'pending').length;
+  }
+
+  private schedulePendingRefresh(): void {
+    clearTimeout(this.pollTimer);
+    if (!this.destroyed && (this.pendingCount || this.selectedReceipt?.processing_status === 'pending')) {
+      this.pollTimer = setTimeout(() => this.loadReceipts(true), 5000);
+    }
   }
 
   get totalPages(): number {
@@ -194,9 +215,14 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
     }));
   }
 
-  loadReceipts(): void {
-    this.loading = true;
-    this.error = '';
+  loadReceipts(silent = false): void {
+    if (this.destroyed) return;
+    clearTimeout(this.pollTimer);
+    const request = ++this.receiptRequest;
+    if (!silent) {
+      this.loading = true;
+      this.error = '';
+    }
     this.receiptsService.getAll({
       search: this.search.trim() || undefined,
       employee_id: this.employeeId || undefined,
@@ -206,13 +232,43 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
       date_to: this.dateTo || undefined,
       page: this.page,
       limit: this.limit,
-    }).subscribe({
+    }).pipe(
+      switchMap(response => {
+        const selected = this.selectedReceipt;
+        // A completed PDF can move off the current page or stop matching a filter.
+        if (request !== this.receiptRequest || !selected || selected.processing_status !== 'pending'
+          || this.editingReceipt || this.receiptBusy || response.data?.some(item => item._id === selected._id)) return of(response);
+        return this.receiptsService.getOne(selected._id).pipe(
+          map(updated => {
+            if (request === this.receiptRequest && this.selectedReceipt?._id === updated._id && !this.editingReceipt && !this.receiptBusy) this.selectedReceipt = updated;
+            return response;
+          }),
+          catchError(error => {
+            if (error?.status === 404 && request === this.receiptRequest && this.selectedReceipt?._id === selected._id && !this.editingReceipt) this.selectedReceipt = null;
+            return of(response);
+          }),
+        );
+      }),
+      takeUntil(this.destroy$),
+    ).subscribe({
       next: response => {
+        if (request !== this.receiptRequest) return;
         this.receipts = response.data || [];
         this.total = Number(response.total || 0);
         this.loading = false;
+        this.pollingError = '';
+        if (this.selectedReceipt && !this.editingReceipt && !this.receiptBusy) {
+          this.selectedReceipt = this.receipts.find(item => item._id === this.selectedReceipt?._id) || this.selectedReceipt;
+        }
+        this.schedulePendingRefresh();
       },
       error: error => {
+        if (request !== this.receiptRequest) return;
+        if (silent) {
+          this.pollingError = 'No se pudo actualizar el estado. Tus archivos siguen guardados; volveremos a consultar.';
+          this.schedulePendingRefresh();
+          return;
+        }
         this.error = error?.error?.message || 'No se pudieron cargar los comprobantes.';
         this.receipts = [];
         this.loading = false;
@@ -480,10 +536,12 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
         failed.forEach(result => this.uploadFileErrors.set(result.file, result.error));
 
         if (completed.length) {
+          const pending = completed.filter(result => result.receipt?.processing_status === 'pending').length;
           const needsAttention = completed.filter(result =>
             ['failed', 'needs_review'].includes(String(result.receipt?.processing_status || '')),
           ).length;
-          this.success = `${completed.length} de ${selectedFiles.length} comprobante${completed.length === 1 ? '' : 's'} guardado${completed.length === 1 ? '' : 's'}${needsAttention ? '' : ` y digitalizado${completed.length === 1 ? '' : 's'}`}.`
+          this.success = `${completed.length} de ${selectedFiles.length} comprobante${completed.length === 1 ? '' : 's'} guardado${completed.length === 1 ? '' : 's'}${needsAttention || pending ? '' : ` y digitalizado${completed.length === 1 ? '' : 's'}`}.`
+            + (pending ? ` ${pending} PDF en lectura en segundo plano. Puedes continuar; no necesitas subirlo de nuevo.` : '')
             + (needsAttention ? ` ${needsAttention} requiere${needsAttention === 1 ? '' : 'n'} revisión de la digitalización.` : '');
           this.page = 1;
           this.loadReceipts();
@@ -518,6 +576,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
         if (index >= 0) this.receipts[index] = updated;
         if (this.selectedReceipt?._id === updated._id) this.selectedReceipt = updated;
         this.reprocessingId = '';
+        this.schedulePendingRefresh();
       },
       error: error => {
         this.error = error?.error?.message || 'No se pudo reintentar la digitalización.';
@@ -550,7 +609,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
 
   statusLabel(status: string): string {
     const labels: Record<string, string> = {
-      pending: 'Digitalizando',
+      pending: 'Guardado · Leyendo',
       completed: 'Digitalizado',
       needs_review: 'Requiere revisión',
       failed: 'Error de IA',

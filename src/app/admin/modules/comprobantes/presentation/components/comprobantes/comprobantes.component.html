@@ -41,6 +41,11 @@
   <div class="error-banner employee-filter-error" *ngIf="employeesError" role="alert"><i class="pi pi-exclamation-triangle"></i><span>{{ employeesError }}</span><button type="button" (click)="loadEmployees()">Reintentar</button></div>
   <div class="error-banner" *ngIf="error"><i class="pi pi-exclamation-triangle"></i><span>{{ error }}</span><button type="button" (click)="error = ''">×</button></div>
   <div class="success-banner" *ngIf="success"><i class="pi pi-check-circle"></i><span>{{ success }}</span><button type="button" (click)="success = ''">×</button></div>
+  <div class="pdf-processing-banner" *ngIf="pendingCount" role="status">
+    <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+    <span>{{ pendingCount }} comprobante(s) guardado(s), en lectura. Puedes continuar o salir de esta pantalla; los datos se actualizarán automáticamente.</span>
+  </div>
+  <div class="error-banner" *ngIf="pollingError" role="status">{{ pollingError }}</div>
   <div class="loading-state" *ngIf="loading"><span class="loader"></span><strong>Cargando comprobantes…</strong></div>
   <div class="empty-state" *ngIf="!loading && receipts.length === 0"><i class="pi pi-receipt"></i><h2>No hay comprobantes</h2><p>No encontramos registros con los filtros seleccionados.</p></div>
 
@@ -190,7 +195,7 @@
       </section>
 
       <div class="upload-progress" *ngIf="uploading" role="status">
-        <span><i class="pi pi-spin pi-spinner"></i> Procesando {{ uploadCompleted }} de {{ uploadTotal }}</span>
+        <span><i class="pi pi-spin pi-spinner"></i> Guardando {{ uploadCompleted }} de {{ uploadTotal }}</span>
         <progress [value]="uploadCompleted" [max]="uploadTotal"></progress>
       </div>
 
@@ -202,7 +207,7 @@
       <button type="button" class="upload-cancel-btn" (click)="closeUploadModal()" [disabled]="uploading">Cerrar</button>
       <button type="button" class="upload-submit-btn" (click)="submitReceipt()" [disabled]="uploading || uploadEmployeesLoading || !!uploadEmployeesError || !uploadFiles.length || !uploadCategory || !uploadEmployeeId">
         <i class="pi" [ngClass]="uploading ? 'pi-spin pi-spinner' : 'pi-sparkles'"></i>
-        {{ uploading ? 'Procesando ' + uploadCompleted + ' de ' + uploadTotal + '…' : (uploadFiles.length === 1 ? 'Digitalizar y guardar' : 'Digitalizar y guardar ' + uploadFiles.length) }}
+        {{ uploading ? 'Guardando ' + uploadCompleted + ' de ' + uploadTotal + '…' : (uploadFiles.length === 1 ? 'Guardar y digitalizar' : 'Guardar y digitalizar ' + uploadFiles.length) }}
       </button>
     </footer>
   </section>
@@ -263,6 +268,7 @@
       <p class="receipt-audit" *ngIf="selectedReceipt.edited_at">Editado por {{ selectedReceipt.edited_by_name || 'Usuario root' }} · {{ selectedReceipt.edited_at | date:'dd/MM/yyyy HH:mm' }}</p>
       <div class="raw-text"><small>DATOS DIGITALIZADOS</small><p>{{ selectedReceipt.raw_text || selectedReceipt.description || 'La IA no pudo extraer texto.' }}</p></div>
       <div class="processing-error" *ngIf="selectedReceipt.processing_error"><i class="pi pi-exclamation-triangle"></i><span>{{ selectedReceipt.processing_error }}</span></div>
+      <div class="pdf-processing-banner" *ngIf="selectedReceipt.processing_status === 'pending'" role="status">El archivo ya está guardado. Estamos leyendo sus datos; no necesitas volver a subirlo. Si completas los datos manualmente, se respetarán tus cambios.</div>
       <div class="receipt-actions" *ngIf="canManageReceipts && !deleteConfirmation"><button type="button" (click)="startEditing(selectedReceipt)" [disabled]="receiptBusy"><i class="pi pi-pencil"></i> Editar</button><button type="button" class="delete-receipt-btn" (click)="requestDelete(selectedReceipt)" [disabled]="receiptBusy"><i class="pi pi-trash"></i> Borrar</button></div>
       <section class="delete-confirmation" *ngIf="deleteConfirmation && canManageReceipts" role="alertdialog" aria-label="Confirmar borrado del comprobante">
         <strong>¿Borrar este comprobante?</strong><p>{{ selectedReceipt.merchant_name || 'Comprobante' }} · {{ displayAmount(selectedReceipt) }}. Dejará de aparecer en los listados. Se conservará su auditoría.</p>
