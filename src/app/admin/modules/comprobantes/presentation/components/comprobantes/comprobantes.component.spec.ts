@@ -266,7 +266,6 @@ describe('ComprobantesComponent', () => {
       jasmine.any(File),
       'gasto_operativo',
       'employee-1',
-      true,
     );
     expect(component.uploadModalOpen).toBeFalse();
     expect(component.success).toContain('digitalizado');

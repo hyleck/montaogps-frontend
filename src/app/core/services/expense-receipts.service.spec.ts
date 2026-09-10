@@ -18,12 +18,10 @@ describe('ExpenseReceiptsService employee filter', () => {
   });
 
   afterEach(() => http.verify());
-  it('sends the default 18 percent choice and an explicit opt-out',()=>{
+  it('does not send an ITBIS override with receipt uploads',()=>{
     const file=new File(['test'],'receipt.jpg',{type:'image/jpeg'});
     service.upload(file,'gasto_operativo','employee-1').subscribe();
-    const first=http.expectOne(apiUrl);expect(first.request.body.get('applies_itbis')).toBe('true');first.flush({});
-    service.upload(file,'gasto_operativo','employee-1',false).subscribe();
-    const second=http.expectOne(apiUrl);expect(second.request.body.get('applies_itbis')).toBe('false');second.flush({});
+    const first=http.expectOne(apiUrl);expect(first.request.body.has('applies_itbis')).toBeFalse();first.flush({});
   });
 
   it('patches the requested receipt using the editable fields and the known revision', () => {

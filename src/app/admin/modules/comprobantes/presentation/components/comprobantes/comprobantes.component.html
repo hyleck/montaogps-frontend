@@ -145,10 +145,7 @@
         </div>
       </label>
 
-      <label class="receipt-itbis-choice">
-        <input type="checkbox" [(ngModel)]="uploadAppliesItbis" [disabled]="uploading" />
-        <span><strong>¿Aplica el 18% de ITBIS?</strong><small>Se calcula sobre el subtotal. Desmarca si no aplica ITBIS. Esta opción aplica a todos los archivos seleccionados; compruébala con el original.</small></span>
-      </label>
+      <p>El ITBIS se leerá de cada factura. No se añade un porcentaje automáticamente.</p>
       <input
         #uploadInput
         id="receiptUploadInput"
