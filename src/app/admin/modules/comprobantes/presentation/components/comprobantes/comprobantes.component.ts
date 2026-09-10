@@ -55,6 +55,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   uploadCompleted = 0;
   uploadTotal = 0;
   uploadCategory: ExpenseReceiptAccountingCategory | '' = '';
+  uploadAppliesItbis = true;
   uploadEmployeeId = '';
   uploadEmployees: ExpenseReceiptEmployee[] = [];
   uploadEmployeesLoading = false;
@@ -452,6 +453,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
           file,
           this.uploadCategory as ExpenseReceiptAccountingCategory,
           this.uploadEmployeeId,
+          this.uploadAppliesItbis,
         ).pipe(
           map(receipt => ({ file, receipt, error: '' })),
           catchError(error => of({
@@ -668,6 +670,7 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
     this.uploadCompleted = 0;
     this.uploadTotal = 0;
     this.uploadCategory = '';
+    this.uploadAppliesItbis = true;
     this.uploadEmployeeId = '';
     this.uploadEmployeesError = '';
     this.uploadError = '';

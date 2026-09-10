@@ -18,6 +18,13 @@ describe('ExpenseReceiptsService employee filter', () => {
   });
 
   afterEach(() => http.verify());
+  it('sends the default 18 percent choice and an explicit opt-out',()=>{
+    const file=new File(['test'],'receipt.jpg',{type:'image/jpeg'});
+    service.upload(file,'gasto_operativo','employee-1').subscribe();
+    const first=http.expectOne(apiUrl);expect(first.request.body.get('applies_itbis')).toBe('true');first.flush({});
+    service.upload(file,'gasto_operativo','employee-1',false).subscribe();
+    const second=http.expectOne(apiUrl);expect(second.request.body.get('applies_itbis')).toBe('false');second.flush({});
+  });
 
   it('patches the requested receipt using the editable fields and the known revision', () => {
     const changes = { total_amount: 125, expected_updated_at: '2026-08-28T14:00:00Z' };

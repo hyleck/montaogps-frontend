@@ -22,6 +22,7 @@ export interface ExpenseReceipt {
   expense_date?: string;
   subtotal?: number;
   tax_amount?: number;
+  applies_itbis?: boolean;
   total_amount?: number;
   currency?: string;
   category: string;
@@ -96,10 +97,12 @@ export class ExpenseReceiptsService {
     receiptFile: File,
     accountingCategory: ExpenseReceiptAccountingCategory,
     employeeId: string,
+    appliesItbis = true,
   ): Observable<ExpenseReceipt> {
     const formData = new FormData();
     formData.append('image', receiptFile, receiptFile.name);
     formData.append('accounting_category', accountingCategory);
+    formData.append('applies_itbis', String(appliesItbis));
     formData.append('employee_id', employeeId);
     return this.http.post<ExpenseReceipt>(this.apiUrl, formData);
   }
