@@ -150,7 +150,6 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadReceipts();
-    this.loadEmployees();
   }
 
   ngOnDestroy(): void {
@@ -381,7 +380,6 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
         this.selectedReceipt = updated;
         this.success = 'Comprobante actualizado.';
         this.loadReceipts();
-        this.loadEmployees();
       },
       error: error => {
         this.savingReceipt = false;
@@ -408,7 +406,6 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
         this.page = Math.max(1, Math.min(this.page, Math.ceil((this.total - 1) / this.limit)));
         this.success = 'Comprobante eliminado. Se conservó la auditoría del registro.';
         this.loadReceipts();
-        this.loadEmployees();
       },
       error: error => {
         this.deletingReceipt = false;
@@ -548,7 +545,6 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
             + (needsAttention ? ` ${needsAttention} requiere${needsAttention === 1 ? '' : 'n'} revisión de la digitalización.` : '');
           this.page = 1;
           this.loadReceipts();
-          this.loadEmployees();
         }
 
         if (failed.length) {

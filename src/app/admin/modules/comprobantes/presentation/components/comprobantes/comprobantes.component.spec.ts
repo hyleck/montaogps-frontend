@@ -172,7 +172,7 @@ describe('ComprobantesComponent', () => {
     expect(component.page).toBe(1);
   });
 
-  it('loads employee options independently from the current receipt page', () => {
+  it('does not load employee options for the hidden filter panel', () => {
     const employees = [{ employee_id: 'employee-other-page', employee_name: 'Luis García' }];
     const service = {
       getAll: jasmine.createSpy('getAll').and.returnValue(of({ data: [receipt({})], total: 61 })),
@@ -182,8 +182,8 @@ describe('ComprobantesComponent', () => {
 
     component.ngOnInit();
 
-    expect(service.getEmployees).toHaveBeenCalledTimes(1);
-    expect(component.employees).toEqual(employees);
+    expect(service.getEmployees).not.toHaveBeenCalled();
+    expect(component.employees).toEqual([]);
     expect(component.employeesLoading).toBeFalse();
     expect(component.receipts[0].employee_id).toBe('employee-1');
   });
@@ -270,7 +270,7 @@ describe('ComprobantesComponent', () => {
     expect(component.uploadModalOpen).toBeFalse();
     expect(component.success).toContain('digitalizado');
     expect(service.getAll).toHaveBeenCalled();
-    expect(service.getEmployees).toHaveBeenCalled();
+    expect(service.getEmployees).not.toHaveBeenCalled();
     expect(component.uploadEmployeeId).toBe('');
   });
 

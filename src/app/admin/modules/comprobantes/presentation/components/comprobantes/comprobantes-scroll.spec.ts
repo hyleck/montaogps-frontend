@@ -125,39 +125,10 @@ describe('Comprobantes table layout', () => {
     expect(getAll).not.toHaveBeenCalled();
   });
 
-  it('applies the selected employee from the dropdown and resets it with Limpiar', async () => {
-    const select = page.querySelector<HTMLSelectElement>('#receipt-employee-filter')!;
-    expect(select.options.length).toBe(3);
-    expect(select.options[0].textContent).toContain('Todos los empleados');
-    expect(select.options[2].textContent).toContain('Luis Alberto');
-    select.value = 'employee-2';
-    select.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
-    await fixture.whenStable();
-    page.querySelector<HTMLButtonElement>('.apply-btn')!.click();
-
-    expect(getAll).toHaveBeenCalledWith(jasmine.objectContaining({ employee_id: 'employee-2', page: 1 }));
-
-    page.querySelector<HTMLButtonElement>('.clear-btn')!.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(select.value).toBe('');
-    expect(getAll.calls.mostRecent().args[0].employee_id).toBeUndefined();
+  it('keeps the filter panel hidden', () => {
+    expect(page.querySelector('.filters-card')).toBeNull();
+    expect(page.querySelector('#receipt-employee-filter')).toBeNull();
   });
-
-  for (const width of [1600, 1120, 760, 375]) {
-    it(`keeps every filter within its own column in a ${width}px panel`, () => {
-      viewport.style.width = `${width}px`;
-      const filters = page.querySelector<HTMLElement>('.filters-card')!;
-      expect(filters.scrollWidth).toBeLessThanOrEqual(filters.clientWidth);
-      for (const control of Array.from(filters.querySelectorAll<HTMLElement>('input, select'))) {
-        const column = control.closest('label')!.getBoundingClientRect();
-        const bounds = control.getBoundingClientRect();
-        expect(bounds.left).toBeGreaterThanOrEqual(column.left);
-        expect(bounds.right).toBeLessThanOrEqual(column.right + 1);
-      }
-    });
-  }
 
   it('requires selecting the expense employee in the upload modal', async () => {
     page.querySelector<HTMLButtonElement>('.upload-receipt-btn')!.click();
@@ -179,12 +150,14 @@ describe('Comprobantes table layout', () => {
     expect(submit.disabled).toBeFalse();
   });
 
-  it('shows the expense owner, registrar and total in the table and detail modal', () => {
+  it('shows a compact table without expense owner or AI status columns', () => {
     const table = page.querySelector<HTMLTableElement>('.receipts-table')!;
     const row = table.querySelector<HTMLElement>('.receipt-row')!;
-    expect(table.textContent).toContain('Gasto generado por');
+    expect(table.textContent).not.toContain('Gasto generado por');
+    expect(table.textContent).not.toContain('Estado IA');
     expect(table.textContent).toContain('Registrado por');
-    expect(row.textContent).toContain('Ana Pérez');
+    expect(table.querySelectorAll('thead th').length).toBe(6);
+    expect(table.querySelectorAll('tbody tr:first-child td').length).toBe(6);
     expect(row.textContent).toContain('Soporte Admin');
     expect(row.textContent).toContain('1,180.00');
 

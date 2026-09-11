@@ -15,30 +15,12 @@
   </header>
 
   <section class="stats-grid">
-    <article><span>Total encontrados</span><strong>{{ total }}</strong><i class="pi pi-receipt"></i></article>
+    <article><span>Total registrados</span><strong>{{ total }}</strong><i class="pi pi-receipt"></i></article>
     <article><span>Digitalizados en esta página</span><strong>{{ digitizedCount }}</strong><i class="pi pi-check-circle"></i></article>
     <article><span>Requieren atención</span><strong>{{ reviewCount }}</strong><i class="pi pi-exclamation-circle"></i></article>
     <article><span>Categorías visibles</span><strong>{{ visibleCategoryCount }}</strong><i class="pi pi-tags"></i></article>
   </section>
 
-  <section class="filters-card">
-    <label class="search-field"><span>Buscar</span><div><i class="pi pi-search"></i><input [(ngModel)]="search" (keyup.enter)="applyFilters()" placeholder="Empleado, comercio, NCF o RNC"></div></label>
-    <label class="employee-field"><span>Empleado</span>
-      <select id="receipt-employee-filter" [(ngModel)]="employeeId" [disabled]="employeesLoading">
-        <option value="">{{ employeesLoading ? 'Cargando empleados…' : 'Todos los empleados' }}</option>
-        <option *ngFor="let employee of employees" [value]="employee.employee_id">
-          {{ employee.employee_name }}{{ employee.employee_email ? ' · ' + employee.employee_email : '' }}
-        </option>
-      </select>
-    </label>
-    <label><span>Categoría</span><select [(ngModel)]="accountingCategory"><option value="">Todas</option><option *ngFor="let item of categories" [value]="item">{{ categoryLabel(item) }}</option></select></label>
-    <label><span>Estado IA</span><select [(ngModel)]="status"><option value="">Todos</option><option value="completed">Digitalizado</option><option value="needs_review">Requiere revisión</option><option value="failed">Error de IA</option><option value="pending">Digitalizando</option></select></label>
-    <label><span>Desde</span><input type="date" [(ngModel)]="dateFrom"></label>
-    <label><span>Hasta</span><input type="date" [(ngModel)]="dateTo"></label>
-    <div class="filter-actions"><button type="button" class="clear-btn" (click)="clearFilters()">Limpiar</button><button type="button" class="apply-btn" (click)="applyFilters()"><i class="pi pi-filter"></i> Aplicar</button></div>
-  </section>
-
-  <div class="error-banner employee-filter-error" *ngIf="employeesError" role="alert"><i class="pi pi-exclamation-triangle"></i><span>{{ employeesError }}</span><button type="button" (click)="loadEmployees()">Reintentar</button></div>
   <div class="error-banner" *ngIf="error"><i class="pi pi-exclamation-triangle"></i><span>{{ error }}</span><button type="button" (click)="error = ''">×</button></div>
   <div class="success-banner" *ngIf="success"><i class="pi pi-check-circle"></i><span>{{ success }}</span><button type="button" (click)="success = ''">×</button></div>
   <div class="pdf-processing-banner" *ngIf="pendingCount" role="status">
@@ -47,23 +29,21 @@
   </div>
   <div class="error-banner" *ngIf="pollingError" role="status">{{ pollingError }}</div>
   <div class="loading-state" *ngIf="loading"><span class="loader"></span><strong>Cargando comprobantes…</strong></div>
-  <div class="empty-state" *ngIf="!loading && receipts.length === 0"><i class="pi pi-receipt"></i><h2>No hay comprobantes</h2><p>No encontramos registros con los filtros seleccionados.</p></div>
+  <div class="empty-state" *ngIf="!loading && receipts.length === 0"><i class="pi pi-receipt"></i><h2>No hay comprobantes</h2><p>Todavía no hay comprobantes registrados.</p></div>
 
   <section class="receipts-table-section" *ngIf="!loading && receipts.length > 0">
     <div class="table-heading">
       <div><i class="pi pi-list"></i><h2>Listado de comprobantes</h2></div>
-      <span>{{ receipts.length }} {{ receipts.length === 1 ? 'registro visible' : 'registros visibles' }}</span>
+      <span>{{ receipts.length }} {{ receipts.length === 1 ? 'registro' : 'registros' }}</span>
     </div>
     <div class="receipts-table-wrap">
       <table class="receipts-table">
         <thead>
           <tr>
             <th scope="col">Comprobante</th>
-            <th scope="col">Gasto generado por</th>
             <th scope="col">Registrado por</th>
             <th scope="col">Fecha</th>
             <th scope="col">NCF / RNC</th>
-            <th scope="col">Estado IA</th>
             <th scope="col" class="amount-column">Total</th>
             <th scope="col" class="actions-column">Acciones</th>
           </tr>
@@ -81,11 +61,9 @@
                 <span>{{ receipt.description || receipt.raw_text || 'Sin descripción digitalizada' }}</span>
               </span>
             </td>
-            <td><strong class="cell-primary">{{ expenseEmployeeName(receipt) }}</strong></td>
             <td><strong class="cell-primary">{{ registeredByName(receipt) }}</strong></td>
             <td><span class="cell-nowrap">{{ displayReceiptDate(receipt) }}</span></td>
             <td><strong class="cell-primary">{{ receipt.ncf || 'Sin NCF' }}</strong><small class="cell-secondary">{{ receipt.tax_id || 'Sin RNC' }}</small></td>
-            <td><span class="status-pill" [attr.data-status]="receipt.processing_status">{{ statusLabel(receipt.processing_status) }}</span></td>
             <td class="amount-cell"><strong>{{ displayAmount(receipt) }}</strong></td>
             <td class="actions-cell">
               <div class="receipt-table-actions">
