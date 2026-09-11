@@ -2,7 +2,7 @@ import { of, Subject, throwError } from 'rxjs';
 import { ExpenseReceipt } from '../../../../../../core/services/expense-receipts.service';
 import { ComprobantesComponent } from './comprobantes.component';
 
-describe('Root receipt management', () => {
+describe('Receipt management', () => {
   const receipt: ExpenseReceipt = {
     _id: 'receipt-1', employee_id: 'employee-1', employee_name: 'Ana',
     registered_by_id: 'registrar-1', registered_by_name: 'Pedro',
@@ -12,7 +12,7 @@ describe('Root receipt management', () => {
     expense_date: '2026-08-28T12:00:00Z', updatedAt: '2026-08-28T14:00:00Z',
   };
 
-  function setup(root: boolean | string = true) {
+  function setup(root: boolean | string = true, affiliationType = '') {
     const service = {
       update: jasmine.createSpy('update').and.returnValue(of({ ...receipt, total_amount: 200 })),
       remove: jasmine.createSpy('remove').and.returnValue(of({ deleted: true, id: receipt._id })),
@@ -20,7 +20,12 @@ describe('Root receipt management', () => {
       getEmployees: jasmine.createSpy().and.returnValue(of([])),
       getAll: jasmine.createSpy().and.returnValue(of({ data: [], total: 0 })),
     };
-    return { service, component: new ComprobantesComponent(service as any, { getCurrentUser: () => ({ root }) } as any) };
+    return {
+      service,
+      component: new ComprobantesComponent(service as any, {
+        getCurrentUser: () => ({ root, affiliation_type_id: affiliationType }),
+      } as any),
+    };
   }
 
   it('edits extracted fields but never sends or changes the original registrar', () => {
@@ -41,8 +46,20 @@ describe('Root receipt management', () => {
     expect(service.getAll).toHaveBeenCalled();
   });
 
-  it('does not save or delete from a non-root session', () => {
-    const { component, service } = setup('false');
+  it('allows an employee to edit and delete receipts', () => {
+    const { component, service } = setup('false', 'empleado');
+    expect(component.canManageReceipts).toBeTrue();
+    component.startEditing(receipt);
+    component.saveEditedReceipt();
+    expect(service.update).toHaveBeenCalled();
+
+    component.requestDelete(receipt);
+    component.confirmDelete();
+    expect(service.remove).toHaveBeenCalledWith(receipt._id, receipt.updatedAt);
+  });
+
+  it('does not save or delete from an external client session', () => {
+    const { component, service } = setup('false', 'cliente');
     expect(component.canManageReceipts).toBeFalse();
     component.startEditing(receipt);
     component.requestDelete(receipt);

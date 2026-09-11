@@ -108,8 +108,13 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   ) {}
 
   get canManageReceipts(): boolean {
-    const root = this.authService.getCurrentUser()?.root;
-    return root === true || ['true', '1'].includes(String(root || '').trim().toLowerCase());
+    const user: any = this.authService.getCurrentUser();
+    const elevated = [user?.root, user?.developer]
+      .some(value => value === true || ['true', '1'].includes(String(value || '').trim().toLowerCase()));
+    const affiliation = String(
+      user?.affiliation_type_id || user?.affiliation_type || '',
+    ).trim().toLowerCase();
+    return elevated || affiliation === 'empleado';
   }
 
   get receiptBusy(): boolean {

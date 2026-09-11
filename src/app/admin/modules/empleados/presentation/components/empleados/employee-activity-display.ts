@@ -28,6 +28,7 @@ const RESOURCE_DESCRIPTIONS: Record<string, ResourceDescription> = {
   roles: { key: 'roles', singular: 'un rol', plural: 'roles', countable: true },
   plans: { key: 'plans', singular: 'un plan', plural: 'planes', countable: true },
   reports: { key: 'reports', singular: 'un reporte', plural: 'reportes', countable: true },
+  'expense-receipts': { key: 'expense-receipts', singular: 'un comprobante', plural: 'comprobantes', countable: true },
   notifications: { key: 'notifications', singular: 'una notificación', plural: 'notificaciones', countable: true },
   inventory: { key: 'inventory', singular: 'el inventario', plural: 'el inventario', countable: false },
   monitoring: { key: 'monitoring', singular: 'el monitoreo', plural: 'el monitoreo', countable: false },
@@ -49,6 +50,7 @@ const ACTION_VERBS: Record<string, string> = {
   read: 'Consultó',
   get: 'Consultó',
   search: 'Buscó',
+  reprocess: 'Reprocesó',
 };
 
 export function groupConsecutiveEmployeeActivities(

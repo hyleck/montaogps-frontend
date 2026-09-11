@@ -68,4 +68,20 @@ describe('employee activity display', () => {
 
     expect(getEmployeeActivityTitle(value)).toBe('Hizo clic en Guardar usuario');
   });
+
+  it('describes receipt uploads and AI retries in natural Spanish', () => {
+    const uploaded = activity(
+      'create /expense-receipts',
+      '/expense-receipts',
+      '2026-09-11T16:00:00.000Z',
+    );
+    const retried = activity(
+      'reprocess /expense-receipts/:id',
+      '/expense-receipts/507f191e810c19729de860ea/reprocess',
+      '2026-09-11T16:01:00.000Z',
+    );
+
+    expect(getEmployeeActivityTitle(uploaded)).toBe('Creó un comprobante');
+    expect(getEmployeeActivityTitle(retried)).toBe('Reprocesó un comprobante');
+  });
 });

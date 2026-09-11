@@ -28,4 +28,17 @@ describe('SidebarComponent inventory badge', () => {
     expect(inventoryItem?.badge).toBe(5);
     expect((inventoryItem as any)?.attention).toBeTrue();
   });
+
+  it('shows Comprobantes to employees and hides it from external clients', () => {
+    const component = createComponent();
+    const hasReceipts = () => component.filteredPrincipalItems
+      .some(item => item.path === '/admin/comprobantes');
+
+    (component as any).isEmployeeUser = true;
+    expect(hasReceipts()).toBeTrue();
+
+    (component as any).isEmployeeUser = false;
+    component.currentUser = { root: false } as any;
+    expect(hasReceipts()).toBeFalse();
+  });
 });

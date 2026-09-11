@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { AdminComponent } from './components/admin-layout/admin.component';
 import { RootGuard } from '../../core/guards/root.guard';
 import { SolicitudesGuard } from '../../core/guards/solicitudes.guard';
+import { ComprobantesGuard } from '../../core/guards/comprobantes.guard';
 
 const routes: Routes = [
   {
@@ -84,8 +85,8 @@ const routes: Routes = [
       },
       {
         path: 'comprobantes',
-        canMatch: [RootGuard],
-        canActivate: [RootGuard],
+        canMatch: [ComprobantesGuard],
+        canActivate: [ComprobantesGuard],
         loadChildren: () => import('../modules/comprobantes/presentation/comprobantes.module').then(m => m.ComprobantesModule)
       },
       {

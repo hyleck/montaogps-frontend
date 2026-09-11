@@ -346,7 +346,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
         return this.isRootUser;
       }
       if (item.path === '/admin/comprobantes') {
-        return this.isRootUser;
+        return this.isRootUser || this.isEmployeeUser;
       }
       if (item.path === '/admin/ester') {
         return this.isRootUser;
