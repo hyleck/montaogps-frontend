@@ -2484,6 +2484,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
         icon: 'pi pi-book',
         command: () => this.router.navigate(['/admin/instructivos'])
       },
+      {
+        label: 'Montao Index',
+        icon: 'pi pi-th-large',
+        command: () => this.openMontaoIndex()
+      },
       // {
       //   separator: true
       // },
@@ -2522,6 +2527,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     // Actualizar el menú después de cambiar el tema
     this.initializeMenus();
+  }
+
+  openMontaoIndex(): void {
+    window.location.assign('https://index.montao.net');
   }
 
   openAlertsModal(): void {

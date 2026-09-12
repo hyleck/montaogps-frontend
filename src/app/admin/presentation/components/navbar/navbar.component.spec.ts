@@ -624,6 +624,22 @@ describe('NavbarComponent realtime links', () => {
     );
   });
 
+  it('opens Montao Index from the user dropdown', () => {
+    const { component } = createComponent();
+    const openIndex = spyOn(component, 'openMontaoIndex');
+
+    (component as any).initializeMenus();
+
+    const indexItem = component.userMenuItems.find(
+      item => item.label === 'Montao Index',
+    );
+    expect(indexItem?.icon).toBe('pi pi-th-large');
+    expect(indexItem?.command).toBeDefined();
+
+    indexItem?.command?.({ item: indexItem } as any);
+    expect(openIndex).toHaveBeenCalledTimes(1);
+  });
+
   it('generates one independent realtime link per selected target', async () => {
     const { component, targetsService } = createComponent();
     component.targetsToShare = [
