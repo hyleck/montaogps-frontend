@@ -51,12 +51,12 @@
         <div class="navbar__info">
             <!-- <i class="pi pi-question-circle"></i> -->
 
-            <!-- <div class="set-theme" (click)="toggleTheme()">
-                <i *ngIf="currentTheme == 'light' && !loadingTheme" class="pi pi-moon"></i>
-                <i *ngIf="currentTheme == 'dark' && !loadingTheme" class="pi pi-sun"></i>
-                
-
-              </div> -->
+            <button type="button" class="theme-toggle"
+                [attr.aria-label]="currentTheme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'"
+                [title]="currentTheme === 'dark' ? 'Modo claro' : 'Modo oscuro'"
+                (click)="toggleTheme()">
+                <i class="pi" [class.pi-sun]="currentTheme === 'dark'" [class.pi-moon]="currentTheme !== 'dark'" aria-hidden="true"></i>
+            </button>
 
             <!-- <div class="language-menu">
                 <p-menu #langMenu [model]="languageItems" [popup]="true" />
@@ -69,7 +69,9 @@
                 <button type="button" class="button button--flat-negative index-app-launcher__trigger"
                     aria-label="Aplicaciones de Montao Index" title="Aplicaciones de Montao Index"
                     [attr.aria-expanded]="indexLauncherOpen" (click)="toggleIndexLauncher()">
-                    <img class="index-app-launcher__logo" src="https://index.montao.net/montao-logo.png" alt="" />
+                    <img class="index-app-launcher__logo"
+                        [src]="currentTheme === 'dark' ? '/montao-index-mark-white.png' : '/montao-index-mark-red.png'"
+                        alt="" />
                 </button>
                 <button *ngIf="indexLauncherOpen" type="button" class="index-app-launcher__backdrop"
                     aria-label="Cerrar aplicaciones" (click)="closeIndexLauncher()"></button>

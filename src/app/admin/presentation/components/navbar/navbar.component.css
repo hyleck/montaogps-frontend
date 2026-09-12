@@ -16,6 +16,37 @@
   z-index: 1502;
 }
 
+.theme-toggle {
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--navbarColorIcon, #fff);
+  cursor: pointer;
+  appearance: none;
+  transition: opacity 160ms ease, transform 160ms ease, background-color 160ms ease;
+}
+
+.theme-toggle i {
+  color: currentColor;
+  font-size: 18px;
+  cursor: inherit;
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+  opacity: 0.82;
+  transform: translateY(-1px);
+}
+
 .index-app-launcher__trigger {
   box-sizing: border-box;
   width: 36px;

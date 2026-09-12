@@ -2526,6 +2526,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
     this.themes.setTheme(newTheme);
     this.currentTheme = newTheme;
+    this.loadingTheme = false;
 
     // Actualizar el menú después de cambiar el tema
     this.initializeMenus();
