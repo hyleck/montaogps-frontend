@@ -69,9 +69,7 @@
                 <button type="button" class="button button--flat-negative index-app-launcher__trigger"
                     aria-label="Aplicaciones de Montao Index" title="Aplicaciones de Montao Index"
                     [attr.aria-expanded]="indexLauncherOpen" (click)="toggleIndexLauncher()">
-                    <img class="index-app-launcher__logo"
-                        [src]="currentTheme === 'dark' ? '/montao-index-mark-white.png' : '/montao-index-mark-red.png'"
-                        alt="" />
+                    <img class="index-app-launcher__logo" src="/montao-index-mark-white.png" alt="" />
                 </button>
                 <button *ngIf="indexLauncherOpen" type="button" class="index-app-launcher__backdrop"
                     aria-label="Cerrar aplicaciones" (click)="closeIndexLauncher()"></button>
