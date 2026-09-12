@@ -97,7 +97,7 @@
   top: 72px;
   right: 18px;
   width: min(390px, calc(100vw - 24px));
-  height: min(520px, calc(100dvh - 90px));
+  height: min(440px, calc(100dvh - 90px));
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 26px;
@@ -130,7 +130,15 @@
   .index-app-launcher__popover {
     top: 64px;
     right: 8px;
-    height: min(520px, calc(100dvh - 74px));
+    height: min(440px, calc(100dvh - 74px));
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .index-app-launcher__popover {
+    border-color: rgba(77, 42, 46, 0.14);
+    background: #f4efed;
+    box-shadow: 0 20px 56px rgba(48, 25, 28, 0.2);
   }
 }
 
