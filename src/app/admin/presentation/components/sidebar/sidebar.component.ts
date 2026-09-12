@@ -138,8 +138,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
   updateCurrentUser() {
     this.currentUser = this.authService.getCurrentUser();
     if (this.currentUser) {
-      const compType = (this.currentUser as any).company_type || (this.currentUser as any).company_type_id || 'N/A';
-      this.userName = `${this.currentUser.name} ${this.currentUser.last_name} [${compType}]`;
+      this.userName = [this.currentUser.name, this.currentUser.last_name]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
       this.sidaberOptions.profileItems[1].label = this.userName;
       this.isEmployeeUser = this.currentUser.affiliation_type_id === 'empleado';
       this.isCompanyUser = this.currentUser.profile_type_id === 'empresa';
