@@ -12,6 +12,7 @@ export interface Privilege {
 
 export interface UserRole {
     _id: string;
+    isSystem?: boolean;
     name: string;
     description: string;
     status: string;
@@ -38,4 +39,4 @@ export interface PrivilegeActions {
     update: boolean;
     create: boolean;
     delete: boolean;
-} 
+}

@@ -134,6 +134,13 @@ export class UserRolesSettingsComponent implements OnInit {
     return this.authService.hasPrivilege('roles', 'delete');
   }
 
+  isProtectedRole(role: UserRole | null | undefined): boolean {
+    return Boolean(
+      role &&
+      (role.isSystem || role.name?.trim().toLowerCase() === 'cliente-full')
+    );
+  }
+
   // Método para obtener la traducción de un módulo
   getModuleTranslation(moduleKey: string): string {
     if (!moduleKey) {
@@ -255,6 +262,15 @@ export class UserRolesSettingsComponent implements OnInit {
   }
 
   deleteRole(role: UserRole) {
+    if (this.isProtectedRole(role)) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Rol protegido',
+        detail: 'El rol cliente-full es un rol del sistema y no se puede eliminar.'
+      });
+      return;
+    }
+
     // Validar permisos antes de permitir eliminar roles
     if (!this.canDeleteRoles()) {
       this.messageService.add({

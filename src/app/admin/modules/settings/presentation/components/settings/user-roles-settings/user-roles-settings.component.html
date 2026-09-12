@@ -29,6 +29,7 @@
                 <div class="form-group">
                     <label for="name">{{ 'settings.roles_settings.role_name' | translate }}</label>
                     <input id="name" type="text" [(ngModel)]="roleForm.name" name="name" required 
+                           [disabled]="isEditing && isProtectedRole(selectedRole)"
                            [placeholder]="'settings.roles_settings.role_name_placeholder' | translate">
                 </div>
                 <div class="form-group">
@@ -84,9 +85,13 @@
                             <button type="button" class="button-action button-success" (click)="editRole(role)" *ngIf="canUpdateRoles()">
                                 <i class="pi pi-pencil"></i>
                             </button>
-                            <button type="button" class="button-action button-danger" (click)="deleteRole(role)" *ngIf="canDeleteRoles()">
+                            <button type="button" class="button-action button-danger" (click)="deleteRole(role)" *ngIf="canDeleteRoles() && !isProtectedRole(role)">
                                 <i class="pi pi-trash"></i>
                             </button>
+                            <span *ngIf="isProtectedRole(role)" class="system-role-label" title="Rol protegido del sistema">
+                                <i class="pi pi-lock"></i>
+                                Protegido
+                            </span>
                             <div *ngIf="!canUpdateRoles() && !canDeleteRoles()" class="no-actions-permission">
                                 <i class="pi pi-lock" style="opacity: 0.5;"></i>
                                 <span style="font-size: 0.75rem; opacity: 0.6;">{{ 'settings.roles.no_actions_permission' | translate }}</span>

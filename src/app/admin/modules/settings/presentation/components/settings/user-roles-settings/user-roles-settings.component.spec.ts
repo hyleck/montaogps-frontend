@@ -1,23 +1,70 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { of } from 'rxjs';
+import { UserRole } from '@core/interfaces/user-role.interface';
 import { UserRolesSettingsComponent } from './user-roles-settings.component';
 
 describe('UserRolesSettingsComponent', () => {
-  let component: UserRolesSettingsComponent;
-  let fixture: ComponentFixture<UserRolesSettingsComponent>;
+  const protectedRole: UserRole = {
+    _id: 'cliente-full-id',
+    isSystem: true,
+    name: 'cliente-full',
+    description: 'Rol protegido',
+    status: 'active',
+    createdAt: new Date(),
+    privileges: [],
+  };
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      declarations: [UserRolesSettingsComponent]
-    })
-    .compileComponents();
+  function createComponent() {
+    const userRolesService = {
+      getAllRoles: jasmine.createSpy().and.returnValue(of([])),
+      deleteRole: jasmine.createSpy().and.returnValue(of(void 0)),
+    };
+    const confirmationService = { confirm: jasmine.createSpy() };
+    const messageService = { add: jasmine.createSpy() };
+    const translate = {
+      instant: jasmine.createSpy().and.callFake((key: string) => key),
+    };
+    const authService = {
+      hasPrivilege: jasmine.createSpy().and.returnValue(true),
+    };
 
-    fixture = TestBed.createComponent(UserRolesSettingsComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
+    const component = new UserRolesSettingsComponent(
+      userRolesService as any,
+      confirmationService as any,
+      messageService as any,
+      translate as any,
+      authService as any,
+    );
+
+    return {
+      component,
+      userRolesService,
+      confirmationService,
+      messageService,
+    };
+  }
+
+  it('recognizes cliente-full as protected even without the system flag', () => {
+    const { component } = createComponent();
+
+    expect(
+      component.isProtectedRole({ ...protectedRole, isSystem: false }),
+    ).toBeTrue();
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
+  it('does not open the delete confirmation for a protected role', () => {
+    const {
+      component,
+      userRolesService,
+      confirmationService,
+      messageService,
+    } = createComponent();
+
+    component.deleteRole(protectedRole);
+
+    expect(confirmationService.confirm).not.toHaveBeenCalled();
+    expect(userRolesService.deleteRole).not.toHaveBeenCalled();
+    expect(messageService.add).toHaveBeenCalledWith(
+      jasmine.objectContaining({ summary: 'Rol protegido' }),
+    );
   });
 });
