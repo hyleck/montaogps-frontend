@@ -18,36 +18,37 @@
 
 .index-app-launcher__trigger {
   box-sizing: border-box;
-  width: 42px;
-  height: 42px;
-  min-width: 42px;
-  min-height: 42px;
-  flex: 0 0 42px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  flex: 0 0 36px;
   display: grid;
   place-items: center;
   padding: 0;
   margin: 0;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: #fff;
   line-height: 1;
   appearance: none;
+  cursor: pointer;
 }
 
-.index-app-launcher__grid {
-  width: 22px;
-  height: 22px;
+.index-app-launcher__logo {
+  width: 30px;
+  height: 30px;
   display: block;
-  overflow: visible;
-  fill: currentColor;
+  object-fit: contain;
 }
 
 .index-app-launcher__trigger:hover,
 .index-app-launcher__trigger:focus-visible,
 .index-app-launcher__trigger[aria-expanded='true'] {
-  background: rgba(255, 255, 255, 0.18);
+  background: transparent;
   outline: none;
+  opacity: 0.72;
   transform: translateY(-1px);
 }
 
@@ -247,6 +248,28 @@
   width: 36px;
   height: 36px;
   background: transparent;
+}
+
+.user-menu .avatar-btn {
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: linear-gradient(135deg, #e45359, #a61f29);
+  color: #fff;
+}
+
+.user-menu {
+  position: relative;
+  z-index: 1503;
+}
+
+.user-avatar-placeholder {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
 }
 
 .language-menu button:hover,
@@ -4842,11 +4865,11 @@ body .p-dialog-mask {
 }
 
 .navbar-user-photo {
-  width: 36px;
-  height: 36px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  margin: -8px;
+  margin: 0;
 }
 
 /* SUPPORT TICKET DETAILS MODAL */

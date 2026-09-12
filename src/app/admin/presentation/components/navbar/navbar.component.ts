@@ -2180,6 +2180,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   // ... existing properties
   userPhotoUrl: string | null = null;
+
   appUpdateAvailable = false;
   applyingAppUpdate = false;
 

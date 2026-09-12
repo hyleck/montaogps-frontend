@@ -69,11 +69,7 @@
                 <button type="button" class="button button--flat-negative index-app-launcher__trigger"
                     aria-label="Aplicaciones de Montao Index" title="Aplicaciones de Montao Index"
                     [attr.aria-expanded]="indexLauncherOpen" (click)="toggleIndexLauncher()">
-                    <svg class="index-app-launcher__grid" viewBox="0 0 24 24" aria-hidden="true">
-                        <circle cx="5" cy="5" r="2"></circle><circle cx="12" cy="5" r="2"></circle><circle cx="19" cy="5" r="2"></circle>
-                        <circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle>
-                        <circle cx="5" cy="19" r="2"></circle><circle cx="12" cy="19" r="2"></circle><circle cx="19" cy="19" r="2"></circle>
-                    </svg>
+                    <img class="index-app-launcher__logo" src="https://index.montao.net/montao-logo.png" alt="" />
                 </button>
                 <button *ngIf="indexLauncherOpen" type="button" class="index-app-launcher__backdrop"
                     aria-label="Cerrar aplicaciones" (click)="closeIndexLauncher()"></button>
@@ -88,9 +84,13 @@
 
             <div class="user-menu">
                 <p-menu #userMenu [model]="userMenuItems" [popup]="true" styleClass="user-dropdown-menu" />
-                <button class="button button--flat-negative" (click)="userMenu.toggle($event)">
-                    <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" alt="User Photo" class="navbar-user-photo">
-                    <i *ngIf="!userPhotoUrl" class="pi pi-user"></i>
+                <button class="button button--flat-negative avatar-btn" aria-label="Abrir menú de usuario"
+                    title="Cuenta" (click)="closeIndexLauncher(); userMenu.toggle($event)">
+                    <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" alt="" class="navbar-user-photo">
+                    <svg *ngIf="!userPhotoUrl" class="user-avatar-placeholder" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="8" r="4"></circle>
+                        <path d="M4.5 21c.55-4.2 3.05-6.3 7.5-6.3s6.95 2.1 7.5 6.3"></path>
+                    </svg>
                 </button>
             </div>
         </div>
