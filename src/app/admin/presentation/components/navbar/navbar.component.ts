@@ -126,6 +126,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   loadingTheme: boolean = false;
   currentTheme: string = 'light';
   currentUser: any;
+  indexLauncherOpen = false;
 
   // Control de suscripciones
   private destroy$ = new Subject<void>();
@@ -2531,6 +2532,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   openMontaoIndex(): void {
     window.location.assign('https://index.montao.net');
+  }
+
+  toggleIndexLauncher(): void {
+    this.indexLauncherOpen = !this.indexLauncherOpen;
+  }
+
+  closeIndexLauncher(): void {
+    this.indexLauncherOpen = false;
   }
 
   openAlertsModal(): void {

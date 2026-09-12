@@ -65,6 +65,22 @@
                 </button>
             </div> -->
 
+            <div class="index-app-launcher" (click)="$event.stopPropagation()">
+                <button type="button" class="button button--flat-negative index-app-launcher__trigger"
+                    aria-label="Aplicaciones de Montao Index" title="Aplicaciones de Montao Index"
+                    [attr.aria-expanded]="indexLauncherOpen" (click)="toggleIndexLauncher()">
+                    <i class="pi pi-th-large" aria-hidden="true"></i>
+                </button>
+                <button *ngIf="indexLauncherOpen" type="button" class="index-app-launcher__backdrop"
+                    aria-label="Cerrar aplicaciones" (click)="closeIndexLauncher()"></button>
+                <section *ngIf="indexLauncherOpen" class="index-app-launcher__popover"
+                    aria-label="Aplicaciones de Montao Index">
+                    <iframe src="https://index.montao.net/app-menu?application=gps"
+                        title="Aplicaciones disponibles en Montao Index"
+                        sandbox="allow-scripts allow-same-origin allow-top-navigation"></iframe>
+                </section>
+            </div>
+
             <div class="user-menu">
                 <p-menu #userMenu [model]="userMenuItems" [popup]="true" styleClass="user-dropdown-menu" />
                 <button class="button button--flat-negative" (click)="userMenu.toggle($event)">

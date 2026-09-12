@@ -11,6 +11,68 @@
   padding-left: 10px;
 }
 
+.index-app-launcher {
+  position: relative;
+  z-index: 1502;
+}
+
+.index-app-launcher__trigger {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.index-app-launcher__trigger:hover,
+.index-app-launcher__trigger:focus-visible,
+.index-app-launcher__trigger[aria-expanded='true'] {
+  background: rgba(255, 255, 255, 0.18);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.index-app-launcher__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  border: 0;
+  background: transparent;
+}
+
+.index-app-launcher__popover {
+  position: fixed;
+  z-index: 1501;
+  top: 72px;
+  right: 18px;
+  width: min(390px, calc(100vw - 24px));
+  height: min(520px, calc(100dvh - 90px));
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 26px;
+  background: #171519;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+.index-app-launcher__popover iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0;
+}
+
+@media (max-width: 600px) {
+  .index-app-launcher__popover {
+    top: 64px;
+    right: 8px;
+    height: min(520px, calc(100dvh - 74px));
+  }
+}
+
 .navbar {
   width: 100%;
   height: 100%;
