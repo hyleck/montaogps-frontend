@@ -69,14 +69,19 @@
                 <button type="button" class="button button--flat-negative index-app-launcher__trigger"
                     aria-label="Aplicaciones de Montao Index" title="Aplicaciones de Montao Index"
                     [attr.aria-expanded]="indexLauncherOpen" (click)="toggleIndexLauncher()">
-                    <i class="pi pi-th-large" aria-hidden="true"></i>
+                    <svg class="index-app-launcher__grid" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="5" cy="5" r="2"></circle><circle cx="12" cy="5" r="2"></circle><circle cx="19" cy="5" r="2"></circle>
+                        <circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle>
+                        <circle cx="5" cy="19" r="2"></circle><circle cx="12" cy="19" r="2"></circle><circle cx="19" cy="19" r="2"></circle>
+                    </svg>
                 </button>
                 <button *ngIf="indexLauncherOpen" type="button" class="index-app-launcher__backdrop"
                     aria-label="Cerrar aplicaciones" (click)="closeIndexLauncher()"></button>
-                <section *ngIf="indexLauncherOpen" class="index-app-launcher__popover"
+                <section class="index-app-launcher__popover" [class.is-open]="indexLauncherOpen"
                     aria-label="Aplicaciones de Montao Index">
                     <iframe src="https://index.montao.net/app-menu?application=gps"
                         title="Aplicaciones disponibles en Montao Index"
+                        loading="eager"
                         sandbox="allow-scripts allow-same-origin allow-top-navigation"></iframe>
                 </section>
             </div>

@@ -17,15 +17,30 @@
 }
 
 .index-app-launcher__trigger {
+  box-sizing: border-box;
   width: 42px;
   height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  flex: 0 0 42px;
   display: grid;
   place-items: center;
   padding: 0;
+  margin: 0;
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
+  line-height: 1;
+  appearance: none;
+}
+
+.index-app-launcher__grid {
+  width: 22px;
+  height: 22px;
+  display: block;
+  overflow: visible;
+  fill: currentColor;
 }
 
 .index-app-launcher__trigger:hover,
@@ -56,6 +71,20 @@
   border-radius: 26px;
   background: #171519;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px) scale(0.985);
+  transform-origin: top right;
+  transition: opacity 150ms ease, transform 150ms ease, visibility 0s linear 150ms;
+}
+
+.index-app-launcher__popover.is-open {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  transition-delay: 0s;
 }
 
 .index-app-launcher__popover iframe {
