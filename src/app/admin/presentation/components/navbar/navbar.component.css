@@ -33,6 +33,32 @@
   transition: opacity 160ms ease, transform 160ms ease, background-color 160ms ease;
 }
 
+.navbar__notification-trigger {
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  appearance: none;
+  transition: opacity 160ms ease, transform 160ms ease, background-color 160ms ease;
+}
+
+.navbar__notification-trigger:hover,
+.navbar__notification-trigger:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+  opacity: 0.82;
+  transform: translateY(-1px);
+}
+
 .theme-toggle i {
   color: currentColor;
   font-size: 18px;

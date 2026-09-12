@@ -23,11 +23,6 @@
             </div>
 
             <div class="navbar__controls-base">
-                <button class="button button--flat-negative" (click)="openNotificationsModal()"
-                    title="{{ 'navbar.notifications' | translate }}">
-                    <i class="pi pi-bell"></i>
-                    {{ 'navbar.notifications' | translate }}
-                </button>
                 <button *ngIf="showCanceledButton" class="button button--flat-negative"
                     (click)="openCanceledTargetsDrawer()" title="{{ 'navbar.canceledTooltip' | translate }}">
                     <i class="pi pi-trash"></i>
@@ -49,7 +44,12 @@
 
         </div>
         <div class="navbar__info">
-            <!-- <i class="pi pi-question-circle"></i> -->
+            <button type="button" class="nav-option navbar__notification-trigger"
+                (click)="openNotificationsModal()"
+                [attr.aria-label]="'navbar.notifications' | translate"
+                [title]="'navbar.notifications' | translate">
+                <i class="pi pi-bell" aria-hidden="true"></i>
+            </button>
 
             <button type="button" class="theme-toggle"
                 [attr.aria-label]="currentTheme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'"
