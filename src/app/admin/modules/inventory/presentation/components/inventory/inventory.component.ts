@@ -2678,9 +2678,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
     const imei = this.shippingDeviceInput.trim();
     if (!imei || this.shippingDevices.some(d => (d.IMEI === imei || d.imei === imei))) return;
 
-    this.inventoryService.searchAllDevices(imei).subscribe({
-      next: (response) => {
-        const device = response.data?.find(d => (d.IMEI === imei || d.imei === imei));
+    this.inventoryService.findExactDevice(imei).subscribe({
+      next: (device) => {
         if (!device) {
           this.messageService.add({
             severity: 'warn',
@@ -2689,6 +2688,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
           });
           return;
         }
+
+        if (this.shippingDevices.some(item => String(item._id) === String(device._id))) return;
 
         if (this.isAlreadyAtShippingDestination(device)) {
           this.messageService.add({
@@ -2706,12 +2707,9 @@ export class InventoryComponent implements OnInit, OnDestroy {
           this.deviceToAssignPackage = device;
           this.assignPackageDialogVisible = true;
         } else {
-          // Check if it's already in the list by IMEI
-          if (!this.shippingDevices.find(d => (d.IMEI === imei || d.imei === imei))) {
-            this.shippingDevices.push(device);
-            this.shippingDeviceInput = '';
-            this.messageService.add({ severity: 'success', summary: 'Agregado', detail: `Dispositivo ${imei} preparado para envío.` });
-          }
+          this.shippingDevices.push(device);
+          if (this.shippingDeviceInput.trim() === imei) this.shippingDeviceInput = '';
+          this.messageService.add({ severity: 'success', summary: 'Agregado', detail: `Dispositivo ${device.IMEI || device.imei} preparado para envío.` });
         }
       },
       error: (error) => {

@@ -410,6 +410,12 @@ export class InventoryService {
     return this.http.get<{ data: InventoryItem[]; total: number; page: number; lastPage: number }>(url);
   }
 
+  findExactDevice(identifier: string): Observable<InventoryItem | null> {
+    return this.http.get<InventoryItem | null>(
+      `${this.apiUrl}/device-exact?identifier=${encodeURIComponent(identifier.trim())}`,
+    );
+  }
+
   searchInstallationDevices(
     query = '',
     deviceType: 'all' | 'gps' | 'mtag_p' | 'mtag_a' = 'all',
