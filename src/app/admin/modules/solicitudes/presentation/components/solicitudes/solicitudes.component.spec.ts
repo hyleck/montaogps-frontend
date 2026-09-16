@@ -2773,6 +2773,51 @@ describe('SolicitudesComponent scheduled date editing', () => {
         }));
     });
 
+    it('requires a reason before changing the physical device in a completed process', async () => {
+        const { component, solicitudesService, messageService } = createComponent();
+        component.processDetailsSolicitud = { _id: 'request-id', type: 'instalacion', status: 'completada' };
+        component.processDetailsInstallation = { completed: true, device_imei: '000008826041352' };
+        component.processCorrectionDraft = { completed: true, device_imei: '8826041376' };
+        await component.saveProcessCorrection();
+        expect(solicitudesService.correctInstallation).not.toHaveBeenCalled();
+        expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ summary: 'Revisa el cambio de equipo' }));
+    });
+
+    it('requires confirmation of the exact old and new devices before saving', async () => {
+        const { component, solicitudesService, confirmationService } = createComponent();
+        component.processDetailsSolicitud = { _id: 'request-id', type: 'instalacion', status: 'completada' };
+        component.processDetailsInstallation = { completed: true, device_imei: '000008826041352' };
+        component.processCorrectionDraft = { completed: true, device_imei: '8826041376' };
+        component.processCorrectionReason = 'Código confirmado en la fotografía';
+        await component.saveProcessCorrection();
+        expect(solicitudesService.correctInstallation).not.toHaveBeenCalled();
+        const confirmation = confirmationService.confirm.calls.mostRecent().args[0];
+        expect(confirmation.message).toContain('000008826041352');
+        expect(confirmation.message).toContain('8826041376');
+        const save = spyOn(component, 'saveProcessCorrection').and.resolveTo();
+        confirmation.accept?.();
+        expect(save).toHaveBeenCalledWith({ before: '000008826041352', after: '8826041376' });
+    });
+
+    it('does not treat missing leading zeros as a different physical device', () => {
+        const { component } = createComponent();
+        component.processDetailsSolicitud = { type: 'instalacion', status: 'completada' };
+        component.processDetailsInstallation = { device_imei: '000008826041376' };
+        component.processCorrectionDraft = { device_imei: '8826041376' };
+        expect(component.getProcessCorrectionDeviceChange()).toBeNull();
+    });
+
+    it('requires a fresh confirmation if the IMEI changes after opening the confirmation', async () => {
+        const { component, solicitudesService, confirmationService } = createComponent();
+        component.processDetailsSolicitud = { _id: 'request-id', type: 'instalacion', status: 'completada' };
+        component.processDetailsInstallation = { completed: true, device_imei: '000008826041352' };
+        component.processCorrectionDraft = { completed: true, device_imei: '8826041377' };
+        component.processCorrectionReason = 'Código corregido';
+        await component.saveProcessCorrection({ before: '000008826041352', after: '8826041376' });
+        expect(solicitudesService.correctInstallation).not.toHaveBeenCalled();
+        expect(confirmationService.confirm.calls.mostRecent().args[0].message).toContain('8826041377');
+    });
+
     it('saves a correction and refreshes the audited process details', async () => {
         const { component, solicitudesService, messageService } = createComponent();
         const current = { completed: true, device_imei: '862667088436426', plate: 'A000001' };

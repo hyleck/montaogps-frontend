@@ -1509,7 +1509,12 @@
                     <section class="sol-correction-section">
                         <div class="sol-correction-section__title">
                             <i class="pi pi-microchip"></i>
-                            <div><strong>GPS y SIM</strong><small>Identificadores guardados durante el proceso</small></div>
+                            <div><strong>GPS y SIM</strong><small>Al corregir el IMEI también se actualizará el equipo vinculado. Si está cancelado, reactívalo primero desde su objetivo.</small></div>
+                        </div>
+                        <div class="sol-correction-device-change" *ngIf="getProcessCorrectionDeviceChange() as change" role="status">
+                            <strong>Revisa el equipo instalado</strong>
+                            <span>{{ change.before || 'Sin equipo' }} → {{ change.after || 'Indica el IMEI correcto' }}</span>
+                            <small>Confirma el código de la etiqueta. El cambio requiere un motivo y quedará registrado a tu nombre.</small>
                         </div>
                         <div class="sol-correction-grid sol-correction-grid--three">
                             <label>IMEI
@@ -1524,7 +1529,7 @@
                                     <option *ngFor="let simType of simCardTypes" [value]="simType.value">{{ simType.label }}</option>
                                 </select>
                             </label>
-                            <label>Nuevo IMEI
+                            <label *ngIf="correction.process_type === 'cambio' || correction.process_type === 'chequeo'">Nuevo IMEI
                                 <input type="text" [(ngModel)]="correction.new_device_imei" placeholder="Solo si hubo reemplazo">
                             </label>
                             <label>Nueva SIM
@@ -1604,7 +1609,7 @@
                     </section>
 
                     <section class="sol-correction-reason">
-                        <label>Motivo o nota de la corrección <small>(opcional)</small></label>
+                        <label>Motivo o nota de la corrección <small>{{ getProcessCorrectionDeviceChange() ? '(obligatorio al cambiar el equipo)' : '(opcional)' }}</small></label>
                         <textarea [(ngModel)]="processCorrectionReason" rows="3" maxlength="500"
                             placeholder="Ej. El técnico digitó la placa incorrectamente"></textarea>
                         <small>{{ processCorrectionReason.length }}/500</small>

@@ -4416,11 +4416,57 @@ async initLocationMap(): Promise<void> {
         }
     }
 
-    async saveProcessCorrection(): Promise<void> {
+    getProcessCorrectionDeviceChange(): { before: string; after: string } | null {
+        const solicitud = this.processDetailsSolicitud;
+        const original = this.processDetailsInstallation;
+        const draft = this.processCorrectionDraft;
+        if (!solicitud || !original || !draft) return null;
+        const imeiFor = (item: InstallationDetail): string => {
+            const type = this.getProcessTypeForSolicitud(solicitud, item);
+            return String(
+                (type === 'chequeo' ? item.checkup_recovery?.replacement_device_imei : '')
+                || (['chequeo', 'cambio'].includes(type) ? item.new_device_imei : '')
+                || item.device_imei || '',
+            ).trim();
+        };
+        const before = imeiFor(original);
+        const after = imeiFor(draft);
+        const normalize = (value: string): string => /^\d+$/.test(value)
+            ? value.replace(/^0+(?=\d)/, '') : value;
+        return normalize(before) === normalize(after) ? null : { before, after };
+    }
+
+    async saveProcessCorrection(confirmedDeviceChange?: { before: string; after: string }): Promise<void> {
         const solicitud = this.processDetailsSolicitud;
         const draft = this.processCorrectionDraft;
         const solicitudId = String(solicitud?._id || '').trim();
         if (!solicitud || !draft || !solicitudId || this.processCorrectionSaving) return;
+
+        const deviceChange = this.getProcessCorrectionDeviceChange();
+        if (deviceChange) {
+            if (!deviceChange.after || !this.processCorrectionReason.trim()) {
+                this.messageService.add({
+                    severity: 'warn', summary: 'Revisa el cambio de equipo',
+                    detail: 'Indica el IMEI correcto y el motivo del cambio de equipo antes de guardar.',
+                });
+                return;
+            }
+            if (confirmedDeviceChange?.before !== deviceChange.before
+                || confirmedDeviceChange?.after !== deviceChange.after) {
+                const escape = (value: string): string => value.replace(/[&<>"']/g, character => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+                })[character]!);
+                this.confirmationService.confirm({
+                    key: 'solicitudes-confirm',
+                    header: 'Corregir el equipo del proceso',
+                    icon: 'pi pi-exclamation-triangle',
+                    message: `El proceso dejará de apuntar al equipo ${escape(deviceChange.before || 'sin identificar')} y quedará vinculado al ${escape(deviceChange.after)}. Se verificará el equipo y se guardará el cambio en el historial. La comprobación de conexión anterior no se atribuirá al nuevo equipo.`,
+                    acceptLabel: 'Confirmar equipo', rejectLabel: 'Volver',
+                    accept: () => void this.saveProcessCorrection(deviceChange),
+                });
+                return;
+            }
+        }
 
         const editableFields: Array<keyof InstallationDetail> = [
             'process_type', 'device_type', 'target_name', 'target_category',
@@ -4435,7 +4481,10 @@ async initLocationMap(): Promise<void> {
         ];
         const changes = editableFields.reduce<Record<string, any>>((result, field) => {
             const value = draft[field];
-            if (value !== undefined) result[field] = value;
+            if (value !== undefined
+                && JSON.stringify(value ?? null) !== JSON.stringify(this.processDetailsInstallation?.[field] ?? null)) {
+                result[field] = value;
+            }
             return result;
         }, {});
 
@@ -4506,6 +4555,9 @@ async initLocationMap(): Promise<void> {
             deinstallation_reason: 'razón de desinstalación', brand: 'marca', model: 'modelo',
             year: 'año', color: 'color', plate: 'placa', chassis: 'chasis',
             device_imei: 'IMEI', new_device_imei: 'nuevo IMEI',
+            registered_device_id: 'equipo vinculado',
+            final_device_online: 'conexión comprobada', final_device_status: 'estado al finalizar',
+            final_device_status_at: 'fecha de comprobación', draft: 'borrador anterior',
             sim_card_number: 'SIM', new_sim_card_number: 'nueva SIM',
             sim_company: 'compañía SIM', new_sim_company: 'nueva compañía SIM',
             new_protocol: 'nuevo protocolo', province: 'provincia', municipality: 'municipio',

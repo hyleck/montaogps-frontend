@@ -4260,6 +4260,22 @@ html.app-dark .sol-technician-schedule-status--error {
     border-color: rgba(99, 102, 241, 0.25);
 }
 
+.sol-correction-device-change {
+    display: grid;
+    gap: 0.35rem;
+    margin-bottom: 0.8rem;
+    padding: 0.8rem;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    border-radius: 10px;
+    background: rgba(245, 158, 11, 0.08);
+    color: var(--managementColorTitleUser);
+    overflow-wrap: anywhere;
+}
+
+.sol-correction-device-change small {
+    color: var(--managementColorTextUser);
+}
+
 .sol-correction-reason label small {
     font-weight: 600;
     opacity: 0.65;
