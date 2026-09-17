@@ -1776,16 +1776,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         
         const inst = this.selectedSolicitud?.installations?.[index];
         if (inst) {
-            const savedModel = inst.model;
             const savedMunicipality = inst.municipality;
             const savedSector = inst.sector;
 
-            if (inst.brand) {
-                this.vehicleBrandsService.getAllModelsByBrand(inst.brand).then((models: any) => {
-                    this.availableModels = models.map((m: any) => ({ label: m.nombre, value: m._id })).sort((a: any, b: any) => a.label.localeCompare(b.label));
-                    setTimeout(() => { inst.model = savedModel; }, 0);
-                }).catch(() => {});
-            }
+            void this.normalizeInstallationCatalogValues(inst);
             if (inst.province) {
                 this.vehicleBrandsService.getMunicipalities(inst.province).then((muns: any) => {
                     this.availableMunicipalities = muns.map((m: any) => ({ label: m.name, value: String(m.code) }));
@@ -1798,7 +1792,6 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                     setTimeout(() => { inst.sector = savedSector; }, 0);
                 }).catch(() => {});
             }
-            this.displayColorName = inst.color || '';
         } else {
             this.displayColorName = '';
             this.filteredColors = [...this.availableColors];
@@ -1808,6 +1801,53 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             this.installationModalVisible = true;
         }
         this.lookupExistingGpsTarget(index, false);
+    }
+
+    private async normalizeInstallationCatalogValues(
+        installation: InstallationDetail,
+    ): Promise<void> {
+        const brandValue = String(installation.brand || '').trim();
+        const matchingBrand = this.availableBrands.find(option =>
+            option.value === brandValue
+            || this.normalizeFilterText(option.label) === this.normalizeFilterText(brandValue)
+        );
+        const resolvedBrand = matchingBrand?.value || brandValue;
+        installation.brand = resolvedBrand;
+
+        const modelValue = String(installation.model || '').trim();
+        this.availableModels = [];
+        if (resolvedBrand) {
+            try {
+                const models = await this.vehicleBrandsService.getAllModelsByBrand(resolvedBrand);
+                this.availableModels = (models || []).map((model: any) => ({
+                    label: model.nombre,
+                    value: model._id,
+                })).sort((a: SelectOption, b: SelectOption) => a.label.localeCompare(b.label));
+                this.availableModels.forEach(model => {
+                    this.modelNameCache[model.value] = model.label;
+                });
+                const matchingModel = this.availableModels.find(option =>
+                    option.value === modelValue
+                    || this.normalizeFilterText(option.label) === this.normalizeFilterText(modelValue)
+                );
+                installation.model = matchingModel?.value || modelValue;
+            } catch {
+                installation.model = modelValue;
+            }
+        }
+
+        const colorValue = String(installation.color || '').trim();
+        const matchingColor = this.availableColors.find(option =>
+            option.value === colorValue
+            || this.normalizeFilterText(option.label) === this.normalizeFilterText(colorValue)
+        );
+        if (matchingColor) {
+            installation.color = matchingColor.value;
+            this._displayColorName = matchingColor.label;
+            this.filteredColors = [matchingColor];
+        } else {
+            this.displayColorName = colorValue;
+        }
     }
     
     toggleSection(section: string) {

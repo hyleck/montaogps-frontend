@@ -173,6 +173,33 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(component.selectedSolicitud.installations?.[0].target_name).toBe('Toyota Corolla de Juan');
     });
 
+    it('resolves received Rent vehicle names to the shared catalog values', async () => {
+        const { component, vehicleBrandsService } = createComponent();
+        vehicleBrandsService.getAllModelsByBrand.and.resolveTo([
+            { _id: 'model-zonda', nombre: 'Zonda Roadster' },
+        ]);
+        component.availableBrands = [
+            { value: 'brand-pagani', label: 'PAGANI' },
+        ];
+        component.availableColors = [
+            { value: '#fffff0', label: 'Marfil' },
+        ];
+        const installation = {
+            brand: 'PAGANI',
+            model: 'Zonda Roadster',
+            color: 'Marfil',
+        } as any;
+
+        await (component as any).normalizeInstallationCatalogValues(installation);
+
+        expect(vehicleBrandsService.getAllModelsByBrand)
+            .toHaveBeenCalledOnceWith('brand-pagani');
+        expect(installation.brand).toBe('brand-pagani');
+        expect(installation.model).toBe('model-zonda');
+        expect(installation.color).toBe('#fffff0');
+        expect(component.displayColorName).toBe('Marfil');
+    });
+
     it('searches only the selected client objectives for vehicle changes', async () => {
         const { component, inventoryService, targetsService } = createComponent();
         targetsService.searchTargets.and.resolveTo({
