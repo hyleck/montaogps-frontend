@@ -1252,7 +1252,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.isSearchingWarehouseUsers = false;
   }
 
-  searchWarehouseAccessUsers(): void {
+  async searchWarehouseAccessUsers(): Promise<void> {
     const query = this.warehouseUserSearchTerm.trim();
     if (query.length < 2) {
       this.warehouseUserSearchResults = [];
@@ -1260,20 +1260,27 @@ export class InventoryComponent implements OnInit, OnDestroy {
     }
 
     this.isSearchingWarehouseUsers = true;
-    this.userService.search(query, undefined, 0, 15).subscribe({
-      next: (response) => {
-        this.warehouseUserSearchResults = response.users || [];
-        this.isSearchingWarehouseUsers = false;
-      },
-      error: (error) => {
-        this.isSearchingWarehouseUsers = false;
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: getApiErrorMessage(error, 'No se pudo buscar usuarios')
-        });
+    try {
+      const mainAccount = await firstValueFrom(this.userService.getMainAccount());
+      const parentId = String(mainAccount?.account?._id || '').trim();
+      if (!parentId) {
+        throw new Error('No se pudo determinar la cuenta principal para buscar usuarios.');
       }
-    });
+
+      const response = await firstValueFrom(
+        this.userService.search(query, parentId, 0, 15)
+      );
+      this.warehouseUserSearchResults = response.users || [];
+    } catch (error) {
+      this.warehouseUserSearchResults = [];
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: getApiErrorMessage(error, 'No se pudo buscar usuarios')
+      });
+    } finally {
+      this.isSearchingWarehouseUsers = false;
+    }
   }
 
   addWarehouseAccessUser(user: User): void {
