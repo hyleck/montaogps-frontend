@@ -7783,7 +7783,10 @@ async initLocationMap(): Promise<void> {
 
         if (!this.hasInvalidTopFilterDateRange && (this.topFilterDateFrom || this.topFilterDateTo)) {
             const scheduledDate = this.getScheduledDateFilterKey(solicitud);
-            if (!scheduledDate) return false;
+            // Los pedidos recién recibidos desde Montao Rent todavía no tienen
+            // fecha de instalación. Deben permanecer visibles para que el
+            // equipo pueda revisarlos y programarlos.
+            if (!scheduledDate) return solicitud.status === 'recibida';
             if (this.topFilterDateFrom && scheduledDate < this.topFilterDateFrom) return false;
             if (this.topFilterDateTo && scheduledDate > this.topFilterDateTo) return false;
         }

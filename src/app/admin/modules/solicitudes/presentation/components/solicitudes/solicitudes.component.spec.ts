@@ -2039,6 +2039,12 @@ describe('SolicitudesComponent scheduled date editing', () => {
                 type: 'desinstalacion',
                 status: 'pendiente',
             },
+            {
+                _id: 'request-received-unscheduled',
+                type: 'instalacion',
+                status: 'recibida',
+                order_source: 'montao_rent',
+            },
         ];
         component.topFilterDateFrom = '2026-07-10';
         component.topFilterDateTo = '2026-07-20';
@@ -2046,6 +2052,10 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(component.filteredSolicitudes.map(item => item._id)).toEqual([
             'request-from',
             'request-to',
+            'request-received-unscheduled',
+        ]);
+        expect(component.recibidas.map(item => item._id)).toEqual([
+            'request-received-unscheduled',
         ]);
     });
 
