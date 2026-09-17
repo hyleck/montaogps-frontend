@@ -149,6 +149,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     private filteredSolicitudesCache: Solicitud[] = [];
     private kanbanColumnsCacheSource: Solicitud[] | null = null;
     private kanbanColumnsCache = {
+        recibidas: [] as Solicitud[],
         pendientes: [] as Solicitud[],
         enProgreso: [] as Solicitud[],
         porConfirmar: [] as Solicitud[],
@@ -167,6 +168,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     private technicianSelectionCacheQuery = '';
     private technicianSelectionCache: User[] = [];
 
+    get recibidas(): Solicitud[] { return this.getKanbanColumns().recibidas; }
     get pendientes(): Solicitud[] { return this.getKanbanColumns().pendientes; }
     get enProgreso(): Solicitud[] { return this.getKanbanColumns().enProgreso; }
     get porConfirmar(): Solicitud[] { return this.getKanbanColumns().porConfirmar; }
@@ -756,6 +758,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     statusOptions = [
         { label: 'Todos', value: '' },
+        { label: 'Recibida', value: 'recibida' },
         { label: 'Pendiente', value: 'pendiente' },
         { label: 'Aceptada', value: 'aceptada' },
         { label: 'Rechazada', value: 'rechazada' },
@@ -783,6 +786,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     };
 
     statusLabels: Record<string, string> = {
+        recibida: 'Recibida',
         pendiente: 'Pendiente',
         aceptada: 'Aceptada',
         rechazada: 'Rechazada',
@@ -7085,6 +7089,7 @@ async initLocationMap(): Promise<void> {
 
     getStatusIcon(status: string): string {
         const map: Record<string, string> = {
+            recibida: 'pi pi-inbox',
             pendiente: 'pi pi-clock',
             aceptada: 'pi pi-check-circle',
             rechazada: 'pi pi-times-circle',
@@ -7695,10 +7700,11 @@ async initLocationMap(): Promise<void> {
         switch (String(status || '').toLowerCase()) {
             case 'en_progreso': return 0;
             case 'aceptada': return 1;
-            case 'pendiente': return 2;
+            case 'recibida': return 2;
+            case 'pendiente': return 3;
             case 'por_confirmar':
-            case 'completada': return 4;
-            default: return 3;
+            case 'completada': return 5;
+            default: return 4;
         }
     }
 
@@ -7734,6 +7740,9 @@ async initLocationMap(): Promise<void> {
 
         this.kanbanColumnsCacheSource = filtered;
         this.kanbanColumnsCache = {
+            recibidas: this.sortSolicitudesForDisplay(filtered.filter(solicitud =>
+                solicitud.status === 'recibida'
+            )),
             pendientes: this.sortSolicitudesForDisplay(filtered.filter(solicitud =>
                 solicitud.status === 'pendiente'
                 || solicitud.status === 'aceptada'

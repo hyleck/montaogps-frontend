@@ -197,6 +197,17 @@ export interface Solicitud {
     created_by_name?: string;
     user_id?: string;
     id_rent?: string;
+    rent_vehicle_ids?: string[];
+    order_source?: string;
+    plan_id?: string;
+    plan_name?: string;
+    plan_description?: string;
+    plan_duration_type?: string;
+    plan_price?: number;
+    plan_currency?: string;
+    whatsapp_confirmed?: boolean;
+    whatsapp_confirmed_at?: string | Date;
+    order_confirmation_notification_sent_at?: string | Date;
     source_chequeo_id?: string;
     gps_change?: Solicitud;
     createdAt?: string;

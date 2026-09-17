@@ -430,10 +430,63 @@
     </div>
 
     <!-- Scrum / Kanban Board -->
-    <div class="sol-kanban-board" *ngIf="!loading || solicitudes.length > 0">
+    <div class="sol-kanban-board" [class.sol-kanban-board--with-received]="recibidas.length > 0" *ngIf="!loading || solicitudes.length > 0">
+
+        <!-- Recibidos: solo aparece cuando existen pedidos nuevos -->
+        <div *ngIf="recibidas.length" class="sol-kanban-column sol-kanban-column--received"
+            (dragover)="onDragOver($event)" (drop)="onDrop($event, 'recibida')" (dragleave)="onDragLeave($event)">
+            <div class="sol-kanban-header">
+                <div class="sol-kanban-header__node">
+                    <span class="sol-kanban-header__icon" aria-hidden="true"><i class="pi pi-download"></i></span>
+                    <span class="sol-kanban-header__label">
+                        <small>Entrada</small>
+                        <strong>Recibidos</strong>
+                    </span>
+                    <span class="sol-kanban-header__count">{{ recibidas.length }}</span>
+                </div>
+            </div>
+
+            <div class="sol-kanban-card sol-kanban-card--received" *ngFor="let sol of recibidas; trackBy: trackBySolicitud"
+                (click)="!dragSuppressClick && editSolicitud(sol)" draggable="true"
+                (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
+                <div class="sol-kanban-card-top">
+                    <div class="sol-card-title-block">
+                        <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Cliente de Montao Rent' }}</span>
+                        <small class="sol-request-creator"><i class="pi pi-building"></i> Montao Rent · Mi garaje</small>
+                    </div>
+                </div>
+                <div class="sol-kanban-content">
+                    <div class="sol-card-tags">
+                        <span class="sol-tag" data-type="instalacion">Instalación</span>
+                        <span class="sol-status" data-status="recibida"><i class="pi pi-inbox"></i> Recibida</span>
+                    </div>
+                    <div class="sol-received-order-meta">
+                        <span *ngIf="sol.plan_name"><i class="pi pi-star"></i><b>{{ sol.plan_name }}</b></span>
+                        <span><i class="pi pi-car"></i>{{ sol.installations?.length || sol.quantity || 1 }} vehículo(s)</span>
+                        <span *ngIf="sol.client_phone"><i class="pi pi-whatsapp"></i>{{ sol.client_phone }}</span>
+                    </div>
+                    <div *ngIf="sol.installations?.length" class="sol-kanban-installations">
+                        <button type="button" *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation"
+                            class="sol-kanban-inst-item" (click)="openKanbanProcessDetails(sol, inst, i, $event)">
+                            <i class="pi pi-car"></i>
+                            <span class="sol-process-summary">
+                                <span class="sol-process-name">{{ inst.target_name || (inst.brand + ' ' + inst.model) }}
+                                    <small *ngIf="inst.plate">· {{ inst.plate }}</small>
+                                </span>
+                            </span>
+                            <i class="pi pi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="sol-kanban-footer">
+                    <span *ngIf="sol.createdAt" class="sol-created-at"><i class="pi pi-clock"></i> Recibida {{ getSolicitudCreatedAtDisplay(sol.createdAt) }}</span>
+                    <small class="sol-received-drag-hint"><i class="pi pi-arrows-alt"></i> Mueve a Pendientes</small>
+                </div>
+            </div>
+        </div>
         
         <!-- Pendiente Column -->
-        <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'pendiente')" (dragleave)="onDragLeave($event)">
+        <div class="sol-kanban-column sol-kanban-column--pending" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'pendiente')" (dragleave)="onDragLeave($event)">
             <div class="sol-kanban-header">
                 <div class="sol-kanban-header__node">
                     <span class="sol-kanban-header__icon" aria-hidden="true"><i class="pi pi-inbox"></i></span>
@@ -575,7 +628,7 @@
         </div>
 
         <!-- En Progreso Column -->
-        <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'en_progreso')" (dragleave)="onDragLeave($event)">
+        <div class="sol-kanban-column sol-kanban-column--progress" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'en_progreso')" (dragleave)="onDragLeave($event)">
             <div class="sol-kanban-header">
                 <div class="sol-kanban-header__node">
                     <span class="sol-kanban-header__icon" aria-hidden="true"><i class="pi pi-play"></i></span>
@@ -714,7 +767,7 @@
         </div>
 
         <!-- Por Confirmar Column -->
-        <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'por_confirmar')" (dragleave)="onDragLeave($event)">
+        <div class="sol-kanban-column sol-kanban-column--confirm" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'por_confirmar')" (dragleave)="onDragLeave($event)">
             <div class="sol-kanban-header">
                 <div class="sol-kanban-header__node">
                     <span class="sol-kanban-header__icon" aria-hidden="true"><i class="pi pi-question-circle"></i></span>
@@ -841,7 +894,7 @@
         </div>
 
         <!-- Cerradas Column -->
-        <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'completada')" (dragleave)="onDragLeave($event)">
+        <div class="sol-kanban-column sol-kanban-column--closed" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'completada')" (dragleave)="onDragLeave($event)">
             <div class="sol-kanban-header">
                 <div class="sol-kanban-header__node">
                     <span class="sol-kanban-header__icon" aria-hidden="true"><i class="pi pi-check-circle"></i></span>

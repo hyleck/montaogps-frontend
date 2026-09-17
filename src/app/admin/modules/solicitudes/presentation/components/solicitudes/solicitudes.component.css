@@ -1480,6 +1480,11 @@ app-solicitudes > .management__route {
     color: #f59e0b;
 }
 
+.sol-status[data-status="recibida"] {
+    background: rgba(6, 182, 212, 0.13);
+    color: #0891b2;
+}
+
 .sol-status .pi-spinner {
     opacity: 1;
 }
@@ -2543,6 +2548,10 @@ html.app-dark .sol-technician-schedule-status--error {
     scrollbar-color: color-mix(in srgb, #6366f1 72%, var(--managementColorTextUser)) rgba(99, 102, 241, 0.08);
 }
 
+.sol-kanban-board.sol-kanban-board--with-received {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .sol-kanban-board::-webkit-scrollbar {
     width: 10px;
     height: 0;
@@ -2716,31 +2725,75 @@ html.app-dark .sol-technician-schedule-status--error {
 }
 
 /* Column-specific header accents */
-.sol-kanban-column:nth-child(1) {
+.sol-kanban-column--received {
+    --sol-flow-color: #06b6d4;
+    --sol-flow-soft: rgba(6, 182, 212, 0.13);
+    --sol-flow-next: #f59e0b;
+}
+
+.sol-kanban-column--pending {
     --sol-flow-color: #f59e0b;
     --sol-flow-soft: rgba(245, 158, 11, 0.13);
     --sol-flow-next: #3b82f6;
 }
 
-.sol-kanban-column:nth-child(2) {
+.sol-kanban-column--progress {
     --sol-flow-color: #3b82f6;
     --sol-flow-soft: rgba(59, 130, 246, 0.13);
     --sol-flow-next: #a855f7;
 }
 
-.sol-kanban-column:nth-child(3) {
+.sol-kanban-column--confirm {
     --sol-flow-color: #a855f7;
     --sol-flow-soft: rgba(168, 85, 247, 0.13);
     --sol-flow-next: #10b981;
 }
 
-.sol-kanban-column:nth-child(4) {
+.sol-kanban-column--closed {
     --sol-flow-color: #10b981;
     --sol-flow-soft: rgba(16, 185, 129, 0.13);
 }
 
-.sol-kanban-column:nth-child(4) .sol-kanban-header::after {
+.sol-kanban-column--closed .sol-kanban-header::after {
     display: none;
+}
+
+.sol-kanban-card--received {
+    border-color: color-mix(in srgb, #06b6d4 35%, var(--managementFieldsBorder));
+}
+
+.sol-received-order-meta {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 0.75rem;
+    padding: 0.7rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, #06b6d4 7%, var(--managementFieldsBackground));
+}
+
+.sol-received-order-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    color: var(--managementColorTextUser);
+    font-size: 0.72rem;
+}
+
+.sol-received-order-meta i {
+    width: 14px;
+    color: #0891b2;
+    text-align: center;
+}
+
+.sol-received-drag-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: auto;
+    color: #0891b2;
+    font-size: 0.62rem;
+    font-weight: 750;
 }
 
 /* Scrollable card area */
@@ -5575,21 +5628,19 @@ html.app-dark .sol-process-activation-disclosure__copy small {
 }
 
 @media (max-width: 1280px) {
-    .sol-kanban-board {
+    .sol-kanban-board,
+    .sol-kanban-board.sol-kanban-board--with-received {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .sol-kanban-column:nth-child(2) .sol-kanban-header::after {
+    .sol-kanban-column .sol-kanban-header::after {
         display: none;
-    }
-
-    .sol-kanban-column:nth-child(3) .sol-kanban-header::after {
-        display: block;
     }
 }
 
 @media (max-width: 768px) {
-    .sol-kanban-board {
+    .sol-kanban-board,
+    .sol-kanban-board.sol-kanban-board--with-received {
         grid-template-columns: 1fr;
         gap: 1rem;
         padding: 1rem 0.85rem;
