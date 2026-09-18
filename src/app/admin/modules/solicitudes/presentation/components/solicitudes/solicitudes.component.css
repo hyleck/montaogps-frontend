@@ -3077,6 +3077,20 @@ html.app-dark .sol-technician-schedule-status--error {
     margin-top: 0.15rem;
 }
 
+.sol-kanban-footer--actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sol-kanban-footer--actions .sol-created-at {
+    width: 100%;
+}
+
+.sol-kanban-footer--actions .sol-kanban-actions {
+    align-self: flex-end;
+}
+
 .sol-created-at {
     display: inline-flex;
     align-items: center;

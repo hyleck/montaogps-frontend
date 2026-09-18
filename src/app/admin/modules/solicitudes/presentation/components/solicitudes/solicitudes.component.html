@@ -594,7 +594,7 @@
                         <span>{{ getTechnicianDisplayName(sol) }}</span>
                     </button>
                 </div>
-                <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
+                <div class="sol-kanban-footer sol-kanban-footer--actions" (click)="$event.stopPropagation()">
                     <span *ngIf="sol.createdAt" class="sol-created-at">
                         <i class="pi pi-clock"></i>
                         Creada {{ getSolicitudCreatedAtDisplay(sol.createdAt) }}
@@ -733,7 +733,7 @@
                         <span>{{ getTechnicianDisplayName(sol) }}</span>
                     </button>
                 </div>
-                <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
+                <div class="sol-kanban-footer sol-kanban-footer--actions" (click)="$event.stopPropagation()">
                     <span *ngIf="sol.createdAt" class="sol-created-at">
                         <i class="pi pi-clock"></i>
                         Creada {{ getSolicitudCreatedAtDisplay(sol.createdAt) }}
@@ -863,7 +863,7 @@
                         <span>{{ getTechnicianDisplayName(sol) }}</span>
                     </button>
                 </div>
-                <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
+                <div class="sol-kanban-footer sol-kanban-footer--actions" (click)="$event.stopPropagation()">
                     <span *ngIf="sol.createdAt" class="sol-created-at">
                         <i class="pi pi-clock"></i>
                         Creada {{ getSolicitudCreatedAtDisplay(sol.createdAt) }}
