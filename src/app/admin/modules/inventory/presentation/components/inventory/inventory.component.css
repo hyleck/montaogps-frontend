@@ -2276,6 +2276,25 @@ textarea.form-input {
   white-space: nowrap;
 }
 
+.inventory-result-plan,
+.package-device-plan {
+  display: block;
+  max-width: 190px;
+  margin-top: 0.32rem;
+  overflow: hidden;
+  color: #2563eb;
+  font-size: 0.64rem;
+  font-weight: 800;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-result-plan i,
+.package-device-plan i {
+  margin-right: 0.2rem;
+}
+
 .inventory-result-actions {
   display: flex;
   align-items: center;

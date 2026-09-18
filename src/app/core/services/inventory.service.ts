@@ -65,6 +65,33 @@ export interface InventoryItem {
   retained_device_id?: string;
   retained_expiration_date?: string;
   retained_at?: string;
+  incosisStatus?: {
+    status?: string;
+    clientId?: string;
+    clientName?: string;
+    invoiceNumber?: string;
+    billedAt?: string;
+    billedBy?: string;
+    planAssignment?: {
+      years: number;
+      planSnapshot: {
+        sourcePlanId: string;
+        code: string;
+        name: string;
+        description?: string;
+        monthlyPrice: number;
+        renewalPrice: number;
+        variablePrice?: boolean;
+        gpsExclusive: boolean;
+        planType?: string;
+        vehicleLimit?: number | null;
+        includedServices?: string;
+        billingFrequency: string;
+        status?: string;
+        components?: Array<Record<string, unknown>>;
+      };
+    } | null;
+  };
 }
 
 export interface InventoryDeviceAssignmentResponse {
@@ -346,7 +373,7 @@ export class InventoryService {
     data: {
       clientId?: string;
       intent: 'reserve' | 'install' | 'review';
-      expirationDate: string;
+      expirationDate?: string;
       targetName?: string;
     },
   ): Observable<InventoryDeviceAssignmentResponse> {

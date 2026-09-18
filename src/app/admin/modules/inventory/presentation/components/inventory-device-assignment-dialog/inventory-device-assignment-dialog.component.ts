@@ -103,6 +103,14 @@ export class InventoryDeviceAssignmentDialogComponent
     return this.intent !== 'review';
   }
 
+  get incosisPlanAssignment(): NonNullable<InventoryItem['incosisStatus']>['planAssignment'] {
+    return this.device?.incosisStatus?.planAssignment ?? null;
+  }
+
+  get hasIncosisPlan(): boolean {
+    return Boolean(this.incosisPlanAssignment?.planSnapshot?.name && Number(this.incosisPlanAssignment?.years) > 0);
+  }
+
   onClientQueryChange(): void {
     this.selectedClient = null;
     this.clientSearch$.next(this.clientQuery.trim());
@@ -200,10 +208,22 @@ export class InventoryDeviceAssignmentDialogComponent
     this.clientQuery = '';
     this.clients = [];
     this.selectedClient = null;
-    this.expirationDate = '';
+    this.expirationDate = this.automaticExpirationDate();
     this.targetName = '';
     this.searchingClients = false;
     this.submitting = false;
+  }
+
+  private automaticExpirationDate(): string {
+    const years = Number(this.device?.incosisStatus?.planAssignment?.years ?? 0);
+    if (!Number.isSafeInteger(years) || years < 1) return '';
+    const expiration = new Date();
+    expiration.setFullYear(expiration.getFullYear() + years);
+    return [
+      expiration.getFullYear(),
+      String(expiration.getMonth() + 1).padStart(2, '0'),
+      String(expiration.getDate()).padStart(2, '0'),
+    ].join('-');
   }
 
   private loadMainAccount(): void {

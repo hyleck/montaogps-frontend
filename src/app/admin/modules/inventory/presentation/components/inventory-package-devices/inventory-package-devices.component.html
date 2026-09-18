@@ -202,6 +202,12 @@
                     [title]="device.inspection_reason">
                     {{ device.inspection_reason }}
                   </small>
+                  <small class="package-device-plan"
+                    *ngIf="device.incosisStatus?.planAssignment as assignment"
+                    [title]="'Plan facturado en Incosis: ' + assignment.planSnapshot.name">
+                    <i class="pi pi-shield"></i>
+                    {{ assignment.planSnapshot.name }} · {{ assignment.years }} {{ assignment.years === 1 ? 'año' : 'años' }}
+                  </small>
                 </div>
               </td>
               <td><span class="package-device-code">{{ isDeviceAirtag(device) ? '—' : (device.SIM || device.sim || 'N/A') }}</span></td>

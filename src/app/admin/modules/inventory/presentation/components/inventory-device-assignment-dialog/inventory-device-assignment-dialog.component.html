@@ -39,6 +39,24 @@
     </div>
   </section>
 
+  <section class="assignment-section" *ngIf="hasIncosisPlan">
+    <header>
+      <strong>Plan facturado en Incosis</strong>
+      <small>Esta es la instantánea guardada al facturar; no cambia aunque el catálogo de Incosis se modifique.</small>
+    </header>
+    <div class="assignment-selected-client">
+      <span><i class="pi pi-shield"></i></span>
+      <div>
+        <strong>{{ incosisPlanAssignment?.planSnapshot?.name }}</strong>
+        <small>
+          {{ incosisPlanAssignment?.planSnapshot?.code }} · {{ incosisPlanAssignment?.years }}
+          {{ incosisPlanAssignment?.years === 1 ? 'año' : 'años' }} · Renovación RD$
+          {{ incosisPlanAssignment?.planSnapshot?.renewalPrice | number:'1.2-2' }}
+        </small>
+      </div>
+    </div>
+  </section>
+
   <section class="assignment-section" *ngIf="intent === 'review'">
     <header>
       <strong>Cuenta para revisión</strong>
@@ -90,7 +108,8 @@
   <section class="assignment-section assignment-fields">
     <label>
       <span>Fecha de vencimiento <b>*</b></span>
-      <input type="date" [(ngModel)]="expirationDate">
+      <input type="date" [(ngModel)]="expirationDate" [disabled]="hasIncosisPlan">
+      <small *ngIf="hasIncosisPlan">Se recalculará desde la fecha real de instalación usando la duración contratada.</small>
     </label>
     <label>
       <span>Nombre inicial del objetivo</span>
