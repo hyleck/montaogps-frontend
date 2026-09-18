@@ -7823,10 +7823,10 @@ async initLocationMap(): Promise<void> {
 
         if (!this.hasInvalidTopFilterDateRange && (this.topFilterDateFrom || this.topFilterDateTo)) {
             const scheduledDate = this.getScheduledDateFilterKey(solicitud);
-            // Los pedidos recién recibidos desde Montao Rent todavía no tienen
-            // fecha de instalación. Deben permanecer visibles para que el
-            // equipo pueda revisarlos y programarlos.
-            if (!scheduledDate) return solicitud.status === 'recibida';
+            // El trabajo abierto sin fecha debe permanecer visible para que el
+            // equipo pueda programarlo, incluso después de moverlo de Recibidos
+            // a Pendientes. Las solicitudes cerradas siguen respetando el rango.
+            if (!scheduledDate) return !this.isSolicitudClosed(solicitud);
             if (this.topFilterDateFrom && scheduledDate < this.topFilterDateFrom) return false;
             if (this.topFilterDateTo && scheduledDate > this.topFilterDateTo) return false;
         }

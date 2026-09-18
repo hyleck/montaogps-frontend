@@ -2040,7 +2040,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(solicitudesService.create).not.toHaveBeenCalled();
     });
 
-    it('applies an inclusive scheduled-date range using the first installation fallback', () => {
+    it('applies an inclusive date range and keeps unscheduled open work visible', () => {
         const { component } = createComponent();
         component.solicitudes = [
             {
@@ -2072,6 +2072,11 @@ describe('SolicitudesComponent scheduled date editing', () => {
                 status: 'recibida',
                 order_source: 'montao_rent',
             },
+            {
+                _id: 'request-closed-unscheduled',
+                type: 'instalacion',
+                status: 'completada',
+            },
         ];
         component.topFilterDateFrom = '2026-07-10';
         component.topFilterDateTo = '2026-07-20';
@@ -2079,7 +2084,12 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(component.filteredSolicitudes.map(item => item._id)).toEqual([
             'request-from',
             'request-to',
+            'request-unscheduled',
             'request-received-unscheduled',
+        ]);
+        expect(component.pendientes.map(item => item._id)).toEqual([
+            'request-from',
+            'request-unscheduled',
         ]);
         expect(component.recibidas.map(item => item._id)).toEqual([
             'request-received-unscheduled',
