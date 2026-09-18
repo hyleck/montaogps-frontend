@@ -4118,6 +4118,7 @@ async initLocationMap(): Promise<void> {
             || installation.completed === true
             || installation.cancelled === true
             || installation.omitted === true
+            || solicitud.status === 'recibida'
             || this.isSolicitudClosed(solicitud)
             || this.isSolicitudLocked(solicitud)
         ) {

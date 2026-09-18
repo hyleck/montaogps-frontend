@@ -2762,6 +2762,68 @@ html.app-dark .sol-technician-schedule-status--error {
     border-color: color-mix(in srgb, #06b6d4 35%, var(--managementFieldsBorder));
 }
 
+.sol-kanban-card--received .sol-kanban-inst-item {
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid color-mix(in srgb, #06b6d4 28%, var(--managementFieldsBorder));
+    border-radius: 10px;
+    background: color-mix(in srgb, #06b6d4 8%, var(--managementFieldsBackground));
+    box-shadow: none;
+    color: #0e7490;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.sol-kanban-card--received .sol-kanban-inst-item:hover {
+    border-color: color-mix(in srgb, #06b6d4 52%, var(--managementFieldsBorder));
+    background: color-mix(in srgb, #06b6d4 13%, var(--managementFieldsBackground));
+    transform: translateY(-1px);
+    filter: none;
+}
+
+.sol-kanban-card--received .sol-kanban-inst-item > .pi-car {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: color-mix(in srgb, #06b6d4 14%, var(--managementFieldsBackground));
+    color: #0891b2;
+}
+
+.sol-kanban-card--received .sol-process-summary {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.sol-kanban-card--received .sol-process-name {
+    display: block;
+    overflow: hidden;
+    color: var(--managementColorTextUser);
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sol-kanban-card--received .sol-process-name small {
+    color: var(--text-color-secondary);
+    font-size: 0.68rem;
+    font-weight: 650;
+}
+
+.sol-kanban-card--received .sol-kanban-inst-item > .pi-chevron-right {
+    flex: 0 0 auto;
+    color: #0891b2;
+    font-size: 0.68rem;
+}
+
 .sol-received-order-meta {
     display: grid;
     gap: 0.45rem;

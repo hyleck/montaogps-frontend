@@ -2770,6 +2770,22 @@ describe('SolicitudesComponent scheduled date editing', () => {
         }));
     });
 
+    it('does not allow finalizing a received process from office', () => {
+        const { component, confirmationService } = createComponent();
+        component.processDetailsSolicitud = {
+            _id: 'request-received',
+            type: 'instalacion',
+            status: 'recibida',
+            installations: [{ completed: false, cancelled: false, omitted: false }],
+        };
+        component.processDetailsInstallation = component.processDetailsSolicitud.installations![0];
+
+        expect(component.canCompleteProcessFromOffice()).toBeFalse();
+
+        component.completeProcessFromOffice();
+        expect(confirmationService.confirm).not.toHaveBeenCalled();
+    });
+
     it('refreshes the process with the office completion audit returned by the server', async () => {
         const { component, solicitudesService, messageService } = createComponent();
         const pending = { completed: false, cancelled: false, omitted: false };
