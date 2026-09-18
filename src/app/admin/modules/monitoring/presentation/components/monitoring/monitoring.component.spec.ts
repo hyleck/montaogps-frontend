@@ -51,4 +51,40 @@ describe('MonitoringComponent', () => {
     expect(component.isDeviceInitialState(offline)).toBeFalse();
     expect(component.isDeviceOffline(offline)).toBeTrue();
   });
+
+  it('orders each client devices by installation date for the Excel export', () => {
+    const firstClientDevices = [
+      { _id: 'newest', name: 'Vehículo nuevo', activation_date: '2026-08-20T12:00:00.000Z' },
+      { _id: 'without-date', name: 'Vehículo sin fecha' },
+      { _id: 'oldest', name: 'Vehículo antiguo', activation_date: '2024-01-10T12:00:00.000Z' }
+    ];
+    const secondClientDevices = [
+      { _id: 'second-newest', name: 'Segundo nuevo', activation_date: '2025-12-01' },
+      { _id: 'second-oldest', name: 'Segundo antiguo', installation_date: '2025-02-01' }
+    ];
+
+    component.monitoringResult = {
+      data: [
+        { user: {} as any, route: [], devices: firstClientDevices },
+        { user: {} as any, route: [], devices: secondClientDevices }
+      ]
+    } as any;
+
+    const exportData = (component as any).getExcelMonitoringData();
+
+    expect(exportData[0].devices.map((device: any) => device._id)).toEqual([
+      'oldest',
+      'newest',
+      'without-date'
+    ]);
+    expect(exportData[1].devices.map((device: any) => device._id)).toEqual([
+      'second-oldest',
+      'second-newest'
+    ]);
+    expect(firstClientDevices.map(device => device._id)).toEqual([
+      'newest',
+      'without-date',
+      'oldest'
+    ]);
+  });
 });

@@ -2600,21 +2600,46 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
   private getExcelMonitoringData(): MonitorUserResponse['data'] {
     const data = this.filteredMonitoringData;
-    if (!this.monitoringLocationFilter.active) {
-      return data;
-    }
+    const visibleDeviceKeys = this.monitoringLocationFilter.active
+      ? new Set(this.monitoringLocationFilter.visibleDeviceKeys)
+      : null;
 
-    const visibleDeviceKeys = new Set(
-      this.monitoringLocationFilter.visibleDeviceKeys,
-    );
     return data
       .map((userData) => ({
         ...userData,
-        devices: (userData.devices || []).filter((device) =>
-          visibleDeviceKeys.has(this.getMonitoringDeviceKey(device)),
-        )
+        devices: (userData.devices || [])
+          .filter((device) =>
+            !visibleDeviceKeys ||
+            visibleDeviceKeys.has(this.getMonitoringDeviceKey(device)),
+          )
+          .slice()
+          .sort((firstDevice, secondDevice) =>
+            this.compareDevicesByInstallationDate(firstDevice, secondDevice),
+          )
       }))
-      .filter((userData) => userData.devices.length > 0);
+      .filter((userData) => !visibleDeviceKeys || userData.devices.length > 0);
+  }
+
+  private compareDevicesByInstallationDate(firstDevice: any, secondDevice: any): number {
+    const firstTimestamp = this.getInstallationTimestamp(firstDevice);
+    const secondTimestamp = this.getInstallationTimestamp(secondDevice);
+
+    if (firstTimestamp !== secondTimestamp) {
+      return firstTimestamp - secondTimestamp;
+    }
+
+    const firstLabel = String(firstDevice?.name || firstDevice?.device_imei || '');
+    const secondLabel = String(secondDevice?.name || secondDevice?.device_imei || '');
+    return firstLabel.localeCompare(secondLabel, 'es', {
+      numeric: true,
+      sensitivity: 'base'
+    });
+  }
+
+  private getInstallationTimestamp(device: any): number {
+    const installationDate = device?.activation_date || device?.installation_date;
+    const timestamp = installationDate ? new Date(installationDate).getTime() : NaN;
+    return Number.isNaN(timestamp) ? Number.POSITIVE_INFINITY : timestamp;
   }
 
   private getMonitoringDeviceKey(device: any): string {
@@ -2928,7 +2953,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
           col5: this.getProtocolName(device.type) || '',
           col6: device.status ? 'Activo' : 'Inactivo',
           col7: this.getConnectionDisplay(device),
-          col8: this.formatActivationDate(device.activation_date) || '',
+          col8: this.formatActivationDate(device.activation_date || device.installation_date) || '',
           col9: this.formatExpirationDate(device.expiration_date) || '',
         };
         if (includeSimCardColumn) dataRowData.col10 = device.sim_card_number || '';
