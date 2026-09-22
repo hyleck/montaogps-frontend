@@ -105,4 +105,60 @@ describe('ManagementTutorialComponent', () => {
     expect(component.error()).toContain('No pudimos cargar el video');
     http.verify();
   });
+
+  it('reintenta con un enlace nuevo cuando la descarga del video falla', async () => {
+    const { component, http } = create({ affiliation: 'cliente', privileges: all(['devices', 'users']) });
+    const [guia] = component.list();
+    const url = `${environment.apiUrl}/tutorials/${guia.id}/playback`;
+    component.watch(guia);
+    http.expectOne(url).flush({ playbackUrl: 'https://files.montao.net/1.mp4' });
+    await new Promise((resolve) => setTimeout(resolve));
+
+    // Primer fallo del <video>: no se avisa al usuario, se pide otro enlace.
+    component.mediaError();
+    expect(component.error()).toBe('');
+    expect(component.loading()).toBeTrue();
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    http.expectOne(url).flush({ playbackUrl: 'https://files.montao.net/2.mp4' });
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(component.source()).toBe('https://files.montao.net/2.mp4');
+
+    // Segundo reintento y, al tercer fallo, ya se muestra el aviso.
+    component.mediaError();
+    await new Promise((resolve) => setTimeout(resolve, 1600));
+    http.expectOne(url).flush({ playbackUrl: 'https://files.montao.net/3.mp4' });
+    await new Promise((resolve) => setTimeout(resolve));
+    component.mediaError();
+    expect(component.error()).toContain('La reproducción se interrumpió');
+    expect(component.source()).toBe('');
+    http.verify();
+  });
+
+  it('vuelve a contar los reintentos cuando el usuario pulsa «Volver a cargar»', async () => {
+    const { component, http } = create({ affiliation: 'cliente', privileges: all(['devices', 'users']) });
+    const [guia] = component.list();
+    const url = `${environment.apiUrl}/tutorials/${guia.id}/playback`;
+    component.watch(guia);
+    http.expectOne(url).flush({ playbackUrl: 'https://files.montao.net/1.mp4' });
+    await new Promise((resolve) => setTimeout(resolve));
+    for (let intento = 0; intento < 2; intento++) {
+      component.mediaError();
+      await new Promise((resolve) => setTimeout(resolve, 900 * (intento + 1)));
+      http.expectOne(url).flush({ playbackUrl: 'https://files.montao.net/1.mp4' });
+      await new Promise((resolve) => setTimeout(resolve));
+    }
+    component.mediaError();
+    expect(component.error()).toContain('La reproducción se interrumpió');
+
+    void component.load();
+    http.expectOne(url).flush({ playbackUrl: 'https://files.montao.net/4.mp4' });
+    await new Promise((resolve) => setTimeout(resolve));
+    component.mediaError();
+    expect(component.error()).toBe('');
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    http.expectOne(url).flush({ playbackUrl: 'https://files.montao.net/5.mp4' });
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(component.source()).toBe('https://files.montao.net/5.mp4');
+    http.verify();
+  });
 });

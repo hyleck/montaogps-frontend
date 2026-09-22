@@ -87,6 +87,13 @@ export class ManagementTutorialComponent implements OnDestroy {
   private opener: HTMLElement | null = null;
   // Cada video que se abre invalida las respuestas tardías del anterior.
   private requestId = 0;
+  /**
+   * Montao Cloud puede responder 503 a una descarga puntual del video. En vez de dejar al
+   * usuario con el error, se reintenta solo con un enlace nuevo antes de mostrar el aviso.
+   */
+  private static readonly MAX_RETRIES = 2;
+  private retries = 0;
+  private retryTimer?: ReturnType<typeof setTimeout>;
 
   open(event?: Event): void {
     this.opener = (event?.currentTarget as HTMLElement | null) ?? null;
@@ -103,9 +110,10 @@ export class ManagementTutorialComponent implements OnDestroy {
     void this.load();
   }
 
-  async load(): Promise<void> {
+  async load(auto = false): Promise<void> {
     const tutorial = this.selected();
     if (!tutorial) return;
+    if (!auto) this.retries = 0;
     const request = ++this.requestId;
     this.stop();
     this.loading.set(true);
@@ -157,6 +165,13 @@ export class ManagementTutorialComponent implements OnDestroy {
 
   mediaError(): void {
     this.source.set('');
+    if (this.retries < ManagementTutorialComponent.MAX_RETRIES) {
+      this.retries++;
+      this.error.set('');
+      this.loading.set(true);
+      this.retryTimer = setTimeout(() => void this.load(true), 700 * this.retries);
+      return;
+    }
     this.error.set('La reproducción se interrumpió. Vuelve a cargar el video para continuar.');
   }
 
@@ -177,6 +192,8 @@ export class ManagementTutorialComponent implements OnDestroy {
   }
 
   private stop(): void {
+    clearTimeout(this.retryTimer);
+    this.retryTimer = undefined;
     const video = this.player?.nativeElement;
     if (video) {
       video.pause();
