@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+import { NgModule, inject, provideAppInitializer } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -17,6 +17,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { RouteReuseStrategy } from '@angular/router';
 import { AppRouteReuseStrategy } from './core/services/app-route-reuse.strategy';
 import { DeviceLabelConfirmationService, DeviceLabelMessageService } from './shareds/services/device-label-messages.service';
+import { PrimeNgLocaleService } from './core/services/primeng-locale.service';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './i18n/', '.json');
@@ -50,7 +51,8 @@ export function HttpLoaderFactory(http: HttpClient) {
     }),
     { provide: ConfirmationService, useClass: DeviceLabelConfirmationService },
     { provide: MessageService, useClass: DeviceLabelMessageService },
-    { provide: RouteReuseStrategy, useClass: AppRouteReuseStrategy }
+    { provide: RouteReuseStrategy, useClass: AppRouteReuseStrategy },
+    provideAppInitializer(() => inject(PrimeNgLocaleService).start())
   ],
   bootstrap: [AppComponent]
 })

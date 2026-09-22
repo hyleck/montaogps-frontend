@@ -5655,3 +5655,17 @@ html.app-dark .management__transfer-user-found-content strong {
         grid-template-columns: 1fr;
     }
 }
+
+/* «¿Qué hacer?»: a la derecha, junto al botón del mapa. La columna de controles mide 70px, así que el
+   botón se coloca a su izquierda sin cambiar la cuadrícula de Gestión. */
+.management__controls {
+  position: relative;
+}
+
+.management__controls app-management-tutorial {
+  position: absolute;
+  right: calc(100% + 10px);
+  top: 50%;
+  /* Sin transform: crearía un contexto que atraparía el visor a pantalla completa (position: fixed). */
+  margin-top: -13px;
+}

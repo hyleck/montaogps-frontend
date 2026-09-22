@@ -11,6 +11,7 @@ import { InventoryPackageDevicesComponent } from './components/inventory-package
 import { InventoryDeviceAssignmentDialogComponent } from './components/inventory-device-assignment-dialog/inventory-device-assignment-dialog.component';
 import { InventoryLotsComponent } from './components/inventory-lots/inventory-lots.component';
 import { InventorySimcardSelectorComponent } from './components/inventory-simcard-selector/inventory-simcard-selector.component';
+import { ManagementTutorialComponent } from '../../management/presentation/components/management-tutorial/management-tutorial.component';
 
 @NgModule({
   declarations: [
@@ -20,7 +21,7 @@ import { InventorySimcardSelectorComponent } from './components/inventory-simcar
   ],
   imports: [
     DeviceLabelInputDirective,
-    DeviceLabelPipe, CommonModule, FormsModule, TranslateModule, PrimengModule, InventoryRoutingModule, InventoryLotsComponent, InventorySimcardSelectorComponent
+    DeviceLabelPipe, CommonModule, FormsModule, TranslateModule, PrimengModule, InventoryRoutingModule, InventoryLotsComponent, InventorySimcardSelectorComponent, ManagementTutorialComponent
   ],
 })
 export class InventoryModule {}

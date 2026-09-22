@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { SMOKE_IMPORTS, SMOKE_PROVIDERS } from 'src/testing/component-smoke.testing';
 
 import { CloudComponent } from './cloud.component';
 
@@ -8,7 +9,8 @@ describe('CloudComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [CloudComponent]
+      imports: [CloudComponent, ...SMOKE_IMPORTS],
+      providers: SMOKE_PROVIDERS,
     })
     .compileComponents();
 

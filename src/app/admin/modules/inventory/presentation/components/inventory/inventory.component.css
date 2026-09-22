@@ -5989,3 +5989,11 @@ html.app-dark .conduce-origin-dropdown-panel .p-dropdown-item.p-highlight {
 .deleted-package-row > div { min-width: 0; overflow-wrap: anywhere; }
 .deleted-package-row small { display: block; margin-top: .3rem; }
 .deleted-package-row button { flex-shrink: 0; }
+
+/* «¿Qué hacer?»: a la derecha de la ruta del módulo. */
+.inventory-route {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}

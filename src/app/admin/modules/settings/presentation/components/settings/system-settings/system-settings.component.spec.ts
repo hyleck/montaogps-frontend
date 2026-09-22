@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { SMOKE_IMPORTS, SMOKE_PROVIDERS, SMOKE_SCHEMAS } from '../../../../../../../../testing/component-smoke.testing';
 
 import { SystemSettingsComponent } from './system-settings.component';
 
@@ -8,7 +9,10 @@ describe('SystemSettingsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [SystemSettingsComponent]
+      declarations: [SystemSettingsComponent],
+      imports: SMOKE_IMPORTS,
+      providers: SMOKE_PROVIDERS,
+      schemas: SMOKE_SCHEMAS,
     })
     .compileComponents();
 

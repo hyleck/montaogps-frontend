@@ -139,11 +139,12 @@ describe('Inventory command bar responsive layout', () => {
       spyOn(component, 'openWarehouses'),
       spyOn(component, 'openUnregisteredSimAlerts'),
       spyOn(component, 'openConducesList'),
+      spyOn(component, 'openDeletedPackages'),
       spyOn(component, 'openNewPackage'),
     ];
     host.style.width = '390px';
     const buttons = Array.from(bar.querySelectorAll<HTMLButtonElement>('.inventory-actions button'));
-    expect(buttons.length).toBe(5);
+    expect(buttons.length).toBe(6);
     expect(buttons[1].querySelector('b')?.textContent).toBe('11');
     expect(buttons[2].querySelector('b')?.textContent).toBe('123');
     buttons.forEach((button, index) => {

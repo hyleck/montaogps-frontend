@@ -1,3 +1,4 @@
+import { INVENTORY_TUTORIALS } from '../../../../management/presentation/components/management-tutorial/management-tutorial.data';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import { DeviceLabelMessageService, DeviceLabelConfirmationService } from 'src/app/shareds/services/device-label-messages.service';
 import {
@@ -30,6 +31,8 @@ import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util'
   standalone: false,
 })
 export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
+  /** Instructivos de «¿Qué hacer?» de Inventario (filtrados por privilegios en el visor). */
+  readonly inventoryTutorials = INVENTORY_TUTORIALS;
   @ViewChild('imeiInput') imeiInput!: ElementRef;
   @ViewChild('accessoryDialog') accessoryDialog?: ElementRef<HTMLDialogElement>;
 

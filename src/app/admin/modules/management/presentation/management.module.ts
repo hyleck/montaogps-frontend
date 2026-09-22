@@ -14,6 +14,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { ManagementService } from './services/management.service';
 import { ScreenService } from './services/screen.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { ManagementTutorialComponent } from './components/management-tutorial/management-tutorial.component';
 
 @NgModule({
   declarations: [
@@ -28,7 +29,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     MapsModule,
     TargetFormModule,
     UserFormModule,
-    TranslateModule
+    TranslateModule,
+    ManagementTutorialComponent
   ],
   providers: [
     ManagementService,

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { SMOKE_IMPORTS, SMOKE_PROVIDERS, SMOKE_SCHEMAS } from '../../../../../../../testing/component-smoke.testing';
 
 import { FollowUpComponent } from './follow-up.component';
 
@@ -8,7 +9,10 @@ describe('FollowUpComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [FollowUpComponent]
+      declarations: [FollowUpComponent],
+      imports: SMOKE_IMPORTS,
+      providers: SMOKE_PROVIDERS,
+      schemas: SMOKE_SCHEMAS,
     })
     .compileComponents();
 

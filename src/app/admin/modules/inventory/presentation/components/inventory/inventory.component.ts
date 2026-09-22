@@ -1,3 +1,4 @@
+import { INVENTORY_TUTORIALS } from '../../../../management/presentation/components/management-tutorial/management-tutorial.data';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import { DeviceLabelMessageService, DeviceLabelConfirmationService } from 'src/app/shareds/services/device-label-messages.service';
 import { Component, OnDestroy, OnInit, ViewEncapsulation, ViewChild, ElementRef } from '@angular/core';
@@ -54,6 +55,8 @@ type ShippingLabelSocialIcons = Record<ShippingLabelSocialNetwork, HTMLImageElem
   encapsulation: ViewEncapsulation.None
 })
 export class InventoryComponent implements OnInit, OnDestroy {
+  /** Instructivos de «¿Qué hacer?» de Inventario (filtrados por privilegios en el visor). */
+  readonly inventoryTutorials = INVENTORY_TUTORIALS;
   readonly isIncosisPackage = isIncosisPackage;
   items: MenuItem[] = [{ label: 'Inventario' }];
   home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };

@@ -43,7 +43,9 @@
     "parked": "Stationné",
     "loading": "Chargement",
     "canceled": "Annulé",
-    "close": "Fermer"
+    "close": "Fermer",
+    "yes": "Oui",
+    "no": "Non"
   },
   "breadcrumb": {
     "dashboard": {

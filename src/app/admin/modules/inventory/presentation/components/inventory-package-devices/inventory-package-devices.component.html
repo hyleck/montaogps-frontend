@@ -1,5 +1,6 @@
-<div class="management__route">
+<div class="management__route inventory-route">
   <p-breadcrumb [model]="items" [home]="home" />
+  <app-management-tutorial *ngIf="canReadInventory()" module="Inventario" [tutorials]="inventoryTutorials"></app-management-tutorial>
 </div>
 
 <div *ngIf="!canReadInventory()" class="no-permissions-container">

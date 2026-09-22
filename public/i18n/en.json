@@ -42,6 +42,8 @@
     "loading": "Loading",
     "canceled": "Canceled",
     "close": "Close",
+    "yes": "Yes",
+    "no": "No",
     "viewDetails": "View details"
   },
   "breadcrumb": {

@@ -1,0 +1,108 @@
+<button type="button" class="tutorial-open" (click)="open($event)">
+  <i class="pi pi-play-circle" aria-hidden="true"></i> ¿Qué hacer?
+</button>
+@if (visible()) {
+  <div class="tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+    <header class="tutorial-header">
+      <h2>¿Qué hacer? · {{ module }}</h2>
+      <button #closeButton type="button" class="tutorial-close" aria-label="Cerrar instructivo" (click)="close()">
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </header>
+    @if (selected(); as tutorial) {
+      <div class="tutorial-layout">
+        <div class="tutorial-video-column">
+          @if (list().length > 1) {
+            <button type="button" class="tutorial-back" (click)="back()">
+              <i class="pi pi-arrow-left" aria-hidden="true"></i> Todos los instructivos
+            </button>
+          }
+          <div class="tutorial-stage" [attr.aria-busy]="loading()">
+            @if (loading()) {
+              <p role="status"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Cargando video…</p>
+            }
+            @if (error()) {
+              <div class="tutorial-error" role="alert">
+                <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+                <p>{{ error() }}</p>
+                <button type="button" (click)="load()">Volver a cargar</button>
+              </div>
+            }
+            @if (source()) {
+              <video #player [src]="source()" [poster]="tutorial.poster" controls playsinline preload="metadata"
+                (error)="mediaError()" [attr.aria-label]="tutorial.title">
+                <track kind="captions" [src]="tutorial.captions" srclang="es" label="Español" />
+                Tu navegador no admite videos HTML5.
+              </video>
+            }
+          </div>
+          <div class="tutorial-meta">
+            <span><i class="pi pi-volume-up" aria-hidden="true"></i> Voz en español · {{ tutorial.duration }}</span>
+            <span><i class="pi pi-cloud" aria-hidden="true"></i> Montao Cloud</span>
+          </div>
+        </div>
+        <aside class="tutorial-guide" aria-label="Guía del video">
+          <span class="tutorial-eyebrow">{{ tutorial.category.toUpperCase() }}</span>
+          <h3 id="tutorial-title">{{ tutorial.title }}</h3>
+          <p>{{ tutorial.description }}</p>
+          <section>
+            <h4>Pasos de esta guía</h4>
+            <ol>
+              @for (step of tutorial.steps; track $index) {
+                <li>{{ step }}</li>
+              }
+            </ol>
+          </section>
+        </aside>
+      </div>
+    } @else {
+      <div class="tutorial-catalog">
+        <div class="tutorial-intro">
+          <span class="tutorial-intro-icon"><i class="pi pi-play-circle" aria-hidden="true"></i></span>
+          <div>
+            <span class="tutorial-eyebrow">APRENDE PASO A PASO</span>
+            <h3 id="tutorial-title">¿Qué quieres hacer en {{ module }}?</h3>
+            <p>Elige una tarea y sigue el video con voz y ejemplos en pantalla.</p>
+          </div>
+        </div>
+        <div class="tutorial-search">
+          <i class="pi pi-search" aria-hidden="true"></i>
+          <input #search type="search" aria-label="Buscar instructivos" placeholder="Buscar una tarea…"
+            [value]="query()" (input)="query.set(search.value)" />
+        </div>
+        <div class="tutorial-categories" aria-label="Categorías">
+          @for (item of categories(); track item) {
+            <button type="button" [class.active]="category() === item" [attr.aria-pressed]="category() === item"
+              (click)="category.set(item)">{{ item }}</button>
+          }
+        </div>
+        <p class="tutorial-count" role="status">
+          {{ filtered().length }} {{ filtered().length === 1 ? 'instructivo' : 'instructivos' }}
+        </p>
+        <div class="tutorial-grid">
+          @for (tutorial of filtered(); track tutorial.id) {
+            <button type="button" class="tutorial-card" (click)="watch(tutorial)" [attr.aria-label]="'Ver video: ' + tutorial.title">
+              <span class="tutorial-card-icon"><i [class]="'pi ' + tutorial.icon" aria-hidden="true"></i></span>
+              <span class="tutorial-card-copy">
+                <span class="tutorial-card-category">{{ tutorial.category }}</span>
+                <strong>{{ tutorial.title }}</strong>
+                <span class="tutorial-card-description">{{ tutorial.description }}</span>
+                <span class="tutorial-card-duration">
+                  <i class="pi pi-play-circle" aria-hidden="true"></i> Ver video · {{ tutorial.duration }}
+                </span>
+              </span>
+              <i class="pi pi-angle-right tutorial-card-arrow" aria-hidden="true"></i>
+            </button>
+          } @empty {
+            <div class="tutorial-empty">
+              <i class="pi pi-search" aria-hidden="true"></i>
+              <h4>No encontramos esa guía</h4>
+              <p>Prueba con otra palabra o elige una categoría.</p>
+              <button type="button" (click)="resetSearch()">Ver todos los instructivos</button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+}

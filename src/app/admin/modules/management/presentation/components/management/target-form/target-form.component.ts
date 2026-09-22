@@ -4,7 +4,6 @@ import { MessageService } from 'primeng/api';
 import { Subject, takeUntil, interval, Subscription } from 'rxjs';
 import { LangService } from '../../../../../../../shareds/services/langi18/lang.service';
 import {
-    TARGET_FORM_STYLES,
     TARGET_FORM_TRANSLATIONS,
     FALLBACK_GPS_MODELS,
     FIELDS_TO_PRESERVE,
@@ -66,7 +65,17 @@ interface PendingInstallationEvidence {
 @Component({
     selector: 'app-target-form',
     templateUrl: './target-form.component.html',
-    styleUrls: TARGET_FORM_STYLES,
+    // Lista literal: el compilador JIT de las pruebas no resuelve styleUrls desde una constante importada.
+    styleUrls: [
+        './styles/base.css',
+        './styles/inputs.css',
+        './styles/buttons.css',
+        './styles/prime-ng.css',
+        './styles/settings.css',
+        './styles/scrollbar.css',
+        './styles/records.css',
+        './styles/dark-mode.css'
+    ],
     standalone: false,
     animations: [
         trigger('slideInOut', [
