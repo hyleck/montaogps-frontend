@@ -95,6 +95,7 @@ button:focus-visible {
   container-type: inline-size;
 }
 .tutorial-stage {
+  position: relative;
   width: 100%;
   height: min(56.25cqw, calc(100dvh - 190px));
   background: #111316;
@@ -109,6 +110,55 @@ button:focus-visible {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+/* Barra de controles propia, siempre visible: la nativa se oculta sola durante la reproducción. */
+.tutorial-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.35) 70%, transparent);
+  color: #fff;
+}
+:host .tutorial-controls button {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+:host .tutorial-controls button:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+:host .tutorial-controls button.is-off {
+  opacity: 0.55;
+}
+.tutorial-seek {
+  flex: 1;
+  min-width: 60px;
+  height: 4px;
+  accent-color: var(--red, #e4002b);
+  cursor: pointer;
+}
+.tutorial-time {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tutorial-stage:fullscreen video {
+  height: 100%;
 }
 .tutorial-stage > p {
   display: flex;

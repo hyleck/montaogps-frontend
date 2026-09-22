@@ -161,4 +161,76 @@ describe('ManagementTutorialComponent', () => {
     expect(component.source()).toBe('https://files.montao.net/5.mp4');
     http.verify();
   });
+
+  describe('controles del reproductor', () => {
+    function conVideo() {
+      const { component } = create({ affiliation: 'cliente', privileges: all(['devices', 'users']) });
+      const track = { mode: 'disabled' };
+      const video: any = {
+        paused: true,
+        muted: false,
+        currentTime: 0,
+        duration: 66.9,
+        textTracks: [track],
+        play: jasmine.createSpy('play').and.callFake(() => {
+          video.paused = false;
+          return Promise.resolve();
+        }),
+        pause: jasmine.createSpy('pause').and.callFake(() => {
+          video.paused = true;
+        }),
+        // Lo que usa stop() al cerrar el visor.
+        removeAttribute: () => undefined,
+        load: () => undefined,
+      };
+      component.player = { nativeElement: video as HTMLVideoElement } as never;
+      return { component, video, track };
+    }
+
+    it('reproduce y pausa con el mismo botón', () => {
+      const { component, video } = conVideo();
+      component.togglePlay();
+      expect(video.play).toHaveBeenCalled();
+      component.togglePlay();
+      expect(video.pause).toHaveBeenCalled();
+    });
+
+    it('adelanta y retrocede sin salirse del video', () => {
+      const { component, video } = conVideo();
+      component.onLoaded();
+      expect(component.duration()).toBe(66.9);
+      component.skip(10);
+      expect(video.currentTime).toBe(10);
+      component.skip(-30);
+      expect(video.currentTime).toBe(0);
+      component.skip(600);
+      expect(video.currentTime).toBe(66.9);
+    });
+
+    it('mueve el video con la barra de avance', () => {
+      const { component, video } = conVideo();
+      component.seek({ target: { value: '12.5' } } as unknown as Event);
+      expect(video.currentTime).toBe(12.5);
+      expect(component.current()).toBe(12.5);
+    });
+
+    it('silencia y enciende los subtítulos', () => {
+      const { component, video, track } = conVideo();
+      component.toggleMute();
+      expect(video.muted).toBeTrue();
+      expect(component.muted()).toBeTrue();
+      component.toggleCaptions();
+      expect(track.mode).toBe('hidden');
+      expect(component.captions()).toBeFalse();
+      component.toggleCaptions();
+      expect(track.mode).toBe('showing');
+    });
+
+    it('muestra el tiempo en minutos y segundos', () => {
+      const { component } = conVideo();
+      expect(component.clock(0)).toBe('0:00');
+      expect(component.clock(9.7)).toBe('0:09');
+      expect(component.clock(67)).toBe('1:07');
+    });
+  });
 });

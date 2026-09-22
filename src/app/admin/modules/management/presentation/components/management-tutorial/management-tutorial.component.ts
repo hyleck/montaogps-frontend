@@ -59,6 +59,12 @@ export class ManagementTutorialComponent implements OnDestroy {
   readonly source = signal('');
   readonly loading = signal(false);
   readonly error = signal('');
+  /** Estado del reproductor propio: los controles nativos se ocultan solos al reproducir. */
+  readonly playing = signal(false);
+  readonly current = signal(0);
+  readonly duration = signal(0);
+  readonly muted = signal(false);
+  readonly captions = signal(true);
   readonly categories = computed(() => [
     'Todas',
     ...new Set(this.list().map((tutorial) => tutorial.category)),
@@ -81,6 +87,7 @@ export class ManagementTutorialComponent implements OnDestroy {
     );
   });
   @ViewChild('player') player?: ElementRef<HTMLVideoElement>;
+  @ViewChild('stage') stage?: ElementRef<HTMLElement>;
   @ViewChild('closeButton') set closeButton(ref: ElementRef<HTMLButtonElement> | undefined) {
     ref?.nativeElement.focus({ preventScroll: true });
   }
@@ -163,6 +170,77 @@ export class ManagementTutorialComponent implements OnDestroy {
     this.category.set('Todas');
   }
 
+  /** Reproduce o pausa el video. */
+  togglePlay(): void {
+    const video = this.player?.nativeElement;
+    if (!video) return;
+    if (video.paused) void video.play().catch(() => undefined);
+    else video.pause();
+  }
+
+  /** Adelanta o retrocede los segundos indicados. */
+  skip(seconds: number): void {
+    const video = this.player?.nativeElement;
+    if (!video) return;
+    const limit = Number.isFinite(video.duration) ? video.duration : this.duration();
+    video.currentTime = Math.min(Math.max(video.currentTime + seconds, 0), limit || 0);
+    this.current.set(video.currentTime);
+  }
+
+  seek(event: Event): void {
+    const video = this.player?.nativeElement;
+    const value = Number((event.target as HTMLInputElement).value);
+    if (!video || !Number.isFinite(value)) return;
+    video.currentTime = value;
+    this.current.set(value);
+  }
+
+  toggleMute(): void {
+    const video = this.player?.nativeElement;
+    if (!video) return;
+    video.muted = !video.muted;
+    this.muted.set(video.muted);
+  }
+
+  /** Muestra u oculta los subtítulos en español del instructivo. */
+  toggleCaptions(): void {
+    const video = this.player?.nativeElement;
+    const track = video?.textTracks?.[0];
+    const on = !this.captions();
+    if (track) track.mode = on ? 'showing' : 'hidden';
+    this.captions.set(on);
+  }
+
+  toggleFullscreen(): void {
+    const stage = this.stage?.nativeElement;
+    if (!stage) return;
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+    else void stage.requestFullscreen?.().catch(() => undefined);
+  }
+
+  onLoaded(): void {
+    const video = this.player?.nativeElement;
+    if (!video) return;
+    this.duration.set(Number.isFinite(video.duration) ? video.duration : 0);
+    this.muted.set(video.muted);
+    const track = video.textTracks?.[0];
+    if (track) track.mode = this.captions() ? 'showing' : 'hidden';
+  }
+
+  onTime(): void {
+    this.current.set(this.player?.nativeElement.currentTime ?? 0);
+  }
+
+  onVolume(): void {
+    this.muted.set(this.player?.nativeElement.muted ?? false);
+  }
+
+  /** Segundos como m:ss para el contador de los controles. */
+  clock(seconds: number): string {
+    const total = Math.max(0, Math.floor(seconds || 0));
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+  }
+
   mediaError(): void {
     this.source.set('');
     if (this.retries < ManagementTutorialComponent.MAX_RETRIES) {
@@ -200,6 +278,9 @@ export class ManagementTutorialComponent implements OnDestroy {
       video.removeAttribute('src');
       video.load();
     }
+    this.playing.set(false);
+    this.current.set(0);
+    this.duration.set(0);
     this.source.set('');
   }
 }

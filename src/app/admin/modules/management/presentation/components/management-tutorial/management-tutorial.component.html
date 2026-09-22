@@ -17,7 +17,7 @@
               <i class="pi pi-arrow-left" aria-hidden="true"></i> Todos los instructivos
             </button>
           }
-          <div class="tutorial-stage" [attr.aria-busy]="loading()">
+          <div class="tutorial-stage" #stage [attr.aria-busy]="loading()">
             @if (loading()) {
               <p role="status"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Cargando video…</p>
             }
@@ -29,11 +29,36 @@
               </div>
             }
             @if (source()) {
-              <video #player [src]="source()" [poster]="tutorial.poster" controls playsinline preload="metadata"
-                (error)="mediaError()" [attr.aria-label]="tutorial.title">
-                <track kind="captions" [src]="tutorial.captions" srclang="es" label="Español" />
+              <video #player [src]="source()" [poster]="tutorial.poster" playsinline preload="metadata"
+                (error)="mediaError()" (click)="togglePlay()" (loadedmetadata)="onLoaded()" (timeupdate)="onTime()"
+                (play)="playing.set(true)" (pause)="playing.set(false)" (ended)="playing.set(false)"
+                (volumechange)="onVolume()" [attr.aria-label]="tutorial.title">
+                <track kind="captions" [src]="tutorial.captions" srclang="es" label="Español" default />
                 Tu navegador no admite videos HTML5.
               </video>
+              <!-- Controles propios: los nativos de Chrome se ocultan solos mientras el video corre. -->
+              <div class="tutorial-controls">
+                <button type="button" (click)="togglePlay()" [attr.aria-label]="playing() ? 'Pausar' : 'Reproducir'">
+                  <i class="pi" [class.pi-pause]="playing()" [class.pi-play]="!playing()" aria-hidden="true"></i>
+                </button>
+                <button type="button" (click)="skip(-10)" aria-label="Retroceder 10 segundos">
+                  <i class="pi pi-backward" aria-hidden="true"></i>
+                </button>
+                <button type="button" (click)="skip(10)" aria-label="Adelantar 10 segundos">
+                  <i class="pi pi-forward" aria-hidden="true"></i>
+                </button>
+                <input type="range" class="tutorial-seek" min="0" [max]="duration() || 0" step="0.1"
+                  [value]="current()" (input)="seek($event)" aria-label="Avance del video" />
+                <span class="tutorial-time">{{ clock(current()) }} / {{ clock(duration()) }}</span>
+                <button type="button" (click)="toggleCaptions()" [class.is-off]="!captions()"
+                  [attr.aria-pressed]="captions()" aria-label="Subtítulos">CC</button>
+                <button type="button" (click)="toggleMute()" [attr.aria-label]="muted() ? 'Activar sonido' : 'Silenciar'">
+                  <i class="pi" [class.pi-volume-off]="muted()" [class.pi-volume-up]="!muted()" aria-hidden="true"></i>
+                </button>
+                <button type="button" (click)="toggleFullscreen()" aria-label="Pantalla completa">
+                  <i class="pi pi-window-maximize" aria-hidden="true"></i>
+                </button>
+              </div>
             }
           </div>
           <div class="tutorial-meta">
