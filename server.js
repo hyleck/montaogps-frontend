@@ -107,7 +107,8 @@ app.use((req, res, next) => {
     "font-src 'self' https://fonts.gstatic.com; " +
     "img-src 'self' data: https: blob:; " +
     "connect-src 'self' https: wss: blob:; " +
-    "media-src 'self' blob: https://tracker-back.dorhu.com; " +
+    // Los instructivos en video se sirven desde Montao Cloud (DigitalOcean Spaces).
+    "media-src 'self' blob: https://tracker-back.dorhu.com https://backend-mail.montao.net https://*.digitaloceanspaces.com; " +
     "frame-src 'self' https:; " +
     "worker-src 'self' blob:;"
   );
