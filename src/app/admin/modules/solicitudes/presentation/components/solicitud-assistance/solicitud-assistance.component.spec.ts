@@ -49,6 +49,26 @@ describe('SolicitudAssistanceComponent', () => {
     return component;
   }
 
+  it('shows a device selected in a saved installation draft before configuration finishes', () => {
+    const component = createComponent({
+      _id: 'draft-request',
+      type: 'instalacion',
+      status: 'en_progreso',
+      installations: [{
+        device_type: 'mtag_a',
+        draft: { data: { device_imei: '000008826030041' } },
+      }],
+    });
+
+    expect(component.activeImei).toBe('000008826030041');
+    expect(component.getProcessStatus(component.installation!).state).toBe('in_progress');
+    expect(component.actions.find(action => action.id === 'device')?.state).toBe('done');
+    component.currentDevice = { name: 'Vehículo de la solicitud anterior' };
+    expect(component.actions.find(action => action.id === 'details')?.state).toBe('in_progress');
+    (component as any).mergeCurrentDeviceVehicleData();
+    expect(component.detailsForm['target_name']).toBeUndefined();
+  });
+
   it('shows the recovery actions saved by GPS Mobile for a checkup', () => {
     const component = createComponent({
       _id: 'checkup-request',
