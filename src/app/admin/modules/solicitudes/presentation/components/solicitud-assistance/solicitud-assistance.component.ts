@@ -216,17 +216,22 @@ export class SolicitudAssistanceComponent implements OnChanges, OnDestroy {
     const installation = this.installation;
     if (!installation) return '';
     if (this.processType === 'cambio') {
-      return String(installation.new_device_imei || installation.device_imei || '').trim();
+      return String(installation.new_device_imei || installation.draft?.data?.device_imei || installation.device_imei || '').trim();
     }
     if (this.processType === 'chequeo') {
       return String(
         installation.checkup_recovery?.replacement_device_imei
         || installation.new_device_imei
+        || installation.draft?.data?.device_imei
         || installation.device_imei
         || '',
       ).trim();
     }
-    return String(installation.device_imei || '').trim();
+    return String(installation.device_imei || installation.draft?.data?.device_imei || '').trim();
+  }
+
+  private get hasLinkedDevice(): boolean {
+    return Boolean(this.installation?.registered_device_id || this.installation?.completed);
   }
 
   get currentDeviceStatus(): string {
@@ -465,6 +470,7 @@ export class SolicitudAssistanceComponent implements OnChanges, OnDestroy {
     if (installation.completed) return { label: 'Realizado', state: 'done' };
     const hasProgress = Boolean(
       installation.device_imei
+      || installation.draft?.data?.device_imei
       || installation.new_device_imei
       || installation.diagnosis
       || installation.installation_evidence?.length,
@@ -997,13 +1003,13 @@ export class SolicitudAssistanceComponent implements OnChanges, OnDestroy {
     const isChange = this.processType === 'cambio';
     const deviceSelected = Boolean(this.activeImei);
     const dataDone = isMtagP
-      ? Boolean(installation.target_name || this.currentDevice?.name)
+      ? Boolean(installation.target_name || (this.hasLinkedDevice && this.currentDevice?.name))
       : Boolean(
         installation.target_name
         || installation.plate
         || installation.chassis
         || installation.brand
-        || this.currentDevice?.name,
+        || (this.hasLinkedDevice && this.currentDevice?.name),
       );
     const beforeEvidence = this.evidenceDetails([
       ['chasis_img', 'Foto del chasis'],
@@ -1279,7 +1285,7 @@ export class SolicitudAssistanceComponent implements OnChanges, OnDestroy {
   hasEvidence(field: string): boolean {
     const processEvidence = this.installation?.installation_evidence || [];
     if (processEvidence.some(item => item.field === field && Boolean(item.url))) return true;
-    const deviceValue = this.currentDevice?.[field];
+    const deviceValue = this.hasLinkedDevice ? this.currentDevice?.[field] : null;
     return typeof deviceValue === 'string' ? Boolean(deviceValue) : Boolean(deviceValue?.url);
   }
 
@@ -1514,7 +1520,7 @@ export class SolicitudAssistanceComponent implements OnChanges, OnDestroy {
   }
 
   private mergeCurrentDeviceVehicleData(): void {
-    if (!this.currentDevice) return;
+    if (!this.currentDevice || !this.hasLinkedDevice) return;
     const deviceValues: Record<string, any> = {
       target_name: this.currentDevice.name,
       brand: this.currentDevice.target_brand_id,
