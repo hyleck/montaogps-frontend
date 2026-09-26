@@ -18,6 +18,18 @@
                 {{ totalInternalUnreadCount > 99 ? '99+' : totalInternalUnreadCount }}
             </span>
         </button>
+        <button class="comm-tabs__btn"
+            [class.comm-tabs__btn--active]="activeTab === 'tecnicos'"
+            type="button"
+            (click)="navigateToTab('tecnicos')">
+            <i class="pi pi-wrench"></i>
+            Técnicos
+            <span *ngIf="technicianUnreadCount > 0"
+                class="comm-tabs__unread-badge"
+                aria-label="Mensajes nuevos de los técnicos">
+                {{ technicianUnreadCount > 99 ? '99+' : technicianUnreadCount }}
+            </span>
+        </button>
     </div>
 
     <!-- No Inbox State -->
@@ -1111,16 +1123,16 @@
     </div>
 
     <!-- ====== EQUIPO: GRUPOS INTERNOS COMPARTIDOS CON GPS-MOBILE ====== -->
-    <div *ngIf="activeTab === 'grupo' && !noInbox" class="comm-chat-row comm-groups-layout">
+    <div *ngIf="isInternalChatTab && !noInbox" class="comm-chat-row comm-groups-layout">
         <aside class="comm-sidebar comm-groups-sidebar"
             [class.comm-sidebar--hidden]="internalGroupChatOpen">
             <div class="comm-sidebar__header">
-                <h2>Equipo</h2>
+                <h2>{{ internalGroupsTitle }}</h2>
                 <button type="button"
                     class="comm-group-list-refresh"
                     [disabled]="loadingInternalGroups || loadingConversations"
-                    title="Actualizar grupos del equipo"
-                    aria-label="Actualizar grupos del equipo"
+                    [title]="'Actualizar ' + internalGroupsTitle.toLowerCase()"
+                    [attr.aria-label]="'Actualizar ' + internalGroupsTitle.toLowerCase()"
                     (click)="refreshTeamEntries()">
                     <i class="pi" [ngClass]="loadingInternalGroups ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
                 </button>
@@ -1131,8 +1143,8 @@
                     <i class="pi pi-search"></i>
                     <input type="text"
                         [(ngModel)]="internalGroupSearchTerm"
-                        placeholder="Buscar grupo o técnico..."
-                        aria-label="Buscar grupo o técnico" />
+                        [placeholder]="internalGroupsSearchPlaceholder"
+                        [attr.aria-label]="internalGroupsSearchPlaceholder" />
                 </div>
             </div>
 
@@ -1152,8 +1164,8 @@
 
                 <div *ngIf="!loadingInternalGroups && filteredInternalGroups.length === 0"
                     class="comm-empty">
-                    <i class="pi pi-address-book"></i>
-                    <span>{{ internalGroupSearchTerm ? 'No se encontraron grupos' : 'No hay grupos del equipo disponibles' }}</span>
+                    <i class="pi" [ngClass]="activeTab === 'tecnicos' ? 'pi-wrench' : 'pi-address-book'"></i>
+                    <span>{{ internalGroupsEmptyMessage }}</span>
                 </div>
 
                 <div *ngFor="let group of filteredInternalGroups"
@@ -1213,8 +1225,8 @@
             <div *ngIf="!internalGroupChatOpen" class="comm-chat__empty">
                 <div class="comm-chat__empty-content">
                     <i class="pi pi-address-book"></i>
-                    <h3>Equipo</h3>
-                    <p>Selecciona un grupo para abrir la conversación</p>
+                    <h3>{{ internalGroupsTitle }}</h3>
+                    <p>{{ activeTab === "tecnicos" ? "Selecciona un técnico para abrir la conversación" : "Selecciona un grupo para abrir la conversación" }}</p>
                 </div>
             </div>
 
@@ -1222,7 +1234,7 @@
             <header class="comm-internal__header">
                 <div class="comm-internal__title">
                     <button class="comm-back-btn" type="button" (click)="showInternalGroupList()"
-                        aria-label="Volver al listado del equipo">
+                        [attr.aria-label]="activeTab === 'tecnicos' ? 'Volver al listado de técnicos' : 'Volver al listado del equipo'">
                         <i class="pi pi-arrow-left"></i>
                     </button>
                     <span class="comm-internal__icon">

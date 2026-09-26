@@ -44,6 +44,11 @@ import {
   formatConversationDisplayName,
   toTitleCaseName,
 } from './conversation-team-filter';
+import {
+  countUnreadMessages,
+  teamGroupsOf,
+  technicianGroupsOf,
+} from './internal-chat-sections';
 
 interface ChatConversation {
   id: number;
@@ -266,7 +271,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   selectedConversation: ChatConversation | null = null;
   noInbox: boolean = false;
   sidebarDisplayed = true;
-  activeTab: 'chat' | 'correo' | 'foro' | 'grupo' = 'chat';
+  activeTab: 'chat' | 'correo' | 'foro' | 'grupo' | 'tecnicos' = 'chat';
   conversationAttentionFilter: ConversationAttentionFilter = 'recent';
   readonly conversationAttentionFilters = [
     { id: 'all' as const, label: 'Todos' },
@@ -630,10 +635,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     });
     this.route.params.subscribe(params => {
       const tab = params['tab'];
-      if (tab === 'chat' || tab === 'grupo') {
+      if (tab === 'chat' || tab === 'grupo' || tab === 'tecnicos') {
         this.activeTab = tab;
-        if (tab === 'grupo') {
-          this.selectedInternalGroupId = 'admin';
+        if (tab === 'grupo' || tab === 'tecnicos') {
+          if (tab === 'grupo') this.selectedInternalGroupId = 'admin';
           this.internalGroupChatOpen = true;
           this.loadInternalGroups(true);
         } else {
@@ -660,13 +665,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.internalGroupChatOpen = true;
         const changed = this.selectedInternalGroupId !== requestedGroupId;
         this.selectedInternalGroupId = requestedGroupId;
-        if (changed && this.activeTab === 'grupo' && this.internalGroups.length) {
+        if (changed && this.isInternalChatTab && this.internalGroups.length) {
           this.ensureSelectedInternalGroup();
           this.internalMessages = [];
           this.internalReplyTarget = null;
           this.stopInternalChatPolling();
           this.loadInternalChat();
-        } else if (this.activeTab === 'grupo' && !this.internalGroups.length) {
+        } else if (this.isInternalChatTab && !this.internalGroups.length) {
           this.loadInternalGroups(true);
         }
       }
@@ -748,7 +753,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     });
   }
 
-  navigateToTab(tab: 'chat' | 'correo' | 'foro' | 'grupo'): void {
+  navigateToTab(tab: 'chat' | 'correo' | 'foro' | 'grupo' | 'tecnicos'): void {
     if (tab === 'correo' || tab === 'foro') {
       this.activeTab = 'chat';
       this.router.navigate(['/admin/communication', 'chat']);
@@ -761,12 +766,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
 
     this.activeTab = tab;
-    if (tab === 'grupo') {
+    if (tab === 'grupo' || tab === 'tecnicos') {
       this.stopConversationPresenceSession();
       this.stopChatPolling();
-      const changedGroup = this.selectedInternalGroupId !== 'admin';
-      this.selectedInternalGroupId = 'admin';
-      this.internalGroupChatOpen = true;
+      const changedGroup = tab === 'grupo'
+        && this.selectedInternalGroupId !== 'admin';
+      if (tab === 'grupo') this.selectedInternalGroupId = 'admin';
+      this.internalGroupChatOpen = tab === 'grupo';
       this.stopInternalChatPolling();
       this.stopActiveEmployeesPolling();
       if (changedGroup) {
@@ -3623,11 +3629,59 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return this.selectedInternalGroup?.name || 'Montao GPS';
   }
 
+  /** Equipo y Técnicos comparten el chat interno; sólo cambia a quién listan. */
+  get isInternalChatTab(): boolean {
+    return this.activeTab === 'grupo' || this.activeTab === 'tecnicos';
+  }
+
+  /** El chat de los empleados administrativos. */
+  get teamGroups(): InternalChatGroup[] {
+    return teamGroupsOf(this.internalGroups);
+  }
+
+  /** Un chat por técnico. */
+  get technicianGroups(): InternalChatGroup[] {
+    return technicianGroupsOf(this.internalGroups);
+  }
+
+  get internalGroupsForActiveTab(): InternalChatGroup[] {
+    return this.activeTab === 'tecnicos'
+      ? this.technicianGroups
+      : this.teamGroups;
+  }
+
+  get internalGroupsTitle(): string {
+    return this.activeTab === 'tecnicos' ? 'Técnicos' : 'Equipo';
+  }
+
+  get internalGroupsSearchPlaceholder(): string {
+    return this.activeTab === 'tecnicos'
+      ? 'Buscar técnico...'
+      : 'Buscar en el equipo...';
+  }
+
+  get internalGroupsEmptyMessage(): string {
+    if (this.internalGroupSearchTerm) {
+      return this.activeTab === 'tecnicos'
+        ? 'No se encontraron técnicos'
+        : 'No se encontraron grupos';
+    }
+    return this.activeTab === 'tecnicos'
+      ? 'No hay técnicos disponibles'
+      : 'No hay grupos del equipo disponibles';
+  }
+
+  get technicianUnreadCount(): number {
+    if (this.internalChatMuted) return 0;
+    return countUnreadMessages(this.technicianGroups);
+  }
+
   get filteredInternalGroups(): InternalChatGroup[] {
     const search = this.normalizeSearchText(this.internalGroupSearchTerm);
-    if (!search) return this.internalGroups;
+    const grupos = this.internalGroupsForActiveTab;
+    if (!search) return grupos;
 
-    return this.internalGroups.filter((group) => {
+    return grupos.filter((group) => {
       const searchable = [
         this.getTeamEntryName(group),
         this.getTeamEntrySubtitle(group),
@@ -3654,10 +3708,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   get totalInternalUnreadCount(): number {
     if (this.internalChatMuted) return 0;
-    return this.internalGroups.reduce(
-      (total, group) => total + Math.max(0, Number(group.unreadCount) || 0),
-      0,
-    );
+    return countUnreadMessages(this.teamGroups);
   }
 
   getTeamEntryName(group: InternalChatGroup): string {
@@ -3730,7 +3781,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (!group?.id) return;
 
     this.showInternalGroupMenu = false;
-    this.activeTab = 'grupo';
+    const tab = group.type === 'admin' ? 'grupo' : 'tecnicos';
+    this.activeTab = tab;
     this.internalGroupChatOpen = true;
     const changed = this.selectedInternalGroupId !== group.id;
     this.selectedInternalGroupId = group.id;
@@ -3741,7 +3793,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       this.internalReplyTarget = null;
       this.stopInternalChatPolling();
     }
-    this.router.navigate(['/admin/communication', 'grupo'], {
+    this.router.navigate(['/admin/communication', tab], {
       queryParams: { groupId: group.id },
     });
     this.loadInternalChat();
@@ -3843,7 +3895,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   private markSelectedInternalGroupRead(groupId: string): void {
-    if (!groupId || this.activeTab !== 'grupo') return;
+    if (!groupId || !this.isInternalChatTab) return;
 
     this.setInternalGroupUnreadCount(groupId, 0);
     this.internalChatService.markGroupRead(groupId).subscribe({
@@ -4202,7 +4254,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private startInternalChatPolling(): void {
     this.stopInternalChatPolling();
     this.internalChatPollingInterval = setInterval(() => {
-      if (this.activeTab !== 'grupo') return;
+      if (!this.isInternalChatTab) return;
       const lastId = this.internalMessages[this.internalMessages.length - 1]?._id;
       this.internalChatService.getMessages({
         limit: 50,
@@ -4229,7 +4281,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.stopActiveEmployeesPolling();
     this.loadActiveEmployeesCount();
     this.activeEmployeesPollingInterval = setInterval(() => {
-      if (this.activeTab === 'grupo') {
+      if (this.isInternalChatTab) {
         this.loadActiveEmployeesCount();
       }
     }, this.ACTIVE_EMPLOYEES_POLL_INTERVAL);
@@ -5791,7 +5843,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   sendSticker(sticker: WhatsAppSticker): void {
-    if (this.activeTab === 'grupo') {
+    if (this.isInternalChatTab) {
       this.sendInternalSticker(sticker);
       return;
     }
