@@ -639,7 +639,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.activeTab = tab;
         if (tab === 'grupo' || tab === 'tecnicos') {
           if (tab === 'grupo') this.selectedInternalGroupId = 'admin';
-          this.internalGroupChatOpen = true;
+          this.internalGroupChatOpen = tab === 'grupo';
           this.loadInternalGroups(true);
         } else {
           this.stopActiveEmployeesPolling();
@@ -769,9 +769,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (tab === 'grupo' || tab === 'tecnicos') {
       this.stopConversationPresenceSession();
       this.stopChatPolling();
+      const eraDeOtraSeccion = tab === 'tecnicos'
+        && !this.technicianGroups.some(
+          group => group.id === this.selectedInternalGroupId,
+        );
       const changedGroup = tab === 'grupo'
-        && this.selectedInternalGroupId !== 'admin';
+        ? this.selectedInternalGroupId !== 'admin'
+        : eraDeOtraSeccion;
       if (tab === 'grupo') this.selectedInternalGroupId = 'admin';
+      else if (eraDeOtraSeccion) this.selectedInternalGroupId = '';
       this.internalGroupChatOpen = tab === 'grupo';
       this.stopInternalChatPolling();
       this.stopActiveEmployeesPolling();
@@ -3866,14 +3872,14 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   private ensureSelectedInternalGroup(): void {
-    if (
-      !this.internalGroups.some(
-        group => group.id === this.selectedInternalGroupId,
-      )
-    ) {
-      this.selectedInternalGroupId =
-        this.internalGroups[0]?.id || 'admin';
+    const seccion = this.internalGroupsForActiveTab;
+    if (seccion.some(group => group.id === this.selectedInternalGroupId)) {
+      return;
     }
+    // En Técnicos no se fuerza ninguna selección: se muestra el listado.
+    this.selectedInternalGroupId = this.activeTab === 'tecnicos'
+      ? ''
+      : (this.teamGroups[0]?.id || 'admin');
   }
 
   private setInternalGroupUnreadCount(
