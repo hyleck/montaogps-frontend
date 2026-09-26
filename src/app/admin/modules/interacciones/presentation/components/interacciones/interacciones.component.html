@@ -898,6 +898,11 @@
         <span>Esta plantilla usa automáticamente el primer nombre de cada cliente. La imagen, el mensaje y el botón son los aprobados en Meta.</span>
       </div>
 
+      <div *ngIf="selectedWhatsappTemplateName === 'montaorent'" class="instagram-template-notice">
+        <i class="pi pi-info-circle"></i>
+        <span>Esta plantilla presenta Montao Rent con el video aprobado en Meta y sólo personaliza el nombre del destinatario.</span>
+      </div>
+
       <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
         <p-checkbox [(ngModel)]="assignToEster" [binary]="true" inputId="assignToEster"></p-checkbox>
         <label for="assignToEster" style="margin-bottom: 0; cursor: pointer; color: #a855f7; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
@@ -913,6 +918,17 @@
           <span style="white-space: pre-wrap; display: block; margin-top: 0.25rem;">{{ whatsappTemplateVars.body || '[Cuerpo del mensaje]' }}</span><br>
           <span style="display: block; margin-top: 0.5rem;">Seguimos a tu orden por este número.</span>
           <span style="opacity: 0.5; font-size: 0.8rem; display: block; margin-top: 0.75rem;">Montao GPS</span>
+        </div>
+        <div *ngIf="selectedWhatsappTemplateName === 'montaorent'" class="whatsapp-preview__message whatsapp-preview__message--instagram">
+          <video
+            class="whatsapp-preview__instagram-image"
+            [src]="montaoRentTemplateVideoUrl"
+            controls
+            muted
+            playsinline></video>
+          <span class="whatsapp-preview__instagram-greeting">Saludos, {{ getMontaoRentPreviewName() }},</span>
+          <span class="whatsapp-preview__instagram-body">{{ montaoRentTemplateBody }}</span>
+          <span class="whatsapp-preview__instagram-footer">{{ montaoRentTemplateFooter }}</span>
         </div>
         <div *ngIf="selectedWhatsappTemplateName === 'instagram'" class="whatsapp-preview__message whatsapp-preview__message--instagram">
           <img

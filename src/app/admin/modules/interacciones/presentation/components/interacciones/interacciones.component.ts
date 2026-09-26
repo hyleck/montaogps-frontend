@@ -19,7 +19,7 @@ import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
-type WhatsAppCampaignTemplateName = 'simple' | 'instagram';
+type WhatsAppCampaignTemplateName = 'simple' | 'instagram' | 'montaorent';
 
 @Component({
   selector: 'app-interacciones',
@@ -145,11 +145,20 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       value: 'instagram',
       description: 'Plantilla oficial de WhatsApp para campañas de Instagram.',
     },
+    {
+      label: 'Montao Rent',
+      value: 'montaorent',
+      description: 'Plantilla oficial con el video de presentación de Montao Rent.',
+    },
   ];
   readonly instagramTemplateImageUrl = 'https://montao.net/assets/montao-instagram-open-graph.png';
   readonly instagramTemplateBody = '¡Tenemos nueva cuenta de Instagram! 🎉\n\nSíguenos en 👉 @montao.cloud\n¡Te esperamos!';
   readonly instagramTemplateFooter = 'Montao GPS';
   readonly instagramTemplateButtonLabel = 'Seguir a Montao Cloud';
+  readonly montaoRentTemplateVideoUrl =
+    'https://allbuckets-1758819906869.sfo3.digitaloceanspaces.com/dd63785e-1ded-4177-8fd9-b66d817024de.mp4';
+  readonly montaoRentTemplateBody = 'Es un placer presentarle a Montao Rent.';
+  readonly montaoRentTemplateFooter = 'Montao Network';
 
   // ── Historial de Usuario ────────────────────────────────────
   showHistoryModal = false;
@@ -164,6 +173,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     { label: 'Empleado', value: 'empleado' },
     { label: 'Técnico (empleado)', value: 'tecnico_empleado' },
     { label: 'Técnico (independiente)', value: 'tecnico_independiente' },
+    { label: 'Técnico externo', value: 'tecnico_externo' },
     { label: 'Otro', value: 'otro' },
   ];
 
@@ -738,9 +748,12 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.campaignObjective = template.objective || '';
     this.followUpBody = template.follow_up_body || '';
     this.whatsappTemplateVars.body = template.body;
-    this.selectedWhatsappTemplateName = template.whatsapp_template_name === 'instagram'
-      ? 'instagram'
-      : 'simple';
+    this.selectedWhatsappTemplateName =
+      template.whatsapp_template_name === 'instagram'
+        ? 'instagram'
+        : template.whatsapp_template_name === 'montaorent'
+          ? 'montaorent'
+          : 'simple';
     this.pushBody = template.body;
     this.vapiQuery = template.objective || template.body;
     this.campaignBodyVariantB = '';
@@ -1048,9 +1061,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
 
   getCampaignBody(): string {
     if (this.interactionChannel === 'whatsapp') {
-      return this.selectedWhatsappTemplateName === 'instagram'
-        ? this.instagramTemplateBody
-        : this.whatsappTemplateVars.body;
+      if (this.selectedWhatsappTemplateName === 'instagram') return this.instagramTemplateBody;
+      if (this.selectedWhatsappTemplateName === 'montaorent') return this.montaoRentTemplateBody;
+      return this.whatsappTemplateVars.body;
     }
     if (this.interactionChannel === 'vapi') return this.vapiQuery;
     return this.pushBody;
@@ -1060,6 +1073,20 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     const value = String(this.whatsappTemplateVars.name || this.targetUserName || '').trim();
     if (!value || value === '[Nombre del usuario]') return '[Nombre del usuario]';
     return this.toTitleCase(value.split(/\s+/)[0]);
+  }
+
+  /** Nombre que verá el destinatario en la plantilla de Montao Rent. */
+  getMontaoRentPreviewName(): string {
+    return this.getInstagramPreviewName();
+  }
+
+  getMontaoRentRenderedMessage(name?: string | null): string {
+    const firstName = this.toTitleCase(
+      String(name || this.targetUserName || this.whatsappTemplateVars.name || 'Cliente')
+        .trim()
+        .split(/\s+/)[0] || 'Cliente'
+    );
+    return `Saludos, ${firstName}, ${this.montaoRentTemplateBody}\n\n${this.montaoRentTemplateFooter}`;
   }
 
   getInstagramRenderedMessage(name?: string | null): string {
@@ -1073,6 +1100,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
 
   isWhatsappCampaignInvalid(): boolean {
     if (this.selectedWhatsappTemplateName === 'instagram') return false;
+    if (this.selectedWhatsappTemplateName === 'montaorent') return false;
     return !this.whatsappTemplateVars.name.trim() || !this.whatsappTemplateVars.body.trim();
   }
 
@@ -1624,7 +1652,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
           finalTitle = `Mensaje enviado por WhatsApp`;
           finalBody = this.selectedWhatsappTemplateName === 'instagram'
             ? this.getInstagramRenderedMessage(this.whatsappTemplateVars.name)
-            : `B${this.whatsappTemplateVars.bodySaludos}, ${this.whatsappTemplateVars.name === '[Nombre del usuario]' ? 'Usuario' : this.whatsappTemplateVars.name}.\n${this.whatsappTemplateVars.body}\n\nSeguimos a tu orden por este número.\nMontao GPS`;
+            : this.selectedWhatsappTemplateName === 'montaorent'
+              ? this.getMontaoRentRenderedMessage(this.whatsappTemplateVars.name)
+              : `B${this.whatsappTemplateVars.bodySaludos}, ${this.whatsappTemplateVars.name === '[Nombre del usuario]' ? 'Usuario' : this.whatsappTemplateVars.name}.\n${this.whatsappTemplateVars.body}\n\nSeguimos a tu orden por este número.\nMontao GPS`;
         }
         await this.interaccionesService.logCampaignUsers(this.selectedList!._id, {
           userIds: successIds,
@@ -1676,6 +1706,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
           this.whatsappTemplateVars.headerUser,
           this.whatsappTemplateVars.bodySaludos,
           this.selectedWhatsappTemplateName === 'instagram'
+            || this.selectedWhatsappTemplateName === 'montaorent'
             ? this.getInstagramPreviewName()
             : this.whatsappTemplateVars.name,
           this.whatsappTemplateVars.body
@@ -1721,7 +1752,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
             finalTitle = `Mensaje enviado por WhatsApp`;
             finalBody = this.selectedWhatsappTemplateName === 'instagram'
               ? this.getInstagramRenderedMessage(this.whatsappTemplateVars.name)
-              : `B${this.whatsappTemplateVars.bodySaludos}, ${this.whatsappTemplateVars.name}.\n${this.whatsappTemplateVars.body}\n\nSeguimos a tu orden por este número.\nMontao GPS`;
+              : this.selectedWhatsappTemplateName === 'montaorent'
+                ? this.getMontaoRentRenderedMessage(this.whatsappTemplateVars.name)
+                : `B${this.whatsappTemplateVars.bodySaludos}, ${this.whatsappTemplateVars.name}.\n${this.whatsappTemplateVars.body}\n\nSeguimos a tu orden por este número.\nMontao GPS`;
           } else if (this.interactionChannel === 'vapi') {
             finalTitle = `Llamada de IA (Ester) Iniciada`;
             finalBody = `Motivo: ${this.vapiQuery}`;
