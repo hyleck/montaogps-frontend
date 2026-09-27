@@ -1,6 +1,121 @@
-<main class="sso-page">
-  <section class="sso-panel">
-    <h1>Entrando a Montao GPS</h1>
-    <p>{{ errorMessage || 'Preparando tu sesión...' }}</p>
-  </section>
-</main>
+@if (error()) {
+  <main class="sso-error">
+    <section class="sso-card" role="alert">
+      <i class="pi pi-exclamation-circle error-icon" aria-hidden="true"></i>
+      <h1>No se pudo iniciar sesión</h1>
+      <p>{{ error() }}</p>
+      <a href="https://index.montao.net">Volver a Montao Index</a>
+    </section>
+  </main>
+} @else {
+  <!-- Esqueleto de Montao GPS mientras se valida el acceso: el riel del sidebar, la barra superior
+       y Gestión (lista de usuarios + mapa de la flota) se arman igual que la pantalla que aparecerá. -->
+  <main class="sk" aria-busy="true">
+    <aside class="sk-rail" aria-hidden="true">
+      <div class="sk-brand">
+        <span class="sk-ping"></span>
+        <span class="sk-ping sk-ping--late"></span>
+        <span class="sk-emblem"></span>
+        <span class="sk-pin"></span>
+      </div>
+
+      <span class="sk-rail-group">
+        <span class="sk-rail-title sk-bone" style="--i: 0"></span>
+        <span class="sk-rail-item" style="--i: 1"><i class="sk-bone"></i></span>
+      </span>
+
+      <span class="sk-rail-group sk-rail-menu">
+        <span class="sk-rail-title sk-bone" style="--i: 2"></span>
+        <span class="sk-rail-item is-active" style="--i: 3"><i></i></span>
+        @for (item of menuItems; track item) {
+          <span class="sk-rail-item" [style.--i]="item + 4"><i class="sk-bone"></i></span>
+        }
+      </span>
+
+      <span class="sk-rail-group sk-rail-profile">
+        <span class="sk-rail-item" style="--i: 14"><i class="sk-bone"></i></span>
+        <span class="sk-rail-item" style="--i: 15"><i class="sk-bone sk-round"></i></span>
+      </span>
+    </aside>
+
+    <header class="sk-navbar" aria-hidden="true">
+      <span class="sk-nav-controls">
+        <span class="sk-nav-button"><i class="sk-bone"></i><b class="sk-bone"></b></span>
+        <span class="sk-nav-dots"><i class="sk-bone"></i><i class="sk-bone"></i><i class="sk-bone"></i></span>
+      </span>
+      <span class="sk-nav-icons">
+        @for (icon of navbarIcons; track icon) {
+          <i class="sk-bone" [style.--i]="icon"></i>
+        }
+      </span>
+    </header>
+
+    <section class="sk-main" aria-hidden="true">
+      <div class="sk-route">
+        <i class="sk-bone"></i><span>/</span><b class="sk-bone"></b><span>/</span><b class="sk-bone sk-route-short"></b>
+      </div>
+
+      <div class="sk-panel">
+        <div class="sk-user-head">
+          <span class="sk-avatar"><i class="sk-bone"></i></span>
+          <span class="sk-bone sk-user-name"></span>
+          <span class="sk-bone sk-user-mail"></span>
+          <span class="sk-user-tabs">
+            <b class="is-current"></b><b class="sk-bone"></b><b class="sk-bone"></b>
+          </span>
+        </div>
+
+        <div class="sk-search">
+          <span class="sk-search-input"><i class="sk-bone"></i><b class="sk-bone"></b></span>
+          <span class="sk-search-add"></span>
+        </div>
+
+        @for (card of userCards; track $index; let c = $index) {
+          <div class="sk-user-card" [style.--c]="c">
+            <i class="sk-bone"></i>
+            <span>
+              <b class="sk-bone" [style.width.%]="card.title"></b>
+              <b class="sk-bone" [style.width.%]="card.text"></b>
+            </span>
+            <em></em>
+          </div>
+        }
+      </div>
+
+      <div class="sk-map">
+        <svg class="sk-map-roads" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <path class="sk-block" d="M6 6 H30 V20 H6 Z" />
+          <path class="sk-block sk-block--park" d="M62 70 H84 V92 H62 Z" />
+          <path class="sk-block" d="M38 72 H54 V92 H38 Z" />
+          <path class="sk-block sk-block--water" d="M76 0 Q88 12 100 6 V22 Q86 26 76 14 Z" />
+          <path class="sk-road sk-road--main" d="M-2 58 C 20 52, 34 48, 50 46 S 80 36, 102 30" />
+          <path class="sk-road" d="M18 -2 C 22 30, 30 60, 26 102" />
+          <path class="sk-road" d="M58 -2 C 60 24, 66 56, 72 102" />
+          <path class="sk-road" d="M-2 24 H102" />
+          <path class="sk-road" d="M-2 82 C 30 78, 70 88, 102 76" />
+          <path class="sk-route-line" pathLength="100" d="M28 64 C 34 56, 40 50, 46 44" />
+        </svg>
+
+        @for (vehicle of vehicles; track $index; let v = $index) {
+          <span class="sk-vehicle" [class.is-selected]="v === 0" [style.left.%]="vehicle.x"
+            [style.top.%]="vehicle.y" [style.--v]="v"><i></i></span>
+        }
+
+        <span class="sk-map-select sk-bone"></span>
+        <span class="sk-map-zoom"><i class="sk-bone"></i><i class="sk-bone"></i></span>
+      </div>
+
+      <!-- Una franja de «señal» cruza la pantalla mientras se localiza la flota. -->
+      <span class="sk-scan"></span>
+    </section>
+
+    <div class="sk-status" role="status" aria-live="polite">
+      <span class="sk-status-dot" aria-hidden="true"></span>
+      <span class="sk-status-copy">
+        <strong>{{ steps[step()] }}</strong>
+        <small>Paso {{ step() + 1 }} de {{ steps.length }} · Montao Index</small>
+      </span>
+      <span class="sk-progress" aria-hidden="true"><span [style.width.%]="((step() + 1) / steps.length) * 100"></span></span>
+    </div>
+  </main>
+}

@@ -1,27 +1,784 @@
-.sso-page {
-  display: grid;
-  min-height: 100vh;
-  place-items: center;
-  background: #242424;
-  color: #f4eeee;
-  font-family: Arial, sans-serif;
+/* Tokens del esqueleto: toman las variables que ThemesService ya aplicó en <html> (tema guardado). */
+:host {
+  --sk-red: #dd4747;
+  --sk-bg: var(--globalColorBackground, #2c2c2c);
+  --sk-rail-start: var(--globalColorPrimaryDarkStart, #212121);
+  --sk-rail-end: var(--globalColorPrimaryDarkEnd, #292929);
+  --sk-nav-start: var(--navbarColorBackgroundStart, #212121);
+  --sk-nav-end: var(--navbarColorBackgroundEnd, #212121);
+  --sk-active-start: var(--globalColorMainBackgroundStart2, #dd4747);
+  --sk-active-end: var(--globalColorMainBackgroundEnd, #c33232);
+  --sk-panel: var(--managementColorCardBackground, #1f1f1f);
+  --sk-user-bg: var(--managementColorBackgroundUser, #2a2a2a);
+  --sk-user-line: var(--managementColorBorderInput, #ff6d6dc4);
+  --sk-card-line: var(--globalColorCardBorderLight, #555555);
+  --sk-map-line: var(--globalColorInputBorderAccent, #ff7070);
+  --sk-text: var(--globalColorTextLight, #ffffff);
+  --sk-muted: var(--globalColorTextMuted, #a1a1a1);
+  --sk-bone: rgba(255, 255, 255, 0.07);
+  --sk-shine: rgba(255, 255, 255, 0.14);
+  --sk-map: #262626;
+  --sk-map-block: #2f2f2f;
+  --sk-map-park: #26342b;
+  --sk-map-water: #1f2c3a;
+  --sk-map-road: #3b3b3b;
+  --sk-status-bg: rgba(38, 38, 38, 0.9);
+  --sk-status-line: #454545;
+  display: block;
+  min-height: 100dvh;
+  font-family: inherit;
 }
 
-.sso-panel {
-  width: min(420px, calc(100% - 32px));
-  border: 1px solid #454545;
+:host-context(.app-light) {
+  --sk-bone: rgba(15, 23, 42, 0.07);
+  --sk-shine: rgba(15, 23, 42, 0.13);
+  --sk-map: #eef0f2;
+  --sk-map-block: #e3e6ea;
+  --sk-map-park: #d7ecd9;
+  --sk-map-water: #cfe3f5;
+  --sk-map-road: #ffffff;
+  --sk-status-bg: rgba(255, 255, 255, 0.92);
+  --sk-status-line: #e6d6d6;
+  --sk-text: #2d2d2d;
+}
+
+/* Mismo shell que el admin: riel de 80px a toda la altura, barra de 50px y Gestión debajo. */
+.sk {
+  position: relative;
+  height: 100dvh;
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  grid-template-rows: 50px minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--sk-bg);
+}
+
+/* Huesos con brillo recorriéndolos. */
+.sk-bone {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(100deg, var(--sk-bone) 30%, var(--sk-shine) 50%, var(--sk-bone) 70%) 0 0 / 300% 100%;
+  animation: sk-shimmer 1.4s linear infinite;
+}
+
+/* ---------- Riel del sidebar: entra desde la izquierda con el emblema ---------- */
+.sk-rail {
+  grid-row: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 10px 8px;
+  background: radial-gradient(circle, var(--sk-rail-start), var(--sk-rail-end));
+  /* El sidebar es grafito en ambos temas. */
+  --sk-bone: rgba(255, 255, 255, 0.08);
+  --sk-shine: rgba(255, 255, 255, 0.17);
+  animation: sk-slide-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Intro de marca: cae un pin de ubicación, hace «ping» de radar y el emblema Montao se revela
+   con un barrido circular, como un radar que encuentra la flota. */
+.sk-brand {
+  position: relative;
+  height: 50px;
+  flex: 0 0 50px;
+  display: grid;
+  place-items: center;
+}
+
+.sk-brand > span {
+  grid-area: 1 / 1;
+}
+
+.sk-emblem {
+  width: 32px;
+  height: 30px;
+  background: conic-gradient(from -90deg, var(--sk-red) var(--sk-sweep), transparent 0);
+  -webkit-mask: url('/logo/LOGO.png') 0 50% / auto 30px no-repeat;
+  mask: url('/logo/LOGO.png') 0 50% / auto 30px no-repeat;
+  animation: sk-reveal 0.7s cubic-bezier(0.45, 0, 0.2, 1) 0.75s both;
+}
+
+.sk-pin {
+  width: 14px;
+  height: 14px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--sk-red);
+  box-shadow: inset 0 0 0 4px var(--sk-red), inset 0 0 0 7px #fff;
+  transform: rotate(-45deg);
+  animation: sk-pin-drop 1.2s cubic-bezier(0.3, 0.7, 0.4, 1) 0.2s both;
+}
+
+.sk-ping {
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--sk-red);
+  border-radius: 50%;
+  opacity: 0;
+  animation: sk-radar 1s ease-out 0.62s both;
+}
+
+.sk-ping--late {
+  animation-delay: 0.85s;
+}
+
+.sk-rail-group {
+  display: grid;
+  grid-auto-rows: 30px;
+  gap: 1px;
+  padding: 6px 0 8px;
+}
+
+.sk-rail-menu,
+.sk-rail-profile {
+  border-top: 1px solid rgba(255, 255, 255, 0.124);
+}
+
+.sk-rail-profile {
+  margin-top: auto;
+}
+
+.sk-rail-title {
+  width: 32px;
+  height: 6px;
+  align-self: center;
+  margin-left: 2px;
+  animation: sk-shimmer 1.4s linear infinite, sk-rise 0.4s ease calc(0.3s + var(--i) * 0.045s) both;
+}
+
+.sk-rail-item {
+  width: 60px;
+  display: grid;
+  grid-template-columns: 42px;
+  place-items: center;
+  border-radius: 7px;
+  animation: sk-rise 0.4s ease calc(0.3s + var(--i) * 0.045s) both;
+}
+
+.sk-rail-item i {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+}
+
+.sk-rail-item i.sk-round {
+  border-radius: 50%;
+}
+
+/* Gestión es el destino del acceso: queda marcada en rojo como en la app. */
+.sk-rail-item.is-active {
+  background: radial-gradient(circle, var(--sk-active-start), var(--sk-active-end));
+  animation: sk-rise 0.4s ease calc(0.3s + var(--i) * 0.045s) both, sk-glow 1.6s ease-in-out 1.1s infinite;
+}
+
+.sk-rail-item.is-active i {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* ---------- Barra superior: baja y enciende sus iconos ---------- */
+.sk-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px 0 30px;
+  background: radial-gradient(circle, var(--sk-nav-start), var(--sk-nav-end));
+  --sk-bone: rgba(255, 255, 255, 0.1);
+  --sk-shine: rgba(255, 255, 255, 0.24);
+  animation: sk-drop 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s both;
+}
+
+.sk-nav-controls,
+.sk-nav-icons,
+.sk-nav-button,
+.sk-nav-dots {
+  display: flex;
+  align-items: center;
+}
+
+.sk-nav-controls {
+  gap: 14px;
+  animation: sk-fade 0.35s ease 0.55s both;
+}
+
+.sk-nav-button {
+  gap: 8px;
+}
+
+.sk-nav-button i {
+  width: 14px;
+  height: 14px;
+}
+
+.sk-nav-button b {
+  width: 58px;
+  height: 9px;
+}
+
+.sk-nav-dots {
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sk-nav-dots i {
+  width: 4px;
+  height: 4px;
+}
+
+.sk-nav-icons {
+  gap: 16px;
+}
+
+.sk-nav-icons i {
+  width: 20px;
+  height: 20px;
+  animation: sk-shimmer 1.4s linear infinite, sk-pop 0.4s cubic-bezier(0.3, 1.6, 0.5, 1) calc(0.65s + var(--i) * 0.08s) both;
+}
+
+.sk-nav-icons i:last-child {
+  width: 26px;
+  height: 26px;
+}
+
+/* ---------- Gestión: ruta, panel del usuario con su lista y el mapa ---------- */
+.sk-main {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-rows: 38px minmax(0, 1fr);
+  gap: 10px;
+  padding: 0 10px 17px;
+  overflow: hidden;
+}
+
+.sk-route {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--sk-muted);
+  font-size: 12px;
+  opacity: 0.6;
+  animation: sk-fade 0.4s ease 0.5s both;
+}
+
+.sk-route i {
+  width: 14px;
+  height: 14px;
+}
+
+.sk-route b {
+  width: 70px;
+  height: 9px;
+}
+
+.sk-route b.sk-route-short {
+  width: 110px;
+}
+
+.sk-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  background: var(--sk-panel);
+  animation: sk-rise 0.45s ease 0.55s both;
+}
+
+.sk-user-head {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--sk-user-line);
+  border-radius: 5px;
+  background: var(--sk-user-bg);
+}
+
+.sk-avatar {
+  grid-row: 1 / 3;
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
   border-radius: 8px;
-  padding: 28px;
-  background: #303030;
+  background: color-mix(in srgb, var(--sk-red) 16%, transparent);
+}
+
+.sk-avatar i {
+  width: 22px;
+  height: 22px;
+}
+
+.sk-user-name {
+  width: 70%;
+  height: 13px;
+  align-self: end;
+}
+
+.sk-user-mail {
+  width: 52%;
+  height: 9px;
+}
+
+.sk-user-tabs {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+}
+
+.sk-user-tabs b {
+  height: 28px;
+  flex: 1;
+  border-radius: 6px;
+}
+
+.sk-user-tabs b.is-current {
+  background: color-mix(in srgb, var(--sk-red) 30%, transparent);
+  animation: sk-pulse 1.6s ease-in-out infinite;
+}
+
+.sk-search {
+  display: flex;
+  gap: 8px;
+  animation: sk-rise 0.4s ease 0.7s both;
+}
+
+.sk-search-input {
+  flex: 1;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--sk-card-line);
+  border-radius: 6px;
+}
+
+.sk-search-input i {
+  width: 13px;
+  height: 13px;
+}
+
+.sk-search-input b {
+  width: 55%;
+  height: 8px;
+}
+
+.sk-search-add {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: var(--sk-red);
+  opacity: 0.85;
+}
+
+.sk-user-card {
+  flex: 0 0 60px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border: 1px solid var(--sk-card-line);
+  border-radius: 5px;
+  animation: sk-pop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) calc(0.85s + var(--c) * 0.07s) both;
+}
+
+.sk-user-card > i {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 8px;
+}
+
+.sk-user-card > span {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+}
+
+.sk-user-card b {
+  height: 10px;
+}
+
+.sk-user-card b + b {
+  height: 7px;
+}
+
+/* Punto de estado en línea, como la tarjeta real. */
+.sk-user-card em {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--managementOnlineStatus, #15f915);
+  opacity: 0.55;
+}
+
+/* ---------- Mapa de la flota: calles que se trazan y vehículos que aparecen ---------- */
+.sk-map {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border: 3px solid var(--sk-map-line);
+  border-radius: 5px;
+  background: var(--sk-map);
+  animation: sk-fade 0.5s ease 0.45s both;
+}
+
+.sk-map-roads {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.sk-block {
+  fill: var(--sk-map-block);
+  animation: sk-fade 0.5s ease 0.8s both;
+}
+
+.sk-block--park {
+  fill: var(--sk-map-park);
+}
+
+.sk-block--water {
+  fill: var(--sk-map-water);
+}
+
+.sk-road {
+  fill: none;
+  stroke: var(--sk-map-road);
+  stroke-width: 7px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 2400;
+  stroke-dashoffset: 2400;
+  animation: sk-draw 0.9s ease-out 0.6s both;
+}
+
+.sk-road--main {
+  stroke-width: 11px;
+  animation-delay: 0.5s;
+}
+
+/* Recorrido reciente del vehículo seleccionado. */
+.sk-route-line {
+  fill: none;
+  stroke: var(--sk-red);
+  stroke-width: 0.55;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  opacity: 0.85;
+  animation: sk-draw 0.8s ease-out 1.25s both;
+}
+
+.sk-vehicle {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -22px 0 0 -11px;
+  animation: sk-marker 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) calc(1s + var(--v) * 0.09s) both;
+}
+
+.sk-vehicle i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50% 50% 50% 0;
+  background: #5c6470;
+  box-shadow: inset 0 0 0 6px #5c6470, inset 0 0 0 11px #fff;
+  transform: rotate(-45deg);
+}
+
+.sk-vehicle.is-selected i {
+  background: var(--sk-red);
+  box-shadow: inset 0 0 0 6px var(--sk-red), inset 0 0 0 11px #fff;
+}
+
+.sk-vehicle.is-selected::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--sk-red) 45%, transparent);
+  animation: sk-radar 1.4s ease-out 1.5s infinite;
+}
+
+.sk-map-select {
+  position: absolute;
+  top: 10px;
+  right: 60px;
+  width: 84px;
+  height: 26px;
+  border-radius: 4px;
+  animation: sk-shimmer 1.4s linear infinite, sk-fade 0.4s ease 0.9s both;
+}
+
+.sk-map-zoom {
+  position: absolute;
+  right: 10px;
+  bottom: 20px;
+  display: grid;
+  gap: 2px;
+  animation: sk-fade 0.4s ease 1s both;
+}
+
+.sk-map-zoom i {
+  width: 36px;
+  height: 36px;
+  border-radius: 3px;
+}
+
+/* Franja de «señal» diagonal que cruza la pantalla mientras se localiza la flota. */
+.sk-scan {
+  position: absolute;
+  inset: -20% auto -20% -40%;
+  width: 30%;
+  background: linear-gradient(100deg, transparent, rgba(255, 112, 112, 0.06) 40%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 112, 112, 0.06) 60%, transparent);
+  transform: skewX(-14deg);
+  pointer-events: none;
+  animation: sk-scan 2.4s ease-in-out 1s infinite;
+}
+
+/* ---------- Estado: qué está pasando ---------- */
+.sk-status {
+  position: fixed;
+  left: calc(40px + 50%);
+  bottom: 1.75rem;
+  z-index: 2;
+  width: min(360px, calc(100vw - 2rem));
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem 0.8rem;
+  padding: 0.85rem 1rem 0.95rem;
+  border: 1px solid var(--sk-status-line);
+  border-radius: 16px;
+  background: var(--sk-status-bg);
+  color: var(--sk-text);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+  transform: translateX(-50%);
+  animation: sk-status-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.4s both;
+}
+
+.sk-status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--sk-red);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--sk-red) 60%, transparent);
+  animation: sk-ping 1.2s ease-out infinite;
+}
+
+.sk-status-copy {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.sk-status-copy strong {
+  font-size: 0.92rem;
+}
+
+.sk-status-copy small {
+  color: var(--sk-muted);
+  font-size: 0.74rem;
+}
+
+.sk-progress {
+  grid-column: 1 / -1;
+  height: 4px;
+  margin-top: 0.35rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--sk-bone);
+}
+
+.sk-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--sk-red);
+  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ---------- Error ---------- */
+.sso-error {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--sk-bg);
+  color: var(--sk-text);
+}
+
+.sso-card {
+  width: min(460px, 100%);
+  box-sizing: border-box;
+  padding: 48px 32px;
+  border: 1px solid var(--sk-card-line);
+  border-radius: 24px;
+  background: var(--sk-panel);
   text-align: center;
 }
 
-.sso-panel h1 {
-  margin: 0 0 10px;
-  font-size: 1.35rem;
+.error-icon {
+  display: block;
+  margin-bottom: 22px;
+  color: var(--sk-red);
+  font-size: 4rem;
 }
 
-.sso-panel p {
+.sso-card h1 {
+  margin: 0 0 12px;
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+}
+
+.sso-card p {
   margin: 0;
-  color: #bbb;
+  color: var(--sk-muted);
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+.sso-card a {
+  display: inline-flex;
+  margin-top: 28px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: var(--sk-red);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+@property --sk-sweep {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes sk-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+@keyframes sk-slide-in {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
+@keyframes sk-drop {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes sk-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sk-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sk-pop {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sk-pulse {
+  50% { opacity: 0.55; }
+}
+@keyframes sk-glow {
+  50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--sk-red) 28%, transparent); }
+}
+@keyframes sk-pin-drop {
+  0% { opacity: 0; transform: translateY(-34px) rotate(-45deg); }
+  30% { opacity: 1; transform: translateY(0) rotate(-45deg); }
+  38% { transform: translateY(-5px) rotate(-45deg); }
+  45% { opacity: 1; transform: translateY(0) rotate(-45deg) scale(1); }
+  70% { opacity: 0; transform: translateY(0) rotate(-45deg) scale(0.3); }
+  100% { opacity: 0; transform: translateY(0) rotate(-45deg) scale(0.3); }
+}
+@keyframes sk-radar {
+  0% { opacity: 0.85; transform: scale(0.2); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+@keyframes sk-reveal {
+  from { --sk-sweep: 0deg; transform: scale(0.85); }
+  to { --sk-sweep: 360deg; transform: none; }
+}
+@keyframes sk-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes sk-marker {
+  from { opacity: 0; transform: translateY(-16px) scale(0.6); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sk-scan {
+  from { left: -40%; }
+  to { left: 120%; }
+}
+@keyframes sk-status-in {
+  from { opacity: 0; transform: translate(-50%, 16px); }
+  to { opacity: 1; transform: translateX(-50%); }
+}
+@keyframes sk-ping {
+  70% { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Teléfono: como Gestión en móvil, sin ruta ni mapa; el panel del usuario ocupa todo el ancho. */
+@media (max-width: 760px) {
+  .sk-main {
+    grid-template-columns: calc(100% - 10px);
+    grid-template-rows: minmax(0, 1fr);
+    padding: 10px 0 0 10px;
+  }
+
+  .sk-route,
+  .sk-map,
+  .sk-nav-button {
+    display: none;
+  }
+
+  .sk-navbar {
+    padding: 0 12px 0 16px;
+  }
+
+  .sk-nav-icons {
+    gap: 12px;
+  }
+
+  .sk-status {
+    left: 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk,
+  .sk *,
+  .sk *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .sk-road,
+  .sk-route-line {
+    stroke-dashoffset: 0;
+  }
+
+  .sk-emblem {
+    --sk-sweep: 360deg;
+  }
+
+  .sk-pin,
+  .sk-ping,
+  .sk-scan {
+    display: none;
+  }
 }
