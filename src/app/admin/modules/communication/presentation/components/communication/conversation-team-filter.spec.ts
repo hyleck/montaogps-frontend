@@ -42,6 +42,13 @@ describe('canParticipateInConversation', () => {
 });
 
 describe('conversation contact display names', () => {
+  it('preserves email fallbacks and leaves stored contact names unchanged', () => {
+    const conversation = { contact: { name: 'ANA-MARÍA PÉREZ' } };
+    expect(formatConversationDisplayName(conversation)).toBe('Ana-María Pérez');
+    expect(conversation.contact.name).toBe('ANA-MARÍA PÉREZ');
+    expect(formatConversationDisplayName({ contact: { name: 'SUPPORT@Example.COM' } })).toBe('SUPPORT@Example.COM');
+  });
+
   it('shows employee chats as normal full names in title case', () => {
     expect(formatConversationDisplayName({
       contact: {

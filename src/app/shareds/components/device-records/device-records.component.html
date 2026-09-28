@@ -66,7 +66,7 @@
                     </span>
                     <span>
                         <small *ngIf="record.actor.role">{{ record.actor.role }}</small>
-                        <b>{{ record.actor.name }}</b>
+                        <b>{{ record.actor.name | userName }}</b>
                     </span>
                 </footer>
             </article>

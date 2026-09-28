@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { getGpsLocationTimestamp, LastValidPositionCache } from 'src/app/shareds/helpers/gps-position.helper';
 // Angular imports
 import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
@@ -1407,7 +1408,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         name: target.name,
         imei: target.imei || target.device_imei,
         parentId: parentId, // This is now the ID from the URL
-        parentName: userName,
+        parentName: formatUserName(userName),
         addedAt: new Date().toISOString()
       };
       this.shortcuts.push(shortcut);
@@ -2666,22 +2667,22 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   private async getTargetOwnerName(ownerId: string, target: any): Promise<string> {
     if (this.selectedUser?._id === ownerId) {
-      return `${this.selectedUser.name || ''} ${this.selectedUser.last_name || ''}`.trim() || 'Usuario';
+      return formatUserName(`${this.selectedUser.name || ''} ${this.selectedUser.last_name || ''}`) || 'Usuario';
     }
 
     const originalTarget = target?.originalTarget || target || {};
     const directName = target?.parentName || originalTarget?.parentName || target?.user_name || originalTarget?.user_name;
     if (directName) {
-      return String(directName);
+      return formatUserName(directName);
     }
 
     const listedUser = this.users.find(user => user._id === ownerId);
     if (listedUser) {
-      return `${listedUser.name || ''} ${listedUser.last_name || ''}`.trim() || 'Usuario';
+      return formatUserName(`${listedUser.name || ''} ${listedUser.last_name || ''}`) || 'Usuario';
     }
 
     const owner = await lastValueFrom(this.userService.getById(ownerId));
-    return `${owner?.name || ''} ${owner?.last_name || ''}`.trim() || owner?.email || 'Usuario';
+    return formatUserName(`${owner?.name || ''} ${owner?.last_name || ''}`) || owner?.email || 'Usuario';
   }
 
   private normalizeOwnerLocation(
@@ -5208,7 +5209,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.messageService.add({
           severity: 'success',
           summary: this.translate.instant('management.userDeleted'),
-          detail: `${user.name} ${user.last_name}`,
+          detail: formatUserName(`${user.name} ${user.last_name}`),
           life: 3000
         });
       },
@@ -5813,7 +5814,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.messageService.add({
       severity: 'info',
       summary: 'Iniciando Transferencia',
-      detail: `Transfiriendo ${this.shortcuts.length} dispositivos a ${this.foundUserForTransfer.name}...`,
+      detail: `Transfiriendo ${this.shortcuts.length} dispositivos a ${formatUserName(this.foundUserForTransfer.name)}...`,
       life: 3000
     });
 
@@ -5844,7 +5845,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.messageService.add({
           severity: 'success',
           summary: 'Transferencia Exitosa',
-          detail: `Se han transferido ${successCount} objetivos a ${this.foundUserForTransfer.name} ${this.foundUserForTransfer.last_name || ''}`,
+          detail: `Se han transferido ${successCount} objetivos a ${formatUserName(`${this.foundUserForTransfer.name} ${this.foundUserForTransfer.last_name || ''}`)}`,
           life: 5000
         });
 
@@ -6424,7 +6425,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         .setLngLat([position.lng, position.lat])
         .addTo(this.userLocationMapInstance);
       this.userLocationMarker.getElement().title = this.selectedLocationUser
-        ? `${this.selectedLocationUser.name || ''} ${this.selectedLocationUser.last_name || ''}`.trim()
+        ? formatUserName(`${this.selectedLocationUser.name || ''} ${this.selectedLocationUser.last_name || ''}`)
         : 'Usuario';
 
       this.userLocationDialogLoading = false;
@@ -6805,7 +6806,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     const metadata = activity.metadata || {};
     const resource = String(metadata['resource'] || activity.route || activity.screen || '').toLowerCase();
     const targetName = this.cleanActivityText(metadata['targetName'] || metadata['target'] || metadata['deviceName']);
-    const userName = this.cleanActivityText(metadata['userName']);
+    const userName = formatUserName(this.cleanActivityText(metadata['userName']));
     const email = this.cleanActivityText(metadata['email']);
     const imei = this.cleanActivityText(metadata['imei']);
     const targetId = this.cleanActivityText(metadata['targetId'] || this.extractIdFromActivityRoute(activity.route));

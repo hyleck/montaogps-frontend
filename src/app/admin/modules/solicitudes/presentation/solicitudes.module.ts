@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { DeviceLabelInputDirective } from 'src/app/shareds/directives/device-label-input.directive';
 import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { NgModule } from '@angular/core';
@@ -13,6 +14,7 @@ import { InstallationLocationSelectComponent } from '../../../../shareds/compone
 @NgModule({
     declarations: [SolicitudesComponent, SolicitudAssistanceComponent],
     imports: [
+    UserNamePipe,
         DeviceLabelInputDirective,
         DeviceLabelPipe, CommonModule, FormsModule, TranslateModule, PrimengModule, SolicitudesRoutingModule, InstallationLocationSelectComponent
     ],

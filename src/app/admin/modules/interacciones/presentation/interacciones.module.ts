@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { DeviceLabelMessageService, DeviceLabelConfirmationService } from 'src/app/shareds/services/device-label-messages.service';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -13,6 +14,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
     InteraccionesComponent
   ],
   imports: [
+    UserNamePipe,
     CommonModule,
     FormsModule,
     InteraccionesRoutingModule,

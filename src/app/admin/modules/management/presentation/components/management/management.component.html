@@ -77,12 +77,12 @@
             <div class="management__user-control-header"
                 [class.management__user-control-header--no-assistance]="shouldShowNoAssistanceState(selectedUser)">
                 <div class="management__user-control-icon">
-                    <img *ngIf="selectedUser?.photo" [src]="selectedUser?.photo" [alt]="selectedUser?.name"
+                    <img *ngIf="selectedUser?.photo" [src]="selectedUser?.photo" [alt]="selectedUser?.name | userName"
                         class="user-control-photo">
                     <i *ngIf="!selectedUser?.photo" class="pi pi-user"></i>
                 </div>
                 <div class="management__user-control-title">
-                    <strong *ngIf="!loading">{{ selectedUser?.name }} {{ selectedUser?.last_name }}</strong>
+                    <strong *ngIf="!loading">{{ selectedUser?.name | userName }} {{ selectedUser?.last_name | userName }}</strong>
                     <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '150px', 'height': '24px' }"></p-skeleton>
                 </div>
                 <div class="management__user-control-subtitle">
@@ -184,7 +184,7 @@
                                         <i class="pi pi-check"></i>
                                     </span>
                                     <div class="management__user-card-title">
-                                        <strong>{{ user.name }} {{ user.last_name }}</strong>
+                                        <strong>{{ user.name | userName }} {{ user.last_name | userName }}</strong>
 
                                     </div>
                                     <div class="management__user-card-subtitle"><span>{{ user.email }}</span></div>
@@ -637,14 +637,13 @@
                     Cuenta principal
                 </span>
                 <div class="management__card-user-img">
-                    <img *ngIf="selectedUser?.photo" [src]="selectedUser?.photo" [alt]="selectedUser?.name"
+                    <img *ngIf="selectedUser?.photo" [src]="selectedUser?.photo" [alt]="selectedUser?.name | userName"
                         class="card-user-photo">
                     <i *ngIf="!selectedUser?.photo" class="pi pi-user"></i>
                 </div>
                 <div class="management__user-title">
                     <strong *ngIf="!loading"
-                        [title]="((selectedUser?.name || '') + ' ' + (selectedUser?.last_name || '')).trim()">{{
-                        selectedUser?.name }} {{ selectedUser?.last_name }}</strong>
+                        [title]="((selectedUser?.name || '') + ' ' + (selectedUser?.last_name || '')) | userName">{{ selectedUser?.name | userName }} {{ selectedUser?.last_name | userName }}</strong>
                     <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '150px', 'height': '24px' }"></p-skeleton>
                 </div>
                 <div class="management__user-subtitle management__user-email">
@@ -774,12 +773,12 @@
                                 <i class="pi pi-check"></i>
                             </span>
                             <div class="management__user-card-icon">
-                                <img *ngIf="user.photo" [src]="user.photo" [alt]="user.name" class="user-card-image">
+                                <img *ngIf="user.photo" [src]="user.photo" [alt]="user.name | userName" class="user-card-image">
                                 <i *ngIf="!user.photo" class="pi"
                                     [ngClass]="isSharedUser(user) ? 'pi-share-alt' : 'pi-user'"></i>
                             </div>
                             <div class="management__user-card-title">
-                                <strong>{{ user.name }} {{ user.last_name }}</strong>
+                                <strong>{{ user.name | userName }} {{ user.last_name | userName }}</strong>
 
                             </div>
                             <div class="management__user-card-subtitle"> <span>{{ user.email }}</span> </div>
@@ -1396,7 +1395,7 @@
                 <div class="support-access-dialog__body" *ngIf="supportAccessTarget">
                     <div class="support-access-dialog__target">
                         <span>Cuenta que abrirás</span>
-                        <strong>{{ supportAccessTarget.name }} {{ supportAccessTarget.last_name }}</strong>
+                        <strong>{{ supportAccessTarget.name | userName }} {{ supportAccessTarget.last_name | userName }}</strong>
                         <small>{{ supportAccessTarget.email }}</small>
                     </div>
 
@@ -1572,7 +1571,7 @@
                     inputStyleClass="registration-parent-autocomplete__input">
                     <ng-template let-user pTemplate="item">
                         <div class="registration-parent-suggestion">
-                            <strong>{{ user.name }} {{ user.last_name }}</strong>
+                            <strong>{{ user.name | userName }} {{ user.last_name | userName }}</strong>
                             <small>{{ user.email }}<span *ngIf="user.phone"> · {{ user.phone }}</span></small>
                         </div>
                     </ng-template>
@@ -1641,7 +1640,7 @@
                     <h3 style="margin: 0 0 4px; font-size: 18px;">Transferencia completada</h3>
                     <p style="margin: 0; color: var(--globalColorTextMuted); line-height: 1.35;">
                         Se transfirieron {{ transferCreatedAccountSuccessCount }} dispositivos a
-                        <strong>{{ transferCreatedAccountUser?.name }} {{ transferCreatedAccountUser?.last_name || '' }}</strong>.
+                        <strong>{{ transferCreatedAccountUser?.name | userName }} {{ (transferCreatedAccountUser?.last_name | userName) || '' }}</strong>.
                     </p>
                     <p *ngIf="transferCreatedAccountErrorCount > 0"
                         style="margin: 6px 0 0; color: #f59e0b; line-height: 1.35;">
@@ -1860,14 +1859,14 @@
             class="floating-contact-preview floating-contact-preview--reminder" aria-live="assertive">
             <button type="button" class="floating-contact-preview__open"
                 (click)="openFloatingAssignedCommunicationChat(reminder.conversationId)"
-                [attr.aria-label]="'Abrir el zumbido de ' + reminder.contactName">
+                [attr.aria-label]="'Abrir el zumbido de ' + (reminder.contactName | userName)">
                 <span class="floating-contact-preview__avatar floating-contact-preview__avatar--reminder">
                     <i class="pi pi-bell"></i>
                 </span>
                 <span class="floating-contact-preview__content">
                     <small><i class="pi pi-bell"></i> Zumbido de recordatorio</small>
-                    <strong>{{ reminder.senderName }} te envió un aviso</strong>
-                    <span>{{ reminder.contactName }} espera una respuesta</span>
+                    <strong>{{ reminder.senderName | userName }} te envió un aviso</strong>
+                    <span>{{ reminder.contactName | userName }} espera una respuesta</span>
                     <em>Haz clic para abrir esta conversación</em>
                 </span>
             </button>
@@ -1882,11 +1881,11 @@
             class="floating-contact-preview" aria-live="polite">
             <button type="button" class="floating-contact-preview__open"
                 (click)="openFloatingAssignedCommunicationChat(preview.conversationId)"
-                [attr.aria-label]="'Abrir el nuevo mensaje de ' + preview.contactName">
+                [attr.aria-label]="'Abrir el nuevo mensaje de ' + (preview.contactName | userName)">
                 <span class="floating-contact-preview__avatar">
                     <img *ngIf="isImageAvailable(preview.avatar); else previewContactInitials"
                         [src]="preview.avatar"
-                        [alt]="'Foto de ' + preview.contactName"
+                        [alt]="'Foto de ' + (preview.contactName | userName)"
                         (error)="handleImageLoadError(preview.avatar)">
                     <ng-template #previewContactInitials>
                         {{ getAssignedCommunicationInitials(preview.contactName) }}
@@ -1894,7 +1893,7 @@
                 </span>
                 <span class="floating-contact-preview__content">
                     <small><i class="pi pi-comment"></i> Nuevo mensaje</small>
-                    <strong>{{ preview.contactName }}</strong>
+                    <strong>{{ preview.contactName | userName }}</strong>
                     <span>{{ preview.message }}</span>
                     <em>Haz clic para abrir la conversación</em>
                 </span>
@@ -1909,16 +1908,16 @@
         <button type="button" class="floating-contact-btn"
             [class.floating-contact-btn--buzzing]="assignedCommunicationReminderBuzzing"
             (click)="openFloatingAssignedCommunicationChat()"
-            [title]="'Abrir conversación con ' + assignedChat.contactName"
-            [attr.aria-label]="'Abrir conversación con ' + assignedChat.contactName">
+            [title]="'Abrir conversación con ' + (assignedChat.contactName | userName)"
+            [attr.aria-label]="'Abrir conversación con ' + (assignedChat.contactName | userName)">
             <span class="floating-contact-btn__avatar">
                 <img *ngIf="isImageAvailable(assignedChat.avatar); else assignedContactInitials"
                     [src]="assignedChat.avatar"
-                    [alt]="'Foto de ' + assignedChat.contactName"
+                    [alt]="'Foto de ' + (assignedChat.contactName | userName)"
                     (error)="handleImageLoadError(assignedChat.avatar)">
                 <ng-template #assignedContactInitials>{{ primaryAssignedCommunicationInitials }}</ng-template>
             </span>
-            <span>{{ primaryAssignedCommunicationFirstName }}</span>
+            <span>{{ primaryAssignedCommunicationFirstName | userName }}</span>
             <strong *ngIf="assignedCommunicationUnreadCount > 0" class="floating-contact-btn__badge">
                 {{ assignedCommunicationUnreadCount > 99 ? '99+' : assignedCommunicationUnreadCount }}
             </strong>
@@ -2092,8 +2091,7 @@
             style="background-color: var(--globalColorPanelBackground); border-radius: 4px; border: 1px solid var(--globalColorBorder);">
             <h4 class="p-m-0 p-mb-2">Usuario Encontrado</h4>
             <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span><strong>Nombre:</strong> {{foundUserForTransfer.name}} {{foundUserForTransfer.last_name ||
-                    ''}}</span>
+                <span><strong>Nombre:</strong> {{ foundUserForTransfer.name | userName }} {{ foundUserForTransfer.last_name | userName }}</span>
                 <span><strong>Correo:</strong> {{foundUserForTransfer.email}}</span>
                 <span *ngIf="foundUserForTransfer.phone"><strong>Teléfono:</strong>
                     {{foundUserForTransfer.phone}}</span>
@@ -2123,7 +2121,7 @@
 
 <!-- Chat Dialog -->
 <p-dialog [(visible)]="chatDialogVisible" [modal]="true" [style]="{width: '450px', height: '550px'}"
-    [header]="chatUser ? ('Chat con ' + chatUser.name + ' ' + (chatUser.last_name || '')) : 'Chat'"
+    [header]="chatUser ? ('Chat con ' + ((chatUser.name + ' ' + (chatUser.last_name || '')) | userName)) : 'Chat'"
     styleClass="app-dark-dialog" appendTo="body" (onHide)="closeChatDialog()">
 
     <div style="display: flex; flex-direction: column; height: 100%; min-height: 380px;">
@@ -2176,7 +2174,7 @@
         <span><i class="pi pi-arrows-h"></i> Transferir usuario</span>
     </ng-template>
     <div *ngIf="userBranchToTransfer">
-        <p>Transferirás a <strong>{{ userBranchToTransfer.name }} {{ userBranchToTransfer.last_name }}</strong> a otra cuenta.</p>
+        <p>Transferirás a <strong>{{ userBranchToTransfer.name | userName }} {{ userBranchToTransfer.last_name | userName }}</strong> a otra cuenta.</p>
         <label for="transfer-user-branch-email">Correo de la cuenta destino</label>
         <div class="p-inputgroup management__transfer-user-search" style="margin-top: 8px;">
             <input id="transfer-user-branch-email" pInputText type="email"
@@ -2194,7 +2192,7 @@
             <div class="management__transfer-user-found-icon"><i class="pi pi-check"></i></div>
             <div class="management__transfer-user-found-content">
                 <span>Cuenta encontrada</span>
-                <strong>{{ transferUserBranchFoundParent.name }} {{ transferUserBranchFoundParent.last_name || '' }}</strong>
+                <strong>{{ transferUserBranchFoundParent.name | userName }} {{ (transferUserBranchFoundParent.last_name | userName) || '' }}</strong>
                 <small><i class="pi pi-envelope"></i>{{ transferUserBranchFoundParent.email }}</small>
             </div>
         </div>
@@ -2215,7 +2213,7 @@
         <div class="user-location-dialog__header">
             <i class="pi pi-map-marker"></i>
             <div>
-                <strong>{{ selectedLocationUser.name }} {{ selectedLocationUser.last_name }}</strong>
+                <strong>{{ selectedLocationUser.name | userName }} {{ selectedLocationUser.last_name | userName }}</strong>
                 <span *ngIf="selectedLocationUser">Activo {{ getUserActiveAgo(selectedLocationUser) }}</span>
             </div>
         </div>

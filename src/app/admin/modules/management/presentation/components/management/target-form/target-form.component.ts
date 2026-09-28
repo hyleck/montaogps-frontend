@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges, OnDestroy, ViewChild, ElementRef, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { MessageService } from 'primeng/api';
@@ -5581,7 +5582,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         const id = String(
             side === 'from' ? entry.from_user_id : entry.to_user_id
         ).trim();
-        return name || email || (id ? `Cuenta ${id}` : 'Cuenta no disponible');
+        return formatUserName(name) || email || (id ? `Cuenta ${id}` : 'Cuenta no disponible');
     }
 
     getTransferAccountEmail(
@@ -5595,7 +5596,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     getTransferActorLabel(entry: TargetTransferHistoryEntry): string {
         return String(
-            entry.transferred_by_name
+            formatUserName(entry.transferred_by_name)
             || entry.transferred_by_email
             || (entry.source === 'solicitud' ? 'Proceso de solicitud' : '')
             || (entry.source === 'registration_link' ? 'Registro de cuenta' : '')

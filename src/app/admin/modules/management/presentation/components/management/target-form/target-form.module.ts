@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { DeviceLabelInputDirective } from 'src/app/shareds/directives/device-label-input.directive';
 import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { NgModule } from '@angular/core';
@@ -16,6 +17,7 @@ import { DeviceRecordsComponent } from '../../../../../../../shareds/components/
     TargetFormComponent
   ],
   imports: [
+    UserNamePipe,
     DeviceLabelInputDirective,
     DeviceLabelPipe,
     CommonModule,

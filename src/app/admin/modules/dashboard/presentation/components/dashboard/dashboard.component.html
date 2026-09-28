@@ -3,7 +3,7 @@
 
     <!-- Panel Flotante Overlay -->
     <div class="map-overlay-panel glass-panel">
-        <h2 class="overlay-title">Bienvenido, {{ currentUser?.name || 'Usuario' }}</h2>
+        <h2 class="overlay-title">Bienvenido, {{ (currentUser?.name | userName) || 'Usuario' }}</h2>
         <p class="overlay-subtitle" *ngIf="isEmployee">Operaciones Globales | Modo Administrativo</p>
         <p class="overlay-subtitle" *ngIf="!isEmployee">Visualización de Flota | Modo Cliente</p>
 

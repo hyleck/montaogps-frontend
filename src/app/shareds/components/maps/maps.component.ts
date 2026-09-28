@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { getGpsLocationTimestamp, getValidGpsPosition, LastValidPositionCache } from '../../helpers/gps-position.helper';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import { Component, OnInit, OnChanges, OnDestroy, SimpleChanges, Input, Output, EventEmitter } from '@angular/core';
@@ -1603,13 +1604,13 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private getParentUserMarkerLabel(): string {
-    const name = this.parentUserLocation?.name || 'Usuario';
+    const name = formatUserName(this.parentUserLocation?.name) || 'Usuario';
     const relativeTime = this.getRelativeLocationAge(this.parentUserLocation?.recordedAt);
     return relativeTime ? `${name} · ${relativeTime}` : name;
   }
 
   private getOwnerNearTargetText(): string {
-    const name = this.getFirstName(this.parentUserLocation?.name || 'Usuario');
+    const name = this.getFirstName(formatUserName(this.parentUserLocation?.name) || 'Usuario');
     const relativeTime = this.getRelativeLocationAge(this.parentUserLocation?.recordedAt);
     const minutesAgo = this.getLocationAgeMinutes(this.parentUserLocation?.recordedAt);
 
@@ -1696,7 +1697,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private getParentUserPopupHtml(): string {
-    const name = this.escapeHtml(this.parentUserLocation?.name || 'Usuario');
+    const name = this.escapeHtml(formatUserName(this.parentUserLocation?.name) || 'Usuario');
     const relativeTime = this.escapeHtml(this.getRelativeLocationAge(this.parentUserLocation?.recordedAt) || 'sin fecha registrada');
     return `
       <div style="font-size: 12px; line-height: 1.3; color: #111; min-width: 160px; padding: 6px 8px;">

@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -8,6 +9,7 @@ import { EsterRoutingModule } from './ester-routing.module';
 @NgModule({
   declarations: [EsterComponent],
   imports: [
+    UserNamePipe,
     CommonModule,
     FormsModule,
     PrimengModule,

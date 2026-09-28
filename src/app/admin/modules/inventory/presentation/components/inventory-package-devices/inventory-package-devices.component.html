@@ -197,8 +197,8 @@
                   </span>
                   <small class="package-device-reservation-owner"
                     *ngIf="isDeviceClientReservation(device) && device.reservation_client_name"
-                    [title]="device.reservation_client_name">
-                    Para {{ device.reservation_client_name }}
+                    [title]="device.reservation_client_name | userName">
+                    Para {{ device.reservation_client_name | userName }}
                   </small>
                   <span class="package-device-status package-device-status--available"
                     *ngIf="!isDeviceInstalled(device) && !isDeviceInActivation(device) && !isDeviceInspectionRequired(device)">

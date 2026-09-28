@@ -245,7 +245,7 @@
       <div class="technician-work-list" *ngIf="technicianWork.technicians.length; else noTechnicianWork">
         <div class="technician-work-row" *ngFor="let technician of technicianWork.technicians">
           <div class="technician-work-row__header">
-            <strong>{{ technician.technician }}</strong>
+            <strong>{{ technician.technician | userName }}</strong>
             <div class="technician-work-row__meta">
               <span [class]="getHealthClass(technician.installationPercent)">
                 <i [class]="getHealthIcon(technician.installationPercent)"></i>

@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -10,6 +11,7 @@ import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.mod
     MetricsComponent
   ],
   imports: [
+    UserNamePipe,
     CommonModule,
     FormsModule,
     MetricsRoutingModule,

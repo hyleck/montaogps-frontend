@@ -203,8 +203,8 @@
                         </td>
                         <td>
                             <div class="process-people">
-                                <span title="Empleado"><i class="pi pi-user-edit"></i>{{ getCreatorName(process.creator) | titlecase }}</span>
-                                <span title="Técnico"><i class="pi pi-wrench"></i>{{ getTechnicianName(process) | titlecase }}</span>
+                                <span title="Empleado"><i class="pi pi-user-edit"></i>{{ getCreatorName(process.creator) | userName }}</span>
+                                <span title="Técnico"><i class="pi pi-wrench"></i>{{ getTechnicianName(process) | userName }}</span>
                             </div>
                         </td>
                         <td>
@@ -270,13 +270,13 @@
                     <div class="installation-people" aria-label="Cliente y técnico" aria-live="polite">
                         <div data-person-role="client">
                             <span>Cliente actual</span>
-                            <strong>{{ installationOwnershipLoading ? 'Cargando cliente…' : installationCurrentClient?.fullName || 'No disponible' }}</strong>
+                            <strong>{{ installationOwnershipLoading ? 'Cargando cliente…' : (installationCurrentClient?.fullName | userName) || 'No disponible' }}</strong>
                         </div>
                         <div data-person-role="subclient" *ngIf="installationCurrentSubclient as subclient">
-                            <span>Subcliente actual</span><strong>{{ subclient.fullName }}</strong>
+                            <span>Subcliente actual</span><strong>{{ subclient.fullName | userName }}</strong>
                         </div>
                         <div data-person-role="account" *ngIf="installationCurrentAccount && !installationCurrentClient && !installationCurrentSubclient">
-                            <span>Cuenta propietaria</span><strong>{{ installationCurrentAccount.fullName }}</strong>
+                            <span>Cuenta propietaria</span><strong>{{ installationCurrentAccount.fullName | userName }}</strong>
                         </div>
                         <div data-person-role="technician">
                             <span>Técnico de la instalación</span><strong>{{ installationTechnicianName }}</strong>
@@ -398,7 +398,7 @@
                     </div>
                     <dl class="detail-data-list">
                         <div><dt>Cliente</dt><dd>{{ getClientName(selectedProcess) }}</dd></div>
-                        <div><dt>Usuario</dt><dd>{{ selectedProcess.user.name || selectedProcess.user.email || '-' }}</dd></div>
+                        <div><dt>Usuario</dt><dd>{{ (selectedProcess.user.name | userName) || selectedProcess.user.email || '-' }}</dd></div>
                         <div><dt>Empleado</dt><dd>{{ getCreatorName(selectedProcess.creator) }}</dd></div>
                         <div><dt>Técnico</dt><dd>{{ isInstallationProcess ? installationTechnicianName : getTechnicianName(selectedProcess) }}</dd></div>
                     </dl>

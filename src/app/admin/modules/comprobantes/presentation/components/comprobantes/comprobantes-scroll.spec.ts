@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { FormsModule } from '@angular/forms';
 import { of } from 'rxjs';
 import {
@@ -34,7 +35,7 @@ describe('Comprobantes table layout', () => {
     getAll = jasmine.createSpy('getAll').and.returnValue(of({ data: receipts, total: 61 }));
     await TestBed.configureTestingModule({
       declarations: [ComprobantesComponent],
-      imports: [CommonModule, FormsModule],
+      imports: [CommonModule, FormsModule, UserNamePipe],
       providers: [
         { provide: AuthService, useValue: { getCurrentUser: () => ({ root: true }) } },
         { provide: ExpenseReceiptsService, useValue: {

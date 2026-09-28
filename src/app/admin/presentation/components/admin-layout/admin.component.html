@@ -12,7 +12,7 @@
                     <span>Modo soporte</span>
                 </div>
                 <div class="support-session-banner__account">
-                    Estás viendo <strong>{{ supportImpersonation.targetName || supportImpersonation.currentUser?.email }}</strong>
+                    Estás viendo <strong>{{ supportImpersonation.targetName ? (supportImpersonation.targetName | userName) : supportImpersonation.currentUser?.email }}</strong>
                     <span *ngIf="supportImpersonation.targetEmail">· {{ supportImpersonation.targetEmail }}</span>
                 </div>
                 <div class="support-session-banner__audit">
@@ -47,7 +47,7 @@
             <i class="pi" [ngClass]="floatingMessage.source === 'internal' ? 'pi-users' : 'pi-comment'"></i>
             {{ floatingMessage.source === 'internal' ? (floatingMessage.contactPhone || 'Grupo') : 'Nuevo mensaje' }}
         </div>
-        <div class="chat-floating-card__name">{{ floatingMessage.contactName }}</div>
+        <div class="chat-floating-card__name">{{ floatingMessage.contactName | userName }}</div>
         <div class="chat-floating-card__phone" *ngIf="floatingMessage.contactPhone">{{ floatingMessage.contactPhone }}</div>
         <div class="chat-floating-card__message">{{ floatingMessage.message }}</div>
     </div>

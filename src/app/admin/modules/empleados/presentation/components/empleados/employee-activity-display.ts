@@ -1,4 +1,5 @@
 import { UserActivity } from '../../../../../../core/services/user-activity.service';
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 
 export interface GroupedEmployeeActivity extends UserActivity {
   groupCount: number;
@@ -89,7 +90,7 @@ export function getEmployeeActivityDetail(
 
   const metadata = activity.metadata || {};
   const targetName = cleanText(
-    metadata['targetName'] || metadata['deviceName'] || metadata['userName'],
+    metadata['targetName'] || metadata['deviceName'] || formatUserName(metadata['userName']),
   );
   const email = cleanText(metadata['email']);
   const imei = cleanText(metadata['imei']);

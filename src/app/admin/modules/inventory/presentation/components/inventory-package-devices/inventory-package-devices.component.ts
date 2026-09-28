@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { INVENTORY_TUTORIALS } from '../../../../management/presentation/components/management-tutorial/management-tutorial.data';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import { DeviceLabelMessageService, DeviceLabelConfirmationService } from 'src/app/shareds/services/device-label-messages.service';
@@ -42,7 +43,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   auditUserLabel(user: any): string {
     if (!user || typeof user !== 'object') return 'No registrado';
     const fullName = `${user.name || ''} ${user.last_name || ''}`.trim();
-    return fullName || user.email || 'No registrado';
+    return formatUserName(fullName) || user.email || 'No registrado';
   }
 
   packageDevices: InventoryItem[] = [];

@@ -67,7 +67,7 @@ describe('CommunicationNotificationService sidebar badge', () => {
 
     expect(assignedChats.map(chat => chat.conversationId)).toEqual([10]);
     expect(assignedChats[0]).toEqual(jasmine.objectContaining({
-      contactName: 'Cliente asignado',
+      contactName: 'Cliente Asignado',
       avatar: 'https://media.montao.net/users/cliente.jpg',
       unreadCount: 2,
     }));
@@ -220,7 +220,7 @@ describe('CommunicationNotificationService sidebar badge', () => {
     expect(previews).toEqual([
       jasmine.objectContaining({
         conversationId: 30,
-        contactName: 'Cliente asignado',
+        contactName: 'Cliente Asignado',
         avatar: 'https://media.montao.net/users/cliente.jpg',
         message: 'Necesito ayuda con mi GPS',
       }),
@@ -257,7 +257,7 @@ describe('CommunicationNotificationService sidebar badge', () => {
 
     expect(preview).toEqual(jasmine.objectContaining({
       conversationId: 40,
-      contactName: 'Cliente reciente',
+      contactName: 'Cliente Reciente',
       message: 'Mensaje pendiente',
     }));
     (service as any).clearFloatingMessage();

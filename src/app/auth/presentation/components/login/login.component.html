@@ -111,14 +111,14 @@
         </div>
         <div class="login__info-contacts">
           <div class="login__info-contact animated flip infinite" *ngIf="systemContacts.length > 0">
-            <strong>{{ systemContacts[0].name }}</strong>
+            <strong>{{ systemContacts[0].name | userName }}</strong>
             <a [href]="getContactLink(systemContacts[0])" target="_blank">
               <i class="pi" [ngClass]="getContactIcon(systemContacts[0])"></i>
               <span>{{ systemContacts[0].value }}</span>
             </a>
           </div>
           <div class="login__info-contact" *ngFor="let contact of systemContacts.slice(1)">
-            <strong>{{ contact.name }}</strong>
+            <strong>{{ contact.name | userName }}</strong>
             <a [href]="getContactLink(contact)" target="_blank">
               <i class="pi" [ngClass]="getContactIcon(contact)"></i>
               <span>{{ contact.value }}</span>

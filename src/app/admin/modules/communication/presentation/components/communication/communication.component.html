@@ -469,7 +469,7 @@
                                 <header class="comm-shared-contact__header">
                                     <span class="comm-shared-contact__avatar">{{ getSharedContactInitials(contact) }}</span>
                                     <span class="comm-shared-contact__identity">
-                                        <strong>{{ contact.name || 'Contacto compartido' }}</strong>
+                                        <strong>{{ (contact.name || 'Contacto compartido') | userName }}</strong>
                                         <small *ngIf="contact.organization?.company || contact.organization?.title">
                                             {{ contact.organization?.title }}{{ contact.organization?.title && contact.organization?.company ? ' · ' : '' }}{{ contact.organization?.company }}
                                         </small>
@@ -628,13 +628,13 @@
                             title="Este mensaje ya recibió feedback">
                             <i class="pi pi-check-circle"></i>
                             <span>
-                                <strong>Feedback dado por {{ savedFeedback.submitted_by_name || 'Usuario root' }}:</strong>
+                                <strong>Feedback dado por {{ (savedFeedback.submitted_by_name || 'Usuario root') | userName }}:</strong>
                                 {{ savedFeedback.feedback }}
                             </span>
                         </div>
                         <span *ngIf="msg.reaction?.emoji"
                             class="comm-message__reaction"
-                            [title]="'Reacción de ' + (msg.reaction?.sender || 'Ester Assistant')">
+                            [title]="'Reacción de ' + ((msg.reaction?.sender || 'Ester Assistant') | userName)">
                             {{ msg.reaction?.emoji }}
                         </span>
                     </div>
@@ -1182,7 +1182,7 @@
                         <img *ngIf="getUsableAvatarUrl(group.technician?.photo) as avatarUrl"
                             [src]="avatarUrl"
                             (error)="onAvatarImageError(avatarUrl)"
-                            [alt]="group.name" />
+                            [alt]="getTeamEntryName(group)" />
                         <i *ngIf="!getUsableAvatarUrl(group.technician?.photo)"
                             class="pi"
                             [ngClass]="group.type === 'admin' ? 'pi-building' : 'pi-wrench'"></i>
@@ -1209,7 +1209,7 @@
                                     class="comm-group-contact__clean"
                                     [disabled]="!!clearingInternalGroupId"
                                     [attr.aria-label]="'Limpiar conversación ' + group.name"
-                                    [title]="'Limpiar ' + group.name"
+                                    [title]="'Limpiar ' + getTeamEntryName(group)"
                                     (click)="confirmClearInternalGroup(group, $event)">
                                     <i class="pi"
                                         [ngClass]="clearingInternalGroupId === group.id ? 'pi-spin pi-spinner' : 'pi-eraser'"></i>
@@ -2226,7 +2226,7 @@
       </span>
       <div>
         <h3>GPS con nosotros</h3>
-        <p>{{ gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')).trim() : 'Cliente' }}</p>
+        <p>{{ (gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')).trim() : 'Cliente') | userName }}</p>
       </div>
     </div>
   </ng-template>

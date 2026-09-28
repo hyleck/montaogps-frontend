@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UserFormComponent } from './user-form.component';
@@ -20,6 +21,7 @@ import { PrimengModule } from '../../../../../../../shareds/libraries/primeng/pr
     UserFormComponent
   ],
   imports: [
+    UserNamePipe,
     CommonModule,
     TabViewModule,
     AccordionModule,

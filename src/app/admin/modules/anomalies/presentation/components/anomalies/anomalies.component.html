@@ -80,7 +80,7 @@
 
         <div class="anomaly-records" *ngIf="anomaly.records?.length">
           <div class="anomaly-record" *ngFor="let record of anomaly.records">
-            <strong>{{ getRecordTitle(record) }}</strong>
+            <strong>{{ getRecordTitle(record, anomaly.category) }}</strong>
             <span>{{ getRecordDetail(record) }}</span>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { DeviceLabelConfirmationService, DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
 import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { NgModule } from '@angular/core';
@@ -21,6 +22,7 @@ import { ManagementTutorialComponent } from './components/management-tutorial/ma
     ManagementComponent
   ],
   imports: [
+    UserNamePipe,
     DeviceLabelPipe,
     CommonModule,
     FormsModule,

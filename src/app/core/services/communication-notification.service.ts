@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subject, Subscription, forkJoin, interval, of } from 'rxjs';
 import { catchError, filter, map, switchMap } from 'rxjs/operators';
@@ -340,7 +341,7 @@ export class CommunicationNotificationService implements OnDestroy {
       ))
       .map(conversation => ({
         conversationId: Number(conversation.id),
-        contactName: conversation.contact?.name
+        contactName: formatUserName(conversation.contact?.name)
           || conversation.contact?.phone
           || 'Contacto sin nombre',
         contactPhone: conversation.contact?.phone || '',
@@ -703,7 +704,7 @@ export class CommunicationNotificationService implements OnDestroy {
     this.publishFloatingMessage({
       source: 'whatsapp',
       conversationId: Number(conversation.id),
-      contactName: conversation.contact?.name || conversation.contact?.phone || 'Contacto sin nombre',
+      contactName: formatUserName(conversation.contact?.name) || conversation.contact?.phone || 'Contacto sin nombre',
       contactPhone: conversation.contact?.phone || '',
       avatar: conversation.contact?.avatar || '',
       message: conversation.last_message || 'Nuevo mensaje recibido',
@@ -807,6 +808,6 @@ export class CommunicationNotificationService implements OnDestroy {
   private getInternalAuthorName(message: InternalChatMessage): string {
     const author = message?.author;
     const fullName = `${author?.name || ''} ${author?.last_name || ''}`.trim();
-    return fullName || author?.email || 'Empleado';
+    return formatUserName(fullName) || author?.email || 'Empleado';
   }
 }

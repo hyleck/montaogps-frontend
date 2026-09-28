@@ -14,8 +14,8 @@
             <i class="pi pi-bolt"></i>
             Solicitud iniciada
         </div>
-        <div class="sol-started-toast__title">{{ toast.technicianName }} inició el trabajo</div>
-        <div class="sol-started-toast__client">{{ toast.clientName }} · {{ toast.typeLabel }}</div>
+        <div class="sol-started-toast__title">{{ toast.technicianName | userName }} inició el trabajo</div>
+        <div class="sol-started-toast__client">{{ toast.clientName | userName }} · {{ toast.typeLabel }}</div>
         <div class="sol-started-toast__device">{{ toast.deviceLabel | deviceLabel }}</div>
     </div>
 </div>
@@ -534,7 +534,7 @@
                         <span class="sol-request-unlocked-badge"
                             *ngIf="!isSolicitudLocked(sol) && sol.unlocked_by_name"
                             [pTooltip]="getSolicitudUnlockTooltip(sol)" tooltipPosition="top">
-                            <i class="pi pi-lock-open"></i> Desbloqueada por {{ sol.unlocked_by_name }}
+                            <i class="pi pi-lock-open"></i> Desbloqueada por {{ sol.unlocked_by_name | userName }}
                         </span>
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="isPendingAcceptanceLoading(sol) ? 'pi pi-spin pi-spinner' : getStatusIcon(sol.status)"></i>
@@ -679,7 +679,7 @@
                         <span class="sol-request-unlocked-badge"
                             *ngIf="!isSolicitudLocked(sol) && sol.unlocked_by_name"
                             [pTooltip]="getSolicitudUnlockTooltip(sol)" tooltipPosition="top">
-                            <i class="pi pi-lock-open"></i> Desbloqueada por {{ sol.unlocked_by_name }}
+                            <i class="pi pi-lock-open"></i> Desbloqueada por {{ sol.unlocked_by_name | userName }}
                         </span>
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
@@ -811,7 +811,7 @@
                         <span class="sol-request-unlocked-badge"
                             *ngIf="!isSolicitudLocked(sol) && sol.unlocked_by_name"
                             [pTooltip]="getSolicitudUnlockTooltip(sol)" tooltipPosition="top">
-                            <i class="pi pi-lock-open"></i> Desbloqueada por {{ sol.unlocked_by_name }}
+                            <i class="pi pi-lock-open"></i> Desbloqueada por {{ sol.unlocked_by_name | userName }}
                         </span>
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
@@ -951,7 +951,7 @@
                     <span class="sol-request-unlocked-badge"
                         *ngIf="!isSolicitudLocked(sol) && sol.unlocked_by_name"
                         [pTooltip]="getSolicitudUnlockTooltip(sol)" tooltipPosition="top">
-                        <i class="pi pi-lock-open"></i> Desbloqueada por {{ sol.unlocked_by_name }}
+                        <i class="pi pi-lock-open"></i> Desbloqueada por {{ sol.unlocked_by_name | userName }}
                     </span>
                     <span *ngIf="sol.installations && sol.installations.length > 1" class="sol-closed-count">
                         {{ sol.installations.length }} procesos
@@ -1688,7 +1688,7 @@
                 <section class="sol-correction-audit" *ngIf="getLatestProcessCorrection(installation) as latestCorrection">
                     <span class="sol-correction-audit__icon"><i class="pi pi-history"></i></span>
                     <div>
-                        <strong>Última corrección realizada por {{ latestCorrection.corrected_by_name }}</strong>
+                        <strong>Última corrección realizada por {{ latestCorrection.corrected_by_name | userName }}</strong>
                         <small>
                             {{ latestCorrection.corrected_at | date: 'dd/MM/yyyy, h:mm a' }}
                             · {{ latestCorrection.changed_fields.length }} campo(s) modificado(s)
@@ -1700,7 +1700,7 @@
                 <section class="sol-office-completion-audit" *ngIf="installation.completion_source === 'office'">
                     <span class="sol-office-completion-audit__icon"><i class="pi pi-building"></i></span>
                     <div>
-                        <strong>Finalizado desde oficina por {{ installation.completed_by_name || 'un empleado administrativo' }}</strong>
+                        <strong>Finalizado desde oficina por {{ (installation.completed_by_name | userName) || 'un empleado administrativo' }}</strong>
                         <small>
                             {{ installation.completed_at | date: 'dd/MM/yyyy, h:mm a' }}
                             <ng-container *ngIf="installation.completed_by_email"> · {{ installation.completed_by_email }}</ng-container>
@@ -2198,7 +2198,7 @@
                 <span class="sol-process-move__source-icon"><i class="pi pi-file-edit"></i></span>
                 <div>
                     <small>PROCESO QUE SE VA A MOVER</small>
-                    <strong>{{ getInstallationEntityName(sourceProcess) }} #{{ processDetailsIndex + 1 }} · {{ sourceSolicitud.client_name }}</strong>
+                    <strong>{{ getInstallationEntityName(sourceProcess) }} #{{ processDetailsIndex + 1 }} · {{ sourceSolicitud.client_name | userName }}</strong>
                     <span>
                         <ng-container *ngIf="getProcessMoveIdentifier(sourceProcess) as identifier">{{ identifier }}</ng-container>
                         <ng-container *ngIf="sourceProcess.target_name"> · {{ sourceProcess.target_name }}</ng-container>
@@ -2244,14 +2244,14 @@
                     <article class="sol-process-move__candidate" *ngFor="let candidate of processMoveCandidates">
                         <header>
                             <div>
-                                <strong>{{ candidate.client_name }}</strong>
+                                <strong>{{ candidate.client_name | userName }}</strong>
                                 <span>{{ candidate.type_label }} · {{ candidate.status | titlecase }}</span>
                             </div>
                             <small>{{ candidate.created_at | date: 'dd/MM/yyyy, h:mm a' }}</small>
                         </header>
                         <div class="sol-process-move__candidate-meta">
                             <span><i class="pi pi-hashtag"></i>{{ candidate.solicitud_id }}</span>
-                            <span *ngIf="candidate.mechanic_name"><i class="pi pi-user"></i>{{ candidate.mechanic_name }}</span>
+                            <span *ngIf="candidate.mechanic_name"><i class="pi pi-user"></i>{{ candidate.mechanic_name | userName }}</span>
                         </div>
                         <div class="sol-process-move__slots">
                             <button type="button" *ngFor="let slot of candidate.slots"
@@ -2278,13 +2278,13 @@
                     <div class="sol-process-move__route">
                         <article>
                             <small>SALE DE</small>
-                            <strong>{{ preview.source.client_name }}</strong>
+                            <strong>{{ preview.source.client_name | userName }}</strong>
                             <span>Proceso #{{ preview.source.process_number }}</span>
                         </article>
                         <i class="pi pi-arrow-right"></i>
                         <article class="is-target">
                             <small>PASA A</small>
-                            <strong>{{ preview.target.client_name }}</strong>
+                            <strong>{{ preview.target.client_name | userName }}</strong>
                             <span>Proceso #{{ preview.target.process_number }}</span>
                         </article>
                     </div>
@@ -2293,7 +2293,7 @@
                         <i class="pi pi-lock"></i>
                         <div>
                             <small>PROPIETARIO ACTUAL DEL DISPOSITIVO</small>
-                            <strong>{{ preview.device_owner?.name || 'No identificado' }}</strong>
+                            <strong>{{ (preview.device_owner?.name | userName) || 'No identificado' }}</strong>
                             <span>No será modificado por esta operación.</span>
                         </div>
                     </div>
@@ -2708,7 +2708,7 @@
                 <div>
                     <strong>Solicitud bloqueada</strong>
                     <span>{{ selectedSolicitud.lock_reason }}</span>
-                    <small *ngIf="selectedSolicitud.locked_by_name">Por {{ selectedSolicitud.locked_by_name }}</small>
+                    <small *ngIf="selectedSolicitud.locked_by_name">Por {{ selectedSolicitud.locked_by_name | userName }}</small>
                 </div>
             </div>
 
@@ -2802,7 +2802,7 @@
                         </div>
                         <div class="sol-client-picker__identity">
                             <small>{{ selectedSolicitud.client_id ? 'Cliente seleccionado' : 'Cliente nuevo por WhatsApp' }}</small>
-                            <strong>{{ selectedSolicitud.client_name || selectedSolicitud.client_phone }}</strong>
+                            <strong>{{ (selectedSolicitud.client_name | userName) || selectedSolicitud.client_phone }}</strong>
                             <span *ngIf="selectedSolicitud.client_email">{{ selectedSolicitud.client_email }}</span>
                             <span *ngIf="selectedSolicitud.client_name && selectedSolicitud.client_phone">
                                 {{ selectedSolicitud.client_phone }}
@@ -2960,7 +2960,7 @@
                                 </div>
                                 <div class="sol-technician-recommendation__content">
                                     <span>Técnico recomendado</span>
-                                    <strong>{{ recommendation.technician_name }}</strong>
+                                    <strong>{{ recommendation.technician_name | userName }}</strong>
                                     <p>{{ recommendation.reason }}</p>
                                     <div
                                         class="sol-technician-recommendation__location"
@@ -3508,12 +3508,12 @@
             <button type="button" class="sol-client-card"
                 *ngFor="let user of clientSearchResults"
                 (click)="selectSolicitudClient(user)">
-                <img *ngIf="user.photo" [src]="user.photo" [alt]="user.name" />
+                <img *ngIf="user.photo" [src]="user.photo" [alt]="user.name | userName" />
                 <span class="sol-client-card__avatar" *ngIf="!user.photo">
                     {{ (user.name || 'C').charAt(0) }}{{ (user.last_name || '').charAt(0) }}
                 </span>
                 <span class="sol-client-card__content">
-                    <strong>{{ user.name }} {{ user.last_name }}</strong>
+                    <strong>{{ user.name | userName }} {{ user.last_name | userName }}</strong>
                     <small>{{ user.phone || user.phone2 || 'Sin teléfono' }}</small>
                     <small>{{ user.email }}</small>
                     <em *ngIf="user.static_location_url">
@@ -3578,7 +3578,7 @@
                 <small>Motivo registrado</small>
                 <p>{{ solicitud.lock_reason || 'Sin motivo disponible' }}</p>
                 <div>
-                    <span><i class="pi pi-user"></i> {{ solicitud.locked_by_name || 'Usuario no identificado' }}</span>
+                    <span><i class="pi pi-user"></i> {{ (solicitud.locked_by_name | userName) || 'Usuario no identificado' }}</span>
                     <span *ngIf="solicitud.locked_at"><i class="pi pi-calendar"></i> {{ solicitud.locked_at | date: 'dd/MM/yyyy, HH:mm' }}</span>
                 </div>
             </div>
@@ -3786,13 +3786,13 @@
         <div class="sol-new-client__existing" *ngIf="!newClientLookupLoading && existingNewClientUser">
             <img *ngIf="existingNewClientUser.photo"
                 [src]="existingNewClientUser.photo"
-                [alt]="existingNewClientUser.name" />
+                [alt]="existingNewClientUser.name | userName" />
             <span class="sol-new-client__avatar" *ngIf="!existingNewClientUser.photo">
                 {{ (existingNewClientUser.name || 'C').charAt(0) }}{{ (existingNewClientUser.last_name || '').charAt(0) }}
             </span>
             <span class="sol-new-client__existing-content">
                 <small><i class="pi pi-check-circle"></i> Cliente existente</small>
-                <strong>{{ existingNewClientUser.name }} {{ existingNewClientUser.last_name }}</strong>
+                <strong>{{ existingNewClientUser.name | userName }} {{ existingNewClientUser.last_name | userName }}</strong>
                 <span>{{ existingNewClientUser.email }}</span>
                 <span>{{ existingNewClientUser.phone || existingNewClientUser.phone2 }}</span>
                 <em *ngIf="existingNewClientUser.static_location_url">
@@ -3876,7 +3876,7 @@
         <p>
             Especifique por qué se cancela
             <strong *ngIf="cancellationSolicitud?.client_name">
-                la solicitud de {{ cancellationSolicitud?.client_name }}
+                la solicitud de {{ cancellationSolicitud?.client_name | userName }}
             </strong>
             <span *ngIf="!cancellationSolicitud?.client_name">esta solicitud</span>.
             Esta información quedará guardada en su historial.
@@ -4171,7 +4171,7 @@
                 <h3>¿Confirmas el cierre definitivo?</h3>
                 <p>
                     <ng-container *ngIf="completionSolicitud?.client_name; else genericCompletionCopy">
-                        La solicitud de <strong>{{ completionSolicitud?.client_name }}</strong> se marcará como completada.
+                        La solicitud de <strong>{{ completionSolicitud?.client_name | userName }}</strong> se marcará como completada.
                     </ng-container>
                     <ng-template #genericCompletionCopy>Esta solicitud se marcará como completada.</ng-template>
                 </p>
@@ -4332,7 +4332,7 @@
             <div *ngIf="installData.userFound" class="sol-install-user-info">
                 <i class="pi pi-check-circle"></i>
                 <div>
-                    <strong>{{ installData.parentUserName }}</strong>
+                    <strong>{{ installData.parentUserName | userName }}</strong>
                     <small *ngIf="installData.parentEmail">{{ installData.parentEmail }}</small>
                 </div>
             </div>
@@ -4472,7 +4472,7 @@
                 </div>
                 <div class="sol-install-summary-item" *ngIf="solicitudToInstall.client_name">
                     <span class="sol-install-summary-label">Cliente</span>
-                    <span class="sol-install-summary-value">{{ solicitudToInstall.client_name }}</span>
+                    <span class="sol-install-summary-value">{{ solicitudToInstall.client_name | userName }}</span>
                 </div>
             </div>
 

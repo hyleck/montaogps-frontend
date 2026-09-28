@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { ContactsService, Contact, CreateContactDto } from '../../../../../../core/services/contacts.service';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
@@ -131,7 +132,7 @@ export class ContactsComponent implements OnChanges {
 
   delete(contact: Contact): void {
     if (!contact._id) return;
-    const shouldDelete = confirm(`¿Eliminar el contacto ${contact.full_name}?`);
+    const shouldDelete = confirm(`¿Eliminar el contacto ${formatUserName(contact.full_name)}?`);
     if (!shouldDelete) return;
 
     this.contactsService.delete(contact._id).subscribe({

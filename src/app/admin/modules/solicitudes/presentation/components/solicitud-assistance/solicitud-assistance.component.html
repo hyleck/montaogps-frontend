@@ -14,7 +14,7 @@
   <ng-template pTemplate="header">
     <div class="sol-assistance-heading">
       <small>ASISTENCIA</small>
-      <strong>{{ workingSolicitud?.client_name || 'Solicitud en progreso' }}</strong>
+      <strong>{{ (workingSolicitud?.client_name | userName) || 'Solicitud en progreso' }}</strong>
     </div>
   </ng-template>
 

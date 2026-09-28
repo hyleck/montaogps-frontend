@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Component, AfterViewInit, OnDestroy, ElementRef, ViewChild, OnInit } from '@angular/core';
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { SystemService } from '../../../../../../core/services/system.service';
@@ -597,13 +598,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     private getTechnicianName(technician: User): string {
-        return `${technician?.name || ''} ${technician?.last_name || ''}`.replace(/\s+/g, ' ').trim()
+        return formatUserName(`${technician?.name || ''} ${technician?.last_name || ''}`)
             || technician?.email
             || 'Técnico';
     }
 
     private getLocatedUserName(user: LocatedUser): string {
-        return `${user?.name || ''} ${user?.last_name || ''}`.replace(/\s+/g, ' ').trim()
+        return formatUserName(`${user?.name || ''} ${user?.last_name || ''}`)
             || user?.email
             || 'Usuario';
     }

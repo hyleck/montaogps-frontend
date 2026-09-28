@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { CommonModule } from '@angular/common';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -24,7 +25,7 @@ describe('Package receiving screen', () => {
   beforeEach(async () => {
     spyOn(InventoryPackageDevicesComponent.prototype, 'ngOnInit').and.stub();
     api = { packageReceiving: jasmine.createSpy().and.returnValue(of(structuredClone(summary))), createLot: jasmine.createSpy().and.returnValue(new Subject()) };
-    await TestBed.configureTestingModule({ declarations: [InventoryPackageDevicesComponent], imports: [CommonModule, FormsModule, NoopAnimationsModule, TranslateModule.forRoot(), PrimengModule, DeviceLabelPipe], providers: [provideRouter([]),
+    await TestBed.configureTestingModule({ declarations: [InventoryPackageDevicesComponent], imports: [UserNamePipe, CommonModule, FormsModule, NoopAnimationsModule, TranslateModule.forRoot(), PrimengModule, DeviceLabelPipe], providers: [provideRouter([]),
       { provide: InventoryService, useValue: api }, { provide: ProtocolsService, useValue: {} }, { provide: AuthService, useValue: { hasPrivilege: () => true } }], schemas: [NO_ERRORS_SCHEMA] }).compileComponents();
     fixture = TestBed.createComponent(InventoryPackageDevicesComponent); component = fixture.componentInstance;
     component.currentPackageId = summary.packageId; component.warehouses = [{ _id: 'cccccccccccccccccccccccc', name: 'Principal' }]; component.loadReceiving();

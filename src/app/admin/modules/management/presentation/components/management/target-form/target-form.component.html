@@ -447,7 +447,7 @@
                                                 <option value="" [selected]="!target.mechanic_id">{{
                                                     translate('management.targetForm.selectTechnician') }}</option>
                                                 <option *ngFor="let tech of availableTechnicians" [value]="tech.value">
-                                                    {{tech.label}}
+                                                    {{ tech.label | userName }}
                                                 </option>
                                             </select>
                                         </div>
@@ -1043,7 +1043,7 @@
                                                         translate('management.targetForm.selectTechnician') }}</option>
                                                     <option *ngFor="let technician of availableTechnicians"
                                                         [value]="technician.value">
-                                                        {{ technician.label }}
+                                                        {{ technician.label | userName }}
                                                     </option>
                                                 </select>
                                             </div>
@@ -2196,8 +2196,7 @@
                                         <ng-template #creatorInfo>
                                             <ng-container
                                                 *ngIf="command.creator && typeof command.creator === 'object'">
-                                                <div>Enviado por {{ command.creator.name }} {{ command.creator.last_name
-                                                    }}</div>
+                                                <div>Enviado por {{ command.creator.name | userName }} {{ command.creator.last_name | userName }}</div>
                                                 <div class="creator-email">{{ command.creator.email }}</div>
                                             </ng-container>
                                             <ng-container
@@ -2405,7 +2404,7 @@
                     <label for="registration_technician">Técnico</label>
                     <select id="registration_technician" [(ngModel)]="installationRegistrationForm.mechanicId">
                         <option value="">Seleccionar técnico</option>
-                        <option *ngFor="let tech of availableTechnicians" [value]="tech.value">{{ tech.label }}</option>
+                        <option *ngFor="let tech of availableTechnicians" [value]="tech.value">{{ tech.label | userName }}</option>
                     </select>
                 </div>
                 <div class="target-form__field installation-registration-grid__wide">
@@ -2538,7 +2537,7 @@
                 <div><dt>Objetivo</dt><dd>{{ (target.name || 'Sin nombre') | deviceLabel }}</dd></div>
                 <div><dt>IMEI</dt><dd>{{ target.device_imei }}</dd></div>
                 <div><dt>Fecha</dt><dd>{{ installationRegistrationForm.installationDate }}</dd></div>
-                <div><dt>Técnico</dt><dd>{{ getTechnicianName(installationRegistrationForm.mechanicId) }}</dd></div>
+                <div><dt>Técnico</dt><dd>{{ getTechnicianName(installationRegistrationForm.mechanicId) | userName }}</dd></div>
                 <div><dt>Lugar</dt><dd>{{ installationRegistrationForm.installationLocation || 'No especificado' }}</dd></div>
                 <div><dt>Imágenes</dt><dd>{{ getPendingInstallationEvidenceCount() }} seleccionadas</dd></div>
                 <div><dt>Chasis</dt><dd>{{ target.target_chassis_number || 'No especificado' }}</dd></div>

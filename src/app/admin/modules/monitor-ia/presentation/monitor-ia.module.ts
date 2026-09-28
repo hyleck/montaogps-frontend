@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { DeviceLabelConfirmationService, DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
 import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { NgModule } from '@angular/core';
@@ -26,6 +27,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     MonitorIaFunnelComponent
   ],
   imports: [
+    UserNamePipe,
     DeviceLabelPipe,
     CommonModule,
     MonitorIaRoutingModule,

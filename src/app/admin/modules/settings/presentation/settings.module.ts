@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { DeviceLabelInputDirective } from 'src/app/shareds/directives/device-label-input.directive';
 import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { NgModule } from '@angular/core';
@@ -40,6 +41,7 @@ import { MembresiasSettingsComponent } from './components/settings/membresias-se
     PushManagerSettingsComponent
   ],
   imports: [
+    UserNamePipe,
     DeviceLabelInputDirective,
     DeviceLabelPipe,
     CommonModule,

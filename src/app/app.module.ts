@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { NgModule, inject, provideAppInitializer } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
@@ -28,6 +29,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     AppComponent
   ],
   imports: [
+    UserNamePipe,
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,

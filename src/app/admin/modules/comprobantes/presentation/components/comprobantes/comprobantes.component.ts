@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { catchError, defer, finalize, from, map, mergeMap, of, Subject, switchMap, takeUntil, toArray } from 'rxjs';
 import {
@@ -589,13 +590,13 @@ export class ComprobantesComponent implements OnInit, OnDestroy {
   }
 
   expenseEmployeeName(receipt: ExpenseReceipt): string {
-    return receipt.registered_by_id ? receipt.employee_name : 'No especificado (registro anterior)';
+    return receipt.registered_by_id ? formatUserName(receipt.employee_name) : 'No especificado (registro anterior)';
   }
 
   registeredByName(receipt: ExpenseReceipt): string {
     return receipt.registered_by_id
-      ? receipt.registered_by_name || 'Usuario no disponible'
-      : receipt.employee_name;
+      ? formatUserName(receipt.registered_by_name) || 'Usuario no disponible'
+      : formatUserName(receipt.employee_name);
   }
 
   registeredByEmail(receipt: ExpenseReceipt): string {

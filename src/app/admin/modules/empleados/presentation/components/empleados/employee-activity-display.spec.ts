@@ -31,6 +31,14 @@ describe('employee activity display', () => {
     expect(getEmployeeActivityTitle(value)).toBe('Actualizó una solicitud');
   });
 
+  it('formats user names in activity details while preserving vehicle labels and metadata', () => {
+    const value = activity('Update /Users/:Id', '/users/1', '2026-09-28T15:00:00Z', { userName: 'ANA PÉREZ' });
+    expect(getEmployeeActivityDetail(value)).toBe('Ana Pérez');
+    expect(value.metadata?.['userName']).toBe('ANA PÉREZ');
+    const vehicle = activity('Update /Devices/:Id', '/devices/1', '2026-09-28T15:00:00Z', { deviceName: 'GPS ABC-123' });
+    expect(getEmployeeActivityDetail(vehicle)).toBe('GPS ABC-123');
+  });
+
   it('groups only consecutive repetitions into one action', () => {
     const values = [
       activity('Update /Solicitudes/:Id', '/solicitudes/1', '2026-08-27T15:03:34.000Z'),

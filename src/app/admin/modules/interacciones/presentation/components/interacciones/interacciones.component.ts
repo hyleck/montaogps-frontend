@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
@@ -1822,7 +1823,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   // ── Helpers ───────────────────────────────────────────────────────────
 
   getUserFullName(user: any): string {
-    return this.toTitleCase(`${user.name || ''} ${user.last_name || ''}`.trim());
+    return formatUserName(`${user.name || ''} ${user.last_name || ''}`);
   }
 
   getFilterBadges(list: UserList): string[] {

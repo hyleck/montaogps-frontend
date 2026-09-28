@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { MessageService } from 'primeng/api';
@@ -290,7 +291,7 @@ export class SolicitudAssistanceComponent implements OnChanges, OnDestroy {
 
   get technicianHereName(): string {
     return String(
-      this.technicianPresenceState?.presence?.technician_name
+      formatUserName(this.technicianPresenceState?.presence?.technician_name)
       || 'El técnico',
     ).trim();
   }

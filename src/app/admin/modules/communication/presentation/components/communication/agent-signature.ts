@@ -43,5 +43,6 @@ export function parseAgentSignedMessage(message: string): AgentSignedMessage {
 }
 
 function getAgentFirstName(name: string): string {
-  return String(name || '').trim().split(/\s+/)[0] || 'Agente';
+  return formatUserName(String(name || '').trim().split(/\s+/)[0]) || 'Agente';
 }
+import { formatUserName } from 'src/app/core/utils/user-name.util';

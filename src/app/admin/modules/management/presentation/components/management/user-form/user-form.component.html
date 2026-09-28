@@ -254,7 +254,7 @@
                                     <i class="pi" [ngClass]="isIdentityVerified ? 'pi-check-circle' : 'pi-id-card'"></i>
                                     <div>
                                         <strong>{{ isIdentityVerified ? 'Cuenta verificada' : 'Verificar cuenta' }}</strong>
-                                        <span>{{ user.name || 'Usuario' }} {{ user.last_name || '' }}</span>
+                                        <span>{{ (user.name | userName) || 'Usuario' }} {{ (user.last_name | userName) || '' }}</span>
                                     </div>
                                 </div>
                             </ng-template>
@@ -430,7 +430,7 @@
                                             <div class="personalized-call-history-card__top">
                                                 <div>
                                                     <div class="personalized-call-history-card__name">
-                                                        {{ call.clientName || getUserFullName() || 'Cliente' }}
+                                                        {{ ((call.clientName || getUserFullName()) | userName) || 'Cliente' }}
                                                     </div>
                                                     <div class="personalized-call-history-card__date">
                                                         {{ formatPersonalizedCallDate(call.calledAt || call.endedAt) }}
@@ -1646,8 +1646,8 @@
                 <i class="pi pi-whatsapp"></i> Previsualización
             </h5>
             <div style="font-size: 0.95rem; line-height: 1.6; color: var(--text-color); background: var(--surface-card); padding: 1rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <strong style="font-size: 1.05rem; display: block; margin-bottom: 0.75rem;">{{ waTemplateVars.headerUser || 'Asesor' }}:</strong>
-                B{{ waTemplateVars.bodySaludos || 'uenas' }}, <strong>{{ waTemplateVars.name || '[Nombre]' }}</strong>.<br>
+                <strong style="font-size: 1.05rem; display: block; margin-bottom: 0.75rem;">{{ (waTemplateVars.headerUser | userName) || 'Asesor' }}:</strong>
+                B{{ waTemplateVars.bodySaludos || 'uenas' }}, <strong>{{ (waTemplateVars.name | userName) || '[Nombre]' }}</strong>.<br>
                 <span style="white-space: pre-wrap; display: block; margin-top: 0.25rem;">{{ waTemplateVars.body || '[Cuerpo del mensaje]' }}</span><br>
                 <span style="display: block; margin-top: 0.5rem;">Seguimos a tu orden por este número.</span>
                 <span style="opacity: 0.5; font-size: 0.8rem; display: block; margin-top: 0.75rem;">Montao GPS</span>

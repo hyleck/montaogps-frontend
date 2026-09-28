@@ -20,6 +20,14 @@ describe('MonitoringComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('formats the report creator name while preserving their stored identity and email', () => {
+    const creator = { name: 'mARÍA', last_name: 'PÉREZ', email: 'MPerez@Example.COM' };
+    expect(component.getStatusCreatorLabel({ creator } as any)).toBe('María Pérez (MPerez@Example.COM)');
+    expect(creator.name).toBe('mARÍA');
+    expect(creator.last_name).toBe('PÉREZ');
+    expect(component.getStatusCreatorLabel({ creator: { email: creator.email } } as any)).toBe(creator.email);
+  });
+
   it('dates a localized device from the retained fix while communication advances', () => {
     component.protocols = [{ _id: 'tag', isAirtag: true }] as any;
     spyOn(Date, 'now').and.returnValue(Date.parse('2026-09-28T14:24:00Z'));

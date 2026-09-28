@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { UserRole, Privilege, PrivilegeAction } from '@core/interfaces/user-role.interface';
@@ -825,7 +826,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                     this.messageService.add({
                         severity: 'success',
                         summary: 'Cuenta principal actualizada',
-                        detail: `${this.getUserFullName() || this.user.email} es ahora la cuenta principal del sistema.`,
+                        detail: `${formatUserName(this.getUserFullName()) || this.user.email} es ahora la cuenta principal del sistema.`,
                         life: 3500
                     });
                     this.cdr.detectChanges();

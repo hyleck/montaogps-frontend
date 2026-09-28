@@ -43,7 +43,7 @@ describe('BreadcrumbService', () => {
     ], undefined, { id: 'viewer' });
 
     expect(items.map((item) => item.label)).toEqual([
-      'Usuario autenticado',
+      'Usuario Autenticado',
       'Cliente',
     ]);
     service.navigateToParent();
@@ -58,7 +58,7 @@ describe('BreadcrumbService', () => {
     ], undefined, { id: 'viewer', root: true, developer: true });
 
     expect(items.map((item) => item.label)).toEqual([
-      'Cuenta root autenticada',
+      'Cuenta Root Autenticada',
       'Cliente',
     ]);
   });
@@ -81,7 +81,7 @@ describe('BreadcrumbService', () => {
 
     expect(items.map((item) => item.label)).toEqual([
       'Acceso: Ericka Tatis Reyes',
-      'Cuenta compartida',
+      'Cuenta Compartida',
       'Cliente',
     ]);
     items[0].command?.({} as any);

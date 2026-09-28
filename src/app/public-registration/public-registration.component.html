@@ -7,7 +7,7 @@
       <div>
         <h1>Crear cuenta GPS</h1>
         <p *ngIf="info">
-          Registro para {{ info.parent.name }} {{ info.parent.last_name || '' }}
+          Registro para {{ info.parent.name | userName }} {{ info.parent.last_name | userName }}
         </p>
       </div>
     </div>

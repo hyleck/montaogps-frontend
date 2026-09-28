@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { finalize } from 'rxjs';
@@ -114,10 +115,7 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
 
   get selectedClientName(): string {
     if (!this.selectedClient) return '';
-    return [this.selectedClient.name, this.selectedClient.last_name]
-      .filter(Boolean)
-      .join(' ')
-      .trim();
+    return formatUserName([this.selectedClient.name, this.selectedClient.last_name].filter(Boolean).join(' '));
   }
 
   get selectedClientInitials(): string {

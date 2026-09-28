@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { getGpsLocationTimestamp, LastValidPositionCache } from 'src/app/shareds/helpers/gps-position.helper';
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { Subject, Subscription, interval, of, firstValueFrom } from 'rxjs';
@@ -841,7 +842,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   ): string {
     const route = Array.isArray(userData?.route) ? userData.route : [];
     return route.length
-      ? route[route.length - 1]?.fullName || 'este bloque'
+      ? formatUserName(route[route.length - 1]?.fullName) || 'este bloque'
       : 'este bloque';
   }
 
@@ -860,7 +861,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       next: (user: User) => {
         this.userId = user._id;
         this.userFound = true;
-        this.foundUserName = `${user.name} ${user.last_name}`;
+        this.foundUserName = formatUserName([user.name, user.last_name].filter(Boolean).join(' '));
         this.searchingUser = false;
         // Load monitoring reports for the selected user
         this.loadSelectedUserReports(user._id);
@@ -1168,7 +1169,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     this.userService.getTechnicians().subscribe({
       next: (technicians: User[]) => {
         this.availableTechnicians = technicians.map(tech => ({
-          label: `${tech.name} ${tech.last_name}`.trim(),
+          label: formatUserName([tech.name, tech.last_name].filter(Boolean).join(' ')),
           value: tech._id
         })).sort((a, b) => a.label.localeCompare(b.label));
       },
@@ -1447,7 +1448,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       next: (user) => {
         this.userEmail = user.email;
         this.userFound = true;
-        this.foundUserName = `${user.name} ${user.last_name}`;
+        this.foundUserName = formatUserName([user.name, user.last_name].filter(Boolean).join(' '));
       },
       error: (error) => {
         console.warn('Could not load user info from route ID:', error);
@@ -1582,7 +1583,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     }
 
     const nameParts = [creator?.name, creator?.last_name].filter(Boolean);
-    const name = nameParts.join(' ').trim();
+    const name = formatUserName(nameParts.join(' '));
     const email = (creator?.email ?? '').trim();
 
     if (name && email) {
@@ -2803,11 +2804,11 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       const hasNoAssistance = this.hasNoAssistance(userData);
       // Add user route as title
       const userHierarchy = userData.route && userData.route.length > 0
-        ? userData.route.map(item => item.fullName).join(' > ')
+        ? userData.route.map(item => formatUserName(item.fullName)).join(' > ')
         : 'Sin jerarquía';
 
       const userName = userData.route && userData.route.length > 0
-        ? userData.route[userData.route.length - 1].fullName
+        ? formatUserName(userData.route[userData.route.length - 1].fullName)
         : 'Sin nombre';
 
       // Add user title row

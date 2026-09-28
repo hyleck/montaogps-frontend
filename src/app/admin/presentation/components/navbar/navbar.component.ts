@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
 import { ThemesService } from '../../../../shareds/services/themes.service';
 import { MenuItem, ConfirmationService, MessageService } from 'primeng/api';
@@ -1252,8 +1253,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
   getFloatingTechnicianGroupName(group?: InternalChatGroup | null): string {
     if (group?.type === 'admin') return 'Admin';
     const technicianName = `${group?.technician?.name || ''} ${group?.technician?.lastName || ''}`.trim();
-    return technicianName
-      || String(group?.name || '').replace(/^Instalaciones\s*-\s*/i, '').trim()
+    return formatUserName(technicianName)
+      || formatUserName(String(group?.name || '').replace(/^Instalaciones\s*-\s*/i, ''))
       || 'Técnico';
   }
 
@@ -1278,7 +1279,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   getFloatingTechnicianAuthorName(message: InternalChatMessage): string {
     const author = message?.author;
-    return `${author?.name || ''} ${author?.last_name || ''}`.trim()
+    return formatUserName(`${author?.name || ''} ${author?.last_name || ''}`)
       || author?.email
       || 'Técnico';
   }
@@ -1651,7 +1652,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   resetSupportChat(): void {
-    const firstName = String(this.currentUser?.name || '').trim().split(/\s+/)[0];
+    const firstName = formatUserName(this.currentUser?.name).split(/\s+/)[0];
     this.clearSupportGreetingTimeout();
     this.releaseSupportImagePreviews();
     this.newTicket = {
@@ -2477,7 +2478,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     // Menú de usuario
     this.userMenuItems = [
       {
-        label: this.currentUser ? `${this.currentUser.name} ${this.currentUser.last_name}` : this.translate.instant('navbar.myProfile'),
+        label: this.currentUser ? formatUserName([this.currentUser.name, this.currentUser.last_name].filter(Boolean).join(' ')) : this.translate.instant('navbar.myProfile'),
         icon: 'pi pi-user',
         command: () => this.router.navigate(['/admin/profile'])
       },
@@ -3755,7 +3756,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     const firstName = creator.name || '';
     const lastName = creator.last_name || '';
 
-    return `${firstName} ${lastName}`.trim() || 'Desconocido';
+    return formatUserName(`${firstName} ${lastName}`) || 'Desconocido';
   }
 
   getCreatorEmail(alert: AlertResponse): string | null {
@@ -4059,7 +4060,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     if (techniciansResult.status === 'fulfilled') {
       this.bulkProcessTechnicians = techniciansResult.value
         .map((technician: User) => ({
-          label: `${technician.name || ''} ${technician.last_name || ''}`.trim(),
+          label: formatUserName(`${technician.name || ''} ${technician.last_name || ''}`),
           value: String(technician._id || (technician as any).id || '')
         }))
         .filter(option => !!option.value)
@@ -4759,7 +4760,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'success',
         summary: 'Transferencia Exitosa',
-        detail: `${this.targetsToTransfer.length} objetivo(s) transferido(s) a ${this.foundUser.name} ${this.foundUser.last_name}`
+        detail: `${this.targetsToTransfer.length} objetivo(s) transferido(s) a ${formatUserName([this.foundUser.name, this.foundUser.last_name].filter(Boolean).join(' '))}`
       });
 
       // Cerrar modal y limpiar selección

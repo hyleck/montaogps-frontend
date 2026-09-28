@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Component, OnInit } from '@angular/core';
 import { forkJoin, Observable, of } from 'rxjs';
 import { catchError, finalize, map, switchMap } from 'rxjs/operators';
@@ -251,8 +252,8 @@ export class MetricsComponent implements OnInit {
 
   getCreatorName(creator: any): string {
     if (!creator) return 'Sistema';
-    if (typeof creator === 'string') return creator;
-    return [creator.name, creator.last_name].filter(Boolean).join(' ').trim() || creator.email || 'Sistema';
+    if (typeof creator === 'string') return formatUserName(creator);
+    return formatUserName([creator.name, creator.last_name].filter(Boolean).join(' ')) || creator.email || 'Sistema';
   }
 
   getHealthClass(goodPercent: number): string {

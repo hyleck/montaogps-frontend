@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { CommonModule } from '@angular/common';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -34,7 +35,7 @@ for (const parent of [InventoryComponent, InventoryPackageDevicesComponent]) {
       };
       await TestBed.configureTestingModule({
         declarations: [parent],
-        imports: [CommonModule, FormsModule, NoopAnimationsModule, TranslateModule.forRoot(), PrimengModule, DeviceLabelPipe, InventorySimcardSelectorComponent],
+        imports: [UserNamePipe, CommonModule, FormsModule, NoopAnimationsModule, TranslateModule.forRoot(), PrimengModule, DeviceLabelPipe, InventorySimcardSelectorComponent],
         providers: [provideRouter([]),
           { provide: InventoryService, useValue: inventory },
           { provide: ProtocolsService, useValue: {} },

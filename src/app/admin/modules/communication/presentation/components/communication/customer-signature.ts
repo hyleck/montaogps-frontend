@@ -35,9 +35,9 @@ export function buildCustomerSignatureLabel(
 }
 
 function getFirstName(value: unknown): string {
-  return String(value || '')
+  return formatUserName(String(value || '')
     .trim()
-    .split(/\s+/)[0]
+    .split(/\s+/)[0])
     || 'Cliente';
 }
 
@@ -52,3 +52,4 @@ function formatTypeLabel(value: unknown): string {
   const readable = normalized.replace(/_/g, ' ');
   return readable.charAt(0).toLocaleUpperCase('es-DO') + readable.slice(1);
 }
+import { formatUserName } from 'src/app/core/utils/user-name.util';

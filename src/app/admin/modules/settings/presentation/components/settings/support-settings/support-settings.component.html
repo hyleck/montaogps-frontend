@@ -95,7 +95,7 @@
                         <div class="ticket-user-cell">
                             <span class="ticket-user-avatar">{{ getUserInitials(ticket) }}</span>
                             <div>
-                                <strong>{{ ticket.user?.name | titlecase }} {{ ticket.user?.last_name | titlecase }}</strong>
+                                <strong>{{ ticket.user?.name | userName }} {{ ticket.user?.last_name | userName }}</strong>
                                 <small>{{ ticket.user?.email || 'Sin correo registrado' }}</small>
                             </div>
                         </div>
@@ -226,7 +226,7 @@
                     <div class="ticket-user-cell">
                         <span class="ticket-user-avatar">{{ getUserInitials(selectedTicket) }}</span>
                         <div>
-                            <strong>{{ selectedTicket.user.name | titlecase }} {{ selectedTicket.user.last_name | titlecase }}</strong>
+                            <strong>{{ selectedTicket.user.name | userName }} {{ selectedTicket.user.last_name | userName }}</strong>
                             <small>{{ selectedTicket.user.email }}</small>
                         </div>
                     </div>

@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -6,6 +7,6 @@ import { ComprobantesComponent } from './components/comprobantes/comprobantes.co
 
 @NgModule({
   declarations: [ComprobantesComponent],
-  imports: [CommonModule, FormsModule, ComprobantesRoutingModule],
+  imports: [UserNamePipe, CommonModule, FormsModule, ComprobantesRoutingModule],
 })
 export class ComprobantesModule {}

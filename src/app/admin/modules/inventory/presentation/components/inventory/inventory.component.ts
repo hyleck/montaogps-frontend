@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { INVENTORY_TUTORIALS } from '../../../../management/presentation/components/management-tutorial/management-tutorial.data';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import { DeviceLabelMessageService, DeviceLabelConfirmationService } from 'src/app/shareds/services/device-label-messages.service';
@@ -64,7 +65,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   auditUserLabel(user: any): string {
     if (!user || typeof user !== 'object') return 'No registrado';
     const fullName = `${user.name || ''} ${user.last_name || ''}`.trim();
-    return fullName || user.email || 'No registrado';
+    return formatUserName(fullName) || user.email || 'No registrado';
   }
 
   packages: Package[] = [];
@@ -1330,7 +1331,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   getWarehouseUserDisplayName(user: User): string {
     const fullName = [user?.name, user?.last_name].filter(Boolean).join(' ').trim();
-    return fullName || user?.email || 'Usuario';
+    return formatUserName(fullName) || user?.email || 'Usuario';
   }
 
   private getSelectedWarehouseAccessEmails(): string[] {
@@ -2511,7 +2512,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     doc.text(`Autorizado por:`, rightColX, currentY);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(50, 50, 50);
-    const creator = conduce.created_by ? `${conduce.created_by.name || ''} ${conduce.created_by.last_name || ''}`.trim() : 'N/A';
+    const creator = conduce.created_by ? formatUserName(`${conduce.created_by.name || ''} ${conduce.created_by.last_name || ''}`) : 'N/A';
     doc.text(`${creator}`, rightValX, currentY);
 
     currentY += 7;

@@ -88,7 +88,7 @@ describe('Processes installation dialog', () => {
     expect(dialog.textContent).toContain('CHASIS-123');
     expect(dialog.textContent).toContain('SIM-001');
     expect(dialog.textContent).toContain('Equipo instalado debajo del tablero.');
-    expect(dialog.textContent).toContain('Contacto del vehículo');
+    expect(dialog.textContent).toContain('Contacto Del Vehículo');
 
     const history = dialog.querySelector<HTMLButtonElement>('button[aria-controls="installation-device-records"]')!;
     expect(history.disabled).toBeFalse();
@@ -99,7 +99,7 @@ describe('Processes installation dialog', () => {
 
     expect(targets.getDeviceRecords).toHaveBeenCalledOnceWith(deviceId);
     expect(dialog.querySelector('app-device-records')?.textContent).toContain('Instalación completada');
-    expect(dialog.querySelector('app-device-records')?.textContent).toContain('Técnico de instalación');
+    expect(dialog.querySelector('app-device-records')?.textContent).toContain('Técnico De Instalación');
     expect(component.detailDialogVisible).toBeTrue();
     history.click();
     fixture.detectChanges();
@@ -215,7 +215,7 @@ describe('Processes installation dialog', () => {
     fixture.detectChanges();
 
     const expectedStages = [
-      { id: 'inicio', value: 'Operadora de solicitud' },
+      { id: 'inicio', value: 'Operadora De Solicitud' },
       { id: 'tecnico', value: 'Rafael Gómez' },
       { id: 'vehiculo', value: 'Furgón de la solicitud' },
       { id: 'gps', value: 'SIM-PROCESO' },
@@ -247,8 +247,8 @@ describe('Processes installation dialog', () => {
     const subclientId = '507f1f77bcf86cd799439077';
     targets.getTargetById.and.resolveTo({ _id: deviceId, device_imei: '863874080932787', parent_id: subclientId } as any);
     users.getUserPath.and.returnValue(of([
-      { id: clientId, fullName: 'Transportes del Caribe', affiliation_type_id: 'cliente' },
-      { id: subclientId, fullName: 'Sucursal Santiago', affiliation_type_id: 'subcliente' },
+      { id: clientId, fullName: 'TRANSPORTES DEL CARIBE', affiliation_type_id: 'cliente' },
+      { id: subclientId, fullName: 'sucursal santiago', affiliation_type_id: 'subcliente' },
     ]));
     solicitudes.getById.and.returnValue(of({
       _id: solicitudId, type: 'instalacion', status: 'completed', client_name: 'Cliente al solicitar',
@@ -262,7 +262,7 @@ describe('Processes installation dialog', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const people: HTMLElement = fixture.nativeElement.querySelector('.installation-people');
-    expect(people.querySelector('[data-person-role="client"]')?.textContent).toContain('Transportes del Caribe');
+    expect(people.querySelector('[data-person-role="client"]')?.textContent).toContain('Transportes Del Caribe');
     expect(people.querySelector('[data-person-role="subclient"]')?.textContent).toContain('Sucursal Santiago');
     expect(people.querySelector('[data-person-role="technician"]')?.textContent).toContain('Rafael Gómez');
     expect(people.textContent).not.toContain('Cliente al solicitar');

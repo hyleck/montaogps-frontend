@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { DeviceRecordEntry } from 'src/app/core/interfaces/target.interface';
@@ -5,7 +6,7 @@ import { DeviceRecordEntry } from 'src/app/core/interfaces/target.interface';
 @Component({
   selector: 'app-device-records',
   standalone: true,
-  imports: [CommonModule],
+  imports: [UserNamePipe, CommonModule],
   templateUrl: './device-records.component.html',
   styleUrls: ['./device-records.component.css'],
 })

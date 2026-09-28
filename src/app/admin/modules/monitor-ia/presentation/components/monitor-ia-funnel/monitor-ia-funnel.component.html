@@ -177,7 +177,7 @@
         <div class="device-main">
           <span class="device-status">{{ statusLabel(device.finalStatus) }}</span>
           <h3>{{ (device.deviceName || 'Dispositivo sin nombre') | deviceLabel }}</h3>
-          <p>{{ device.userName || device.userId }}</p>
+          <p>{{ device.userName ? (device.userName | userName) : device.userId }}</p>
           <small>
             IMEI: {{ device.imei || 'N/A' }} · SIM:
             {{ device.simCompany || 'N/A' }}

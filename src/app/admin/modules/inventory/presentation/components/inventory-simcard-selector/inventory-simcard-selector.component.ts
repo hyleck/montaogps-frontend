@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -252,7 +253,7 @@ export class InventorySimcardSelectorComponent implements OnChanges, OnDestroy {
 
   auditLabel(user?: InventoryAuditUser | string): string {
     if (!user || typeof user !== 'object') return 'No registrado';
-    return `${user.name || ''} ${user.last_name || ''}`.trim() || user.email || 'No registrado';
+    return formatUserName(`${user.name || ''} ${user.last_name || ''}`) || user.email || 'No registrado';
   }
 
   trackSimcard(_index: number, simcard: SimcardItem): string {

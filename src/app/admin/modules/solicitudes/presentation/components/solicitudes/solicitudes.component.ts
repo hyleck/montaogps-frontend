@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 import { finalize, firstValueFrom, Subscription, timeout } from 'rxjs';
@@ -1671,7 +1672,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     getSolicitudLockTooltip(solicitud: Solicitud | null | undefined): string {
         const reason = String(solicitud?.lock_reason || '').trim();
-        const actor = String(solicitud?.locked_by_name || '').trim();
+        const actor = formatUserName(solicitud?.locked_by_name);
         const date = solicitud?.locked_at
             ? new Date(solicitud.locked_at).toLocaleString('es-DO')
             : '';
@@ -1681,7 +1682,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     getSolicitudUnlockTooltip(solicitud: Solicitud | null | undefined): string {
-        const actor = String(solicitud?.unlocked_by_name || '').trim();
+        const actor = formatUserName(solicitud?.unlocked_by_name);
         const date = solicitud?.unlocked_at
             ? new Date(solicitud.unlocked_at).toLocaleString('es-DO')
             : '';
@@ -1704,9 +1705,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         const reason = String(
             latest?.reason || solicitud?.reassignment_reason || '',
         ).trim();
-        const actor = String(
-            latest?.reassigned_by_name || solicitud?.reassigned_by_name || '',
-        ).trim();
+        const actor = formatUserName(latest?.reassigned_by_name || solicitud?.reassigned_by_name);
         if (!reason) return 'Solicitud reasignada';
         return actor ? `${reason} · Por ${actor}` : reason;
     }
@@ -2718,7 +2717,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             summary: 'Cliente seleccionado',
             detail: locationWasApplied
                 ? 'La ubicación guardada del cliente fue establecida como ubicación principal de la solicitud.'
-                : this.selectedSolicitud.client_name || 'Los datos del cliente fueron aplicados.'
+                : formatUserName(this.selectedSolicitud.client_name) || 'Los datos del cliente fueron aplicados.'
         });
     }
 
@@ -4373,7 +4372,7 @@ async initLocationMap(): Promise<void> {
             this.messageService.add({
                 severity: warnings ? 'warn' : 'success',
                 summary: warnings ? 'Proceso movido con advertencias' : 'Proceso movido',
-                detail: warnings || `El proceso quedó asociado a ${result.target_solicitud.client_name || 'la solicitud seleccionada'} y su inventario se mantuvo intacto.`,
+                detail: warnings || `El proceso quedó asociado a ${formatUserName(result.target_solicitud.client_name) || 'la solicitud seleccionada'} y su inventario se mantuvo intacto.`,
             });
             await this.loadSolicitudes(false, { silent: true });
         } catch (error) {
@@ -5160,7 +5159,7 @@ async initLocationMap(): Promise<void> {
             details: details(
                 ['Estado del proceso', installation.cancelled ? 'Cancelado' : (installation.omitted ? 'Omitido' : (installation.completed ? 'Realizado' : 'Pendiente'))],
                 ['Origen del cierre', completedFromOffice ? 'Oficina' : (installation.completed ? 'Técnico' : '')],
-                ['Finalizado por', completedFromOffice ? installation.completed_by_name : ''],
+                ['Finalizado por', completedFromOffice ? formatUserName(installation.completed_by_name) : ''],
                 ['Correo del empleado', completedFromOffice ? installation.completed_by_email : ''],
                 ['Constancia', completedFromOffice ? 'El técnico asignado no registró la finalización.' : ''],
                 ['Estado de la solicitud', this.statusLabels[solicitud.status] || solicitud.status],
@@ -5193,7 +5192,7 @@ async initLocationMap(): Promise<void> {
                 state: 'info',
                 timestamp: correction.corrected_at,
                 details: details(
-                    ['Corregido por', correction.corrected_by_name],
+                    ['Corregido por', formatUserName(correction.corrected_by_name)],
                     ['Correo', correction.corrected_by_email],
                     ['Campos modificados', (correction.changed_fields || [])
                         .map(field => this.getCorrectionFieldLabel(field))
@@ -5213,10 +5212,10 @@ async initLocationMap(): Promise<void> {
                 state: 'info',
                 timestamp: movement.moved_at,
                 details: details(
-                    ['Realizado por', movement.moved_by_name],
+                    ['Realizado por', formatUserName(movement.moved_by_name)],
                     ['Correo', movement.moved_by_email],
                     [inbound ? 'Solicitud de origen' : 'Solicitud de destino', movement.other_solicitud_id],
-                    [inbound ? 'Cliente anterior' : 'Cliente de destino', movement.other_client_name],
+                    [inbound ? 'Cliente anterior' : 'Cliente de destino', formatUserName(movement.other_client_name)],
                 ),
             });
         }
@@ -5840,7 +5839,7 @@ async initLocationMap(): Promise<void> {
         if (!conflict) return '';
 
         const client = conflict.client_name
-            ? ` para ${conflict.client_name}`
+            ? ` para ${formatUserName(conflict.client_name)}`
             : '';
         const scheduled = this.getScheduledDateDisplay({
             type: conflict.type,
@@ -6316,7 +6315,7 @@ async initLocationMap(): Promise<void> {
     }
 
     private showSolicitudLockedFeedback(solicitud: Solicitud): void {
-        const actor = String(solicitud.locked_by_name || '').trim();
+        const actor = formatUserName(solicitud.locked_by_name);
         const reason = String(solicitud.lock_reason || '').trim();
         this.messageService.add({
             severity: 'warn',
@@ -6480,10 +6479,10 @@ async initLocationMap(): Promise<void> {
 
     get completionTransferTargetLabel(): string {
         if (!this.completionTransferTarget) return '';
-        return [
+        return formatUserName([
             this.completionTransferTarget.name,
             this.completionTransferTarget.last_name,
-        ].filter(Boolean).join(' ').trim()
+        ].filter(Boolean).join(' '))
             || String(this.completionTransferTarget.email || '').trim();
     }
 
@@ -6992,7 +6991,7 @@ async initLocationMap(): Promise<void> {
                 severity: 'success',
                 summary: 'Solicitud desbloqueada',
                 detail: updated.unlocked_by_name
-                    ? `Desbloqueada por ${updated.unlocked_by_name}.`
+                    ? `Desbloqueada por ${formatUserName(updated.unlocked_by_name)}.`
                     : 'La solicitud se puede gestionar nuevamente.',
             });
             this.requestLockDialogVisible = false;
@@ -7179,7 +7178,7 @@ async initLocationMap(): Promise<void> {
     getTechnicianDisplayName(solicitud: Solicitud | null): string {
         const technician = this.getTechnicianById(solicitud?.mechanic_id);
         if (!technician) return 'Técnico asignado';
-        return `${technician.name || ''} ${technician.last_name || ''}`.trim() || technician.email || 'Técnico asignado';
+        return formatUserName(`${technician.name || ''} ${technician.last_name || ''}`) || technician.email || 'Técnico asignado';
     }
 
     getAcceptedTechnicianPhoto(solicitud: Solicitud | null): string | null {
@@ -7404,7 +7403,7 @@ async initLocationMap(): Promise<void> {
     }
 
     getTechnicianName(technician: User): string {
-        return `${technician?.name || ''} ${technician?.last_name || ''}`.replace(/\s+/g, ' ').trim()
+        return formatUserName(`${technician?.name || ''} ${technician?.last_name || ''}`)
             || technician?.email
             || 'Técnico';
     }
@@ -7845,7 +7844,7 @@ async initLocationMap(): Promise<void> {
         const options = this.availableTechnicians
             .map(technician => ({
                 value: String(technician._id || technician.id || ''),
-                label: `${technician.name || ''} ${technician.last_name || ''}`.trim()
+                label: formatUserName(`${technician.name || ''} ${technician.last_name || ''}`)
                     || technician.email
                     || 'Técnico asignado',
             }))
@@ -8690,30 +8689,30 @@ async initLocationMap(): Promise<void> {
 
     getClientDisplayName(sol: Solicitud): string {
         if (sol.client_name) {
-            return sol.client_name;
+            return formatUserName(sol.client_name);
         }
         if (sol.user_id && this.userNameCache[sol.user_id]) {
-            return this.userNameCache[sol.user_id];
+            return formatUserName(this.userNameCache[sol.user_id]);
         }
         return '';
     }
 
     getSolicitudCreatorName(solicitud?: Solicitud | null): string {
         const savedName = String(solicitud?.created_by_name || '').trim();
-        if (savedName) return savedName;
+        if (savedName) return formatUserName(savedName);
 
         const creatorId = String(solicitud?.created_by_id || solicitud?.user_id || '').trim();
         if (!creatorId) return '';
-        if (this.userNameCache[creatorId]) return this.userNameCache[creatorId];
+        if (this.userNameCache[creatorId]) return formatUserName(this.userNameCache[creatorId]);
 
         const currentUser: any = this.authService.getCurrentUser();
         const currentUserId = String(currentUser?.id || currentUser?._id || '').trim();
         if (currentUserId !== creatorId) return '';
 
-        return [currentUser?.name, currentUser?.last_name]
+        return formatUserName([currentUser?.name, currentUser?.last_name]
             .map(value => String(value || '').trim())
             .filter(Boolean)
-            .join(' ');
+            .join(' '));
     }
 
     getSolicitudPrimaryDeviceLabel(solicitud: Solicitud | null): string {

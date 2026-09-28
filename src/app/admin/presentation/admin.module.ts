@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -20,6 +21,7 @@ import { CloudModule } from '../../shareds/components/cloud/cloud.module';
     SidebarComponent
   ],
   imports: [
+    UserNamePipe,
     DeviceLabelPipe,
     CommonModule,
     FormsModule,

@@ -65,7 +65,7 @@
     <div class="assignment-review-owner">
       <span><i class="pi pi-building"></i></span>
       <div>
-        <strong>{{ mainAccount?.name }} {{ mainAccount?.last_name }}</strong>
+        <strong>{{ mainAccount?.name | userName }} {{ mainAccount?.last_name | userName }}</strong>
         <small>{{ mainAccount?.email || 'Cuenta principal configurada' }}</small>
       </div>
       <i class="pi" [ngClass]="mainAccount ? 'pi-check-circle' : 'pi-exclamation-circle'"></i>
@@ -91,7 +91,7 @@
       <button type="button" *ngFor="let client of clients" (click)="selectClient(client)">
         <span class="assignment-client-avatar"><i class="pi pi-user"></i></span>
         <span>
-          <strong>{{ client.name }} {{ client.last_name }}</strong>
+          <strong>{{ client.name | userName }} {{ client.last_name | userName }}</strong>
           <small>{{ client.email }}<ng-container *ngIf="client.phone"> · {{ client.phone }}</ng-container></small>
         </span>
         <i class="pi pi-chevron-right"></i>
@@ -100,7 +100,7 @@
     </div>
     <div class="assignment-selected-client" *ngIf="selectedClient">
       <span><i class="pi pi-check"></i></span>
-      <div><strong>{{ selectedClient.name }} {{ selectedClient.last_name }}</strong><small>{{ selectedClient.email }}</small></div>
+      <div><strong>{{ selectedClient.name | userName }} {{ selectedClient.last_name | userName }}</strong><small>{{ selectedClient.email }}</small></div>
       <button type="button" (click)="clearSelectedClient()">Cambiar</button>
     </div>
   </section>

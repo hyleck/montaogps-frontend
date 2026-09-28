@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Injectable, Inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom, Observable } from 'rxjs';
@@ -111,7 +112,7 @@ export class ManagementService {
       visited.add(currentId);
       const user: User = await firstValueFrom(this.userService.getById(currentId));
       path.unshift({
-        label: `${user.name} ${user.last_name}`,
+        label: formatUserName(`${user.name} ${user.last_name}`),
         routerLink: ['/admin/management', 'u', user._id]
       });
       currentId = (user as any).parent_id;

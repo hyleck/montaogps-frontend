@@ -30,7 +30,7 @@
       <div class="identity-heading">
         <i class="pi pi-id-card"></i>
         <div>
-          <h2>{{ info?.user?.name || 'Cliente' }} {{ info?.user?.last_name || '' }}</h2>
+          <h2>{{ (info?.user?.name | userName) || 'Cliente' }} {{ info?.user?.last_name | userName }}</h2>
           <p>Sube una foto clara de tu cédula o pasaporte. Si los datos se leen correctamente, la cuenta se verifica automáticamente.</p>
         </div>
       </div>

@@ -490,7 +490,7 @@
             <i class="pi" [ngClass]="getWorkflowStatusIcon(run.status)"></i>
           </span>
           <span class="workflow-run__body">
-            <strong>{{ run.contact_name || 'Cliente' }}</strong>
+            <strong>{{ (run.contact_name | userName) || 'Cliente' }}</strong>
             <small>Conversación #{{ run.conversation_id }}</small>
           </span>
           <span class="workflow-run__meta">
@@ -507,7 +507,7 @@
               <i class="pi" [ngClass]="getWorkflowStatusIcon(run.status)"></i>
               {{ getWorkflowStatusLabel(run.status) }}
             </span>
-            <strong>{{ run.contact_name || 'Cliente' }}</strong>
+            <strong>{{ (run.contact_name | userName) || 'Cliente' }}</strong>
           </div>
           <span>{{ run.trigger }} · {{ run.started_at | date:'dd/MM/yyyy, h:mm:ss a' }}</span>
         </div>

@@ -88,7 +88,7 @@
           </span>
         </div>
         <h3>{{ (record.deviceData?.name || 'Dispositivo sin nombre') | deviceLabel }}</h3>
-        <p>{{ record.userName || record.userId }}</p>
+        <p>{{ record.userName ? (record.userName | userName) : record.userId }}</p>
         <dl>
           <div>
             <dt>Teléfono</dt>

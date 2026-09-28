@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ThemesService } from './shareds/services/themes.service';
 import { AuthService } from './core/services/auth.service';
@@ -132,7 +133,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!this.registrationNotification) return;
 
     const text = [
-      `Cliente: ${this.registrationNotification.clientName || 'Cliente'}`,
+      `Cliente: ${formatUserName(this.registrationNotification.clientName) || 'Cliente'}`,
       `Usuario: ${this.registrationNotification.credentialsEmail || this.registrationNotification.clientEmail || ''}`,
       `Contraseña: ${this.registrationNotification.credentialsPassword || ''}`,
     ].join('\n');

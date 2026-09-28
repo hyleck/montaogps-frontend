@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -1240,7 +1241,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   mailAddressLine(addresses: MailAddress[] = []): string {
     return addresses
-      .map(address => address.name || address.address)
+      .map(address => formatUserName(address.name) || address.address)
       .filter(Boolean)
       .join(', ');
   }
@@ -1468,7 +1469,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             : 'otro empleado';
 
         // Buscar el agente en memoria para sacar su ID de Mongo y enviarle el Push
-        const contactName = this.selectedConversation?.contact.name || 'un cliente';
+        const contactName = formatUserName(this.selectedConversation?.contact.name) || 'un cliente';
         
         if (assignedAgent && (assignedAgent.id || assignedAgent._id)) {
           const topic = assignedAgent.id || assignedAgent._id;
@@ -1926,7 +1927,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   getConversationAssigneeLabel(conv: ChatConversation): string {
     if (!conv.assignee_id) return 'Ester Assistant';
-    return (conv.assignee_name || conv.assignee_email || 'otro empleado').trim();
+    return formatUserName(conv.assignee_name) || conv.assignee_email?.trim() || 'otro empleado';
   }
 
   canParticipateInConversation(
@@ -2104,11 +2105,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     conv: ChatConversation | null = this.selectedConversation,
   ): string {
     if (!conv?.assignee_id) return 'Ester Assistant';
-    return String(
-      conv.assignee_name
-      || conv.assignee_email
-      || 'otro empleado',
-    ).trim();
+    return formatUserName(conv.assignee_name) || conv.assignee_email?.trim() || 'otro empleado';
   }
 
   private sortConversations(conversations: ChatConversation[]): ChatConversation[] {
@@ -3632,7 +3629,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   get selectedInternalGroupName(): string {
-    return this.selectedInternalGroup?.name || 'Montao GPS';
+    return this.selectedInternalGroup ? this.getTeamEntryName(this.selectedInternalGroup) : 'Montao GPS';
   }
 
   /** Equipo y Técnicos comparten el chat interno; sólo cambia a quién listan. */
@@ -3718,7 +3715,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   getTeamEntryName(group: InternalChatGroup): string {
-    return group?.name || 'Grupo';
+    return group?.type === 'admin' ? group.name || 'Grupo' : formatUserName(group?.name) || 'Grupo';
   }
 
   getTeamEntrySubtitle(group: InternalChatGroup): string {
@@ -3828,9 +3825,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
     this.showInternalGroupMenu = false;
     this.confirmationService.confirm({
-      header: `Limpiar ${group.name}`,
+      header: `Limpiar ${this.getTeamEntryName(group)}`,
       message:
-        `Se eliminarán permanentemente todos los mensajes de “${group.name}”. Los demás grupos no serán afectados.`,
+        `Se eliminarán permanentemente todos los mensajes de “${this.getTeamEntryName(group)}”. Los demás grupos no serán afectados.`,
       icon: 'pi pi-exclamation-triangle',
       acceptLabel: 'Limpiar grupo',
       rejectLabel: 'Cancelar',
@@ -3857,7 +3854,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           severity: 'success',
           summary: 'Conversación limpiada',
           detail:
-            `${response?.deleted || 0} mensajes eliminados de ${group.name}.`,
+            `${response?.deleted || 0} mensajes eliminados de ${this.getTeamEntryName(group)}.`,
         });
       },
       error: (error) => {
@@ -4191,7 +4188,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   getInternalAuthorName(message: InternalChatMessage): string {
     const author = message?.author;
     const fullName = `${author?.name || ''} ${author?.last_name || ''}`.trim();
-    return fullName || author?.email || 'Empleado';
+    return formatUserName(fullName) || author?.email || 'Empleado';
   }
 
   getInternalAuthorInitials(message: InternalChatMessage): string {
@@ -4212,7 +4209,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   getInternalReplyAuthorName(message: InternalChatMessage): string {
     const author = message?.replyTo?.author;
     const name = `${author?.name || ''} ${author?.last_name || ''}`.trim();
-    return name || author?.email || 'Mensaje';
+    return formatUserName(name) || author?.email || 'Mensaje';
   }
 
   getInternalReplyPreview(message: InternalChatMessage): string {
@@ -4337,10 +4334,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   getActiveEmployeeName(employee: any): string {
-    return [employee?.name, employee?.last_name]
-      .filter(Boolean)
-      .join(' ')
-      .trim() || employee?.email || 'Empleado';
+    return formatUserName([employee?.name, employee?.last_name].filter(Boolean).join(' ')) || employee?.email || 'Empleado';
   }
 
   getActiveEmployeeInitials(employee: any): string {
@@ -5409,7 +5403,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if ('contacts' in (msg || {}) && (msg as ChatMessage)?.contacts?.length) {
       const contacts = (msg as ChatMessage).contacts || [];
       return contacts.length === 1
-        ? `Contacto: ${contacts[0].name}`
+        ? `Contacto: ${formatUserName(contacts[0].name)}`
         : `${contacts.length} contactos compartidos`;
     }
     const text = String(msg?.text || '').trim();

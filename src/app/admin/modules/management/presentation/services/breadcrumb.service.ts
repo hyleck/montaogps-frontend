@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Injectable } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { ManagementService } from './management.service';
@@ -44,7 +45,7 @@ export class BreadcrumbService {
       if (currentUser) {
         this.path = [];
         this.items = [
-          { label: `${currentUser.name} ${currentUser.last_name}` }
+          { label: formatUserName(`${currentUser.name} ${currentUser.last_name}`) }
         ];
       } else {
         this.path = [];
@@ -65,8 +66,8 @@ export class BreadcrumbService {
       
       return {
         label: pathItem.accessEntry
-          ? `Acceso: ${pathItem.fullName}`
-          : pathItem.fullName,
+          ? `Acceso: ${formatUserName(pathItem.fullName)}`
+          : formatUserName(pathItem.fullName),
         icon: pathItem.accessEntry ? 'pi pi-key' : undefined,
         // Para elementos que no son el último, agregar comando para navegar
         command: !isLast ? () => {

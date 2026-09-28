@@ -1,6 +1,7 @@
 import type { InstallationDetail, Solicitud } from 'src/app/core/services/solicitudes.service';
 import type { ProcessItem } from '../../services/processes.service';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 
 export type InstallationProgressStatus = 'complete' | 'pending' | 'warning' | 'unavailable' | 'loading' | 'not-applicable';
 
@@ -126,11 +127,11 @@ function checkDetails(checks: InstallationProgressCheck[]): InstallationProgress
 function personName(value: unknown): string {
   if (value && typeof value === 'object') {
     const person = value as Data;
-    return [text(person['name']), text(person['last_name'])].filter(Boolean).join(' ')
-      || text(person['full_name'] || person['nombre'] || person['email']);
+    return formatUserName([text(person['name']), text(person['last_name'])].filter(Boolean).join(' ')
+      || text(person['full_name'] || person['nombre'] || person['email']));
   }
   const name = text(value);
-  return /^[a-f\d]{24}$/i.test(name) ? '' : name;
+  return /^[a-f\d]{24}$/i.test(name) ? '' : formatUserName(name);
 }
 
 function step(id: string, label: string, checks: InstallationProgressCheck[], context: {
@@ -195,11 +196,11 @@ export function buildInstallationProgress(input: InstallationProgressInput): Ins
   const catalogValue = (value: unknown, catalog?: Record<string, string>): unknown => catalog?.[text(value)] || value;
   const request: Data = linked ? input.solicitud || {} : {};
   const sourceUnavailable = linked ? unavailable : undefined;
-  const creator = linked ? text(request['created_by_name']) : personName(process.creator);
+  const creator = linked ? formatUserName(request['created_by_name']) : personName(process.creator);
   const creatorId = linked ? text(request['created_by_id'] || request['user_id']) : text(process.creator);
   const createdAt = linked ? request['createdAt'] : process.createdAt;
   const officeClient = process.client;
-  const client = linked ? text(request['client_name'] || request['client_email'] || request['client_phone'])
+  const client = linked ? formatUserName(request['client_name'] || request['client_email'] || request['client_phone'])
     : personName(officeClient);
   const clientId = linked ? text(request['client_id']) : text(officeClient?._id);
   const initialChecks = [
@@ -262,8 +263,8 @@ export function buildInstallationProgress(input: InstallationProgressInput): Ins
   const technicianId = technicianClosed && text(row['completed_by_id']) ? text(row['completed_by_id']) : assignedTechnicianId;
   const recordedTechnicianName = (!linked || !!technicianId) && (!technicianId || text(snapshot['mechanic_id']) === technicianId)
     ? text((process as any).mechanic_name || snapshot['mechanic_name']) : '';
-  const technicianName = (technicianClosed ? text(row['completed_by_name']) : '')
-    || input.technicians[technicianId] || recordedTechnicianName || (technicianId ? 'Técnico registrado' : '');
+  const technicianName = formatUserName((technicianClosed ? text(row['completed_by_name']) : '')
+    || input.technicians[technicianId] || recordedTechnicianName) || (technicianId ? 'Técnico registrado' : '');
   const technicianChecks = [dataCheck('Técnico responsable', technicianName, linked ? unavailable : undefined)];
   const responseLabels: Record<string, string> = { aceptada: 'Aceptada por el técnico', rechazada: 'Rechazada por el técnico', pendiente: 'Pendiente de respuesta', verificando: 'Verificando disponibilidad' };
   const response = text(request['technician_response']);
@@ -275,7 +276,7 @@ export function buildInstallationProgress(input: InstallationProgressInput): Ins
   technicianChecks.push(dataCheck('Fecha registrada de instalación', dateLabel(parseProcessDisplayDate(process.registrationDate))));
   const technicianDetails = sourceUnavailable ? [] : details(
     ['Técnico responsable', technicianName],
-    ['Técnico asignado actualmente a la solicitud', linked ? input.technicians[assignedTechnicianId] || (assignedTechnicianId ? 'Técnico registrado; nombre no disponible' : 'Sin técnico asignado') : ''],
+    ['Técnico asignado actualmente a la solicitud', linked ? formatUserName(input.technicians[assignedTechnicianId]) || (assignedTechnicianId ? 'Técnico registrado; nombre no disponible' : 'Sin técnico asignado') : ''],
     ['Respuesta actual de la solicitud', responseLabels[response]], ['Última actualización de respuesta', dateLabel(request['technician_response_updated_at'])],
     ['Fecha programada', dateLabel(row['scheduled_date'] || request['scheduled_date'])],
     ['Fecha registrada de instalación', dateLabel(parseProcessDisplayDate(process.registrationDate))],
@@ -287,12 +288,12 @@ export function buildInstallationProgress(input: InstallationProgressInput): Ins
         reassigned_by_name: request['reassigned_by_name'], reassigned_by_id: request['reassigned_by_id'],
       }] : [];
     reassignments.forEach((assignment, index) => {
-      const previous = input.technicians[text(assignment['previous_mechanic_id'])];
-      const next = input.technicians[text(assignment['mechanic_id'])] || (text(assignment['mechanic_id']) === technicianId ? technicianName : '');
+      const previous = formatUserName(input.technicians[text(assignment['previous_mechanic_id'])]);
+      const next = formatUserName(input.technicians[text(assignment['mechanic_id'])]) || (text(assignment['mechanic_id']) === technicianId ? technicianName : '');
       technicianDetails.push(...details(
         [`Reasignación ${index + 1}`, [previous, next].filter(Boolean).join(' → ')],
         [`Fecha de reasignación ${index + 1}`, dateLabel(assignment['reassigned_at'])],
-        [`Reasignado por (${index + 1})`, assignment['reassigned_by_name'] || input.technicians[text(assignment['reassigned_by_id'])]],
+        [`Reasignado por (${index + 1})`, formatUserName(assignment['reassigned_by_name'] || input.technicians[text(assignment['reassigned_by_id'])])],
         [`Motivo de reasignación ${index + 1}`, assignment['reason']],
       ));
     });
@@ -361,7 +362,7 @@ export function buildInstallationProgress(input: InstallationProgressInput): Ins
   ];
   const closureSource = linked ? row['completion_source'] === 'office' ? 'Oficina'
     : row['completion_source'] === 'technician' ? 'Técnico' : '' : officeOrigin ? 'Oficina' : '';
-  const closureActor = linked ? text(row['completed_by_name']) || input.technicians[text(row['completed_by_id'])] : officeOrigin ? personName(process.creator) : '';
+  const closureActor = linked ? formatUserName(row['completed_by_name'] || input.technicians[text(row['completed_by_id'])]) : officeOrigin ? personName(process.creator) : '';
   const closureDate = linked ? row['omitted'] ? row['omitted_at'] : row['completed_at'] : officeOrigin ? process.createdAt : null;
   const closureDetails = sourceUnavailable ? [] : details(
     ['Estado del cierre', closureChecks[0]?.value], ['Origen del cierre', closureSource],
@@ -409,7 +410,7 @@ export function buildInstallationProgress(input: InstallationProgressInput): Ins
   const reviewChecks = [stateCheck('Verificación administrativa', reviewAfterCorrection || review === 'rejected' ? 'warning'
     : review === 'verified' ? 'complete' : 'pending', reviewAfterCorrection ? 'Revisar corrección de identidad posterior o sin fecha comprobable'
       : review === 'verified' ? 'Verificado' : review === 'rejected' ? text(process.verificationNote) || 'Rechazado' : 'Pendiente de verificación')];
-  const reviewer = personName(process.verifiedBy) || input.technicians[text(process.verifiedBy)];
+  const reviewer = personName(process.verifiedBy) || formatUserName(input.technicians[text(process.verifiedBy)]);
   const reviewDetails = details(
     ['Estado administrativo', review === 'verified' ? 'Verificado' : review === 'rejected' ? 'Rechazado' : 'Pendiente'],
     ['Revisado por', reviewer], ['Fecha de revisión', dateLabel(process.verifiedAt)], ['Observación de revisión', process.verificationNote],

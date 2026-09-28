@@ -1,5 +1,6 @@
 import { DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { TargetsService } from 'src/app/core/services/targets.service';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { Contact, ContactsService } from 'src/app/core/services/contacts.service';
@@ -697,11 +698,11 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     if (this.installationSolicitudId && this.installationProgressLoading) return 'Cargando técnico…';
     if (this.installationSolicitudId && this.installationProgressError) return 'Técnico no disponible';
     const row = this.installationProgressRecord;
-    if (row?.completed && row.completion_source === 'technician' && row.completed_by_name) return row.completed_by_name;
+    if (row?.completed && row.completion_source === 'technician' && row.completed_by_name) return formatUserName(row.completed_by_name);
     const id = this.installationTechnicianId;
-    if (id && this.techniciansMap[id]) return this.techniciansMap[id];
+    if (id && this.techniciansMap[id]) return formatUserName(this.techniciansMap[id]);
     const snapshot = this.selectedProcess?.target;
-    if (snapshot?.['mechanic_name'] && (id ? snapshot['mechanic_id'] === id : !this.installationSolicitudId)) return snapshot['mechanic_name'];
+    if (snapshot?.['mechanic_name'] && (id ? snapshot['mechanic_id'] === id : !this.installationSolicitudId)) return formatUserName(snapshot['mechanic_name']);
     if (this.installationTechnicianLoading || this.installationProgressLoading) return 'Cargando técnico…';
     if (id) return 'Nombre del técnico no disponible';
     return this.installationProgressError || this.installationTargetError ? 'Técnico no disponible' : 'Sin técnico asignado';
@@ -856,7 +857,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
   get installationContactsValue(): string {
     if (this.installationContactsLoading) return 'Cargando contactos…';
     if (this.installationContactsError || this.installationContacts === null) return 'Contactos no disponibles';
-    return this.installationContacts.map(contact => [contact.full_name, contact.phone, contact.relationship]
+    return this.installationContacts.map(contact => [formatUserName(contact.full_name), contact.phone, contact.relationship]
       .filter(value => !!value).join(' · ')).filter(Boolean).join('; ') || 'Sin registrar';
   }
 
@@ -1347,10 +1348,10 @@ export class ProcessesComponent implements OnInit, OnDestroy {
 
   getCreatorName(creator: any): string {
     if (!creator) return 'Sistema';
-    if (typeof creator === 'string') return creator;
+    if (typeof creator === 'string') return formatUserName(creator);
     const name = creator.name || '';
     const lastName = creator.last_name || '';
-    return (name + ' ' + lastName).trim() || creator.email || 'Desconocido';
+    return formatUserName(name + ' ' + lastName) || creator.email || 'Desconocido';
   }
 
   getTargetName(target: any): string {
@@ -1367,7 +1368,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     const client = process?.client;
     if (!client) return 'Sin cliente asociado';
     const fullName = `${client.name || ''} ${client.last_name || ''}`.trim();
-    return fullName || client.email || client.phone || 'Sin cliente asociado';
+    return formatUserName(fullName) || client.email || client.phone || 'Sin cliente asociado';
   }
 
   getClientContact(process: ProcessItem): string {
@@ -1381,13 +1382,13 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     if (process.details) {
       const match = process.details.match(/T[eé]cnico asignado:\s*([^.]+)/i);
       if (match && match[1] && match[1].trim() !== 'No asignado') {
-        return match[1].trim();
+        return formatUserName(match[1]);
       }
     }
     // Fallback to target.mechanic_id resolved via technicians map
     if (process.target) {
       const mechanicId = process.target['mechanic_id'];
-      if (mechanicId) return this.techniciansMap[mechanicId] || mechanicId;
+      if (mechanicId) return formatUserName(this.techniciansMap[mechanicId]) || mechanicId;
     }
     return 'Ninguno';
   }
@@ -1407,7 +1408,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     this.userService.getEmployees().subscribe({
       next: (employees: any[]) => {
         this.employeeOptions = employees.map(e => ({
-          label: ((e.name || '') + ' ' + (e.last_name || '')).trim() || e.email,
+          label: formatUserName((e.name || '') + ' ' + (e.last_name || '')) || e.email,
           value: e._id
         }));
       },
@@ -1419,7 +1420,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     this.userService.getTechnicians().subscribe({
       next: (techs: any[]) => {
         this.mechanicOptions = techs.map(t => ({
-          label: ((t.name || '') + ' ' + (t.last_name || '')).trim() || t.email,
+          label: formatUserName((t.name || '') + ' ' + (t.last_name || '')) || t.email,
           value: t._id
         }));
       },
@@ -1433,7 +1434,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
       next: (clients) => {
         this.clientOptions = (clients || [])
           .map((client: any) => {
-            const label = `${client.name || ''} ${client.last_name || ''}`.trim()
+            const label = formatUserName(`${client.name || ''} ${client.last_name || ''}`)
               || client.email
               || client.phone
               || 'Cliente sin nombre';

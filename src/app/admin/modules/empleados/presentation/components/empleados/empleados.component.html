@@ -61,14 +61,14 @@
                 [class.is-online]="isEmployeeOnline(empleado)" (click)="showCurriculum(empleado)">
                 <header class="employee-card-header">
                     <div class="empleado-avatar card-avatar">
-                        <img *ngIf="empleado.photo" [src]="empleado.photo" [alt]="empleado.name">
+                        <img *ngIf="empleado.photo" [src]="empleado.photo" [alt]="empleado.name | userName">
                         <div *ngIf="!empleado.photo" class="avatar-placeholder">
                             {{empleado.name.charAt(0) || ''}}{{empleado.last_name ? empleado.last_name.charAt(0) : ''}}
                         </div>
                         <span class="status-indicator" [ngClass]="isEmployeeOnline(empleado) ? 'status-online' : 'status-offline'"></span>
                     </div>
                     <div class="employee-card-identity">
-                        <h3>{{ empleado.name | titlecase }} {{ empleado.last_name | titlecase }}</h3>
+                        <h3>{{ empleado.name | userName }} {{ empleado.last_name | userName }}</h3>
                         <span>{{ empleado.email }}</span>
                         <div class="employee-card-badges">
                             <span class="connection-pill" [class.online]="isEmployeeOnline(empleado)">
@@ -138,7 +138,7 @@
         <!-- Header: Avatar y Nombre -->
         <div class="curriculum-header">
             <div class="curriculum-avatar">
-                <img *ngIf="selectedEmpleado.photo" [src]="selectedEmpleado.photo" [alt]="selectedEmpleado.name">
+                <img *ngIf="selectedEmpleado.photo" [src]="selectedEmpleado.photo" [alt]="selectedEmpleado.name | userName">
                 <div *ngIf="!selectedEmpleado.photo" class="avatar-placeholder large">
                     {{selectedEmpleado.name.charAt(0) || ''}}{{selectedEmpleado.last_name ? selectedEmpleado.last_name.charAt(0) : ''}}
                 </div>
@@ -146,7 +146,7 @@
             </div>
             
             <div class="curriculum-title">
-                <h2>{{ selectedEmpleado.name | titlecase }} <span *ngIf="selectedEmpleado.last_name">{{ selectedEmpleado.last_name | titlecase }}</span></h2>
+                <h2>{{ selectedEmpleado.name | userName }} <span *ngIf="selectedEmpleado.last_name">{{ selectedEmpleado.last_name | userName }}</span></h2>
                 <div class="curriculum-role" *ngIf="selectedEmpleado.department_id">
                     <i class="pi pi-building"></i>
                     <span>{{ selectedEmpleado.department_id | titlecase }}</span>
@@ -326,11 +326,11 @@
     <ng-template pTemplate="header">
         <div class="replay-dialog-header" *ngIf="replayEmployee">
             <div class="replay-header-avatar">
-                <img *ngIf="replayEmployee.photo" [src]="replayEmployee.photo" [alt]="replayEmployee.name">
+                <img *ngIf="replayEmployee.photo" [src]="replayEmployee.photo" [alt]="replayEmployee.name | userName">
                 <span *ngIf="!replayEmployee.photo">{{ replayEmployee.name.charAt(0) }}{{ replayEmployee.last_name ? replayEmployee.last_name.charAt(0) : '' }}</span>
             </div>
             <div>
-                <h3>{{ replayEmployee.name | titlecase }} {{ replayEmployee.last_name | titlecase }}</h3>
+                <h3>{{ replayEmployee.name | userName }} {{ replayEmployee.last_name | userName }}</h3>
                 <p>{{ replayMode === 'live' ? 'Supervisión en vivo' : 'Historial de las últimas 24 horas' }}</p>
             </div>
             <span class="replay-mode-pill" [class.live]="replayMode === 'live'">

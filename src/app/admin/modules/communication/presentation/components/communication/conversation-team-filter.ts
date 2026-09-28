@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 export interface TeamFilterableConversation {
   assignee_id?: string | null;
   contact?: {
@@ -20,16 +21,7 @@ export function canParticipateInConversation(
 }
 
 export function toTitleCaseName(value: unknown): string {
-  return String(value || '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toLocaleLowerCase('es-DO')
-    .replace(
-      /(^|[\s'-])([a-záéíóúüñ])/g,
-      (_match, separator: string, letter: string) => (
-        `${separator}${letter.toLocaleUpperCase('es-DO')}`
-      ),
-    );
+  return formatUserName(String(value || '').trim().replace(/\s+/g, ' '));
 }
 
 export function formatConversationDisplayName(

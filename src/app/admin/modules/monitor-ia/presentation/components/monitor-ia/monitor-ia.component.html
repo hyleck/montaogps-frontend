@@ -190,13 +190,13 @@
           *ngFor="let client of clientSearchResults"
           (click)="selectClient(client)"
         >
-          <img *ngIf="client.photo" [src]="client.photo" [alt]="client.name" />
+          <img *ngIf="client.photo" [src]="client.photo" [alt]="client.name | userName" />
           <span class="client-option__avatar" *ngIf="!client.photo">
             {{ (client.name || "C").charAt(0)
             }}{{ (client.last_name || "").charAt(0) }}
           </span>
           <span class="client-option__content">
-            <strong>{{ client.name }} {{ client.last_name }}</strong>
+            <strong>{{ ((client.name || '') + ' ' + (client.last_name || '')) | userName }}</strong>
             <small>{{ client.phone || client.phone2 || "Sin teléfono" }}</small>
             <small>{{ client.email }}</small>
           </span>
@@ -264,11 +264,11 @@
         }}</span>
         <h2>{{ session.message || "Preparando información" }}</h2>
         <p *ngIf="session.currentActivity?.userName">
-          Revisando a {{ session.currentActivity?.userName }}
+          Revisando a {{ session.currentActivity?.userName | userName }}
         </p>
         <p class="session-scope" *ngIf="session.scanRootUserName">
           <i class="pi pi-sitemap"></i>
-          Rama monitoreada: {{ session.scanRootUserName }}
+          Rama monitoreada: {{ session.scanRootUserName | userName }}
         </p>
       </div>
       <strong class="progress-value">{{ session.progress || 0 }}%</strong>
@@ -350,7 +350,7 @@
         <div class="record-owner">
           <div class="owner-icon"><i class="pi pi-user"></i></div>
           <div>
-            <h3>{{ record.userName || record.userId }}</h3>
+            <h3>{{ record.userName ? (record.userName | userName) : record.userId }}</h3>
             <span class="record-email" *ngIf="record.userEmail">
               {{ record.userEmail }}
             </span>

@@ -3,7 +3,7 @@
     <div class="header-content">
       <h2 class="header-title">
         <i class="pi pi-chart-bar"></i>
-        {{ monitoringPanelTitle | titlecase }}
+        {{ monitoringPanelTitle }}
       </h2>
       <div class="header-subtitle-container">
         <p class="header-subtitle">{{ monitoringPanelSubtitle }}</p>
@@ -130,7 +130,7 @@
             </div>
             <div class="report-detail-item">
               <span class="detail-label">Creado por:</span>
-              <span class="detail-value">{{ report.creator?.name }} {{ report.creator?.last_name }} ({{
+              <span class="detail-value">{{ ((report.creator?.name || '') + ' ' + (report.creator?.last_name || '')) | userName }} ({{
                 report.creator?.email }})</span>
             </div>
             <div class="report-actions">
@@ -686,7 +686,7 @@
           <div class="breadcrumb-container">
             <ng-container *ngFor="let pathItem of userData.route || []; let j = index; let isLast = last">
               <span class="breadcrumb-item" [class.active]="isLast">
-                {{ pathItem.fullName }}
+                {{ pathItem.fullName | userName }}
               </span>
               <span *ngIf="!isLast" class="breadcrumb-separator">></span>
             </ng-container>
@@ -811,7 +811,7 @@
                 <div class="breadcrumb-container">
                   <ng-container *ngFor="let pathItem of group.route; let j = index; let isLast = last">
                     <span class="breadcrumb-item" [class.active]="isLast">
-                      {{ pathItem.fullName }}
+                      {{ pathItem.fullName | userName }}
                     </span>
                     <span *ngIf="!isLast" class="breadcrumb-separator">></span>
                   </ng-container>

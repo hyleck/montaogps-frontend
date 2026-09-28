@@ -121,7 +121,7 @@ describe('ProcessesComponent installation detail', () => {
     }));
     expect(gps['Fecha de instalación']).toContain('2026');
     expect(gps['Fecha de expiración']).toContain('2027');
-    expect(vehicle['Contactos']).toContain('Contacto principal');
+    expect(vehicle['Contactos']).toContain('Contacto Principal');
     expect(vehicle['Contactos']).toContain('8095550180');
     expect(JSON.stringify(snapshot)).toBe(original);
     expect(component.detailSimpleChangeRows[0].after).toBe('HISTORICA');
@@ -285,7 +285,7 @@ describe('ProcessesComponent installation detail', () => {
     expect(contacts.getAll).toHaveBeenCalledOnceWith(deviceId);
     expect(tags.getTagById).toHaveBeenCalledOnceWith(tagId);
     const contact = component.installationVehicleFields.find(field => field.label === 'Contactos')!.value;
-    expect(contact).toContain('Contacto actual');
+    expect(contact).toContain('Contacto Actual');
     expect(contact).toContain('8095550189');
     expect(contact).toContain('Propietario');
     expect(contact).not.toContain('Contacto antiguo');
@@ -316,7 +316,7 @@ describe('ProcessesComponent installation detail', () => {
     pending.complete();
     flushMicrotasks();
     const contact = component.installationVehicleFields.find(field => field.label === 'Contactos')!.value;
-    expect(contact).toContain('Contacto del segundo GPS');
+    expect(contact).toContain('Contacto Del Segundo Gps');
     expect(contact).not.toContain('Contacto tardío');
     expect(component.installationContactsError).toBe('');
   }));

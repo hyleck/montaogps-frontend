@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -11,6 +12,7 @@ import { FormsModule } from '@angular/forms';
     EmpleadosComponent
   ],
   imports: [
+    UserNamePipe,
     CommonModule,
     FormsModule,
     EmpleadosRoutingModule,

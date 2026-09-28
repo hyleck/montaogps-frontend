@@ -100,7 +100,7 @@
                     <div class="topic-main">
                         <h4 class="topic-title">{{ topic.title }}</h4>
                         <div class="topic-meta">
-                            Escrito por <strong>{{ topic.author?.name || 'Desconocido' }} {{ topic.author?.last_name || '' }}</strong> · {{ getTimeAgo(topic.createdAt) }}
+                            Escrito por <strong>{{ ((topic.author?.name || 'Desconocido') + ' ' + (topic.author?.last_name || '')) | userName }}</strong> · {{ getTimeAgo(topic.createdAt) }}
                         </div>
                     </div>
                     <div class="topic-counters hide-on-mobile">
@@ -111,7 +111,7 @@
                     <div class="topic-last-reply hide-on-mobile">
                         <ng-container *ngIf="topic.lastPostAt">
                             <span>Última res.</span>
-                            <strong>{{ topic.lastPostAuthor?.name || 'Alguien' }}</strong>
+                            <strong>{{ (topic.lastPostAuthor?.name || 'Alguien') | userName }}</strong>
                             <span>{{ getTimeAgo(topic.lastPostAt) }}</span>
                         </ng-container>
                         <span *ngIf="!topic.lastPostAt">Sin respuestas</span>
@@ -138,7 +138,7 @@
                             <span *ngIf="!selectedTopic.author?.photo">{{ (selectedTopic.author?.name || '?')[0] }}</span>
                         </div>
                         <div class="author-details">
-                            <div class="author-name">{{ selectedTopic.author?.name }} {{ selectedTopic.author?.last_name }}</div>
+                            <div class="author-name">{{ ((selectedTopic.author?.name || '') + ' ' + (selectedTopic.author?.last_name || '')) | userName }}</div>
                             <div class="author-badge">Autor</div>
                         </div>
                     </div>
@@ -175,7 +175,7 @@
                                 <span *ngIf="!post.author?.photo">{{ (post.author?.name || '?')[0] }}</span>
                             </div>
                             <div class="author-details">
-                                <div class="author-name">{{ post.author?.name }} {{ post.author?.last_name }}</div>
+                                <div class="author-name">{{ ((post.author?.name || '') + ' ' + (post.author?.last_name || '')) | userName }}</div>
                             </div>
                         </div>
                         <div class="post-content">

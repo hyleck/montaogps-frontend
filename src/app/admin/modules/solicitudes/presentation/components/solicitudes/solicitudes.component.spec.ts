@@ -1074,7 +1074,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(component.technicianScheduleConflict?.solicitud_id)
             .toBe('conflicting-request');
         expect(component.technicianScheduleConflictMessage).toContain(
-            'tiene una solicitud de chequeo para Cliente ocupado',
+            'tiene una solicitud de chequeo para Cliente Ocupado',
         );
         expect(component.technicianScheduleConflictMessage).toContain(
             '3:30 p. m.',

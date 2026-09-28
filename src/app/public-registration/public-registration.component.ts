@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -19,6 +20,7 @@ import { PrimengModule } from '../shareds/libraries/primeng/primeng.module';
   styleUrls: ['./public-registration.component.css'],
   standalone: true,
   imports: [
+    UserNamePipe,
     CommonModule,
     FormsModule,
     PrimengModule

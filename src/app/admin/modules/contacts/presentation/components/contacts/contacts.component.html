@@ -58,7 +58,7 @@
     </div>
     <div class="contact-card" *ngFor="let contact of contacts">
       <div class="contact-card__info">
-        <div class="contact-card__name">{{ contact.full_name }}</div>
+        <div class="contact-card__name">{{ contact.full_name | userName }}</div>
         <div class="contact-card__detail">{{ contact.relationship }} • {{ contact.phone }}</div>
         <div class="contact-card__detail" *ngIf="contact.dni">Cédula/RNC: {{ contact.dni }}</div>
         <div class="contact-card__obs" *ngIf="contact.observation">{{ contact.observation }}</div>

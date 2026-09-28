@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { CommonModule } from '@angular/common';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -21,7 +22,7 @@ describe('Inventory warehouse dialog layout', () => {
     spyOn(InventoryComponent.prototype, 'ngOnInit').and.stub();
     await TestBed.configureTestingModule({
       declarations: [InventoryComponent],
-      imports: [CommonModule, FormsModule, NoopAnimationsModule, TranslateModule.forRoot(), PrimengModule],
+      imports: [UserNamePipe, CommonModule, FormsModule, NoopAnimationsModule, TranslateModule.forRoot(), PrimengModule],
       providers: [
         provideRouter([]),
         { provide: InventoryService, useValue: {} },

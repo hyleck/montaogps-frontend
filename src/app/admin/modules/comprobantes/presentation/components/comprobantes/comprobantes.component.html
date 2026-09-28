@@ -53,7 +53,7 @@
             <td class="receipt-summary-cell">
               <span class="receipt-thumbnail" [class.pdf-thumbnail]="isPdfReceipt(receipt)">
                 <i *ngIf="isPdfReceipt(receipt); else receiptImage" class="pi pi-file-pdf" aria-hidden="true"></i>
-                <ng-template #receiptImage><img [src]="receipt.image_url" alt="Comprobante de {{ receipt.employee_name }}"></ng-template>
+                <ng-template #receiptImage><img [src]="receipt.image_url" alt="Comprobante de {{ receipt.employee_name | userName }}"></ng-template>
               </span>
               <span class="receipt-summary-copy">
                 <strong>{{ receipt.merchant_name || 'Comercio no detectado' }}</strong>
@@ -102,7 +102,7 @@
           <select id="receipt-upload-employee" [(ngModel)]="uploadEmployeeId" [disabled]="uploading || uploadEmployeesLoading" required>
             <option value="" disabled>{{ uploadEmployeesLoading ? 'Cargando empleados…' : 'Seleccione un empleado' }}</option>
             <option *ngFor="let employee of uploadEmployees" [value]="employee.employee_id">
-              {{ employee.employee_name }}{{ employee.employee_email ? ' · ' + employee.employee_email : '' }}
+              {{ employee.employee_name | userName }}{{ employee.employee_email ? ' · ' + employee.employee_email : '' }}
             </option>
           </select>
           <i class="pi pi-chevron-down"></i>
@@ -207,7 +207,7 @@
         <h3>Editar comprobante</h3>
         <p>El usuario que registró el comprobante se conserva. Esta modificación quedará a tu nombre.</p>
         <fieldset [disabled]="receiptBusy" class="receipt-edit-grid">
-          <label class="edit-wide">Empleado que generó el gasto<select name="editEmployee" [(ngModel)]="editDraft.employee_id" required><option *ngFor="let employee of editEmployees" [value]="employee.employee_id">{{ employee.employee_name }}{{ employee.employee_email ? ' · ' + employee.employee_email : '' }}</option></select></label>
+          <label class="edit-wide">Empleado que generó el gasto<select name="editEmployee" [(ngModel)]="editDraft.employee_id" required><option *ngFor="let employee of editEmployees" [value]="employee.employee_id">{{ employee.employee_name | userName }}{{ employee.employee_email ? ' · ' + employee.employee_email : '' }}</option></select></label>
           <div class="upload-error edit-wide" *ngIf="uploadEmployeesError"><span>{{ uploadEmployeesError }}</span><button type="button" (click)="loadUploadEmployees()">Reintentar</button></div>
           <label>Categoría<select name="editAccounting" [(ngModel)]="editDraft.accounting_category" required><option value="" disabled>Seleccione una categoría</option><option *ngFor="let category of categories" [value]="category">{{ categoryLabel(category) }}</option></select></label>
           <label>Tipo de gasto<select name="editCategory" [(ngModel)]="editDraft.category"><option *ngFor="let item of detectedCategoryLabels | keyvalue" [value]="item.key">{{ item.value }}</option></select></label>

@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { CommonModule } from '@angular/common';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -29,7 +30,7 @@ describe('Lot selection to conduce UI flow', () => {
     };
     await TestBed.configureTestingModule({
       declarations: [InventoryComponent],
-      imports: [CommonModule, FormsModule, NoopAnimationsModule, TranslateModule.forRoot(), PrimengModule, InventoryLotsComponent],
+      imports: [UserNamePipe, CommonModule, FormsModule, NoopAnimationsModule, TranslateModule.forRoot(), PrimengModule, InventoryLotsComponent],
       providers: [provideRouter([]),
         { provide: InventoryService, useValue: inventory },
         { provide: ProtocolsService, useValue: {} },

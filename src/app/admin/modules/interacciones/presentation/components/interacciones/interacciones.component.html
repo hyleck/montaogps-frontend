@@ -289,9 +289,10 @@
           <div class="form-group form-group--full mb-4">
             <label>Usuarios del Sistema (asignación manual)</label>
             <p-autoComplete [(ngModel)]="formSystemContacts" [suggestions]="suggestedSystemUsers" (completeMethod)="searchSystemUsers($event)" [multiple]="true" optionLabel="name" placeholder="Buscar por nombre, correo o celular..." (onSelect)="onFilterChange()" (onUnselect)="onFilterChange()">
+              <ng-template let-user pTemplate="selectedItem">{{ getUserFullName(user) }}</ng-template>
               <ng-template let-user pTemplate="item">
                 <div class="flex align-items-center gap-2">
-                  <div>{{ user.name }} {{ user.last_name }} <small style="color:var(--text-color-secondary)">({{ user.email || user.phone }})</small></div>
+                  <div>{{ user.name | userName }} {{ user.last_name | userName }} <small style="color:var(--text-color-secondary)">({{ user.email || user.phone }})</small></div>
                 </div>
               </ng-template>
             </p-autoComplete>
@@ -774,7 +775,7 @@
       <i *ngIf="interactionChannel === 'push'" class="pi pi-bell push-meta__icon"></i>
       <i *ngIf="interactionChannel === 'sms'" class="pi pi-mobile push-meta__icon"></i>
       <div>
-        <strong class="push-meta__list">{{ targetUserName ? targetUserName : selectedList?.name }}</strong>
+        <strong class="push-meta__list">{{ targetUserName ? (targetUserName | userName) : selectedList?.name }}</strong>
         <span class="push-meta__count">{{ targetUserName ? '1 destinatario individual' : listUsersTotal + ' destinatario(s)' }}</span>
       </div>
     </div>
@@ -1205,7 +1206,7 @@
           <i class="pi" [ngClass]="event.action === 'execution_cancelled' ? 'pi-times-circle' : event.action === 'execution_created' ? 'pi-play-circle' : 'pi-check-circle'"></i>
           <div>
             <strong>{{ campaignAuditActionLabel(event.action) }}</strong>
-            <span>{{ event.actor_name || (event.detail?.source === 'ester_ai' ? 'Ester' : event.detail?.source === 'vapi' ? 'Llamada IA' : 'Sistema') }} · {{ event.recorded_at | date:'medium' }}</span>
+            <span>{{ (event.actor_name | userName) || (event.detail?.source === 'ester_ai' ? 'Ester' : event.detail?.source === 'vapi' ? 'Llamada IA' : 'Sistema') }} · {{ event.recorded_at | date:'medium' }}</span>
           </div>
         </article>
       </div>

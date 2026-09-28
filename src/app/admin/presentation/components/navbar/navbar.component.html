@@ -217,14 +217,14 @@
             <span class="aquiles-floating-chat__avatar communication-floating-chat__avatar">
                 <img *ngIf="hasFloatingCommunicationAvatar(selectedFloatingCommunicationChat)"
                     [src]="selectedFloatingCommunicationChat?.avatar"
-                    [alt]="'Foto de ' + (selectedFloatingCommunicationChat?.contactName || 'cliente')"
+                    [alt]="'Foto de ' + ((selectedFloatingCommunicationChat?.contactName || 'cliente') | userName)"
                     (error)="onFloatingCommunicationAvatarError(selectedFloatingCommunicationChat)">
                 <ng-container *ngIf="!hasFloatingCommunicationAvatar(selectedFloatingCommunicationChat)">
                     {{ getFloatingCommunicationInitials(selectedFloatingCommunicationChat) }}
                 </ng-container>
             </span>
             <div>
-                <strong>{{ selectedFloatingCommunicationChat?.contactName || 'Contacto' }}</strong>
+                <strong>{{ (selectedFloatingCommunicationChat?.contactName || 'Contacto') | userName }}</strong>
                 <small>
                     <span class="support-agent-status"></span>
                     {{ selectedFloatingCommunicationChat?.contactPhone || 'Chat de Comunicación' }}
@@ -251,13 +251,13 @@
             [attr.aria-label]="'Mostrar conversación de ' + chat.contactName">
             <span>
                 <img *ngIf="hasFloatingCommunicationAvatar(chat)" [src]="chat.avatar"
-                    [alt]="'Foto de ' + chat.contactName"
+                    [alt]="'Foto de ' + (chat.contactName | userName)"
                     (error)="onFloatingCommunicationAvatarError(chat)">
                 <ng-container *ngIf="!hasFloatingCommunicationAvatar(chat)">
                     {{ getFloatingCommunicationInitials(chat) }}
                 </ng-container>
             </span>
-            <strong>{{ chat.contactName }}</strong>
+            <strong>{{ chat.contactName | userName }}</strong>
             <em *ngIf="chat.unreadCount > 0">{{ chat.unreadCount > 99 ? '99+' : chat.unreadCount }}</em>
         </button>
     </nav>
@@ -306,7 +306,7 @@
                 <div class="support-chat-bubble">
                     <strong *ngIf="message.from !== 'system'">
                         <i [class]="message.from === 'incoming' ? 'pi pi-user' : 'pi pi-user-edit'"></i>
-                        {{ message.authorName }}
+                        {{ message.authorName | userName }}
                     </strong>
                     <p *ngIf="message.text">{{ message.text }}</p>
                     <div *ngIf="message.attachments.length" class="communication-floating-chat__attachments">
@@ -1898,7 +1898,7 @@
                         <div class="process-user" *ngIf="process.user?.name">
                             <small>
                                 <i class="pi pi-user"></i>
-                                {{ process.user.name }}
+                                {{ process.user.name | userName }}
                             </small>
                         </div>
                     </div>
@@ -1995,7 +1995,7 @@
                         <i class="pi pi-user"></i>
                     </div>
                     <div class="user-details">
-                        <div class="user-name">{{ foundUser.name }} {{ foundUser.last_name }}</div>
+                        <div class="user-name">{{ ((foundUser.name || '') + ' ' + (foundUser.last_name || '')) | userName }}</div>
                         <div class="user-email">{{ foundUser.email }}</div>
                         <div class="user-id">ID: {{ foundUser._id }}</div>
                     </div>

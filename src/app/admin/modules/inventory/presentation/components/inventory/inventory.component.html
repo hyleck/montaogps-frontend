@@ -290,8 +290,8 @@
                 </span>
                 <small class="inventory-result-reservation-owner"
                   *ngIf="isDeviceClientReservation(device) && device.reservation_client_name"
-                  [title]="device.reservation_client_name">
-                  Para {{ device.reservation_client_name }}
+                  [title]="device.reservation_client_name | userName">
+                  Para {{ device.reservation_client_name | userName }}
                 </small>
                 <span class="inventory-result-status inventory-result-status--installed"
                   *ngIf="isDeviceInstalled(device) && !isDeviceInActivation(device) && !isDeviceInspectionRequired(device)">
@@ -1829,9 +1829,7 @@
           </div>
           <div class="cd-header-content">
             <span class="cd-title">{{ selectedConduceDetails.conduceNumber }}</span>
-            <span class="cd-subtitle">Creado el {{ selectedConduceDetails.createdAt | date: 'dd/MM/yyyy HH:mm' }} por {{
-              selectedConduceDetails.created_by?.name || '' }} {{ selectedConduceDetails.created_by?.last_name || ''
-              }}</span>
+            <span class="cd-subtitle">Creado el {{ selectedConduceDetails.createdAt | date: 'dd/MM/yyyy HH:mm' }} por {{ (selectedConduceDetails.created_by?.name | userName) || '' }} {{ (selectedConduceDetails.created_by?.last_name | userName) || '' }}</span>
           </div>
           <div>
             <span class="cd-badge" [ngClass]="selectedConduceDetails.status === 'completed' ? 'success' : 'warning'">

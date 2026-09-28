@@ -1,3 +1,4 @@
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -151,7 +152,7 @@ export class MacroComponent implements OnInit {
       next: technicians => {
         this.availableTechnicians = technicians.map((technician: any) => ({
           value: technician._id,
-          label: `${technician.name} ${technician.last_name}`.trim(),
+          label: formatUserName(`${technician.name || ''} ${technician.last_name || ''}`),
         }));
       },
       error: () => (this.availableTechnicians = []),

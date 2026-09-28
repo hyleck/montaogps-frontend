@@ -15,7 +15,7 @@
 
     <div class="registration-completed" *ngIf="registrationNotification as notification">
         <p class="registration-completed__message">
-            El cliente <strong>{{ notification.clientName || 'Cliente' }}</strong> se ha registrado correctamente.
+            El cliente <strong>{{ (notification.clientName | userName) || 'Cliente' }}</strong> se ha registrado correctamente.
         </p>
 
         <div class="registration-completed__credentials">
@@ -40,7 +40,7 @@
             </div>
             <div *ngIf="notification.parentName">
                 <span>Cuenta destino</span>
-                <strong>{{ notification.parentName }}</strong>
+                <strong>{{ notification.parentName | userName }}</strong>
             </div>
             <div>
                 <span>GPS transferidos</span>

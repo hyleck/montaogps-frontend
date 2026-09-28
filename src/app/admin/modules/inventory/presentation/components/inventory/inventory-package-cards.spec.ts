@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { CommonModule } from '@angular/common';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -24,7 +25,7 @@ describe('Incosis package cards', () => {
   ];
   beforeEach(async () => {
     spyOn(InventoryComponent.prototype, 'ngOnInit').and.stub();
-    await TestBed.configureTestingModule({ declarations: [InventoryComponent], imports: [CommonModule, FormsModule, NoopAnimationsModule, TranslateModule.forRoot(), PrimengModule], providers: [provideRouter([]),
+    await TestBed.configureTestingModule({ declarations: [InventoryComponent], imports: [UserNamePipe, CommonModule, FormsModule, NoopAnimationsModule, TranslateModule.forRoot(), PrimengModule], providers: [provideRouter([]),
       { provide: InventoryService, useValue: { findAllPackages: () => of(structuredClone(rows)) } },
       { provide: ProtocolsService, useValue: {} }, { provide: AuthService, useValue: { hasPrivilege: () => true } }, { provide: UserService, useValue: {} }, { provide: SystemService, useValue: {} },
     ], schemas: [NO_ERRORS_SCHEMA] }).compileComponents();

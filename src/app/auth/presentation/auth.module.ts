@@ -1,3 +1,4 @@
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -20,6 +21,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     SsoLoginComponent
   ],
   imports: [
+    UserNamePipe,
     CommonModule,
     AuthRoutingModule,
     FormsModule,

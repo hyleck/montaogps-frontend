@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { finalize } from 'rxjs/operators';
 import { AnomaliesResponse, AnomalyCategory, AnomalyItem, AnomalySeverity, AnomaliesService } from '../../services/anomalies.service';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
@@ -129,11 +130,16 @@ export class AnomaliesComponent implements OnInit {
       .map(([key, value]) => ({
         key,
         label: this.formatKey(key),
-        value: this.formatValue(value),
+        value: this.selectedAnomaly?.category === 'users' && ['name', 'last_name', 'full_name'].includes(key)
+          ? formatUserName(value) : this.formatValue(value),
       }));
   }
 
-  getRecordTitle(record: Record<string, any>): string {
+  getRecordTitle(record: Record<string, any>, category?: AnomalyCategory): string {
+    if ((category || this.selectedAnomaly?.category) === 'users') {
+      return formatUserName([record['name'], record['last_name']].filter(Boolean).join(' '))
+        || record['email'] || record['id'] || 'Usuario';
+    }
     return String(
       record['name'] ||
       [record['name'], record['last_name']].filter(Boolean).join(' ') ||
