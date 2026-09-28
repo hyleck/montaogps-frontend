@@ -8,11 +8,17 @@ describe('ProcessesComponent installation detail', () => {
   const deviceId = '507f1f77bcf86cd799439011';
   const otherDeviceId = '507f1f77bcf86cd799439022';
   const imei = '863874080932787';
+  const solicitudId = '507f1f77bcf86cd799439044';
+  const clientId = '507f1f77bcf86cd799439055';
+  const subclientId = '507f1f77bcf86cd799439077';
   let component: ProcessesComponent;
   let targets: jasmine.SpyObj<any>;
   let auth: jasmine.SpyObj<any>;
   let tags: jasmine.SpyObj<any>;
   let contacts: jasmine.SpyObj<any>;
+  let solicitudes: jasmine.SpyObj<any>;
+  let users: jasmine.SpyObj<any>;
+  let processesApi: jasmine.SpyObj<any>;
 
   function process(type = 1, target: any = { _id: deviceId, device_imei: imei, name: 'Nombre registrado' }): ProcessItem {
     return {
@@ -41,9 +47,15 @@ describe('ProcessesComponent installation detail', () => {
     tags.getTagById.and.returnValue(of(null));
     contacts = jasmine.createSpyObj('ContactsService', ['getAll']);
     contacts.getAll.and.returnValue(of([]));
+    solicitudes = jasmine.createSpyObj('SolicitudesService', ['getById']);
+    solicitudes.getById.and.returnValue(of(null));
+    users = jasmine.createSpyObj('UserService', ['getById', 'getUserPath']);
+    users.getById.and.returnValue(of(null));
+    users.getUserPath.and.returnValue(of([]));
+    processesApi = jasmine.createSpyObj('ProcessesService', ['updateVerificationStatus']);
     component = new ProcessesComponent(
-      {} as any, {} as any, {} as any, {} as any, {} as any,
-      jasmine.createSpyObj('MessageService', ['add']), targets, auth, tags, contacts,
+      processesApi, users, {} as any, {} as any, {} as any,
+      jasmine.createSpyObj('MessageService', ['add']), targets, auth, tags, contacts, solicitudes,
     );
   });
 
@@ -378,5 +390,347 @@ describe('ProcessesComponent installation detail', () => {
       Placa: 'https://images.example/plate.jpg',
       'Matrícula': `${environment.apiUrl}/uploads/registration.jpg`,
     }));
+  }));
+
+  ['target', 'after'].forEach(source => {
+    it(`loads the linked installation progress from ${source}, including installation index zero`, fakeAsync(() => {
+      const row = { _id: 'installation-0', device_imei: imei, registered_device_id: deviceId, completed: false, brand: 'Isuzu' };
+      const solicitud = {
+        _id: solicitudId, type: 'instalacion', status: 'in_progress',
+        installations: [row, { _id: 'installation-1', device_imei: '863874080932788', registered_device_id: otherDeviceId }],
+      };
+      solicitudes.getById.and.returnValue(of(solicitud));
+      const item = process();
+      const link = { solicitud_id: solicitudId, solicitud_installation_index: 0 };
+      if (source === 'target') item.target = { ...item.target, ...link };
+      else item.after = { ...item.after, ...link };
+      component.showDetail(item);
+      flushMicrotasks();
+      expect(solicitudes.getById).toHaveBeenCalledOnceWith(solicitudId);
+      expect(component.installationSolicitud?._id).toBe(solicitudId);
+      expect(component.installationProgressRecord).toEqual(row);
+      expect(component.installationProgressLoading).toBeFalse();
+      expect(component.installationProgressError).toBe('');
+    }));
+  });
+
+  ['request', 'technician'].forEach(pendingSource => {
+    it(`finishes pending ${pendingSource} and owner lookups after changing verification`, fakeAsync(() => {
+      const technicianId = '507f1f77bcf86cd799439066';
+      const pendingRequest = new Subject<any>();
+      const pendingOwner = new Subject<any>();
+      const pendingTechnician = new Subject<any>();
+      const row = { device_imei: imei, registered_device_id: deviceId, completed: false };
+      const solicitud = { _id: solicitudId, type: 'instalacion', mechanic_id: technicianId, installations: [row] };
+      const owner = { id: clientId, fullName: 'Cliente actual', affiliation_type_id: 'cliente' };
+      const item = process(1, { _id: deviceId, device_imei: imei, solicitud_id: solicitudId, solicitud_installation_index: 0 });
+      targets.getTargetById.and.resolveTo({ _id: deviceId, device_imei: imei, parent_id: clientId });
+      solicitudes.getById.and.returnValue(pendingSource === 'request' ? pendingRequest : of(solicitud));
+      users.getUserPath.and.returnValue(pendingOwner);
+      users.getById.and.returnValue(pendingTechnician);
+      const updated = { ...item, verificationStatus: 'verified' as const, verifiedAt: '2026-09-28T15:00:00Z' };
+      processesApi.updateVerificationStatus.and.returnValue(of(updated));
+      component.processes = [item];
+
+      component.showDetail(item);
+      flushMicrotasks();
+      expect(component.installationOwnershipLoading).toBeTrue();
+      if (pendingSource === 'request') expect(component.installationProgressLoading).toBeTrue();
+      else expect(component.installationTechnicianLoading).toBeTrue();
+      component.updateProcessVerificationStatus(item, 'verified');
+      expect(component.selectedProcess?.verificationStatus).toBe('verified');
+      expect(component.processes[0].verificationStatus).toBe('verified');
+
+      if (pendingSource === 'request') {
+        pendingRequest.next(solicitud);
+        pendingRequest.complete();
+        flushMicrotasks();
+      }
+      pendingOwner.next([owner]);
+      pendingOwner.complete();
+      pendingTechnician.next({ _id: technicianId, name: 'Ana', last_name: 'Pérez' });
+      pendingTechnician.complete();
+      flushMicrotasks();
+
+      expect(component.installationProgressRecord).toEqual(row);
+      expect(component.installationProgressLoading).toBeFalse();
+      expect(component.installationProgressError).toBe('');
+      expect(component.installationCurrentClient).toEqual(owner);
+      expect(component.installationOwnershipLoading).toBeFalse();
+      expect(component.installationOwnershipError).toBe('');
+      expect(component.installationTechnicianName).toBe('Ana Pérez');
+      expect(component.installationTechnicianLoading).toBeFalse();
+    }));
+  });
+
+  it('rejects a linked progress row whose device identity does not match the process', fakeAsync(() => {
+    solicitudes.getById.and.returnValue(of({
+      _id: solicitudId, type: 'instalacion', status: 'in_progress',
+      installations: [{ _id: 'installation-other', device_imei: '863874080932788', registered_device_id: otherDeviceId }],
+    }));
+    component.showDetail(process(1, { _id: deviceId, device_imei: imei, solicitud_id: solicitudId, solicitud_installation_index: 0 }));
+    flushMicrotasks();
+    expect(component.installationProgressRecord).toBeNull();
+    expect(component.installationProgressError).not.toBe('');
+    expect(component.installationTarget._id).toBe(deviceId);
+  }));
+
+  it('accepts the matching indexed row when its request subdocument ID was regenerated', fakeAsync(() => {
+    const row = { _id: 'regenerated-row', device_imei: imei, registered_device_id: deviceId, process_type: 'reinstalacion' };
+    solicitudes.getById.and.returnValue(of({
+      _id: solicitudId, type: 'instalacion', status: 'in_progress', installations: [row],
+    }));
+    component.showDetail(process(18, {
+      _id: deviceId, device_imei: imei, solicitud_id: solicitudId,
+      solicitud_installation_index: 0, solicitud_installation_id: 'original-row',
+    }));
+    flushMicrotasks();
+    expect(component.installationProgressRecord).toEqual(row);
+    expect(component.installationProgressError).toBe('');
+  }));
+
+  it('does not fall back to a different row when the linked index points to another IMEI', fakeAsync(() => {
+    solicitudes.getById.and.returnValue(of({
+      _id: solicitudId, type: 'instalacion', status: 'in_progress', installations: [
+        { _id: 'wrong-row', device_imei: '863874080932788', registered_device_id: otherDeviceId },
+        { _id: 'matching-row', device_imei: imei, registered_device_id: deviceId },
+      ],
+    }));
+    component.showDetail(process(1, {
+      _id: deviceId, device_imei: imei, solicitud_id: solicitudId,
+      solicitud_installation_index: 0, solicitud_installation_id: 'matching-row',
+    }));
+    flushMicrotasks();
+    expect(component.installationSolicitud).toBeNull();
+    expect(component.installationProgressRecord).toBeNull();
+    expect(component.installationProgressError).toContain('no coincide');
+  }));
+
+  it('rejects progress returned for a different request', fakeAsync(() => {
+    solicitudes.getById.and.returnValue(of({
+      _id: otherDeviceId, type: 'instalacion', status: 'in_progress',
+      installations: [{ device_imei: imei, registered_device_id: deviceId }],
+    }));
+    component.showDetail(process(1, { _id: deviceId, device_imei: imei, solicitud_id: solicitudId, solicitud_installation_index: 0 }));
+    flushMicrotasks();
+    expect(component.installationProgressRecord).toBeNull();
+    expect(component.installationProgressError).not.toBe('');
+  }));
+
+  it('rejects a linked row whose IMEI was removed instead of displaying it as the expected GPS', fakeAsync(() => {
+    solicitudes.getById.and.returnValue(of({
+      _id: solicitudId, type: 'instalacion', status: 'in_progress',
+      installations: [{ _id: 'installation-without-gps', device_imei: '', registered_device_id: deviceId }],
+    }));
+    component.showDetail(process(1, {
+      _id: deviceId, device_imei: imei, solicitud_id: solicitudId, solicitud_installation_index: 0,
+    }));
+    flushMicrotasks();
+    expect(component.installationProgressRecord).toBeNull();
+    expect(component.installationProgressError).toContain('no coincide');
+    expect(component.installationProgressLoading).toBeFalse();
+  }));
+
+  it('ignores installation progress received after switching to another process', fakeAsync(() => {
+    const pending = new Subject<any>();
+    solicitudes.getById.and.returnValue(pending);
+    component.showDetail(process(1, { _id: deviceId, device_imei: imei, solicitud_id: solicitudId, solicitud_installation_index: 0 }));
+    flushMicrotasks();
+    const second = { ...process(18, { _id: otherDeviceId }), _id: 'process-2', reference: otherDeviceId };
+    component.showDetail(second);
+    flushMicrotasks();
+    pending.next({ _id: solicitudId, type: 'instalacion', status: 'in_progress', installations: [{ device_imei: imei, registered_device_id: deviceId }] });
+    pending.complete();
+    flushMicrotasks();
+    expect(component.selectedProcess).toBe(second);
+    expect(component.installationSolicitud).toBeNull();
+    expect(component.installationProgressRecord).toBeNull();
+    expect(component.installationProgressLoading).toBeFalse();
+  }));
+
+  it('ignores installation progress errors received after closing the dialog', fakeAsync(() => {
+    const pending = new Subject<any>();
+    solicitudes.getById.and.returnValue(pending);
+    component.showDetail(process(1, { _id: deviceId, device_imei: imei, solicitud_id: solicitudId, solicitud_installation_index: 0 }));
+    flushMicrotasks();
+    component.closeDetail();
+    pending.error({ status: 500, error: { message: 'Respuesta tardía de progreso' } });
+    flushMicrotasks();
+    expect(component.installationSolicitud).toBeNull();
+    expect(component.installationProgressRecord).toBeNull();
+    expect(component.installationProgressLoading).toBeFalse();
+    expect(component.installationProgressError).toBe('');
+  }));
+
+  it('uses the current direct owner as the principal client and does not invent a subclient', fakeAsync(() => {
+    targets.getTargetById.and.resolveTo({ _id: deviceId, device_imei: imei, parent_id: clientId });
+    const client = { id: clientId, fullName: 'Cliente actual', affiliation_type_id: 'cliente' };
+    users.getUserPath.and.returnValue(of([client]));
+    component.showDetail({ ...process(), client: { _id: 'historical-client', name: 'Cliente histórico' } });
+    flushMicrotasks();
+    expect(users.getUserPath).toHaveBeenCalledOnceWith(clientId);
+    expect(component.installationCurrentClient).toEqual(client);
+    expect(component.installationCurrentSubclient).toBeNull();
+    expect(component.installationCurrentAccount).toEqual(client);
+    expect(component.installationOwnershipLoading).toBeFalse();
+    expect(component.installationOwnershipError).toBe('');
+  }));
+
+  it('shows the principal client and the final subclient without treating the employee as the owner', fakeAsync(() => {
+    targets.getTargetById.and.resolveTo({ _id: deviceId, device_imei: imei, parent_id: subclientId });
+    const principal = { id: clientId, fullName: 'Flota principal', affiliation_type_id: 'cliente' };
+    const owner = { id: subclientId, fullName: 'Subcliente propietario', affiliation_type_id: 'subcliente' };
+    users.getUserPath.and.returnValue(of([
+      { id: 'employee', fullName: 'Operador de oficina', affiliation_type_id: 'empleado' }, principal, owner,
+    ]));
+    component.showDetail(process());
+    flushMicrotasks();
+    expect(component.installationCurrentClient).toEqual(principal);
+    expect(component.installationCurrentSubclient).toEqual(owner);
+    expect(component.installationCurrentAccount).toEqual(owner);
+  }));
+
+  it('keeps the final owner when the path contains several nested subclients', fakeAsync(() => {
+    targets.getTargetById.and.resolveTo({ _id: deviceId, device_imei: imei, parent_id: subclientId });
+    users.getUserPath.and.returnValue(of([
+      { id: clientId, fullName: 'Cliente principal', affiliation_type_id: 'cliente' },
+      { id: 'intermediate-subclient', fullName: 'Subcliente intermediario', affiliation_type_id: 'subcliente' },
+      { id: subclientId, fullName: 'Dueño final', affiliation_type_id: 'subcliente' },
+    ]));
+    component.showDetail(process());
+    flushMicrotasks();
+    expect(component.installationCurrentClient?.id).toBe(clientId);
+    expect(component.installationCurrentSubclient?.fullName).toBe('Dueño final');
+    expect(component.installationCurrentAccount?.id).toBe(subclientId);
+  }));
+
+  it('leaves the principal client unavailable when permissions return only the subclient', fakeAsync(() => {
+    targets.getTargetById.and.resolveTo({
+      _id: deviceId, device_imei: imei, parent_id: subclientId, index: ['historical-principal', subclientId],
+    });
+    users.getUserPath.and.returnValue(of([
+      { id: subclientId, fullName: 'Subcliente visible', affiliation_type_id: 'subcliente' },
+    ]));
+    solicitudes.getById.and.returnValue(of({
+      _id: solicitudId, type: 'instalacion', status: 'completed', client_id: 'request-client', client_name: 'Cliente de solicitud',
+      installations: [{ device_imei: imei }],
+    }));
+    component.showDetail({
+      ...process(1, { _id: deviceId, device_imei: imei, solicitud_id: solicitudId }),
+      client: { _id: 'historical-principal', name: 'Cliente histórico' },
+    });
+    flushMicrotasks();
+    expect(component.installationCurrentClient).toBeNull();
+    expect(component.installationCurrentSubclient?.fullName).toBe('Subcliente visible');
+    expect(component.installationCurrentAccount?.id).toBe(subclientId);
+    expect(users.getUserPath).toHaveBeenCalledOnceWith(subclientId);
+  }));
+
+  it('rejects an ownership path that ends at a different user', fakeAsync(() => {
+    targets.getTargetById.and.resolveTo({ _id: deviceId, device_imei: imei, parent_id: subclientId });
+    users.getUserPath.and.returnValue(of([
+      { id: clientId, fullName: 'Otro cliente', affiliation_type_id: 'cliente' },
+    ]));
+    component.showDetail(process());
+    flushMicrotasks();
+    expect(component.installationCurrentClient).toBeNull();
+    expect(component.installationCurrentSubclient).toBeNull();
+    expect(component.installationCurrentAccount).toBeNull();
+    expect(component.installationOwnershipError).not.toBe('');
+  }));
+
+  it('keeps ownership unavailable on a permission error without substituting the historical client', fakeAsync(() => {
+    targets.getTargetById.and.resolveTo({ _id: deviceId, device_imei: imei, parent_id: clientId });
+    users.getUserPath.and.returnValue(throwError(() => ({ status: 403, error: { message: 'Sin permiso para consultar la cuenta.' } })));
+    component.showDetail({ ...process(), client: { _id: 'historical-client', name: 'Cliente histórico' } });
+    flushMicrotasks();
+    expect(component.installationCurrentClient).toBeNull();
+    expect(component.installationCurrentSubclient).toBeNull();
+    expect(component.installationCurrentAccount).toBeNull();
+    expect(component.installationOwnershipError).not.toBe('');
+    expect(component.installationOwnershipLoading).toBeFalse();
+    expect(component.installationTarget._id).toBe(deviceId);
+  }));
+
+  it('does not query a snapshot owner when the current device request fails', fakeAsync(() => {
+    targets.getTargetById.and.rejectWith({ status: 403 });
+    component.showDetail(process(1, { _id: deviceId, device_imei: imei, parent_id: clientId }));
+    flushMicrotasks();
+    expect(users.getUserPath).not.toHaveBeenCalled();
+    expect(component.installationCurrentClient).toBeNull();
+    expect(component.installationCurrentSubclient).toBeNull();
+    expect(component.installationCurrentAccount).toBeNull();
+  }));
+
+  it('ignores an older ownership response after selecting another installation', fakeAsync(() => {
+    const pending = new Subject<any>();
+    targets.getTargetById.and.callFake((id: string) => Promise.resolve({
+      _id: id, device_imei: imei, parent_id: id === deviceId ? clientId : subclientId,
+    }));
+    users.getUserPath.and.callFake((id: string) => id === clientId ? pending : of([
+      { id: subclientId, fullName: 'Segundo propietario', affiliation_type_id: 'cliente' },
+    ]));
+    component.showDetail(process());
+    flushMicrotasks();
+    component.showDetail({ ...process(18, { _id: otherDeviceId }), _id: 'process-2', reference: otherDeviceId });
+    flushMicrotasks();
+    pending.next([{ id: clientId, fullName: 'Propietario anterior', affiliation_type_id: 'cliente' }]);
+    pending.complete();
+    flushMicrotasks();
+    expect(component.installationCurrentClient?.fullName).toBe('Segundo propietario');
+    expect(component.installationCurrentAccount?.id).toBe(subclientId);
+    expect(component.installationOwnershipLoading).toBeFalse();
+  }));
+
+  it('ignores a late ownership failure after closing the installation dialog', fakeAsync(() => {
+    const pending = new Subject<any>();
+    targets.getTargetById.and.resolveTo({ _id: deviceId, device_imei: imei, parent_id: clientId });
+    users.getUserPath.and.returnValue(pending);
+    component.showDetail(process());
+    flushMicrotasks();
+    component.closeDetail();
+    pending.error({ status: 403, error: { message: 'Error tardío' } });
+    flushMicrotasks();
+    expect(component.installationOwnerPath).toEqual([]);
+    expect(component.installationCurrentAccount).toBeNull();
+    expect(component.installationOwnershipLoading).toBeFalse();
+    expect(component.installationOwnershipError).toBe('');
+  }));
+
+  it('resolves the full name of the linked technician even when absent from the technician catalog', fakeAsync(() => {
+    const technicianId = '507f1f77bcf86cd799439066';
+    solicitudes.getById.and.returnValue(of({ _id: solicitudId, type: 'instalacion', mechanic_id: technicianId, installations: [{ device_imei: imei }] }));
+    users.getById.and.returnValue(of({ _id: technicianId, name: 'Ana', last_name: 'Pérez' }));
+    component.showDetail(process(1, { _id: deviceId, device_imei: imei, solicitud_id: solicitudId, solicitud_installation_index: 0 }));
+    flushMicrotasks();
+    expect(users.getById).toHaveBeenCalledOnceWith(technicianId);
+    expect(component.installationTechnicianName).toBe('Ana Pérez');
+    expect(component.installationProgressSteps.find(step => step.id === 'tecnico')?.summary).toBe('Ana Pérez');
+  }));
+
+  it('does not show a current device technician when the linked request has no assignment', fakeAsync(() => {
+    const technicianId = '507f1f77bcf86cd799439066';
+    solicitudes.getById.and.returnValue(of({ _id: solicitudId, type: 'instalacion', installations: [{ device_imei: imei }] }));
+    component.techniciansMap = { [technicianId]: 'Técnico actual' };
+    component.showDetail(process(1, { _id: deviceId, device_imei: imei, mechanic_id: technicianId, mechanic_name: 'Técnico actual', solicitud_id: solicitudId, solicitud_installation_index: 0 }));
+    flushMicrotasks();
+    expect(component.installationTechnicianName).toBe('Sin técnico asignado');
+    expect(users.getById).not.toHaveBeenCalled();
+  }));
+
+  it('ignores technician details arriving after opening another installation', fakeAsync(() => {
+    const technicianId = '507f1f77bcf86cd799439066';
+    const pending = new Subject<any>();
+    users.getById.and.returnValue(pending);
+    component.showDetail(process(1, { _id: deviceId, mechanic_id: technicianId }));
+    flushMicrotasks();
+    expect(component.installationTechnicianLoading).toBeTrue();
+    component.showDetail({ ...process(18, { _id: otherDeviceId }), reference: otherDeviceId });
+    flushMicrotasks();
+    pending.next({ _id: technicianId, name: 'Técnico anterior' });
+    pending.complete();
+    flushMicrotasks();
+    expect(component.installationTechnicianName).toBe('Sin técnico asignado');
+    expect(component.installationTechnicianLoading).toBeFalse();
   }));
 });

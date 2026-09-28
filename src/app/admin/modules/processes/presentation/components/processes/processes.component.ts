@@ -6,6 +6,8 @@ import { Contact, ContactsService } from 'src/app/core/services/contacts.service
 import { TagsService } from 'src/app/core/services/tags.service';
 import { DeviceRecordEntry } from 'src/app/core/interfaces/target.interface';
 import { firstValueFrom } from 'rxjs';
+import { InstallationDetail, Solicitud, SolicitudesService } from 'src/app/core/services/solicitudes.service';
+import { buildInstallationProgress, InstallationProgressStep } from './installation-progress';
 import { environment } from 'src/environments/environment';
 import {
   ProcessesService,
@@ -24,6 +26,12 @@ import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
 
 type StructuredDetailTone = 'success' | 'danger' | 'warning' | 'info' | 'neutral';
+
+interface InstallationAccount {
+  id: string;
+  fullName: string;
+  affiliation_type_id?: string;
+}
 
 interface StructuredDetailMetric {
   label: string;
@@ -130,6 +138,18 @@ export class ProcessesComponent implements OnInit, OnDestroy {
   deviceRecordsError = '';
   private detailRequestId = 0;
   private recordsRequestId = 0;
+  installationSolicitud: Solicitud | null = null;
+  installationProgressRecord: InstallationDetail | null = null;
+  installationProgressLoading = false;
+  installationProgressError = '';
+  private installationProgressRequestId = 0;
+  private expandedInstallationStep = '';
+  installationOwnerPath: InstallationAccount[] = [];
+  installationOwnershipLoading = false;
+  installationOwnershipError = '';
+  installationTechnicianLoading = false;
+  private installationTechnicianRequestId = 0;
+  private installationTechnicianLookupId = '';
 
   // Technicians map
   techniciansMap: { [id: string]: string } = {};
@@ -156,6 +176,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private tagsService: TagsService,
     private contactsService: ContactsService,
+    private solicitudesService: SolicitudesService,
   ) {}
 
   ngOnInit(): void {
@@ -426,7 +447,10 @@ export class ProcessesComponent implements OnInit, OnDestroy {
       next: (updated) => {
         const index = this.processes.findIndex(item => item._id === updated._id);
         if (index >= 0) this.processes[index] = updated;
-        if (this.selectedProcess?._id === updated._id) this.selectedProcess = updated;
+        if (this.selectedProcess?._id === updated._id) {
+          // Pending detail requests belong to this selected object.
+          Object.assign(this.selectedProcess, updated);
+        }
         this.updatingVerificationId = null;
         this.messageService.add({
           severity: 'success',
@@ -458,7 +482,11 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     this.detailSimpleChangeRows = changes.filter(change => !change.isStructured);
     this.detailStructuredChangeRows = changes.filter(change => change.isStructured);
     this.detailDialogVisible = true;
-    if (this.isInstallationProcess) void this.loadInstallationTarget();
+    if (this.isInstallationProcess) {
+      void this.loadInstallationTarget();
+      void this.loadInstallationProgress();
+      void this.loadInstallationTechnician();
+    }
   }
 
   ngOnDestroy(): void {
@@ -474,6 +502,18 @@ export class ProcessesComponent implements OnInit, OnDestroy {
   private resetInstallationDetail(): void {
     this.detailRequestId++;
     this.recordsRequestId++;
+    this.installationProgressRequestId++;
+    this.installationSolicitud = null;
+    this.installationProgressRecord = null;
+    this.installationProgressLoading = false;
+    this.installationProgressError = '';
+    this.expandedInstallationStep = '';
+    this.installationOwnerPath = [];
+    this.installationOwnershipLoading = false;
+    this.installationOwnershipError = '';
+    this.installationTechnicianRequestId++;
+    this.installationTechnicianLookupId = '';
+    this.installationTechnicianLoading = false;
     this.installationTarget = null;
     this.installationTargetLoading = false;
     this.installationTargetError = '';
@@ -490,6 +530,209 @@ export class ProcessesComponent implements OnInit, OnDestroy {
 
   get isInstallationProcess(): boolean {
     return [1, 18].includes(Number(this.selectedProcess?.type));
+  }
+
+  get installationSolicitudId(): string {
+    const after = this.toComparableRecord(this.selectedProcess?.after);
+    return String(this.selectedProcess?.target?.solicitud_id || after['solicitud_id'] || '').trim();
+  }
+
+  async loadInstallationProgress(): Promise<void> {
+    const process = this.selectedProcess;
+    const solicitudId = this.installationSolicitudId;
+    if (!process || !this.isInstallationProcess || !solicitudId) return;
+    const requestId = ++this.installationProgressRequestId;
+    this.installationSolicitud = null;
+    this.installationProgressRecord = null;
+    this.installationProgressLoading = true;
+    this.installationProgressError = '';
+    const isCurrent = () => requestId === this.installationProgressRequestId
+      && this.selectedProcess === process && this.detailDialogVisible;
+    try {
+      if (!this.mongoId(solicitudId)) throw new Error('La referencia de la solicitud no es válida.');
+      const solicitud = await firstValueFrom(this.solicitudesService.getById(solicitudId));
+      if (!isCurrent()) return;
+      if (solicitud?._id !== solicitudId) throw new Error('La solicitud recibida no corresponde a este proceso.');
+      const after = this.toComparableRecord(process.after);
+      const imei = String(after['device_imei'] || process.target?.device_imei || '').trim();
+      const rows = Array.isArray(solicitud.installations) ? solicitud.installations : [];
+      const indexValue = process.target?.solicitud_installation_index;
+      const hasIndex = indexValue !== undefined && indexValue !== null && String(indexValue).trim() !== '';
+      const index = hasIndex && /^\d+$/.test(String(indexValue)) ? Number(indexValue) : -1;
+      const installationId = process.target?.solicitud_installation_id;
+      let installation: InstallationDetail | undefined;
+      if (hasIndex) {
+        if (Number.isInteger(index) && index >= 0) installation = rows[index];
+      } else if (installationId) {
+        installation = rows.find(row => row._id === installationId);
+      } else if (imei) {
+        const matches = rows.filter(row => String(row.device_imei || '').trim() === imei);
+        if (matches.length === 1) installation = matches[0];
+      }
+      if (!installation) throw new Error('No se pudo identificar la instalación de este proceso en la solicitud.');
+      if (imei && String(installation.device_imei || '').trim() !== imei) {
+        throw new Error('El GPS de la instalación no coincide con el de este proceso.');
+      }
+      const expectedType = Number(process.type) === 18 ? 'reinstalacion' : 'instalacion';
+      const rowType = String(installation.process_type || '').trim();
+      const mixedTypes = ['instalacion', 'reinstalacion', 'chequeo', 'cambio', 'desinstalacion', 'cambio_vehiculo'];
+      const effectiveType = solicitud.type === 'instalacion' && rowType === 'reinstalacion'
+        ? 'reinstalacion'
+        : solicitud.type !== 'mixta' ? solicitud.type : mixedTypes.includes(rowType) ? rowType : 'instalacion';
+      if (effectiveType !== expectedType) {
+        throw new Error('El tipo de instalación no coincide con el de este proceso.');
+      }
+      this.installationSolicitud = solicitud;
+      this.installationProgressRecord = installation;
+      void this.loadInstallationTechnician();
+    } catch (error) {
+      if (!isCurrent()) return;
+      this.installationProgressError = getApiErrorMessage(error, 'No se pudieron comprobar los pasos de esta instalación.');
+    } finally {
+      if (isCurrent()) this.installationProgressLoading = false;
+    }
+  }
+
+  get installationProgressSteps(): InstallationProgressStep[] {
+    if (!this.selectedProcess || !this.isInstallationProcess) return [];
+    return buildInstallationProgress({
+      process: this.selectedProcess,
+      target: this.installationTarget,
+      targetLoading: this.installationTargetLoading,
+      targetError: this.installationTargetError,
+      linked: !!this.installationSolicitudId,
+      installation: this.installationProgressRecord,
+      solicitud: this.installationSolicitud,
+      loading: this.installationProgressLoading,
+      error: this.installationProgressError,
+      technicians: this.techniciansMap,
+      catalogs: { brands: this.brandsMap, models: this.modelsMap, colors: this.colorsMap, gpsModels: this.gpsModelsMap },
+    });
+  }
+
+  get installationProgressTotal(): number {
+    return this.installationProgressSteps.filter(step => step.status !== 'not-applicable').length;
+  }
+
+  get installationProgressComplete(): number {
+    return this.installationProgressSteps.filter(step => step.status === 'complete').length;
+  }
+
+  get selectedInstallationProgressStep(): InstallationProgressStep | undefined {
+    const steps = this.installationProgressSteps;
+    return steps.find(step => step.id === this.expandedInstallationStep)
+      || steps[0];
+  }
+
+  selectInstallationProgressStep(id: string): void {
+    this.expandedInstallationStep = id;
+  }
+
+  trackInstallationStep(_index: number, step: InstallationProgressStep): string {
+    return step.id;
+  }
+
+  trackInstallationCheck(_index: number, check: InstallationProgressStep['checks'][number]): string {
+    return check.label;
+  }
+
+  installationStepLabel(status: InstallationProgressStep['status']): string {
+    return ({ complete: 'Completo', pending: 'Pendiente', warning: 'Revisar', unavailable: 'No disponible', loading: 'Cargando', 'not-applicable': 'No aplica' })[status];
+  }
+
+  installationStepIcon(status: InstallationProgressStep['status']): string {
+    return ({ complete: 'pi pi-check', pending: 'pi pi-clock', warning: 'pi pi-exclamation-triangle', unavailable: 'pi pi-question-circle', loading: 'pi pi-spin pi-spinner', 'not-applicable': 'pi pi-minus' })[status];
+  }
+
+  get installationCurrentAccount(): InstallationAccount | null {
+    return this.installationOwnerPath[this.installationOwnerPath.length - 1] || null;
+  }
+
+  get installationCurrentSubclient(): InstallationAccount | null {
+    const account = this.installationCurrentAccount;
+    return account?.affiliation_type_id === 'subcliente' ? account : null;
+  }
+
+  get installationCurrentClient(): InstallationAccount | null {
+    const account = this.installationCurrentAccount;
+    if (account?.affiliation_type_id === 'cliente') return account;
+    if (!this.installationCurrentSubclient) return null;
+    return [...this.installationOwnerPath].reverse().find(item => item.affiliation_type_id === 'cliente') || null;
+  }
+
+  private async loadInstallationOwnership(process: ProcessItem, requestId: number): Promise<void> {
+    const deviceId = this.mongoId(this.installationTarget?._id);
+    const ownerId = this.mongoId(this.installationTarget?.parent_id);
+    try {
+      if (!ownerId) throw new Error('El dispositivo no tiene una cuenta propietaria identificada.');
+      const path = await firstValueFrom(this.userService.getUserPath(ownerId));
+      if (!this.isCurrentInstallationDetail(process, requestId, deviceId)) return;
+      if (!Array.isArray(path) || path[path.length - 1]?.id !== ownerId
+        || path.some(item => !item || typeof item.id !== 'string' || typeof item.fullName !== 'string')) {
+        throw new Error('La cuenta recibida no corresponde al propietario actual del dispositivo.');
+      }
+      this.installationOwnerPath = path.map(item => ({
+        id: item.id,
+        fullName: item.fullName.trim() || 'Nombre no disponible',
+        affiliation_type_id: String(item.affiliation_type_id || '').trim().toLowerCase(),
+      }));
+    } catch (error) {
+      if (!this.isCurrentInstallationDetail(process, requestId, deviceId)) return;
+      this.installationOwnerPath = [];
+      this.installationOwnershipError = getApiErrorMessage(error, 'No se pudo consultar el propietario actual del dispositivo.');
+    } finally {
+      if (this.isCurrentInstallationDetail(process, requestId, deviceId)) this.installationOwnershipLoading = false;
+    }
+  }
+
+  private get installationTechnicianId(): string {
+    const row = this.installationProgressRecord;
+    if (row?.completed && row.completion_source === 'technician' && row.completed_by_id) return this.mongoId(row.completed_by_id);
+    if (this.installationSolicitudId) return this.mongoId(this.installationSolicitud?.mechanic_id);
+    return this.mongoId(this.selectedProcess?.target?.['mechanic_id'])
+      || this.mongoId(this.installationTarget?.mechanic_id);
+  }
+
+  get installationTechnicianName(): string {
+    if (this.installationSolicitudId && this.installationProgressLoading) return 'Cargando técnico…';
+    if (this.installationSolicitudId && this.installationProgressError) return 'Técnico no disponible';
+    const row = this.installationProgressRecord;
+    if (row?.completed && row.completion_source === 'technician' && row.completed_by_name) return row.completed_by_name;
+    const id = this.installationTechnicianId;
+    if (id && this.techniciansMap[id]) return this.techniciansMap[id];
+    const snapshot = this.selectedProcess?.target;
+    if (snapshot?.['mechanic_name'] && (id ? snapshot['mechanic_id'] === id : !this.installationSolicitudId)) return snapshot['mechanic_name'];
+    if (this.installationTechnicianLoading || this.installationProgressLoading) return 'Cargando técnico…';
+    if (id) return 'Nombre del técnico no disponible';
+    return this.installationProgressError || this.installationTargetError ? 'Técnico no disponible' : 'Sin técnico asignado';
+  }
+
+  private async loadInstallationTechnician(): Promise<void> {
+    const process = this.selectedProcess;
+    const id = this.installationTechnicianId;
+    if (this.installationTechnicianLoading && this.installationTechnicianLookupId === id) return;
+    const requestId = ++this.installationTechnicianRequestId;
+    this.installationTechnicianLookupId = id;
+    this.installationTechnicianLoading = false;
+    if (!process || !id) return;
+    if (this.techniciansMap[id]) return;
+    if (process.target?.['mechanic_name'] && process.target['mechanic_id'] === id) {
+      this.techniciansMap[id] = process.target['mechanic_name'];
+      return;
+    }
+    this.installationTechnicianLoading = true;
+    const isCurrent = () => requestId === this.installationTechnicianRequestId
+      && this.selectedProcess === process && this.detailDialogVisible && this.installationTechnicianId === id;
+    try {
+      const technician = await firstValueFrom(this.userService.getById(id));
+      if (!isCurrent() || technician?._id !== id) return;
+      const name = [technician.name, technician.last_name].filter(Boolean).join(' ').trim() || technician.email;
+      if (name) this.techniciansMap[id] = name;
+    } catch {
+      // The assignment remains visible when its account details cannot be read.
+    } finally {
+      if (isCurrent()) this.installationTechnicianLoading = false;
+    }
   }
 
   get installationData(): any {
@@ -527,6 +770,9 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     this.installationContactsError = '';
     this.installationTagName = '';
     this.installationTagLoading = false;
+    this.installationOwnerPath = [];
+    this.installationOwnershipLoading = true;
+    this.installationOwnershipError = '';
     const deviceId = this.mongoId(process.target?._id) || this.mongoId(process.reference);
     const imei = String(process.target?.device_imei || (/^\d{10,20}$/.test(process.reference || '') ? process.reference : '')).trim();
     try {
@@ -541,11 +787,15 @@ export class ProcessesComponent implements OnInit, OnDestroy {
       }
       this.installationTarget = device;
       void this.loadInstallationContacts(process, requestId);
+      void this.loadInstallationOwnership(process, requestId);
+      void this.loadInstallationTechnician();
     } catch (error) {
       if (requestId !== this.detailRequestId || this.selectedProcess !== process) return;
       this.installationTargetError = getApiErrorMessage(error, 'No se pudieron cargar los datos actuales del objetivo. Se muestran los datos disponibles en el proceso.');
       this.installationContactsLoading = false;
       this.installationContactsError = 'No se pudieron cargar los contactos actuales del objetivo.';
+      this.installationOwnershipLoading = false;
+      this.installationOwnershipError = 'No se pudo comprobar el propietario actual del dispositivo.';
     } finally {
       if (this.isCurrentInstallationDetail(process, requestId)) {
         this.installationTargetLoading = false;
@@ -720,7 +970,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
       .filter(image => !!image.url);
   }
 
-  private installationEvidenceUrl(stored: any): string {
+  installationEvidenceUrl(stored: any): string {
     const url = typeof stored === 'string' ? stored : stored?.url || stored?.location_cdn || stored?.location;
     if (!url || typeof url !== 'string') return '';
     if (/^(https?:|blob:|data:)/i.test(url)) return url;
@@ -1146,7 +1396,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     this.userService.getTechnicians().subscribe({
       next: (techs) => {
         techs.forEach(t => {
-          this.techniciansMap[t._id] = t.name || t.email || t._id;
+          this.techniciansMap[t._id] = [t.name, t.last_name].filter(Boolean).join(' ').trim() || t.email || 'Nombre no disponible';
         });
       },
       error: () => {}

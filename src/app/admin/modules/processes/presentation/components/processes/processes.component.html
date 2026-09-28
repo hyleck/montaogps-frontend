@@ -253,6 +253,88 @@
 
     <ng-template pTemplate="content">
         <div class="process-detail" *ngIf="selectedProcess">
+            <section class="installation-stepper" *ngIf="isInstallationProcess" aria-labelledby="installation-progress-title">
+                <ng-container *ngIf="selectedInstallationProgressStep as activeStep">
+                    <header class="installation-stepper__heading">
+                        <div>
+                            <h3 id="installation-progress-title">Pasos de la instalación</h3>
+                            <p>{{ installationSolicitudId ? 'Datos y evidencias de la solicitud vinculada.' : 'Datos actuales del objetivo y cierre registrado en este proceso.' }}</p>
+                        </div>
+                        <div class="installation-stepper__progress" aria-live="polite">
+                            <strong>{{ installationProgressComplete }} de {{ installationProgressTotal }} completos</strong>
+                            <progress [value]="installationProgressComplete" [max]="installationProgressTotal"
+                                aria-label="Pasos completos de la instalación"></progress>
+                        </div>
+                    </header>
+
+                    <div class="installation-people" aria-label="Cliente y técnico" aria-live="polite">
+                        <div data-person-role="client">
+                            <span>Cliente actual</span>
+                            <strong>{{ installationOwnershipLoading ? 'Cargando cliente…' : installationCurrentClient?.fullName || 'No disponible' }}</strong>
+                        </div>
+                        <div data-person-role="subclient" *ngIf="installationCurrentSubclient as subclient">
+                            <span>Subcliente actual</span><strong>{{ subclient.fullName }}</strong>
+                        </div>
+                        <div data-person-role="account" *ngIf="installationCurrentAccount && !installationCurrentClient && !installationCurrentSubclient">
+                            <span>Cuenta propietaria</span><strong>{{ installationCurrentAccount.fullName }}</strong>
+                        </div>
+                        <div data-person-role="technician">
+                            <span>Técnico de la instalación</span><strong>{{ installationTechnicianName }}</strong>
+                        </div>
+                    </div>
+                    <div class="installation-detail__error" *ngIf="installationOwnershipError" role="alert">
+                        <span>{{ installationOwnershipError }}</span>
+                        <button type="button" pButton label="Reintentar cliente" icon="pi pi-refresh" class="p-button-text p-button-sm"
+                            [disabled]="installationTargetLoading" (click)="loadInstallationTarget()"></button>
+                    </div>
+
+                    <div class="installation-detail__error" *ngIf="installationProgressError" role="alert">
+                        <span>{{ installationProgressError }}</span>
+                        <button type="button" pButton label="Reintentar" icon="pi pi-refresh" class="p-button-text p-button-sm"
+                            [disabled]="installationProgressLoading" (click)="loadInstallationProgress()"></button>
+                    </div>
+
+                    <p class="installation-stepper__hint">Selecciona una etapa para ver sus datos, comprobaciones y fotografías.</p>
+                    <ol class="installation-stepper__steps" aria-label="Etapas de la instalación, desde el inicio hasta la revisión">
+                        <li *ngFor="let step of installationProgressSteps; let index = index; trackBy: trackInstallationStep"
+                            [ngClass]="'installation-step--' + step.status">
+                            <button type="button" class="installation-stepper__step" [attr.data-step-id]="step.id"
+                                [class.installation-stepper__step--selected]="activeStep.id === step.id"
+                                [attr.aria-expanded]="activeStep.id === step.id" aria-controls="installation-progress-checks"
+                                (click)="selectInstallationProgressStep(step.id)">
+                                <span class="installation-stepper__number" aria-hidden="true">{{ index + 1 }}</span>
+                                <strong>{{ step.label }}</strong>
+                                <span class="installation-stepper__status"><i [class]="installationStepIcon(step.status)" aria-hidden="true"></i>{{ installationStepLabel(step.status) }}</span>
+                            </button>
+                        </li>
+                    </ol>
+
+                    <section id="installation-progress-checks" class="installation-stepper__checks" aria-live="polite">
+                        <header><h4>{{ activeStep.label }}</h4><p>{{ activeStep.summary }}</p></header>
+                        <ul>
+                            <li *ngFor="let check of activeStep.checks; trackBy: trackInstallationCheck" [ngClass]="'installation-step--' + check.status">
+                                <i [class]="installationStepIcon(check.status)" aria-hidden="true"></i>
+                                <div><strong>{{ check.label }}</strong><span *ngIf="check.value">{{ check.value | deviceLabel }}</span></div>
+                                <small>{{ installationStepLabel(check.status) }}</small>
+                            </li>
+                        </ul>
+                        <dl class="installation-stepper__details" *ngIf="activeStep.details?.length">
+                            <div *ngFor="let detail of activeStep.details">
+                                <dt>{{ detail.label }}</dt><dd>{{ detail.value | deviceLabel }}</dd>
+                            </div>
+                        </dl>
+                        <div class="installation-stepper__photos" *ngIf="activeStep.photos?.length">
+                            <a *ngFor="let photo of activeStep.photos" [href]="installationEvidenceUrl(photo.url)" target="_blank" rel="noopener noreferrer">
+                                <img [src]="installationEvidenceUrl(photo.url)" [alt]="photo.label" loading="lazy">
+                                <strong>{{ photo.label }}</strong>
+                                <span *ngIf="photo.uploadedAt">{{ photo.uploadedAt | date:'dd/MM/yyyy · HH:mm' }}</span>
+                                <span>Ver imagen <i class="pi pi-external-link" aria-hidden="true"></i></span>
+                            </a>
+                        </div>
+                    </section>
+                </ng-container>
+            </section>
+
             <section class="detail-summary">
                 <div class="detail-summary__main">
                     <span class="detail-summary__eyebrow">Registro operativo</span>
@@ -318,7 +400,7 @@
                         <div><dt>Cliente</dt><dd>{{ getClientName(selectedProcess) }}</dd></div>
                         <div><dt>Usuario</dt><dd>{{ selectedProcess.user.name || selectedProcess.user.email || '-' }}</dd></div>
                         <div><dt>Empleado</dt><dd>{{ getCreatorName(selectedProcess.creator) }}</dd></div>
-                        <div><dt>Técnico</dt><dd>{{ getTechnicianName(selectedProcess) }}</dd></div>
+                        <div><dt>Técnico</dt><dd>{{ isInstallationProcess ? installationTechnicianName : getTechnicianName(selectedProcess) }}</dd></div>
                     </dl>
                 </section>
             </div>

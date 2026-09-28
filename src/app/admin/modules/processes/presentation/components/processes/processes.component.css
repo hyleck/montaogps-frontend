@@ -1382,6 +1382,113 @@
     gap: 10px;
 }
 
+.installation-stepper {
+    padding: 14px;
+    border: 1px solid var(--process-border);
+    border-radius: 12px;
+    background: var(--process-surface);
+}
+
+.installation-stepper__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.installation-stepper h3,
+.installation-stepper h4 { margin: 0; color: var(--process-text); }
+.installation-stepper h3 { font-size: 0.94rem; }
+.installation-stepper h4 { font-size: 0.82rem; }
+.installation-stepper p { margin: 4px 0 0; color: var(--process-muted); font-size: 0.73rem; line-height: 1.5; }
+
+.installation-stepper__progress { display: grid; gap: 6px; min-width: 155px; }
+.installation-stepper__progress strong { color: var(--process-text); font-size: 0.75rem; }
+.installation-stepper__progress progress { width: 100%; height: 7px; accent-color: #16a34a; }
+
+.installation-people { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; padding: 12px; margin-bottom: 14px; border-radius: 10px; background: var(--process-surface-soft); }
+.installation-people > div { display: grid; gap: 5px; min-width: 0; }
+.installation-people span { color: var(--process-muted); font-size: 0.7rem; }
+.installation-people strong { color: var(--process-text); font-size: 0.8rem; overflow-wrap: anywhere; }
+.installation-stepper p.installation-stepper__hint { margin-bottom: 10px; }
+
+.installation-stepper__steps {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+}
+
+.installation-stepper__step {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    border: 1px solid var(--process-border);
+    border-radius: 10px;
+    color: var(--process-text);
+    background: var(--process-surface-soft);
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+}
+
+.installation-stepper__step:hover,
+.installation-stepper__step--selected { border-color: var(--step-color, var(--process-muted)); }
+.installation-stepper__step--selected { box-shadow: inset 0 -3px var(--step-color, var(--process-muted)); }
+.installation-stepper__step:focus-visible { outline: 2px solid var(--step-color, var(--process-accent)); outline-offset: 2px; }
+.installation-stepper__step > strong { font-size: 0.74rem; line-height: 1.4; }
+.installation-stepper__number { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: var(--step-color, var(--process-muted)); background: var(--step-background, var(--process-surface)); font-size: 0.73rem; font-weight: 800; }
+.installation-stepper__status { display: flex; align-items: center; gap: 5px; margin-top: auto; color: var(--step-color, var(--process-muted)); font-size: 0.68rem; }
+.installation-stepper__status i { font-size: 0.68rem; }
+
+.installation-step--complete { --step-color: #15803d; --step-background: #dcfce7; }
+.installation-step--pending { --step-color: #a16207; --step-background: #fef9c3; }
+.installation-step--warning { --step-color: #c2410c; --step-background: #ffedd5; }
+.installation-step--unavailable,
+.installation-step--not-applicable { --step-color: var(--process-muted); --step-background: var(--process-surface); }
+.installation-step--loading { --step-color: #2563eb; --step-background: #dbeafe; }
+
+.installation-stepper__checks { padding: 12px; border: 1px solid var(--process-border); border-radius: 10px; }
+.installation-stepper__checks ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin: 12px 0 0; padding: 0; list-style: none; }
+.installation-stepper__checks li { display: flex; align-items: flex-start; gap: 7px; padding-top: 7px; border-top: 1px solid var(--process-border); }
+.installation-stepper__checks li > i { margin-top: 2px; color: var(--step-color, var(--process-muted)); font-size: 0.75rem; }
+.installation-stepper__checks li > div { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.installation-stepper__checks li strong { color: var(--process-text); font-size: 0.71rem; }
+.installation-stepper__checks li span { color: var(--process-muted); font-size: 0.69rem; overflow-wrap: anywhere; white-space: pre-wrap; }
+.installation-stepper__checks li small { color: var(--step-color, var(--process-muted)); font-size: 0.64rem; white-space: nowrap; }
+
+.installation-stepper__details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--process-border); }
+.installation-stepper__details > div { min-width: 0; }
+.installation-stepper__details dt { color: var(--process-muted); font-size: 0.7rem; }
+.installation-stepper__details dd { margin: 4px 0 0; color: var(--process-text); font-size: 0.75rem; overflow-wrap: anywhere; white-space: pre-wrap; }
+.installation-stepper__photos { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; }
+.installation-stepper__photos a { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 8px; border: 1px solid var(--process-border); border-radius: 8px; color: var(--process-text); text-decoration: none; }
+.installation-stepper__photos a:hover { border-color: var(--process-accent); }
+.installation-stepper__photos img { width: 100%; height: 135px; object-fit: contain; border-radius: 5px; background: var(--process-surface-soft); }
+.installation-stepper__photos strong { font-size: 0.72rem; }
+.installation-stepper__photos span { color: var(--process-muted); font-size: 0.68rem; }
+.installation-stepper__photos i { font-size: 0.65rem; }
+
+::ng-deep html.app-dark .process-detail-dialog .installation-step--complete { --step-color: #86efac; --step-background: #14532d; }
+::ng-deep html.app-dark .process-detail-dialog .installation-step--pending { --step-color: #fde047; --step-background: #713f12; }
+::ng-deep html.app-dark .process-detail-dialog .installation-step--warning { --step-color: #fdba74; --step-background: #7c2d12; }
+::ng-deep html.app-dark .process-detail-dialog .installation-step--loading { --step-color: #93c5fd; --step-background: #1e3a8a; }
+
+@media (max-width: 640px) {
+    .installation-stepper { padding: 10px; }
+    .installation-stepper__steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .installation-stepper__checks ul { grid-template-columns: 1fr; }
+    .installation-stepper__details { grid-template-columns: 1fr; }
+}
+
 .installation-detail__heading {
     display: flex;
     align-items: center;
