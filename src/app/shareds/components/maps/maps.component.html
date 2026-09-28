@@ -231,9 +231,16 @@
             <span class="chip-label">{{ 'maps.stopTime' | translate }}</span>
             <span class="chip-value">{{ stopTimeInfoDisplay }}</span>
         </div>
+        <div class="info-chip time">
+            <span class="chip-label">{{ 'maps.lastValidLocation' | translate }}</span>
+            <span class="chip-value">
+                {{ lastLocationDisplay }}
+                <span class="offline-duration-inline" *ngIf="lastLocationAgeDisplay">{{ lastLocationAgeDisplay }}</span>
+            </span>
+        </div>
         <div class="info-chip time" *ngIf="statusClass !== 'online'">
             <span class="chip-label">
-                {{ isShowingHistoricalLocation ? 'Última ubicación conocida' : ('maps.lastUpdate' | translate) }}
+                {{ 'maps.lastCommunication' | translate }}
             </span>
             <span class="chip-value">
                 {{ lastUpdateDisplay }}

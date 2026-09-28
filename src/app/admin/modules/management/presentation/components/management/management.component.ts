@@ -1,3 +1,4 @@
+import { getGpsLocationTimestamp, LastValidPositionCache } from 'src/app/shareds/helpers/gps-position.helper';
 // Angular imports
 import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
@@ -80,6 +81,7 @@ let defaultMapOpened = false;
   ]
 })
 export class ManagementComponent implements OnInit, OnDestroy {
+  private readonly validLocationDates = new LastValidPositionCache();
 
   // Evita volver a renderizar URLs que ya fallaron y permite mostrar el fallback.
   private readonly unavailableImageUrls = new Set<string>();
@@ -2375,6 +2377,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     const currentUserEmail = this.selectedUser?.email;
 
     return targets.map(target => {
+      const locationTimestamp = getGpsLocationTimestamp(this.validLocationDates.resolve(target));
       const traccarStatus = this.getDisplayTraccarStatus(target);
       const isOnline = traccarStatus === 'online';
       const isLocalizado = traccarStatus === 'Localizado';
@@ -2392,7 +2395,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Calcular tiempo offline
       let offlineTimeText = '';
       let offlineDateText = '';
-      if (isWeakSignal && target.traccarInfo?.['lastUpdate']) {
+      if (isLocalizado) {
+        const locationInfo = locationTimestamp === null
+          ? { timeText: 'Ubicación sin fecha', dateText: '' }
+          : this.calculateOfflineTime(new Date(locationTimestamp), true);
+        offlineTimeText = locationInfo.timeText;
+        offlineDateText = locationInfo.dateText;
+      } else if (isWeakSignal && target.traccarInfo?.['lastUpdate']) {
         const offlineInfo = this.calculateOfflineTime(target.traccarInfo['lastUpdate']);
         offlineTimeText = 'Señal débil';
         offlineDateText = offlineInfo.dateText;
@@ -5371,7 +5380,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
         let offlineTimeText = previousTarget.offlineTimeText;
         let offlineDateText = previousTarget.offlineDateText;
         const lastUpdate = liveStatus.traccarInfo?.['lastUpdate'];
-        if (isOnline) {
+        const locationTimestamp = getGpsLocationTimestamp(this.validLocationDates.resolve(mergedTarget));
+        if (newStatus === 'Localizado') {
+          const locationInfo = locationTimestamp === null
+            ? { timeText: 'Ubicación sin fecha', dateText: '' }
+            : this.calculateOfflineTime(new Date(locationTimestamp), true);
+          offlineTimeText = locationInfo.timeText;
+          offlineDateText = locationInfo.dateText;
+        } else if (isOnline) {
           offlineTimeText = '';
           offlineDateText = '';
         } else if (isWeakSignal && lastUpdate) {

@@ -1,4 +1,4 @@
-import { getValidGpsPosition, getValidTargetPosition, LastValidPositionCache } from './gps-position.helper';
+import { getGpsLocationTimestamp, getValidGpsPosition, getValidTargetPosition, LastValidPositionCache } from './gps-position.helper';
 
 describe('GPS positions displayed on maps', () => {
   const fix = (overrides: any = {}) => ({
@@ -123,5 +123,36 @@ describe('GPS positions displayed on maps', () => {
     const reduced = cache.resolve(target(fix({ latitude: 19.63117, fixTime: undefined })));
     expect(reduced?.geo.fixTime).toBe('2026-09-28T13:52:00Z');
     expect(cache.resolve(target(fix({ latitude: 19.63216, fixTime: '2026-09-28T13:54:00Z' })))?.lat).toBe(19.63216);
+  });
+
+  it('prefers the locationTime attached to the accepted position', () => {
+    const position = getValidGpsPosition(fix({ locationTime: '2026-09-28T13:50:00Z' }));
+    expect(getGpsLocationTimestamp(position)).toBe(Date.parse('2026-09-28T13:50:00Z'));
+  });
+
+  it('keeps the normalized fix date for trackers with a corrected protocol timezone', () => {
+    const position = getValidGpsPosition(fix({
+      timeQuality: 'fix',
+      fixTime: '2026-09-28T21:52:00Z',
+      eventTime: '2026-09-28T13:52:00Z',
+    }));
+    expect(getGpsLocationTimestamp(position)).toBe(Date.parse('2026-09-28T13:52:00Z'));
+  });
+
+  it('never borrows receipt or communication timestamps for a location date', () => {
+    const position = getValidGpsPosition(fix({
+      fixTime: undefined,
+      serverTime: '2026-09-28T14:24:00Z',
+      lastUpdate: '2026-09-28T14:24:00Z',
+    }));
+    expect(getGpsLocationTimestamp(position)).toBeNull();
+    expect(getGpsLocationTimestamp(null)).toBeNull();
+  });
+
+  it('preserves an explicitly unknown backend location date and ignores receipt-based event time', () => {
+    expect(getGpsLocationTimestamp(getValidGpsPosition(fix({ locationTime: null })))).toBeNull();
+    expect(getGpsLocationTimestamp(getValidGpsPosition(fix({
+      fixTime: undefined, timeQuality: 'server', eventTime: '2026-09-28T14:24:00Z',
+    })))).toBeNull();
   });
 });

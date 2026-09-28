@@ -20,6 +20,25 @@ describe('MonitoringComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('dates a localized device from the retained fix while communication advances', () => {
+    component.protocols = [{ _id: 'tag', isAirtag: true }] as any;
+    spyOn(Date, 'now').and.returnValue(Date.parse('2026-09-28T14:24:00Z'));
+    const formatter = spyOn<any>(component, 'formatOfflineDuration').and.callFake((date: Date) => date.toISOString());
+    const target = {
+      _id: 'gps', type: 'tag',
+      traccarInfo: {
+        status: 'Localizado', lastUpdate: '2026-09-28T13:52:00Z',
+        geolocation: { valid: true, latitude: 19.63116, longitude: -70.28124, fixTime: '2026-09-28T13:52:00Z' },
+      },
+    };
+    expect(component.getConnectionDisplay(target)).toBe('2026-09-28T13:52:00.000Z');
+    target.traccarInfo.lastUpdate = '2026-09-28T14:24:00Z';
+    target.traccarInfo.geolocation = { valid: false, latitude: 0, longitude: 0, fixTime: '2026-09-28T14:24:00Z' };
+    expect(component.getConnectionDisplay(target)).toBe('2026-09-28T13:52:00.000Z');
+    expect(formatter.calls.mostRecent().args[1]).toBeTrue();
+    expect(target.traccarInfo.lastUpdate).toBe('2026-09-28T14:24:00Z');
+  });
+
   it('combines only initial-state and strictly offline devices', () => {
     const devices = [
       { _id: 'initial', traccarInfo: { status: 'offline', lastUpdate: 'never' } },

@@ -1,4 +1,4 @@
-import { getValidGpsPosition, getValidTargetPosition } from './gps-position.helper';
+import { getGpsLocationTimestamp, getValidGpsPosition, getValidTargetPosition } from './gps-position.helper';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 // utils/marker-service.ts
 import mapboxgl from 'mapbox-gl';
@@ -8,6 +8,13 @@ export class MarkerService {
   private static currentTargetId: string | null = null;
   private static activePromises: Set<Promise<any>> = new Set();
   private static abortController: AbortController | null = null;
+
+  private static getLastLocationDate(target: any): string | undefined {
+    const timestamp = getGpsLocationTimestamp(getValidTargetPosition(target));
+    return timestamp === null ? undefined : new Date(timestamp).toLocaleString('es-ES', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  }
 
   static async createMarker(
     map: any, 
@@ -82,40 +89,7 @@ export class MarkerService {
     // Obtener estado de ignición desde múltiples fuentes posibles
     const ignitionStatus = this.getIgnitionStatus(target);
 
-    // Extraer fecha de última ubicación para dispositivos offline
-    let lastLocationDate: string | undefined = undefined;
-    if (status === 'offline' && target?.traccarInfo?.geolocation) {
-      const geolocation = target.traccarInfo.geolocation;
-      
-      // Buscar campos de timestamp en diferentes formatos posibles
-      const timestampField = geolocation.serverTime || 
-                           geolocation.fixTime || 
-                           geolocation.deviceTime || 
-                           geolocation.timestamp ||
-                           geolocation.time ||
-                           geolocation.lastUpdate;
-      
-      if (timestampField) {
-        try {
-          const date = new Date(timestampField);
-          if (!isNaN(date.getTime())) {
-            // Formatear fecha en español
-            lastLocationDate = date.toLocaleString('es-ES', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            });
-            // console.log('📅 Fecha de última ubicación extraída:', lastLocationDate, 'de campo:', timestampField);
-          }
-        } catch (error) {
-          console.warn('Error formateando fecha de última ubicación:', error);
-        }
-      } else {
-        // console.log('🔍 Campos disponibles en geolocation:', Object.keys(geolocation));
-      }
-    }
+    const lastLocationDate = this.getLastLocationDate(target);
 
     // CENTRAR EL MAPA CON LOGS DETALLADOS PARA DEBUG
     // console.log('🎯 DEBUG CENTRADO: Creando marcador para target:', target._id);
@@ -537,36 +511,7 @@ export class MarkerService {
     const ignitionStatus = this.getIgnitionStatus(target);
     // console.log('🔋 DEBUG UPDATE: ignitionStatus obtenido:', ignitionStatus, 'para target:', target._id);
 
-    // Extraer fecha de última ubicación para dispositivos offline
-    let lastLocationDate: string | undefined = undefined;
-    if (status === 'offline' && target?.traccarInfo?.geolocation) {
-      const geolocation = target.traccarInfo.geolocation;
-      
-      // Buscar campos de timestamp en diferentes formatos posibles
-      const timestampField = geolocation.serverTime || 
-                           geolocation.fixTime || 
-                           geolocation.deviceTime || 
-                           geolocation.timestamp ||
-                           geolocation.time ||
-                           geolocation.lastUpdate;
-      
-      if (timestampField) {
-        try {
-          const date = new Date(timestampField);
-          if (!isNaN(date.getTime())) {
-            lastLocationDate = date.toLocaleString('es-ES', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            });
-          }
-        } catch (error) {
-          console.warn('Error formateando fecha de última ubicación en update:', error);
-        }
-      }
-    }
+    const lastLocationDate = this.getLastLocationDate(target);
 
     // Obtener tiempo de parada actualizado en cada polling
     let stopTime: string | undefined = undefined;
@@ -972,28 +917,7 @@ export class MarkerService {
     const status = target?.traccarInfo?.status || 'desconocido';
     const ignitionStatus = MarkerService.getIgnitionStatus(target);
 
-    // Extraer fecha de última ubicación para dispositivos offline
-    let lastLocationDate: string | undefined = undefined;
-    if (status === 'offline' && target?.traccarInfo?.geolocation) {
-      const geolocation = target.traccarInfo.geolocation;
-      const timestampField = geolocation.serverTime || geolocation.fixTime || 
-                           geolocation.deviceTime || geolocation.timestamp ||
-                           geolocation.time || geolocation.lastUpdate;
-      
-      if (timestampField) {
-        try {
-          const date = new Date(timestampField);
-          if (!isNaN(date.getTime())) {
-            lastLocationDate = date.toLocaleString('es-ES', {
-              day: '2-digit', month: '2-digit', year: 'numeric',
-              hour: '2-digit', minute: '2-digit'
-            });
-          }
-        } catch (error) {
-          console.warn('Error formateando fecha:', error);
-        }
-      }
-    }
+    const lastLocationDate = this.getLastLocationDate(target);
 
     // Obtener tiempo de parada
     let stopTime: string | undefined = undefined;

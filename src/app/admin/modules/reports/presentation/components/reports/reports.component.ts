@@ -1,3 +1,4 @@
+import { getGpsLocationTimestamp, LastValidPositionCache } from 'src/app/shareds/helpers/gps-position.helper';
 import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef, ElementRef, QueryList, ViewChildren } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import * as maplibregl from 'maplibre-gl';
@@ -46,6 +47,13 @@ export interface ReportFilter {
     standalone: false
 })
 export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
+    private readonly validLocationDates = new LastValidPositionCache();
+
+    private getLastValidLocationDate(target: any): Date | null {
+      const timestamp = getGpsLocationTimestamp(this.validLocationDates.resolve(target));
+      return timestamp === null ? null : new Date(timestamp);
+    }
+
     @ViewChildren('stopMap') stopMapElements!: QueryList<ElementRef<HTMLElement>>;
 
     items: MenuItem[] = [{ label: 'Reportes' }];
@@ -512,9 +520,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
         const selectedTarget = this.reportFilter.selectedTargets[0];
         
         // Determinar la última ubicación VÁLIDA
-        const lastValidLocationStr = selectedTarget?.traccarInfo?.geolocation?.deviceTime 
-          || selectedTarget?.traccarInfo?.geolocation?.fixTime 
-          || selectedTarget?.traccarInfo?.lastUpdate;
+        const lastValidLocationStr = this.getLastValidLocationDate(selectedTarget);
           
         if (lastValidLocationStr) {
           const lastValidLocationDate = new Date(lastValidLocationStr);
@@ -577,7 +583,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
 
     /**
      * Ajusta el rango de fechas basándose en el estado del target
-     * Si el target no está online, usa la fecha de lastUpdate como "desde"
+     * Si el target no está online, usa la fecha de la ubicación válida mostrada.
      */
     private adjustDateRangeBasedOnTargetStatus(targetInfo: any): void {
       console.log('🔍 [REPORTES] Verificando estado del target:', {
@@ -587,16 +593,13 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
       });
 
       // Determinar si el target está offline
-      this.isTargetOffline = targetInfo.traccarInfo?.status !== 'online' && !!targetInfo.traccarInfo?.lastUpdate;
+      const lastValidLocationDate = this.getLastValidLocationDate(targetInfo);
+      this.isTargetOffline = targetInfo.traccarInfo?.status !== 'online' && lastValidLocationDate !== null;
 
       // Verificar si el target no está online
       if (this.isTargetOffline) {
         // Determinar la última ubicación VÁLIDA
-        const lastValidLocationStr = targetInfo.traccarInfo?.geolocation?.deviceTime 
-          || targetInfo.traccarInfo?.geolocation?.fixTime 
-          || targetInfo.traccarInfo?.lastUpdate;
-          
-        const lastUpdate = new Date(lastValidLocationStr);
+        const lastUpdate = lastValidLocationDate!;
         const fromDate = new Date(lastUpdate);
         fromDate.setDate(fromDate.getDate() - 15); // 15 días antes de la última ubicación
         

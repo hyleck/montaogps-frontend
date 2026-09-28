@@ -366,6 +366,8 @@
     "statusUnknown": "Desconocido",
     "speed": "Velocidad",
     "lastUpdate": "Última actualización",
+    "lastValidLocation": "Última ubicación válida",
+    "lastCommunication": "Última comunicación",
     "offlineDuration": "Tiempo sin conexión",
     "stopTime": "Tiempo de parada",
     "stopTimeMoving": "En movimiento",

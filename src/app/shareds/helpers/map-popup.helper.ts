@@ -1,3 +1,4 @@
+import { getGpsLocationTimestamp, getValidTargetPosition } from './gps-position.helper';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 // utils/popup-builder.ts
 
@@ -29,6 +30,14 @@ export class PopupBuilder {
     ignitionStatus?: 'on' | 'off' | null;   
     target?: any;
   }): string {
+      if (!lastLocationDate) {
+        const timestamp = getGpsLocationTimestamp(getValidTargetPosition(target));
+        if (timestamp !== null) {
+          lastLocationDate = new Date(timestamp).toLocaleString('es-ES', {
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+          });
+        }
+      }
       title = formatDeviceLabel(title);
       vehicleType = vehicleType ? formatDeviceLabel(vehicleType) : vehicleType;
       const vehicleTypeHtml = vehicleType && vehicleType !== 'Desconocido'
@@ -115,16 +124,7 @@ export class PopupBuilder {
         `;
       }
 
-      // Agregar información adicional que siempre esté presente
-      const currentDate = new Date().toLocaleString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-
-      let additionalInfoContent = `
+      let additionalInfoContent = lastLocationContent ? '' : `
       <div style="
         display: flex; 
         justify-content: space-between; 
@@ -138,7 +138,7 @@ export class PopupBuilder {
         margin-top: ${lastLocationContent || stopTimeContent || ignitionContent ? '8px' : '10px'};
       ">
         <span style="color: #666; font-size: 12px;">📍 Última ubicación</span>
-        <span style="color: #2196F3; font-weight: 600; font-size: 12px;">${currentDate}</span>
+        <span style="color: #2196F3; font-weight: 600; font-size: 12px;">${lastLocationDate || 'No disponible'}</span>
       </div>
       `;
 

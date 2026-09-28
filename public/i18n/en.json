@@ -343,6 +343,8 @@
     "statusUnknown": "Unknown",
     "speed": "Speed",
     "lastUpdate": "Last update",
+    "lastValidLocation": "Last valid location",
+    "lastCommunication": "Last communication",
     "offlineDuration": "Offline duration",
     "stopTime": "Stop time",
     "stopTimeMoving": "In motion",

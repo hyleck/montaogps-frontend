@@ -172,6 +172,8 @@
     "statusUnknown": "Inconnu",
     "speed": "Vitesse",
     "lastUpdate": "Dernière mise à jour",
+    "lastValidLocation": "Dernière position valide",
+    "lastCommunication": "Dernière communication",
     "offlineDuration": "Durée hors ligne",
     "stopTime": "Temps à l'arrêt",
     "stopTimeMoving": "En mouvement",

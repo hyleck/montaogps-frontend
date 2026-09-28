@@ -56,6 +56,26 @@ function fixTimestamp(position: MapPosition): number | null {
   return null;
 }
 
+/** The location's capture time; communication/receipt timestamps are never a GPS fix date. */
+export function getGpsLocationTimestamp(position: MapPosition | null): number | null {
+  if (!position) return null;
+  const geo = position.geo;
+  if (geo.locationTime !== undefined) {
+    if (geo.locationTime == null || geo.locationTime === '') return null;
+    const timestamp = new Date(geo.locationTime).getTime();
+    return Number.isFinite(timestamp) ? timestamp : null;
+  }
+  const fixFields = geo.timeQuality === 'fix'
+    ? [geo.eventTime, geo.fixTime, geo.deviceTime]
+    : [geo.fixTime, geo.timeQuality === 'server' ? null : geo.eventTime, geo.deviceTime];
+  for (const value of fixFields) {
+    if (value == null || value === '') continue;
+    const timestamp = new Date(value).getTime();
+    if (Number.isFinite(timestamp)) return timestamp;
+  }
+  return null;
+}
+
 export function isCoherentGpsPosition(position: MapPosition, previous: MapPosition): boolean {
   const radians = Math.PI / 180;
   const dLat = (position.lat - previous.lat) * radians;

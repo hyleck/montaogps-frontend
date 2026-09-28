@@ -1,4 +1,4 @@
-import { LastValidPositionCache } from '../../helpers/gps-position.helper';
+import { getGpsLocationTimestamp, getValidGpsPosition, LastValidPositionCache } from '../../helpers/gps-position.helper';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import { Component, OnInit, OnChanges, OnDestroy, SimpleChanges, Input, Output, EventEmitter } from '@angular/core';
 import { Router } from '@angular/router';
@@ -431,6 +431,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     // Check if target is offline
     this.isTargetOffline = !this.isSelectedTargetOnlineLike();
     this.lastUpdateText = '';
+    this.discrepancyMessage = null;
 
     if (!this.isTargetOffline) {
       this.offlineDuration = '';
@@ -455,15 +456,14 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
           console.log(`[OFFLINE DEBUG] No lastUpdate available, trying to get latest location from history for IMEI: ${deviceImei}`);
           const historyResponse = await this.targetsService.getLatestLocationFromHistory(deviceImei);
 
-          if (historyResponse.success && historyResponse.location) {
-            lastUpdate = historyResponse.location.eventTime || historyResponse.location.fixTime || historyResponse.location.serverTime || historyResponse.location.deviceTime;
-            console.log(`[OFFLINE DEBUG] Got location from history: ${lastUpdate}`);
-
+          if (historyResponse.success && getValidGpsPosition(historyResponse.location)) {
             // Store historical location data for marker creation
             if (this.selectedTarget && !this.selectedTarget.historicalLocation) {
               this.selectedTarget.historicalLocation = {
                 latitude: historyResponse.location.latitude,
                 longitude: historyResponse.location.longitude,
+                locationTime: historyResponse.location.locationTime,
+                timeQuality: historyResponse.location.timeQuality,
                 fixTime: historyResponse.location.fixTime,
                 deviceTime: historyResponse.location.deviceTime,
                 serverTime: historyResponse.location.serverTime,
@@ -492,6 +492,11 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         this.offlineDuration = '';
         return;
       }
+    }
+
+    if (!lastUpdate) {
+      this.offlineDuration = '';
+      return;
     }
 
     // Use the same calculation logic as the management component
@@ -539,11 +544,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     this.lastUpdateText = lastUpdateDate.toLocaleString();
     
     this.discrepancyMessage = null;
-    const lastValidLocationStr = this.selectedTarget?.traccarInfo?.geolocation?.deviceTime 
-        || this.selectedTarget?.traccarInfo?.geolocation?.fixTime
-        || this.selectedTarget?.historicalLocation?.deviceTime
-        || this.selectedTarget?.historicalLocation?.fixTime;
-        
+    const lastValidLocationStr = this.getLocationDateValue(this.selectedTarget);
+
     if (lastUpdate && lastValidLocationStr) {
       const validDate = new Date(lastValidLocationStr);
       if (!isNaN(validDate.getTime())) {
@@ -705,20 +707,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     return Number.isNaN(date.getTime()) ? null : date.getTime();
   }
 
-  private getLocationDateValue(target: any): string | Date | null {
-    return (
-      target?.traccarInfo?.geolocation?.eventTime ||
-      target?.traccarInfo?.geolocation?.fixTime ||
-      target?.traccarInfo?.geolocation?.serverTime ||
-      target?.traccarInfo?.geolocation?.deviceTime ||
-      target?.historicalLocation?.eventTime ||
-      target?.historicalLocation?.fixTime ||
-      target?.historicalLocation?.serverTime ||
-      target?.historicalLocation?.deviceTime ||
-      target?.historicalLocation?.timestamp ||
-      target?.traccarInfo?.lastUpdate ||
-      null
-    );
+  private getLocationDateValue(target: any): Date | null {
+    const timestamp = getGpsLocationTimestamp(this.getTargetCoordinates(target));
+    return timestamp === null ? null : new Date(timestamp);
   }
 
   private async updateTargetMarker(): Promise<void> {
@@ -841,6 +832,16 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
     const kmh = Math.round(speed * 1.852);
     return `${kmh} km/h`;
+  }
+
+  get lastLocationDisplay(): string {
+    return this.getLocationDateValue(this.selectedTarget)?.toLocaleString()
+      || this.translate.instant('maps.notAvailable');
+  }
+
+  get lastLocationAgeDisplay(): string {
+    const date = this.getLocationDateValue(this.selectedTarget);
+    return date ? this.getRelativeLocationAge(date) : '';
   }
 
   get lastUpdateDisplay(): string {

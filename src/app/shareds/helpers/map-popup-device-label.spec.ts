@@ -17,4 +17,21 @@ describe('Map popup device labels', () => {
     expect(popup.textContent).toBe('MLock Toyota negro(GPS)');
     expect(updates.title).toBe('MTAG-A Toyota negro');
   });
+
+  it('shows the supplied valid location date once instead of the current clock time', () => {
+    const html = PopupBuilder.buildPopupHtml({
+      title: 'GPS', speedKmh: 0, status: 'offline', lastLocationDate: '28/09/2026, 09:52',
+    });
+    expect(html).toContain('28/09/2026, 09:52');
+    expect(html.match(/Última ubicación/g)?.length).toBe(1);
+  });
+
+  it('shows an unknown GPS date when only communication time exists', () => {
+    const html = PopupBuilder.buildPopupHtml({
+      title: 'GPS', speedKmh: 0, status: 'online',
+      target: { traccarInfo: { lastUpdate: '2026-09-28T14:24:00Z' } },
+    });
+    expect(html).toContain('No disponible');
+    expect(html).not.toContain('14:24');
+  });
 });

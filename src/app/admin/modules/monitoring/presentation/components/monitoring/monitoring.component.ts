@@ -1,3 +1,4 @@
+import { getGpsLocationTimestamp, LastValidPositionCache } from 'src/app/shareds/helpers/gps-position.helper';
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { Subject, Subscription, interval, of, firstValueFrom } from 'rxjs';
 import { takeUntil, switchMap, catchError, map, startWith } from 'rxjs/operators';
@@ -24,6 +25,7 @@ import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
   standalone: false
 })
 export class MonitoringComponent implements OnInit, OnDestroy {
+  private readonly validLocationDates = new LastValidPositionCache();
   visualizationMode: 'list' | 'map' = 'list';
   selectedMapData: MonitorUserResponse['data'] | null = null;
   selectedMapBlockLabel = '';
@@ -2130,6 +2132,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   getConnectionDisplay(device: any): string {
+    const locationTimestamp = getGpsLocationTimestamp(this.validLocationDates.resolve(device));
     if (this.isDeviceWeakSignal(device)) {
       return 'Señal débil';
     }
@@ -2139,11 +2142,9 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     }
 
     if (this.isDeviceLocalizado(device)) {
-      const lastUpdate = device?.traccarInfo?.lastUpdate;
-      if (lastUpdate && lastUpdate.toString().toLowerCase() !== 'never') {
-        return this.formatOfflineDuration(lastUpdate, true);
-      }
-      return 'Localizado';
+      return locationTimestamp === null
+        ? 'Localizado (sin fecha de ubicación)'
+        : this.formatOfflineDuration(new Date(locationTimestamp), true);
     }
 
     if (this.isDeviceNoLocalizado(device)) {
