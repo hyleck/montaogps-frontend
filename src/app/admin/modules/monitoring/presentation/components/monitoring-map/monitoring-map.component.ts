@@ -1,3 +1,4 @@
+import { LastValidPositionCache } from 'src/app/shareds/helpers/gps-position.helper';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import {
   AfterViewInit,
@@ -1095,31 +1096,12 @@ export class MonitoringMapComponent
     });
   }
 
-  private getCoordinates(device: any): [number, number] | null {
-    const geolocation =
-      device?.traccarInfo?.geolocation ||
-      device?.traccarInfo?.lastLocation ||
-      device?.traccarInfo?.position ||
-      device?.geolocation ||
-      device?.position ||
-      {};
-    const latitude = Number(
-      geolocation?.latitude ??
-        geolocation?.lat ??
-        device?.latitude ??
-        device?.latitud,
-    );
-    const longitude = Number(
-      geolocation?.longitude ??
-        geolocation?.lng ??
-        geolocation?.lon ??
-        device?.longitude ??
-        device?.longitud,
-    );
+  private readonly validPositions = new LastValidPositionCache();
 
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-      return null;
-    }
+  private getCoordinates(device: any): [number, number] | null {
+    const position = this.validPositions.resolve(device);
+    if (!position) return null;
+    const { lat: latitude, lng: longitude } = position;
     if (
       latitude < this.americasBounds.minLat ||
       latitude > this.americasBounds.maxLat ||

@@ -1,3 +1,4 @@
+import { getValidTargetPosition } from './gps-position.helper';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import * as maplibregl from 'maplibre-gl';
 
@@ -131,10 +132,11 @@ export class MapUtils {
     const defaultLng = -70.1627;
     const defaultZoom = 7;
 
-    if (selectedTarget?.traccarInfo?.geolocation) {
+    const position = getValidTargetPosition(selectedTarget);
+    if (position) {
       return {
-        centerLat: selectedTarget.traccarInfo.geolocation.latitude,
-        centerLng: selectedTarget.traccarInfo.geolocation.longitude,
+        centerLat: position.lat,
+        centerLng: position.lng,
         zoomLevel: 16,
       };
     }

@@ -1,3 +1,4 @@
+import { LastValidPositionCache } from '../../helpers/gps-position.helper';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import { Component, OnInit, OnChanges, OnDestroy, SimpleChanges, Input, Output, EventEmitter } from '@angular/core';
 import { Router } from '@angular/router';
@@ -30,6 +31,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   @Input() vehicleTypeGetter: ((modelId: string) => string) | null = null;
   @Input() preloadedStopTime: string | undefined = undefined;
   @Output() additionalTargetSelected = new EventEmitter<any>();
+
+  private readonly validPositions = new LastValidPositionCache();
 
   map: any;
   apiKey: string = '';
@@ -1736,40 +1739,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private getTargetCoordinates(target: any): { lat: number; lng: number; geo: any } | null {
-    const source = target?.originalTarget || target || {};
-    const locationCandidates = [
-      target?.traccarInfo?.geolocation,
-      target?.traccarInfo?.lastLocation,
-      target?.traccarInfo?.last_location,
-      target?.historicalLocation,
-      target?.lastLocation,
-      target?.last_location,
-      source?.traccarInfo?.geolocation,
-      source?.traccarInfo?.lastLocation,
-      source?.traccarInfo?.last_location,
-      source?.historicalLocation,
-      source?.lastLocation,
-      source?.last_location,
-      source?.position,
-      source?.lastPosition,
-    ].filter(Boolean);
-
-    const geo = locationCandidates.find(location => {
-      const lat = location?.latitude ?? location?.lat ?? location?.Lat;
-      const lng = location?.longitude ?? location?.lng ?? location?.lon ?? location?.Long;
-      return lat !== undefined && lng !== undefined;
-    });
-
-    const lat = geo?.latitude ?? geo?.lat ?? geo?.Lat;
-    const lng = geo?.longitude ?? geo?.lng ?? geo?.lon ?? geo?.Long;
-    const latNum = parseFloat(lat !== undefined ? String(lat) : '');
-    const lngNum = parseFloat(lng !== undefined ? String(lng) : '');
-
-    if (isNaN(latNum) || isNaN(lngNum)) {
-      return null;
-    }
-
-    return { lat: latNum, lng: lngNum, geo };
+    return this.validPositions.resolve(target);
   }
 
   private buildOsmMarkerFeature(target: any, lat: number, lng: number, selected: boolean = false): any {

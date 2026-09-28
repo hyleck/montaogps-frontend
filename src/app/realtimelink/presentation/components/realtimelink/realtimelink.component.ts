@@ -1,3 +1,4 @@
+import { LastValidPositionCache } from 'src/app/shareds/helpers/gps-position.helper';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
@@ -12,6 +13,7 @@ import { TargetsService } from '../../../../core/services/targets.service';
     standalone: false
 })
 export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
+    private readonly validPositions = new LastValidPositionCache();
     @ViewChild('mapContainer') mapContainer!: ElementRef;
 
     map: any;
@@ -217,17 +219,16 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
             // Obtener datos actualizados del target
             const updatedTarget = await this.targetsService.getPublicTargetById(this.targetId);
 
-            // Verificar si hay cambios en la ubicación
-            const newLat = updatedTarget.traccarInfo?.['geolocation']?.['latitude'] || updatedTarget.traccarInfo?.['latitude'];
-            const newLng = updatedTarget.traccarInfo?.['geolocation']?.['longitude'] || updatedTarget.traccarInfo?.['longitude'];
+            this.target = updatedTarget;
+            const coordinates = this.validPositions.resolve(updatedTarget);
+            if (!coordinates) return;
+            const { lat: newLat, lng: newLng } = coordinates;
 
-            if (!newLat || !newLng) {
-                console.warn('No valid coordinates in updated target');
+            // A device may acquire its first valid fix after the initial load.
+            if (!this.marker) {
+                await this.displayTargetOnMap();
                 return;
             }
-
-            // Actualizar target
-            this.target = updatedTarget;
 
             // Actualizar posición del marcador
             const newPosition = new google.maps.LatLng(newLat, newLng);
@@ -283,13 +284,9 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
     private async displayTargetOnMap(): Promise<void> {
         if (!this.target || !this.map) return;
 
-        const lat = this.target.traccarInfo?.geolocation?.latitude || this.target.traccarInfo?.latitude;
-        const lng = this.target.traccarInfo?.geolocation?.longitude || this.target.traccarInfo?.longitude;
-
-        if (!lat || !lng) {
-            console.warn('Target does not have valid coordinates');
-            return;
-        }
+        const coordinates = this.validPositions.resolve(this.target);
+        if (!coordinates) return;
+        const { lat, lng } = coordinates;
 
         // Limpiar marcador anterior si existe
         if (this.marker) {
@@ -407,13 +404,9 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
     openInGoogleMaps(): void {
         if (!this.target) return;
 
-        const lat = this.target.traccarInfo?.['geolocation']?.['latitude'] || this.target.traccarInfo?.['latitude'];
-        const lng = this.target.traccarInfo?.['geolocation']?.['longitude'] || this.target.traccarInfo?.['longitude'];
-
-        if (!lat || !lng) {
-            console.warn('No valid coordinates for navigation');
-            return;
-        }
+        const coordinates = this.validPositions.resolve(this.target);
+        if (!coordinates) return;
+        const { lat, lng } = coordinates;
 
         const url = `https://www.google.com/maps?q=${lat},${lng}`;
         window.open(url, '_blank');
@@ -422,13 +415,9 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
     openInWaze(): void {
         if (!this.target) return;
 
-        const lat = this.target.traccarInfo?.['geolocation']?.['latitude'] || this.target.traccarInfo?.['latitude'];
-        const lng = this.target.traccarInfo?.['geolocation']?.['longitude'] || this.target.traccarInfo?.['longitude'];
-
-        if (!lat || !lng) {
-            console.warn('No valid coordinates for navigation');
-            return;
-        }
+        const coordinates = this.validPositions.resolve(this.target);
+        if (!coordinates) return;
+        const { lat, lng } = coordinates;
 
         const url = `https://www.waze.com/ul?ll=${lat}%2C${lng}&navigate=yes&zoom=17`;
         window.open(url, '_blank');

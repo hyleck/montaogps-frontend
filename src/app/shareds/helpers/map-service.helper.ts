@@ -1,3 +1,4 @@
+import { getValidGpsPosition, getValidTargetPosition } from './gps-position.helper';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 // utils/marker-service.ts
 import mapboxgl from 'mapbox-gl';
@@ -28,6 +29,8 @@ export class MarkerService {
     //   preloadedStopTimeLength: preloadedStopTime?.length,
     //   hasTargetsService: !!targetsService
     // });
+
+    if (!getValidGpsPosition({ ...target?.traccarInfo?.geolocation, latitude: lat, longitude: lng })) return null;
 
     // CANCELAR PROCESOS ANTERIORES INMEDIATAMENTE
     const targetId = target._id || target.id;
@@ -443,16 +446,9 @@ export class MarkerService {
       return;
     }
     
-    const rawLat = target.traccarInfo?.geolocation?.latitude;
-    const rawLng = target.traccarInfo?.geolocation?.longitude;
-    
-    if (isNaN(rawLat) || isNaN(rawLng)) {
-      console.log('❌ updatePosition: Coordenadas inválidas:', { rawLat, rawLng });
-      return;
-    }
-
-    const lat = parseFloat(rawLat);
-    const lng = parseFloat(rawLng);
+    const position = getValidTargetPosition(target);
+    if (!position) return;
+    const { lat, lng } = position;
     const speedKnots = target?.traccarInfo?.geolocation?.speed || 0;
     const currentSpeedKmh = Math.round(speedKnots * 1.852);
     

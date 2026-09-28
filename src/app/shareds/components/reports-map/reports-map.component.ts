@@ -1,3 +1,4 @@
+import { getValidTargetPosition } from '../../helpers/gps-position.helper';
 import { Component, OnInit, OnDestroy, Input, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
 import { SystemService, SystemSettings } from '../../../core/services/system.service';
 import { RouteHistoryResponse } from '../../../core/interfaces';
@@ -207,9 +208,10 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     let zoomLevel = 8;
 
     // Si hay un target seleccionado, centrar en él
-    if (this.selectedTarget?.traccarInfo?.geolocation) {
-      centerLat = this.selectedTarget.traccarInfo.geolocation.latitude;
-      centerLng = this.selectedTarget.traccarInfo.geolocation.longitude;
+    const initialPosition = getValidTargetPosition(this.selectedTarget);
+    if (initialPosition) {
+      centerLat = initialPosition.lat;
+      centerLng = initialPosition.lng;
       zoomLevel = 12;
     }
 
