@@ -238,6 +238,12 @@
                   <div>
                     <strong>{{ device.IMEI || device.imei || 'Sin IMEI' }}</strong>
                     <small>IMEI</small>
+                    <small class="inventory-result-plan"
+                      *ngIf="device.incosisStatus?.planAssignment as assignment"
+                      [title]="'Plan facturado en Incosis: ' + assignment.planSnapshot.name">
+                      <i class="pi pi-shield"></i>
+                      {{ assignment.planSnapshot.name }} · {{ assignment.years }} {{ assignment.years === 1 ? 'año' : 'años' }}
+                    </small>
                   </div>
                 </div>
               </td>
@@ -299,12 +305,6 @@
                   *ngIf="isDeviceInspectionRequired(device) && device.inspection_reason"
                   [title]="device.inspection_reason">
                   {{ device.inspection_reason }}
-                </small>
-                <small class="inventory-result-plan"
-                  *ngIf="device.incosisStatus?.planAssignment as assignment"
-                  [title]="'Plan facturado en Incosis: ' + assignment.planSnapshot.name">
-                  <i class="pi pi-shield"></i>
-                  {{ assignment.planSnapshot.name }} · {{ assignment.years }} {{ assignment.years === 1 ? 'año' : 'años' }}
                 </small>
               </td>
               <td>

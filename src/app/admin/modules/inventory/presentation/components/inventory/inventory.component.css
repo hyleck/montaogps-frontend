@@ -2295,6 +2295,13 @@ textarea.form-input {
   margin-right: 0.2rem;
 }
 
+/* El plan vive debajo del IMEI, donde las etiquetas van en versalitas. */
+.inventory-result-device .inventory-result-plan {
+  margin-top: 0.2rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .inventory-result-actions {
   display: flex;
   align-items: center;

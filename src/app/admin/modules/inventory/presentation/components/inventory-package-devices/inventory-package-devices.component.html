@@ -175,6 +175,12 @@
                   <small class="package-device-protocol-subtext">
                     Protocolo: {{ (getProtocolLabel(device.Protocol || device.protocol)) | deviceLabel }}
                   </small>
+                  <small class="package-device-plan"
+                    *ngIf="device.incosisStatus?.planAssignment as assignment"
+                    [title]="'Plan facturado en Incosis: ' + assignment.planSnapshot.name">
+                    <i class="pi pi-shield"></i>
+                    {{ assignment.planSnapshot.name }} · {{ assignment.years }} {{ assignment.years === 1 ? 'año' : 'años' }}
+                  </small>
                   <span class="package-device-status package-device-status--inspection"
                     *ngIf="isDeviceInspectionRequired(device)"
                     [pTooltip]="device.inspection_reason || 'El dispositivo fue marcado para revisión técnica.'">
@@ -202,12 +208,6 @@
                     *ngIf="isDeviceInspectionRequired(device) && device.inspection_reason"
                     [title]="device.inspection_reason">
                     {{ device.inspection_reason }}
-                  </small>
-                  <small class="package-device-plan"
-                    *ngIf="device.incosisStatus?.planAssignment as assignment"
-                    [title]="'Plan facturado en Incosis: ' + assignment.planSnapshot.name">
-                    <i class="pi pi-shield"></i>
-                    {{ assignment.planSnapshot.name }} · {{ assignment.years }} {{ assignment.years === 1 ? 'año' : 'años' }}
                   </small>
                 </div>
               </td>
