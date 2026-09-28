@@ -8,6 +8,7 @@ import { FormsModule } from '@angular/forms';
 import { CloudComponent } from '../../../../../../../shareds/components/cloud/cloud.component';
 import { ContactsModule } from '../../../../../contacts/contacts.module';
 import { InstallationLocationSelectComponent } from '../../../../../../../shareds/components/installation-location-select/installation-location-select.component';
+import { DeviceRecordsComponent } from '../../../../../../../shareds/components/device-records/device-records.component';
 
 
 @NgModule({
@@ -22,7 +23,8 @@ import { InstallationLocationSelectComponent } from '../../../../../../../shared
     FormsModule,
     CloudComponent,
     ContactsModule,
-    InstallationLocationSelectComponent
+    InstallationLocationSelectComponent,
+    DeviceRecordsComponent
   ],
   exports: [
     TargetFormComponent

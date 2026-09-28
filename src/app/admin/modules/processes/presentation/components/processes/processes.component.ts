@@ -1,5 +1,12 @@
 import { DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { TargetsService } from 'src/app/core/services/targets.service';
+import { AuthService } from 'src/app/core/services/auth.service';
+import { Contact, ContactsService } from 'src/app/core/services/contacts.service';
+import { TagsService } from 'src/app/core/services/tags.service';
+import { DeviceRecordEntry } from 'src/app/core/interfaces/target.interface';
+import { firstValueFrom } from 'rxjs';
+import { environment } from 'src/environments/environment';
 import {
   ProcessesService,
   ProcessItem,
@@ -70,7 +77,7 @@ interface DetailChangeRow {
   styleUrls: ['./processes.component.css'],
   providers: [{ provide: MessageService, useClass: DeviceLabelMessageService }],
 })
-export class ProcessesComponent implements OnInit {
+export class ProcessesComponent implements OnInit, OnDestroy {
 
   processes: ProcessItem[] = [];
   loading = false;
@@ -109,6 +116,21 @@ export class ProcessesComponent implements OnInit {
   detailSimpleChangeRows: DetailChangeRow[] = [];
   detailStructuredChangeRows: DetailChangeRow[] = [];
 
+  installationTarget: any | null = null;
+  installationTargetLoading = false;
+  installationTargetError = '';
+  installationContacts: Contact[] | null = null;
+  installationContactsLoading = false;
+  installationContactsError = '';
+  installationTagName = '';
+  installationTagLoading = false;
+  deviceRecordsVisible = false;
+  deviceRecords: DeviceRecordEntry[] = [];
+  deviceRecordsLoading = false;
+  deviceRecordsError = '';
+  private detailRequestId = 0;
+  private recordsRequestId = 0;
+
   // Technicians map
   techniciansMap: { [id: string]: string } = {};
 
@@ -130,6 +152,10 @@ export class ProcessesComponent implements OnInit {
     private colorsService: ColorsService,
     private protocolsService: ProtocolsService,
     private messageService: MessageService,
+    private targetsService: TargetsService,
+    private authService: AuthService,
+    private tagsService: TagsService,
+    private contactsService: ContactsService,
   ) {}
 
   ngOnInit(): void {
@@ -426,11 +452,279 @@ export class ProcessesComponent implements OnInit {
   }
 
   showDetail(process: ProcessItem): void {
+    this.resetInstallationDetail();
     this.selectedProcess = process;
     const changes = this.buildChangeRows(process.before, process.after);
     this.detailSimpleChangeRows = changes.filter(change => !change.isStructured);
     this.detailStructuredChangeRows = changes.filter(change => change.isStructured);
     this.detailDialogVisible = true;
+    if (this.isInstallationProcess) void this.loadInstallationTarget();
+  }
+
+  ngOnDestroy(): void {
+    this.closeDetail();
+  }
+
+  closeDetail(): void {
+    this.detailDialogVisible = false;
+    this.resetInstallationDetail();
+    this.selectedProcess = null;
+  }
+
+  private resetInstallationDetail(): void {
+    this.detailRequestId++;
+    this.recordsRequestId++;
+    this.installationTarget = null;
+    this.installationTargetLoading = false;
+    this.installationTargetError = '';
+    this.installationContacts = null;
+    this.installationContactsLoading = false;
+    this.installationContactsError = '';
+    this.installationTagName = '';
+    this.installationTagLoading = false;
+    this.deviceRecordsVisible = false;
+    this.deviceRecords = [];
+    this.deviceRecordsLoading = false;
+    this.deviceRecordsError = '';
+  }
+
+  get isInstallationProcess(): boolean {
+    return [1, 18].includes(Number(this.selectedProcess?.type));
+  }
+
+  get installationData(): any {
+    const data = { ...(this.selectedProcess?.target || {}) };
+    for (const [key, value] of Object.entries(this.installationTarget || {})) {
+      if (value !== undefined) data[key] = value;
+    }
+    return data;
+  }
+
+  private mongoId(value: unknown): string {
+    const id = typeof value === 'string' ? value.trim() : '';
+    return /^[a-f\d]{24}$/i.test(id) ? id : '';
+  }
+
+  get recordsDeviceId(): string {
+    return this.mongoId(this.installationTarget?._id)
+      || this.mongoId(this.selectedProcess?.target?._id)
+      || this.mongoId(this.selectedProcess?.reference);
+  }
+
+  get canViewDeviceRecords(): boolean {
+    return this.isInstallationProcess
+      && this.authService?.getCurrentUser()?.affiliation_type_id === 'empleado';
+  }
+
+  async loadInstallationTarget(): Promise<void> {
+    const process = this.selectedProcess;
+    if (!process || !this.isInstallationProcess) return;
+    const requestId = ++this.detailRequestId;
+    this.installationTargetLoading = true;
+    this.installationTargetError = '';
+    this.installationContacts = null;
+    this.installationContactsLoading = true;
+    this.installationContactsError = '';
+    this.installationTagName = '';
+    this.installationTagLoading = false;
+    const deviceId = this.mongoId(process.target?._id) || this.mongoId(process.reference);
+    const imei = String(process.target?.device_imei || (/^\d{10,20}$/.test(process.reference || '') ? process.reference : '')).trim();
+    try {
+      if (!deviceId && !imei) throw new Error('El proceso no tiene un objetivo identificado.');
+      const device = deviceId
+        ? await this.targetsService.getTargetById(deviceId)
+        : await this.targetsService.getTargetByImei(imei);
+      if (requestId !== this.detailRequestId || this.selectedProcess !== process || !this.detailDialogVisible) return;
+      if ((deviceId && String(device?._id) !== deviceId)
+        || (!deviceId && String(device?.device_imei || device?.imei || '') !== imei)) {
+        throw new Error('No se encontró un objetivo que corresponda a este proceso.');
+      }
+      this.installationTarget = device;
+      void this.loadInstallationContacts(process, requestId);
+    } catch (error) {
+      if (requestId !== this.detailRequestId || this.selectedProcess !== process) return;
+      this.installationTargetError = getApiErrorMessage(error, 'No se pudieron cargar los datos actuales del objetivo. Se muestran los datos disponibles en el proceso.');
+      this.installationContactsLoading = false;
+      this.installationContactsError = 'No se pudieron cargar los contactos actuales del objetivo.';
+    } finally {
+      if (this.isCurrentInstallationDetail(process, requestId)) {
+        this.installationTargetLoading = false;
+        void this.loadInstallationTag(process, requestId);
+      }
+    }
+  }
+
+  private isCurrentInstallationDetail(process: ProcessItem, requestId: number, deviceId?: string): boolean {
+    return requestId === this.detailRequestId
+      && this.selectedProcess === process
+      && this.detailDialogVisible
+      && (!deviceId || this.recordsDeviceId === deviceId);
+  }
+
+  private async loadInstallationContacts(process: ProcessItem, requestId: number): Promise<void> {
+    const deviceId = this.mongoId(this.installationTarget?._id);
+    if (!deviceId) {
+      this.installationContactsLoading = false;
+      this.installationContactsError = 'El objetivo no tiene un identificador para consultar sus contactos.';
+      return;
+    }
+    try {
+      const contacts = await firstValueFrom(this.contactsService.getAll(deviceId));
+      if (!this.isCurrentInstallationDetail(process, requestId, deviceId)) return;
+      if (!Array.isArray(contacts) || contacts.some(contact => contact.reference !== deviceId)) {
+        throw new Error('Los contactos recibidos no corresponden a este objetivo.');
+      }
+      this.installationContacts = contacts;
+    } catch (error) {
+      if (!this.isCurrentInstallationDetail(process, requestId, deviceId)) return;
+      this.installationContacts = null;
+      this.installationContactsError = getApiErrorMessage(error, 'No se pudieron cargar los contactos del objetivo.');
+    } finally {
+      if (this.isCurrentInstallationDetail(process, requestId, deviceId)) this.installationContactsLoading = false;
+    }
+  }
+
+  private async loadInstallationTag(process: ProcessItem, requestId: number): Promise<void> {
+    const tag = this.installationData.tag;
+    if (tag?.name) return;
+    const tagId = this.mongoId(typeof tag === 'string' ? tag : tag?._id);
+    if (!tagId) return;
+    const deviceId = this.recordsDeviceId;
+    this.installationTagLoading = true;
+    try {
+      const currentTag = await firstValueFrom(this.tagsService.getTagById(tagId));
+      if (!this.isCurrentInstallationDetail(process, requestId, deviceId)) return;
+      if (currentTag?._id === tagId) this.installationTagName = currentTag.name || '';
+    } catch {
+      // A missing catalog entry must not hide the device's other fields.
+      if (this.isCurrentInstallationDetail(process, requestId, deviceId)) this.installationTagName = '';
+    } finally {
+      if (this.isCurrentInstallationDetail(process, requestId, deviceId)) this.installationTagLoading = false;
+    }
+  }
+
+  get installationContactsValue(): string {
+    if (this.installationContactsLoading) return 'Cargando contactos…';
+    if (this.installationContactsError || this.installationContacts === null) return 'Contactos no disponibles';
+    return this.installationContacts.map(contact => [contact.full_name, contact.phone, contact.relationship]
+      .filter(value => !!value).join(' · ')).filter(Boolean).join('; ') || 'Sin registrar';
+  }
+
+  get installationTagValue(): string {
+    const tag = this.installationData.tag;
+    if (!tag) return 'Sin registrar';
+    if (tag?.name) return String(tag.name);
+    if (this.installationTagName) return this.installationTagName;
+    if (this.installationTagLoading) return 'Cargando etiqueta…';
+    if (this.mongoId(typeof tag === 'string' ? tag : tag?._id)) return 'Etiqueta no disponible';
+    return this.detailValue(tag);
+  }
+
+  toggleDeviceRecords(): void {
+    if (!this.canViewDeviceRecords || !this.recordsDeviceId) return;
+    this.deviceRecordsVisible = !this.deviceRecordsVisible;
+    if (this.deviceRecordsVisible) void this.loadDeviceRecords();
+  }
+
+  async loadDeviceRecords(): Promise<void> {
+    const deviceId = this.recordsDeviceId;
+    if (!this.canViewDeviceRecords || !deviceId || !this.deviceRecordsVisible) return;
+    const requestId = ++this.recordsRequestId;
+    const process = this.selectedProcess;
+    this.deviceRecordsLoading = true;
+    this.deviceRecordsError = '';
+    try {
+      const response = await this.targetsService.getDeviceRecords(deviceId);
+      if (requestId !== this.recordsRequestId || this.selectedProcess !== process || !this.detailDialogVisible) return;
+      if (String(response?.deviceId) !== deviceId) throw new Error('El historial recibido no corresponde a este objetivo.');
+      this.deviceRecords = Array.isArray(response?.entries) ? response.entries : [];
+    } catch (error) {
+      if (requestId !== this.recordsRequestId || this.selectedProcess !== process) return;
+      this.deviceRecords = [];
+      this.deviceRecordsError = getApiErrorMessage(error, 'No se pudo cargar el historial de registros del objetivo.');
+    } finally {
+      if (requestId === this.recordsRequestId) this.deviceRecordsLoading = false;
+    }
+  }
+
+  installationValue(...keys: string[]): string {
+    for (const key of keys) {
+      const value = this.installationData[key];
+      if (value !== null && value !== undefined && value !== '') return this.detailValue(value);
+    }
+    return 'Sin registrar';
+  }
+
+  private detailValue(value: any): string {
+    if (Array.isArray(value)) return value.map(item => this.detailValue(item)).join(', ') || 'Sin registrar';
+    if (typeof value === 'boolean') return value ? 'Sí' : 'No';
+    if (value && typeof value === 'object') return value.name || value.nombre || value.label || value.phone || value.email || 'Sin registrar';
+    if (typeof value === 'string' && /^(yes|true)$/i.test(value)) return 'Sí';
+    if (typeof value === 'string' && /^(no|false)$/i.test(value)) return 'No';
+    return String(value ?? 'Sin registrar');
+  }
+
+  get installationVehicleFields(): Array<{ label: string; value: string }> {
+    const data = this.installationData;
+    return [
+      { label: 'Nombre del objetivo', value: this.installationValue('name') },
+      { label: 'Marca', value: this.brandsMap[data.target_brand_id] || this.installationValue('brand', 'target_brand_name', 'target_brand_id') },
+      { label: 'Modelo', value: this.modelsMap[data.target_model_id] || this.installationValue('model', 'target_model_name', 'target_model_id') },
+      { label: 'Año', value: this.installationValue('target_year', 'year') },
+      { label: 'Color', value: this.colorsMap[data.target_color] || this.installationValue('target_color', 'color') },
+      { label: 'Placa', value: this.installationValue('target_plate_number', 'plate') },
+      { label: 'Chasis', value: this.installationValue('target_chassis_number', 'chassis') },
+      { label: 'Vehículo verificado', value: this.installationValue('verificado') },
+      { label: 'Contactos', value: this.installationContactsValue },
+      { label: 'Descripción', value: this.installationValue('description') },
+    ];
+  }
+
+  get installationGpsFields(): Array<{ label: string; value: string }> {
+    const data = this.installationData;
+    const model = data.protocol?.name || this.gpsModelsMap[data.type || data.device_type] || this.installationValue('gps_model', 'device_type', 'type');
+    const plan = data.service_plan;
+    const connectionLabels: Record<string, string> = { online: 'En línea', offline: 'Fuera de línea', unknown: 'Desconocida' };
+    const priorityLabels: Record<string, string> = { maximum: 'Máxima', important: 'Importante', standard: 'Estándar', normal: 'Normal' };
+    return [
+      { label: 'IMEI / ID del GPS', value: this.installationValue('device_imei', 'imei') },
+      { label: 'Modelo GPS', value: model },
+      { label: 'SIM card', value: this.installationValue('sim_card_number', 'sim_card') },
+      { label: 'Proveedor de SIM', value: this.installationValue('sim_company') },
+      { label: 'Sensor de ignición', value: this.installationValue('ignition_sensor') },
+      { label: 'Apagado de motor', value: this.installationValue('engine_shutdown', 'shutdown_control') },
+      { label: 'Conexión', value: connectionLabels[data.traccarInfo?.status] || data.traccarInfo?.status || 'Sin información' },
+      { label: 'Prioridad de conexión', value: priorityLabels[data.connection_priority] || this.installationValue('connection_priority') },
+      { label: 'GPS principal vinculado', value: this.installationValue('gps_adicional') },
+      { label: 'Estado del objetivo', value: data.canceled ? 'Cancelado' : data.status === true || data.status === 'active' ? 'Activo' : data.status === false || data.status === 'inactive' ? 'Inactivo' : 'Sin información' },
+      { label: 'Fecha de instalación', value: data.activation_date || data.installation_date ? this.formatStructuredDate(data.activation_date || data.installation_date) : 'Sin registrar' },
+      { label: 'Fecha de expiración', value: data.expiration_date ? this.formatStructuredDate(data.expiration_date) : 'Sin registrar' },
+      { label: 'Plan de servicio', value: plan?.name || plan?.plan_name || (plan?.years ? String(plan.years) + (Number(plan.years) === 1 ? ' año' : ' años') : 'Sin registrar') },
+      { label: 'Etiqueta', value: this.installationTagValue },
+    ];
+  }
+
+  get installationEvidence(): Array<{ label: string; url: string }> {
+    const data = this.installationData;
+    const fields = [
+      ['target_image', 'Vehículo'], ['chasis_img', 'Chasis'], ['placa_img', 'Placa'],
+      ['matricula_instalacion_img', 'Matrícula de instalación'], ['matricula_img', 'Matrícula'],
+      ['lugar_instalacion_antes_img', 'Lugar antes de instalar'], ['vehiculo_exterior_antes_img', 'Exterior antes de instalar'],
+      ['vehiculo_interior_antes_img', 'Interior antes de instalar'],
+      ['lugar_instalacion_despues_img', 'Lugar después de instalar'], ['vehiculo_exterior_despues_img', 'Exterior después de instalar'],
+      ['vehiculo_interior_despues_img', 'Interior después de instalar'],
+      ['vehiculo_exterior_img', 'Exterior del vehículo'], ['vehiculo_interior_img', 'Interior del vehículo'],
+      ['gps_numeracion_img', 'Numeración del GPS'], ['simcard_numeracion_img', 'Numeración de SIM card'],
+    ];
+    return fields.map(([key, label]) => ({ label, url: this.installationEvidenceUrl(data[key]) }))
+      .filter(image => !!image.url);
+  }
+
+  private installationEvidenceUrl(stored: any): string {
+    const url = typeof stored === 'string' ? stored : stored?.url || stored?.location_cdn || stored?.location;
+    if (!url || typeof url !== 'string') return '';
+    if (/^(https?:|blob:|data:)/i.test(url)) return url;
+    return `${environment.apiUrl.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
   }
 
   private buildChangeRows(before: any, after: any): DetailChangeRow[] {

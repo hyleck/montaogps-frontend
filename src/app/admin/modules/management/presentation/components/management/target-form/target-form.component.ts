@@ -73,7 +73,6 @@ interface PendingInstallationEvidence {
         './styles/prime-ng.css',
         './styles/settings.css',
         './styles/scrollbar.css',
-        './styles/records.css',
         './styles/dark-mode.css'
     ],
     standalone: false,
@@ -269,6 +268,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     processList: ProcessResponse[] = [];
     isLoadingProcesses: boolean = false;
     deviceRecords: DeviceRecordEntry[] = [];
+    deviceRecordsError = '';
     isLoadingDeviceRecords: boolean = false;
     private deviceRecordsRequestId = 0;
     displayInstallationRegistrationDialog: boolean = false;
@@ -1694,6 +1694,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private async setupEditTarget(target: TargetDevice) {
         try {
         this.deviceRecords = [];
+        this.deviceRecordsError = '';
         this.deviceRecordsRequestId++;
         const shouldOpenInstallationRegistration = Boolean(
             (target as any)?._openInstallationRegistration
@@ -2251,6 +2252,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.isCheckingIncosisClientProfile = false;
         this.isConsignmentClient = false;
         this.deviceRecords = [];
+        this.deviceRecordsError = '';
         this.isLoadingDeviceRecords = false;
         this.deviceRecordsRequestId++;
         // No modificamos showColorOptions ya que queremos que siempre esté visible
@@ -4939,6 +4941,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     async loadDeviceRecords(showErrorToast: boolean = true): Promise<void> {
         const targetId = this.getCurrentTargetId();
         const requestId = ++this.deviceRecordsRequestId;
+        this.deviceRecordsError = '';
         if (!targetId || !this.isEmployeeRecordsViewer()) {
             this.deviceRecords = [];
             return;
@@ -4953,11 +4956,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             if (requestId !== this.deviceRecordsRequestId) return;
             console.error('Error al cargar los registros del dispositivo:', error);
             this.deviceRecords = [];
+            this.deviceRecordsError = getApiErrorMessage(error, 'No se pudieron cargar los registros del dispositivo');
             if (showErrorToast) {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: getApiErrorMessage(error, 'No se pudieron cargar los registros del dispositivo')
+                    detail: this.deviceRecordsError
                 });
             }
         } finally {

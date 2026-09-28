@@ -237,6 +237,7 @@
 </div>
 
 <p-dialog [(visible)]="detailDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"
+    (onHide)="closeDetail()"
     [style]="{width: '820px', maxWidth: '96vw'}" [breakpoints]="{'960px': '92vw', '640px': '97vw'}"
     styleClass="process-detail-dialog">
 
@@ -321,6 +322,76 @@
                     </dl>
                 </section>
             </div>
+
+            <section class="installation-detail" *ngIf="isInstallationProcess" aria-labelledby="installation-detail-title">
+                <header class="installation-detail__heading">
+                    <div>
+                        <h3 id="installation-detail-title">Vehículo y GPS</h3>
+                        <p>{{ installationTarget ? 'Datos actuales del objetivo vinculado a esta instalación.' : 'Datos disponibles en el registro de instalación.' }}</p>
+                    </div>
+                    <button *ngIf="canViewDeviceRecords" type="button" pButton
+                        [label]="deviceRecordsVisible ? 'Ocultar historial de registros' : 'Ver historial de registros'"
+                        icon="pi pi-history" class="p-button-outlined"
+                        [disabled]="!recordsDeviceId" [attr.aria-expanded]="deviceRecordsVisible"
+                        aria-controls="installation-device-records" (click)="toggleDeviceRecords()">
+                    </button>
+                </header>
+
+                <div class="installation-detail__loading" *ngIf="installationTargetLoading" role="status">
+                    <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Cargando los datos del vehículo y del GPS...
+                </div>
+                <div class="installation-detail__error" *ngIf="installationTargetError" role="alert">
+                    <span>{{ installationTargetError }}</span>
+                    <button type="button" pButton label="Reintentar" icon="pi pi-refresh"
+                        class="p-button-text p-button-sm" (click)="loadInstallationTarget()"
+                        [disabled]="installationTargetLoading"></button>
+                </div>
+
+                <div class="detail-grid">
+                    <section class="detail-card">
+                        <div class="detail-card__heading">
+                            <i class="pi pi-car"></i><div><span>Vehículo</span><small>Identificación y contacto</small></div>
+                        </div>
+                        <dl class="detail-data-list">
+                            <div *ngFor="let field of installationVehicleFields"><dt>{{ field.label }}</dt><dd>{{ field.value | deviceLabel }}</dd></div>
+                        </dl>
+                    </section>
+                    <section class="detail-card">
+                        <div class="detail-card__heading">
+                            <i class="pi pi-map-marker"></i><div><span>GPS</span><small>Equipo, SIM y servicio</small></div>
+                        </div>
+                        <dl class="detail-data-list">
+                            <div *ngFor="let field of installationGpsFields"><dt>{{ field.label }}</dt><dd>{{ field.value | deviceLabel }}</dd></div>
+                        </dl>
+                    </section>
+                </div>
+
+                <section class="detail-card detail-card--wide">
+                    <div class="detail-card__heading"><i class="pi pi-wrench"></i><div><span>Instalación</span><small>Ubicación y configuración del equipo</small></div></div>
+                    <dl class="detail-data-list">
+                        <div><dt>Lugar de instalación</dt><dd>{{ installationValue('installation_location') }}</dd></div>
+                        <div><dt>Detalles de instalación</dt><dd>{{ installationValue('installation_details', 'installation_description') }}</dd></div>
+                        <div *ngIf="installationData.instalaciones_adicionales?.length">
+                            <dt>GPS adicionales</dt>
+                            <dd><div *ngFor="let gps of installationData.instalaciones_adicionales">{{ gps.name | deviceLabel }} · {{ gps.device_imei }}</div></dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <section class="detail-card detail-card--wide" *ngIf="installationEvidence.length">
+                    <div class="detail-card__heading"><i class="pi pi-images"></i><div><span>Fotos y documentos</span><small>Vehículo e instalación</small></div></div>
+                    <div class="installation-evidence">
+                        <a *ngFor="let evidence of installationEvidence" [href]="evidence.url" target="_blank" rel="noopener noreferrer">
+                            <img [src]="evidence.url" [alt]="evidence.label" loading="lazy"><span>{{ evidence.label }}</span>
+                        </a>
+                    </div>
+                </section>
+
+                <section id="installation-device-records" *ngIf="deviceRecordsVisible && canViewDeviceRecords">
+                    <app-device-records [entries]="deviceRecords" [loading]="deviceRecordsLoading" [error]="deviceRecordsError"
+                        (refresh)="loadDeviceRecords()"></app-device-records>
+                </section>
+            </section>
 
             <section class="detail-card detail-card--wide" *ngIf="selectedProcess.details">
                 <div class="detail-card__heading">
@@ -472,7 +543,7 @@
 
     <ng-template pTemplate="footer">
         <button type="button" pButton label="Cerrar detalle" icon="pi pi-times"
-            class="p-button-outlined process-detail-close" (click)="detailDialogVisible = false">
+            class="p-button-outlined process-detail-close" (click)="closeDetail()">
         </button>
     </ng-template>
 </p-dialog>

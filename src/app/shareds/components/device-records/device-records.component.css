@@ -1,3 +1,7 @@
+:host {
+    display: block;
+}
+
 .device-records {
     padding: 1.15rem;
     min-height: 280px;
@@ -102,6 +106,7 @@
 }
 
 .device-records__loading,
+.device-records__error,
 .device-records__empty {
     min-height: 220px;
     display: flex;
@@ -119,6 +124,24 @@
     flex-direction: column;
     padding: 2rem;
     text-align: center;
+}
+
+.device-records__error {
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 2rem;
+    text-align: center;
+    color: #b91c1c;
+}
+
+.device-records__error p {
+    max-width: 430px;
+    margin: 0;
+    line-height: 1.5;
+}
+
+:host-context(.app-dark) .device-records__error {
+    color: #fca5a5;
 }
 
 .device-records__empty > span {
