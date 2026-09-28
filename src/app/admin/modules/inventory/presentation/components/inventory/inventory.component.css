@@ -5997,3 +5997,92 @@ html.app-dark .conduce-origin-dropdown-panel .p-dropdown-item.p-highlight {
   justify-content: space-between;
   gap: 12px;
 }
+
+/* ===== Buscador y filtros del historial de conduces ===== */
+.conduces-history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.conduces-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+.conduces-search-box > i {
+  position: absolute;
+  left: 12px;
+  font-size: 13px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+.conduces-search-box input {
+  width: 100%;
+  padding: 9px 32px 9px 34px;
+  border-radius: 8px;
+}
+.conduces-search-clear {
+  position: absolute;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+}
+.conduces-search-clear:hover { opacity: 1; }
+.conduces-filter-select,
+.conduces-filter-date input {
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.35);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+.conduces-filter-select { min-width: 170px; }
+.conduces-filter-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+.conduces-filter-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.conduces-filter-clear:hover { background: rgba(148, 163, 184, 0.14); }
+.conduces-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 34px 16px;
+  opacity: 0.75;
+  text-align: center;
+}
+.conduces-empty-state > i { font-size: 26px; }
+@media (max-width: 640px) {
+  .conduces-filter-select,
+  .conduces-search-box { flex: 1 1 100%; width: 100%; }
+}

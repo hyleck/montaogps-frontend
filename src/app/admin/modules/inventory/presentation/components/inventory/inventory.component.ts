@@ -214,6 +214,19 @@ export class InventoryComponent implements OnInit, OnDestroy {
   totalConducesRecords = 0;
   conducesPageFirst = 0;
   conducesPageRows = 10;
+  // Filtros del historial de conduces.
+  conduceSearchTerm = '';
+  conduceStatusFilter = '';
+  conduceWarehouseFilter = '';
+  conduceFromFilter = '';
+  conduceToFilter = '';
+  private conduceSearchTimer: any = null;
+  readonly conduceStatusOptions = [
+    { label: 'Todos los estados', value: '' },
+    { label: 'Completados', value: 'completed' },
+    { label: 'Pendientes', value: 'pending' },
+    { label: 'Cancelados', value: 'cancelled' },
+  ];
   simcardTotalItems = 0;
   simcardIsLoadingMore = false;
 
@@ -1805,7 +1818,45 @@ export class InventoryComponent implements OnInit, OnDestroy {
   // --- Shipping & Conduces Methods ---
   openConducesList(): void {
     this.conducesDialogVisible = true;
+    this.clearConduceFilters(false);
     this.loadConduces(1, this.conducesPageRows);
+  }
+
+  /** Los filtros activos que se envían al backend. */
+  get conduceFilters(): { search: string; status: string; warehouseId: string; from: string; to: string } {
+    return {
+      search: this.conduceSearchTerm.trim(),
+      status: this.conduceStatusFilter,
+      warehouseId: this.conduceWarehouseFilter,
+      from: this.conduceFromFilter,
+      to: this.conduceToFilter,
+    };
+  }
+
+  get hasConduceFilters(): boolean {
+    return Object.values(this.conduceFilters).some(valor => Boolean(valor));
+  }
+
+  /** La búsqueda espera a que la persona termine de escribir. */
+  onConduceSearchChange(): void {
+    clearTimeout(this.conduceSearchTimer);
+    this.conduceSearchTimer = setTimeout(() => {
+      this.loadConduces(1, this.conducesPageRows);
+    }, 350);
+  }
+
+  onConduceFilterChange(): void {
+    this.loadConduces(1, this.conducesPageRows);
+  }
+
+  clearConduceFilters(recargar = true): void {
+    clearTimeout(this.conduceSearchTimer);
+    this.conduceSearchTerm = '';
+    this.conduceStatusFilter = '';
+    this.conduceWarehouseFilter = '';
+    this.conduceFromFilter = '';
+    this.conduceToFilter = '';
+    if (recargar) this.loadConduces(1, this.conducesPageRows);
   }
 
   hideConducesDialog(): void {
@@ -1826,7 +1877,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.conducesPageRows = limit;
     this.conducesPageFirst = (page - 1) * limit;
     this.isLoadingConduces = true;
-    this.inventoryService.getConduces(page, limit).subscribe({
+    this.inventoryService.getConduces(page, limit, this.conduceFilters).subscribe({
       next: (response) => {
         this.conducesList = response.data;
         this.totalConducesRecords = response.total;

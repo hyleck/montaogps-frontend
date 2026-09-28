@@ -1513,10 +1513,52 @@
         </button>
       </div>
 
+      <div class="conduces-history-filters">
+        <div class="conduces-search-box">
+          <i class="pi pi-search" aria-hidden="true"></i>
+          <input type="text" pInputText [(ngModel)]="conduceSearchTerm" (ngModelChange)="onConduceSearchChange()"
+            placeholder="Buscar por número, descripción o almacén" aria-label="Buscar conduces" />
+          <button *ngIf="conduceSearchTerm" type="button" class="conduces-search-clear"
+            (click)="conduceSearchTerm = ''; onConduceFilterChange()" aria-label="Limpiar búsqueda">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+        <select class="conduces-filter-select" [(ngModel)]="conduceStatusFilter" (ngModelChange)="onConduceFilterChange()"
+          aria-label="Filtrar por estado">
+          <option *ngFor="let opcion of conduceStatusOptions" [value]="opcion.value">{{ opcion.label }}</option>
+        </select>
+        <select class="conduces-filter-select" [(ngModel)]="conduceWarehouseFilter" (ngModelChange)="onConduceFilterChange()"
+          aria-label="Filtrar por almacén de destino">
+          <option value="">Todos los almacenes</option>
+          <option *ngFor="let almacen of warehouses" [value]="almacen._id">{{ almacen.name }}</option>
+        </select>
+        <label class="conduces-filter-date">
+          <span>Desde</span>
+          <input type="date" [(ngModel)]="conduceFromFilter" (ngModelChange)="onConduceFilterChange()" aria-label="Desde" />
+        </label>
+        <label class="conduces-filter-date">
+          <span>Hasta</span>
+          <input type="date" [(ngModel)]="conduceToFilter" (ngModelChange)="onConduceFilterChange()" aria-label="Hasta" />
+        </label>
+        <button *ngIf="hasConduceFilters" type="button" class="conduces-filter-clear" (click)="clearConduceFilters()">
+          <i class="pi pi-filter-slash" aria-hidden="true"></i>
+          <span>Limpiar filtros</span>
+        </button>
+      </div>
+
       <div class="conduces-history-list" [attr.aria-busy]="isLoadingConduces">
         <div *ngIf="isLoadingConduces" class="conduces-loading-state" role="status">
           <i class="pi pi-spin pi-spinner"></i>
           <span>Cargando conduces…</span>
+        </div>
+
+        <div *ngIf="!isLoadingConduces && conducesList.length === 0" class="conduces-empty-state" role="status">
+          <i class="pi pi-inbox" aria-hidden="true"></i>
+          <span>{{ hasConduceFilters ? 'Ningún conduce coincide con la búsqueda' : 'Todavía no hay conduces registrados' }}</span>
+          <button *ngIf="hasConduceFilters" type="button" class="conduces-filter-clear" (click)="clearConduceFilters()">
+            <i class="pi pi-filter-slash" aria-hidden="true"></i>
+            <span>Limpiar filtros</span>
+          </button>
         </div>
 
         <ng-container *ngIf="!isLoadingConduces">

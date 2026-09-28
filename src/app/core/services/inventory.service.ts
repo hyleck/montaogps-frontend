@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -590,8 +590,17 @@ export class InventoryService {
     return this.http.post<Conduce>(`${this.conducesUrl}/${encodeURIComponent(id)}/resume`, {});
   }
 
-  getConduces(page = 1, limit = 20): Observable<{ data: Conduce[]; total: number; page: number; lastPage: number }> {
-    return this.http.get<{ data: Conduce[]; total: number; page: number; lastPage: number }>(`${this.conducesUrl}?page=${page}&limit=${limit}`);
+  getConduces(
+    page = 1,
+    limit = 20,
+    filters: { search?: string; status?: string; warehouseId?: string; from?: string; to?: string } = {},
+  ): Observable<{ data: Conduce[]; total: number; page: number; lastPage: number }> {
+    let params = new HttpParams().set('page', page).set('limit', limit);
+    for (const [clave, valor] of Object.entries(filters)) {
+      const texto = String(valor || '').trim();
+      if (texto) params = params.set(clave, texto);
+    }
+    return this.http.get<{ data: Conduce[]; total: number; page: number; lastPage: number }>(this.conducesUrl, { params });
   }
 
   previewConduceCancellation(id: string, origin_overrides: Array<{ kind: 'device' | 'simcard'; id: string; storage_id: string }> = []): Observable<ConduceCancellationPreview> {
