@@ -6082,6 +6082,13 @@ html.app-dark .conduce-origin-dropdown-panel .p-dropdown-item.p-highlight {
   text-align: center;
 }
 .conduces-empty-state > i { font-size: 26px; }
+.conduces-empty-state__message {
+  margin: 0;
+  max-width: 320px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--managementColorTextUser);
+}
 @media (max-width: 640px) {
   .conduces-filter-select,
   .conduces-search-box { flex: 1 1 100%; width: 100%; }

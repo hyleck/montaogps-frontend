@@ -1554,7 +1554,7 @@
 
         <div *ngIf="!isLoadingConduces && conducesList.length === 0" class="conduces-empty-state" role="status">
           <i class="pi pi-inbox" aria-hidden="true"></i>
-          <span>{{ hasConduceFilters ? 'Ningún conduce coincide con la búsqueda' : 'Todavía no hay conduces registrados' }}</span>
+          <p class="conduces-empty-state__message">{{ hasConduceFilters ? 'Ningún conduce coincide con la búsqueda' : 'Todavía no hay conduces registrados' }}</p>
           <button *ngIf="hasConduceFilters" type="button" class="conduces-filter-clear" (click)="clearConduceFilters()">
             <i class="pi pi-filter-slash" aria-hidden="true"></i>
             <span>Limpiar filtros</span>
