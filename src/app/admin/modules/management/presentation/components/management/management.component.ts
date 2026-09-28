@@ -62,6 +62,9 @@ import * as maplibregl from 'maplibre-gl';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 import { environment } from '../../../../../../../environments/environment';
 
+/** El mapa de Gestión se abre por defecto solo la primera vez en cada sesión de la app. */
+let defaultMapOpened = false;
+
 @Component({
   selector: 'app-management',
   templateUrl: './management.component.html',
@@ -4117,6 +4120,18 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.stopPolling();
       this.loadUsersForUser(user._id);
     }
+    this.openDefaultMapOnce();
+  }
+
+  /**
+   * Al entrar a Gestión (por ejemplo, justo después de iniciar sesión), el mapa se abre por
+   * defecto una vez por sesión de la app, por el mismo camino que el botón «Mapa». Después se
+   * respeta lo que elija el usuario al alternar entre la lista y el mapa.
+   */
+  private openDefaultMapOnce(): void {
+    if (defaultMapOpened) return;
+    defaultMapOpened = true;
+    if (!this.uiService.areMapsVisible()) this.showMapsToggle();
   }
 
   private isValidManagementUserId(value: unknown): boolean {
