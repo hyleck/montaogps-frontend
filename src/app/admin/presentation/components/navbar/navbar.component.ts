@@ -2535,8 +2535,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.initializeMenus();
   }
 
-  openMontaoIndex(): void {
-    if (this.openingMontaoIndex) return;
+  openMontaoIndex(application = 'apps'): void {
+    if (this.openingMontaoIndex || !['apps', 'cloud', 'inbox', 'desk', 'studio'].includes(application)) return;
     const userId = this.authService.getCurrentUser()?.id;
     if (!userId) return;
     this.openingMontaoIndex = true;
@@ -2555,6 +2555,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
         input.name = 'code';
         input.value = code;
         form.appendChild(input);
+        const destination = document.createElement('input');
+        destination.type = 'hidden';
+        destination.name = 'application';
+        destination.value = application;
+        form.appendChild(destination);
         document.body.appendChild(form);
         form.submit();
         form.remove();

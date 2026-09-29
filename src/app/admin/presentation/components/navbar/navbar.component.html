@@ -75,7 +75,7 @@
                     aria-label="Cerrar aplicaciones" (click)="closeIndexLauncher()"></button>
                 <section class="index-app-launcher__popover" [class.is-open]="indexLauncherOpen"
                     aria-label="Aplicaciones de Montao Index">
-                    <app-index-app-menu *ngIf="indexLauncherOpen"></app-index-app-menu>
+                    <app-index-app-menu *ngIf="indexLauncherOpen" (openIndex)="openMontaoIndex($event)"></app-index-app-menu>
                 </section>
             </div>
 

@@ -648,11 +648,26 @@ describe('NavbarComponent realtime links', () => {
       expect(this.method).toBe('post');
       expect(this.action).toBe('https://index.montao.net/browser-session/gps/open');
       expect(new FormData(this).get('code')).toBe('one-use-code');
+      expect(new FormData(this).get('application')).toBe('apps');
       expect(this.action).not.toContain('one-use-code');
     });
     component.openMontaoIndex();
     expect(submit).toHaveBeenCalledTimes(1);
     expect(component.openingMontaoIndex).toBeFalse();
+  });
+
+  it('preserves the requested Index app when navigation comes from the embedded panel', () => {
+    const { component } = createComponent();
+    spyOn(component.authService, 'getCurrentUser').and.returnValue({ id: 'gps-user' } as any);
+    component.authService.createIndexBrowserSession = jasmine.createSpy().and.returnValue(of({ code: 'fresh-code' }));
+    const submit = spyOn(HTMLFormElement.prototype, 'submit').and.callFake(function (this: HTMLFormElement) {
+      expect(new FormData(this).get('application')).toBe('cloud');
+      expect(new FormData(this).get('code')).toBe('fresh-code');
+    });
+    component.openMontaoIndex('cloud');
+    expect(submit).toHaveBeenCalledTimes(1);
+    component.openMontaoIndex('https://evil.example');
+    expect(submit).toHaveBeenCalledTimes(1);
   });
 
   it('does not transfer an account after GPS switches users or duplicate pending requests', () => {

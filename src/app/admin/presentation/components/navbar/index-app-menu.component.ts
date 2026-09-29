@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnDestroy, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, OnDestroy, Output, ViewChild } from '@angular/core';
 import { Subscription, timeout } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
 
@@ -13,6 +13,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 })
 export class IndexAppMenuComponent implements OnDestroy {
   @ViewChild('frame') frame?: ElementRef<HTMLIFrameElement>;
+  @Output() openIndex = new EventEmitter<string>();
   private readonly indexOrigin = 'https://index.montao.net';
   private request?: Subscription;
   private pending = false;
@@ -22,8 +23,14 @@ export class IndexAppMenuComponent implements OnDestroy {
   @HostListener('window:message', ['$event'])
   onMessage(event: MessageEvent) {
     const target = this.frame?.nativeElement.contentWindow;
-    if (!target || event.source !== target || event.origin !== this.indexOrigin ||
-        event.data?.type !== 'MONTAO_INDEX_GPS_SESSION_REQUEST' ||
+    if (!target || event.source !== target || event.origin !== this.indexOrigin) return;
+    if (event.data?.type === 'MONTAO_INDEX_GPS_OPEN') {
+      if (['apps', 'cloud', 'inbox', 'desk', 'studio'].includes(event.data.application)) {
+        this.openIndex.emit(event.data.application);
+      }
+      return;
+    }
+    if (event.data?.type !== 'MONTAO_INDEX_GPS_SESSION_REQUEST' ||
         typeof event.data.requestId !== 'string' || event.data.requestId.length > 100 || this.pending) return;
     const requestId = event.data.requestId;
     const gpsUserId = this.auth.getCurrentUser()?.id;
