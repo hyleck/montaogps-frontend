@@ -66,6 +66,20 @@
 .renewal-response-table th, .renewal-response-table td { padding: 12px; font-size: .82rem; text-align: left; border-bottom: 1px solid var(--renewal-border); }
 .renewal-response-table small { display: block; margin-top: 5px; color: var(--renewal-muted); }
 .renewal-response-table tr:last-child td { border-bottom: 0; }
+.renewal-response-table--preview table { min-width: 760px; }
+.renewal-response-table--preview { max-height: 52vh; overflow: auto; }
+.renewal-response-table--preview th { position: sticky; top: 0; z-index: 1; background: var(--renewal-surface); }
+.renewal-preview-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 20px 0 12px; }
+.renewal-preview-heading > div { flex: 1; min-width: 220px; }
+.renewal-preview-heading h4 { margin: 0; font-size: .95rem; }
+.renewal-preview-heading p { margin: 6px 0; }
+.renewal-preview-heading > p { flex-basis: 100%; }
+.renewal-preview-date { min-width: 160px; }
+.renewal-preview-outcome { min-width: 220px; }
+.renewal-preview-outcome > strong { white-space: nowrap; }
+.renewal-preview-changed { color: #15803d; }
+.renewal-preview-unavailable { color: var(--renewal-accent) !important; }
+.renewal-preview-pending { color: var(--renewal-muted); }
 .renewal-decision { font-weight: 600; white-space: nowrap; }
 .renewal-decision--yes { color: #15803d; }
 .renewal-bulk { margin: 18px 0; padding: 16px; border: 1px solid var(--renewal-border); border-radius: 12px; }
@@ -97,6 +111,7 @@
 ::ng-deep html.app-dark .process-renewal-links-dialog .renewal-link-status--submitted,
 ::ng-deep html.app-dark .process-renewal-links-dialog .renewal-decision--yes,
 ::ng-deep html.app-dark .process-renewal-links-dialog .renewal-result--success > strong,
+::ng-deep html.app-dark .process-renewal-links-dialog .renewal-preview-changed,
 ::ng-deep html.app-dark .process-renewal-links-dialog .renewal-response-overview__yes strong { color: #4ade80; }
 @media (max-width: 540px) {
     .renewal-link-record { align-items: flex-start; flex-direction: column; }

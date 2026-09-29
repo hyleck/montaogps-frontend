@@ -3,7 +3,7 @@ import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleCha
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { Subscription } from 'rxjs';
-import { CreatedRenewalLink, ExecuteRenewalLink, RenewalExpirationFilter, RenewalLinkAction, RenewalLinkExecutionResult, RenewalLinkSummary, RenewalLinksService } from 'src/app/core/services/renewal-links.service';
+import { CreatedRenewalLink, ExecuteRenewalLink, RenewalExpirationFilter, RenewalLinkAction, RenewalLinkExecutionResult, RenewalLinkPreview, RenewalLinkPreviewItem, RenewalLinkSummary, RenewalLinksService } from 'src/app/core/services/renewal-links.service';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
@@ -48,6 +48,13 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   executing = false;
   executionError = '';
   confirmationVisible = false;
+  previewLoading = false;
+  previewError = '';
+  executionPreview: RenewalLinkPreview | null = null;
+  private previewSubscription?: Subscription;
+  private previewGeneration = 0;
+  private previewKey = '';
+  private previewItems = new Map<string, RenewalLinkPreviewItem>();
   private attemptedRequest: ExecuteRenewalLink | null = null;
   private attemptedLinkId = '';
   private preserveAttemptOnRefresh = false;
@@ -121,11 +128,24 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
 
   get executionValidation(): string { return this.action ? this.validateExecution() : ''; }
 
-  get canConfirmExecution(): boolean {
+  get canReviewExecution(): boolean {
     return this.visible && this.responseVisible && this.canProcess && !this.busy && !!this.action
       && this.selectedLink?.status === 'submitted' && this.remainingCount > 0
       && (this.actionLocked || this.action === this.permittedNewAction)
       && !this.validateExecution();
+  }
+
+  get hasCurrentPreview(): boolean {
+    return !!this.executionPreview && this.previewKey === this.executionPreviewKey();
+  }
+
+  get canConfirmExecution(): boolean {
+    return this.canReviewExecution && !this.previewLoading && this.hasCurrentPreview
+      && !!this.executionPreview?.items.some(item => item.canExecute);
+  }
+
+  previewFor(deviceId: string): RenewalLinkPreviewItem | undefined {
+    return this.hasCurrentPreview ? this.previewItems.get(deviceId) : undefined;
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -158,6 +178,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
 
   backToResponses(): void {
     if (this.executing) return;
+    this.clearPreview();
     this.responseVisible = false;
   }
 
@@ -192,6 +213,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
 
   refresh(): void {
     if (this.loading || this.revokingId || this.executing || !this.visible || !this.client?.id) return;
+    this.clearPreview();
     const generation = this.generation;
     this.loading = true;
     this.historyError = '';
@@ -242,6 +264,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     this.selectedId = link.id;
     this.responseVisible = true;
     if (!sameResponse) this.restoreExecution();
+    else if (this.action) this.loadExecutionPreview();
   }
 
   beginExecution(action: RenewalLinkAction): void {
@@ -250,12 +273,67 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     this.resetExecution();
     this.action = action;
     this.registrationDate = this.localToday();
+    this.loadExecutionPreview();
   }
 
   previewExecution(): void {
     if (this.busy || !this.canProcess || !this.action) return;
     this.executionError = this.validateExecution();
-    if (this.canConfirmExecution) this.confirmationVisible = true;
+    if (this.canReviewExecution && !this.previewLoading) this.loadExecutionPreview(true);
+  }
+
+  onExecutionOptionsChange(): void {
+    if (this.executing || this.actionLocked) return;
+    this.loadExecutionPreview();
+  }
+
+  refreshExecutionPreview(): void {
+    if (!this.busy && !this.previewLoading) this.loadExecutionPreview();
+  }
+
+  private executionPreviewKey(): string {
+    return JSON.stringify([this.client?.id, this.selectedId, this.action ? this.executionRequest() : null]);
+  }
+
+  private clearPreview(): void {
+    this.previewGeneration++;
+    this.previewSubscription?.unsubscribe();
+    this.previewSubscription = undefined;
+    this.previewLoading = false;
+    this.previewError = '';
+    this.executionPreview = null;
+    this.previewItems.clear();
+    this.previewKey = '';
+    this.confirmationVisible = false;
+  }
+
+  private loadExecutionPreview(confirm = false): void {
+    this.clearPreview();
+    if (!this.visible || !this.responseVisible || !this.canProcess || !this.action || this.validateExecution()
+      || !this.selectedLink || this.loading || this.historyError) return;
+    const generation = this.previewGeneration;
+    const key = this.executionPreviewKey();
+    this.previewLoading = true;
+    this.previewSubscription = this.service.preview(this.selectedId, this.executionRequest()).subscribe({
+      next: preview => {
+        if (generation !== this.previewGeneration || key !== this.executionPreviewKey()) return;
+        this.previewLoading = false;
+        const ids = new Set(preview.items.map(item => item.deviceId));
+        if (this.selectedLink?.decisions?.some(decision => !ids.has(decision.deviceId))) {
+          this.previewError = 'La vista previa está incompleta. Actualiza las fechas antes de confirmar.';
+          return;
+        }
+        this.executionPreview = preview;
+        this.previewItems = new Map(preview.items.map(item => [item.deviceId, item]));
+        this.previewKey = key;
+        if (confirm && this.canConfirmExecution) this.confirmationVisible = true;
+      },
+      error: error => {
+        if (generation !== this.previewGeneration || key !== this.executionPreviewKey()) return;
+        this.previewLoading = false;
+        this.previewError = getApiErrorMessage(error, 'No se pudieron consultar los vencimientos actuales. Intenta actualizar la vista previa.');
+      },
+    });
   }
 
   cancelExecution(): void {
@@ -287,6 +365,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
         if (generation !== this.generation) return;
         this.executing = false;
         this.confirmationVisible = false;
+        this.clearPreview();
         this.preserveAttemptOnRefresh = !error?.status || error.status >= 500;
         this.executionError = getApiErrorMessage(error, 'No pudimos comprobar el resultado. Actualiza la respuesta o reintenta con los mismos datos. Los GPS completados no se volverán a procesar.');
       },
@@ -307,7 +386,10 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
 
   private restoreExecution(): void {
     const execution = this.selectedLink?.execution;
-    if (!execution && this.preserveAttemptOnRefresh && this.attemptedRequest && this.attemptedLinkId === this.selectedId) return;
+    if (!execution && this.preserveAttemptOnRefresh && this.attemptedRequest && this.attemptedLinkId === this.selectedId) {
+      this.loadExecutionPreview();
+      return;
+    }
     this.resetExecution();
     if (!execution) return;
     this.action = execution.action;
@@ -318,9 +400,11 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     this.notes = execution.notes || '';
     this.attemptedRequest = this.executionRequest();
     this.attemptedLinkId = this.selectedId;
+    this.loadExecutionPreview();
   }
 
   private resetExecution(): void {
+    this.clearPreview();
     this.action = null;
     this.renewalYears = 1;
     this.registrationDate = '';
@@ -390,7 +474,17 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   declineCount(link: RenewalLinkSummary): number { return (link.decisions || []).filter(decision => !decision.renew).length; }
   displayDate(value?: string): Date | null { return parseProcessDisplayDate(value); }
 
+  displayPreviewDate(value?: string | null): Date | null {
+    if (!value) return null;
+    if (/^\d{4}-\d{2}-\d{2}(?:T00:00:00(?:\.0{1,3})?Z)?$/.test(value)) return parseProcessDisplayDate(value);
+    const date = new Date(value);
+    if (!Number.isFinite(+date)) return null;
+    // Match the renewal service's Dominican calendar day in every browser.
+    return parseProcessDisplayDate(new Date(+date - 4 * 60 * 60_000).toISOString().slice(0, 10));
+  }
+
   private cancelRequests(): void {
+    this.clearPreview();
     this.generation++;
     this.requests.unsubscribe();
     this.requests = new Subscription();

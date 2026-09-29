@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SimpleChange } from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, Subject, throwError } from 'rxjs';
-import { CreatedRenewalLink, RenewalLinkExecution, RenewalLinkSummary, RenewalLinksService } from 'src/app/core/services/renewal-links.service';
+import { CreatedRenewalLink, ExecuteRenewalLink, RenewalLinkExecution, RenewalLinkPreview, RenewalLinkPreviewItem, RenewalLinkSummary, RenewalLinksService } from 'src/app/core/services/renewal-links.service';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { ProcessRenewalLinksDialogComponent } from './process-renewal-links-dialog.component';
 
@@ -20,7 +20,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
   ] };
 
   beforeEach(async () => {
-    service = jasmine.createSpyObj('RenewalLinksService', ['create', 'getForClient', 'revoke', 'execute']);
+    service = jasmine.createSpyObj('RenewalLinksService', ['create', 'getForClient', 'revoke', 'preview', 'execute']);
     auth = jasmine.createSpyObj('AuthService', ['hasPrivilege', 'getCurrentUser']);
     auth.hasPrivilege.and.returnValue(true);
     auth.getCurrentUser.and.returnValue(null);
@@ -28,11 +28,13 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     service.getForClient.and.returnValue(of([active, response]));
     service.revoke.and.returnValue(of({ ...active, status: 'revoked' }));
     service.execute.and.returnValue(of(completedResponse()));
+    service.preview.and.callFake((_id, request) => of(previewResponse(component?.selectedLink || response, request)));
     await TestBed.configureTestingModule({ imports: [ProcessRenewalLinksDialogComponent, NoopAnimationsModule], providers: [
       { provide: RenewalLinksService, useValue: service }, { provide: AuthService, useValue: auth },
     ] }).compileComponents();
     fixture = TestBed.createComponent(ProcessRenewalLinksDialogComponent);
     component = fixture.componentInstance;
+    spyOn<any>(component, 'localToday').and.returnValue('2026-09-29');
   });
   afterEach(() => fixture.destroy());
 
@@ -55,6 +57,37 @@ describe('ProcessRenewalLinksDialogComponent', () => {
 
   function completedResponse(overrides: Partial<RenewalLinkExecution> = {}): RenewalLinkSummary {
     return { ...response, execution: execution(overrides) };
+  }
+
+  function previewResponse(link: RenewalLinkSummary, request: ExecuteRenewalLink): RenewalLinkPreview {
+    return { items: (link.decisions || []).map<RenewalLinkPreviewItem>(decision => {
+      const completed = link.execution?.results.some(result => result.deviceId === decision.deviceId && result.status === 'succeeded');
+      const changes = decision.renew && !completed;
+      return {
+        deviceId: decision.deviceId, renew: decision.renew, canExecute: changes,
+        currentExpirationDate: decision.expirationDate,
+        expirationDate: changes && request.action === 'renewal' ? request.expirationDate || '2027-09-20' : decision.expirationDate,
+        requestedExpirationDate: changes ? request.expirationDate || '2027-09-20' : undefined,
+        effect: completed ? 'completed' : !decision.renew ? 'unchanged' : request.action,
+      };
+    }) };
+  }
+
+  function previewItems(...items: RenewalLinkPreviewItem[]): RenewalLinkPreview {
+    return { items: items.some(item => item.deviceId === 'device-2') ? items : [
+      ...items, { deviceId: 'device-2', renew: false, canExecute: false, effect: 'unchanged' },
+    ] };
+  }
+
+  function deviceRow(name: string): HTMLTableRowElement {
+    return Array.from(fixture.nativeElement.querySelectorAll('.renewal-response-table tbody tr') as NodeListOf<HTMLTableRowElement>)
+      .find(row => row.textContent?.includes(name))!;
+  }
+
+  function currentExpirationText(name: string): string {
+    const cell = deviceRow(name).querySelector('.renewal-preview-date')!.cloneNode(true) as HTMLElement;
+    cell.querySelectorAll('small').forEach(snapshot => snapshot.remove());
+    return cell.textContent?.trim() || '';
   }
 
   function begin(action: 'renewal' | 'pre_renewal' = 'renewal') {
@@ -259,7 +292,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     component.renewalYears = 1; component.notes = 'a'.repeat(1001); component.previewExecution();
     expect(component.executionError).toContain('1000');
     expect(service.execute).not.toHaveBeenCalled();
-    component.notes = ''; expect(component.canConfirmExecution).toBeTrue();
+    component.notes = ''; expect(component.canReviewExecution).toBeTrue();
   });
 
   it('does not offer any operation when the client declined every device', () => {
@@ -331,7 +364,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
       expirationDate: '2030-01-01', notes: 'Retomar', results: [{ deviceId: 'device-1', status: 'pending' }],
     })]));
     openResponse();
-    expect(component.canConfirmExecution).toBeTrue();
+    expect(component.canReviewExecution).toBeTrue();
     component.previewExecution(); component.confirmExecution();
     expect(service.execute).toHaveBeenCalledOnceWith(response.id, {
       action: 'pre_renewal', years: 3, registrationDate: '2026-09-29', expirationDate: '2030-01-01', notes: 'Retomar',
@@ -549,7 +582,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
       })]));
       openResponse();
       component.links = [{ ...component.selectedLink!, renewalMethod: method, renewalMethodError: method ? undefined : 'Incosis no disponible.' }];
-      expect(component.action).toBe('renewal'); expect(component.canConfirmExecution).toBeTrue();
+      expect(component.action).toBe('renewal'); expect(component.canReviewExecution).toBeTrue();
       component.previewExecution(); component.confirmExecution();
       expect(service.execute.calls.mostRecent().args[1].action).toBe('renewal');
       component.close(); fixture.componentRef.setInput('visible', false); fixture.detectChanges();
@@ -572,5 +605,275 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     component.links = [{ ...response, renewalMethod: 'cash' }];
     expect(component.canConfirmExecution).toBeFalse();
     component.confirmExecution(); expect(service.execute).not.toHaveBeenCalled();
+  });
+
+  it('previews current server expirations instead of the link snapshot and preserves calendar dates', () => {
+    service.preview.and.returnValue(of(previewItems({
+      deviceId: 'device-1', renew: true, canExecute: true, effect: 'renewal',
+      currentExpirationDate: '2028-02-29T00:00:00.000Z', expirationDate: '2029-02-28T00:00:00.000Z',
+      requestedExpirationDate: '2029-02-28T00:00:00.000Z',
+    }, {
+      deviceId: 'device-2', renew: false, canExecute: false, effect: 'unchanged',
+      currentExpirationDate: '2031-12-31', expirationDate: '2031-12-31',
+    })));
+    begin(); fixture.detectChanges();
+    expect(service.preview).toHaveBeenCalledOnceWith(response.id, { action: 'renewal', years: 1, registrationDate: jasmine.any(String) });
+    expect(component.hasCurrentPreview).toBeTrue();
+    expect(deviceRow('Toyota').textContent).toContain('29/02/2028');
+    expect(deviceRow('Toyota').textContent).toContain('28/02/2029');
+    expect(currentExpirationText('Toyota')).toBe('29/02/2028');
+    expect(deviceRow('Honda').textContent).toContain('31/12/2031');
+    expect(service.execute).not.toHaveBeenCalled();
+    expect(component.confirmationVisible).toBeFalse();
+  });
+
+  it('shows no current expiration when the server has none instead of falling back to an old snapshot', () => {
+    service.preview.and.returnValue(of(previewItems({
+      deviceId: 'device-1', renew: true, canExecute: true, effect: 'renewal', currentExpirationDate: null, expirationDate: '2029-09-29',
+    })));
+    begin(); fixture.detectChanges();
+    const row = deviceRow('Toyota');
+    expect(currentExpirationText('Toyota')).toBe('Sin fecha');
+    expect(row.textContent).toContain('29/09/2029');
+  });
+
+  it('uses Dominican calendar dates for server instants and preserves legacy UTC-midnight dates', () => {
+    service.preview.and.returnValue(of(previewItems({
+      deviceId: 'device-1', renew: true, canExecute: true, effect: 'renewal',
+      currentExpirationDate: '2028-03-01T03:59:59.000Z', expirationDate: '2029-03-01T03:59:59.000Z',
+      requestedExpirationDate: '2032-02-29T00:00:00.000Z',
+    })));
+    begin(); fixture.detectChanges();
+    expect(currentExpirationText('Toyota')).toBe('29/02/2028');
+    const outcome = deviceRow('Toyota').querySelector('.renewal-preview-outcome')!;
+    expect(outcome.textContent).toContain('28/02/2029');
+    expect(outcome.textContent).toContain('29/02/2032');
+  });
+
+  it('reloads a fresh preview before opening confirmation and cannot execute while it is pending', () => {
+    begin();
+    const pending = new Subject<RenewalLinkPreview>();
+    service.preview.and.returnValue(pending);
+    component.previewExecution(); component.previewExecution(); component.confirmExecution(); fixture.detectChanges();
+    expect(service.preview).toHaveBeenCalledTimes(2);
+    expect(component.previewLoading).toBeTrue();
+    expect(component.confirmationVisible).toBeFalse();
+    expect(component.canConfirmExecution).toBeFalse();
+    expect(service.execute).not.toHaveBeenCalled();
+    pending.next(previewItems({
+      deviceId: 'device-1', renew: true, canExecute: true, effect: 'renewal',
+      currentExpirationDate: '2029-04-05', expirationDate: '2030-04-05',
+    }));
+    fixture.detectChanges();
+    expect(component.previewLoading).toBeFalse();
+    expect(component.confirmationVisible).toBeTrue();
+    expect(component.canConfirmExecution).toBeTrue();
+    expect(deviceRow('Toyota').textContent).toContain('05/04/2029');
+    expect(deviceRow('Toyota').textContent).toContain('05/04/2030');
+    component.confirmExecution();
+    expect(service.execute).toHaveBeenCalledOnceWith(response.id, service.preview.calls.mostRecent().args[1]);
+  });
+
+  it('refreshes the table through duration and common-date controls with the exact preview payload', async () => {
+    begin(); fixture.detectChanges(); await fixture.whenStable();
+    const duration = fixture.nativeElement.querySelector('#bulk-renewal-years') as HTMLSelectElement;
+    duration.selectedIndex = 2;
+    duration.dispatchEvent(new Event('change'));
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(component.renewalYears).toBe(3);
+    expect(service.preview.calls.mostRecent().args[1]).toEqual({ action: 'renewal', years: 3, registrationDate: '2026-09-29' });
+    const common = fixture.nativeElement.querySelector('#bulk-common-expiration') as HTMLInputElement;
+    common.checked = true; common.dispatchEvent(new Event('change'));
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(component.hasCurrentPreview).toBeFalse();
+    const date = fixture.nativeElement.querySelector('#bulk-expiration-date') as HTMLInputElement;
+    date.value = '2032-02-29'; date.dispatchEvent(new Event('input'));
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(service.preview.calls.mostRecent().args[1]).toEqual({
+      action: 'renewal', years: 3, registrationDate: '2026-09-29', expirationDate: '2032-02-29',
+    });
+    expect(deviceRow('Toyota').textContent).toContain('29/02/2032');
+    component.previewExecution();
+    const reviewedRequest = service.preview.calls.mostRecent().args[1];
+    component.confirmExecution();
+    expect(service.execute.calls.mostRecent().args[1]).toEqual(reviewedRequest);
+  });
+
+  it('invalidates confirmation for changed options and ignores a superseded preview', () => {
+    begin(); component.previewExecution();
+    const stale = new Subject<RenewalLinkPreview>();
+    const latest = new Subject<RenewalLinkPreview>();
+    service.preview.and.returnValues(stale, latest);
+    component.renewalYears = 2; component.onExecutionOptionsChange();
+    expect(component.confirmationVisible).toBeFalse();
+    expect(component.hasCurrentPreview).toBeFalse();
+    component.renewalYears = 3; component.onExecutionOptionsChange();
+    expect(stale.observers.length).toBe(0);
+    latest.next(previewItems({ deviceId: 'device-1', renew: true, canExecute: true, effect: 'renewal', expirationDate: '2030-09-20' }));
+    stale.next(previewItems({ deviceId: 'device-1', renew: true, canExecute: true, effect: 'renewal', expirationDate: '2029-09-20' }));
+    fixture.detectChanges();
+    expect(component.previewFor('device-1')?.expirationDate).toBe('2030-09-20');
+    expect(component.hasCurrentPreview).toBeTrue();
+    expect(component.confirmationVisible).toBeFalse();
+    component.confirmExecution(); expect(service.execute).not.toHaveBeenCalled();
+  });
+
+  it('rejects a reviewed payload when draft fields change even without a template event', () => {
+    begin(); component.previewExecution();
+    expect(component.hasCurrentPreview).toBeTrue();
+    component.notes = 'Una observación distinta';
+    expect(component.hasCurrentPreview).toBeFalse();
+    component.confirmExecution(); expect(service.execute).not.toHaveBeenCalled();
+    component.onExecutionOptionsChange(); component.previewExecution(); component.confirmExecution();
+    expect(service.execute.calls.mostRecent().args[1].notes).toBe('Una observación distinta');
+  });
+
+  it('separates the cash proposal from the expiration that stays unchanged until Incosis invoices', () => {
+    service.preview.and.returnValue(of(previewItems({
+      deviceId: 'device-1', renew: true, canExecute: true, effect: 'pre_renewal',
+      currentExpirationDate: '2025-09-20', expirationDate: '2025-09-20', requestedExpirationDate: '2028-09-20',
+      message: 'El vencimiento cambia al facturar en Incosis.',
+    })));
+    begin('pre_renewal'); fixture.detectChanges();
+    const row = deviceRow('Toyota');
+    expect(row.textContent).toContain('20/09/2025');
+    expect(row.textContent).toContain('20/09/2028');
+    expect(row.textContent).toContain('Incosis');
+    expect(component.previewFor('device-1')?.expirationDate).toBe('2025-09-20');
+    expect(service.execute).not.toHaveBeenCalled();
+  });
+
+  it('preserves declined and completed rows while previewing only the remaining work', () => {
+    const partial = { ...completedResponse({ status: 'partial', failed: 1 }), decisions: [
+      ...response.decisions!, { deviceId: 'device-3', name: 'Nissan', imei: '789', renew: true },
+    ] };
+    service.getForClient.and.returnValue(of([partial]));
+    service.preview.and.returnValue(of(previewItems({
+      deviceId: 'device-1', renew: true, canExecute: false, effect: 'completed',
+      currentExpirationDate: '2027-09-20', expirationDate: '2027-09-20', message: 'Ya completado. Se conserva.',
+    }, {
+      deviceId: 'device-2', renew: false, canExecute: false, effect: 'unchanged',
+      currentExpirationDate: '2031-06-15', expirationDate: '2031-06-15',
+    }, {
+      deviceId: 'device-3', renew: true, canExecute: true, effect: 'renewal',
+      currentExpirationDate: '2026-08-10', expirationDate: '2027-08-10',
+    })));
+    openResponse(); component.previewExecution(); fixture.detectChanges();
+    expect(component.remainingCount).toBe(1);
+    expect(deviceRow('Toyota').textContent).toContain('20/09/2027');
+    expect(deviceRow('Toyota').textContent).not.toContain('20/09/2028');
+    expect(deviceRow('Honda').textContent).toContain('15/06/2031');
+    expect(deviceRow('Honda').textContent).not.toContain('15/06/2032');
+    expect(deviceRow('Nissan').textContent).toContain('10/08/2027');
+    expect(component.canConfirmExecution).toBeTrue();
+    component.confirmExecution();
+    expect(service.execute.calls.mostRecent().args[1]).toEqual({ action: 'renewal', years: 1, registrationDate: '2026-09-29' });
+  });
+
+  it('blocks confirmation when the preview has no executable devices and shows the server reason', () => {
+    service.preview.and.returnValue(of(previewItems({
+      deviceId: 'device-1', renew: true, canExecute: false, effect: 'unavailable', message: 'El dispositivo ya no pertenece al cliente.',
+    }, { deviceId: 'device-2', renew: false, canExecute: false, effect: 'unchanged' })));
+    begin(); component.previewExecution(); component.confirmExecution(); fixture.detectChanges();
+    expect(component.canConfirmExecution).toBeFalse();
+    expect(currentExpirationText('Toyota')).toBe('No disponible');
+    expect(deviceRow('Toyota').textContent).toContain('El dispositivo ya no pertenece al cliente.');
+    expect(service.execute).not.toHaveBeenCalled();
+  });
+
+  it('rejects an incomplete preview even when one returned device is executable', () => {
+    service.preview.and.returnValue(of({ items: [{
+      deviceId: 'device-1', renew: true, canExecute: true, effect: 'renewal', expirationDate: '2027-09-20',
+    }] }));
+    begin(); component.previewExecution(); component.confirmExecution(); fixture.detectChanges();
+    expect(component.previewError).toContain('incompleta');
+    expect(component.hasCurrentPreview).toBeFalse();
+    expect(component.canConfirmExecution).toBeFalse();
+    expect(component.confirmationVisible).toBeFalse();
+    expect(service.execute).not.toHaveBeenCalled();
+  });
+
+  it('clears an earlier preview on failure and permits a fresh retry without executing stale dates', () => {
+    begin();
+    service.preview.and.returnValue(throwError(() => ({ status: 503, error: { message: 'No se pudo consultar el vencimiento actual.' } })));
+    component.previewExecution(); fixture.detectChanges();
+    expect(component.previewError).toContain('No se pudo consultar el vencimiento actual.');
+    expect(component.hasCurrentPreview).toBeFalse();
+    expect(component.previewLoading).toBeFalse();
+    expect(component.confirmationVisible).toBeFalse();
+    component.confirmExecution(); expect(service.execute).not.toHaveBeenCalled();
+    service.preview.and.returnValue(of(previewItems({ deviceId: 'device-1', renew: true, canExecute: true, effect: 'renewal', expirationDate: '2030-01-01' })));
+    component.previewExecution();
+    expect(component.previewError).toBe('');
+    expect(component.canConfirmExecution).toBeTrue();
+    expect(component.confirmationVisible).toBeTrue();
+  });
+
+  it('cancels previews when returning to the list and requires a new review when reopening', () => {
+    begin();
+    const pending = new Subject<RenewalLinkPreview>(); service.preview.and.returnValue(pending);
+    component.previewExecution(); component.backToResponses();
+    expect(pending.observers.length).toBe(0);
+    pending.next(previewItems({ deviceId: 'device-1', renew: true, canExecute: true, effect: 'renewal', expirationDate: '2040-01-01' }));
+    expect(component.responseVisible).toBeFalse();
+    expect(component.confirmationVisible).toBeFalse();
+    expect(component.hasCurrentPreview).toBeFalse();
+    component.selectResponse(response); component.confirmExecution();
+    expect(service.execute).not.toHaveBeenCalled();
+  });
+
+  it('ignores preview responses after the client changes', () => {
+    begin();
+    const pending = new Subject<RenewalLinkPreview>(); service.preview.and.returnValue(pending);
+    component.previewExecution();
+    component.client = { id: 'client-2', label: 'Otro' }; service.getForClient.and.returnValue(of([]));
+    component.ngOnChanges({ client: new SimpleChange(client, component.client, false) });
+    pending.next(previewItems({ deviceId: 'device-1', renew: true, canExecute: true, effect: 'renewal', expirationDate: '2040-01-01' }));
+    expect(pending.observers.length).toBe(0);
+    expect(component.executionPreview).toBeNull();
+    expect(component.confirmationVisible).toBeFalse();
+    expect(component.previewLoading).toBeFalse();
+    expect(component.links).toEqual([]);
+    component.close(); expect(service.execute).not.toHaveBeenCalled();
+  });
+
+  it('cancels a pending preview on close and does not restore confirmation from its result', () => {
+    begin();
+    const pending = new Subject<RenewalLinkPreview>(); service.preview.and.returnValue(pending);
+    component.previewExecution(); component.close();
+    expect(pending.observers.length).toBe(0);
+    pending.next(previewItems({ deviceId: 'device-1', renew: true, canExecute: true, effect: 'renewal', expirationDate: '2040-01-01' }));
+    expect(component.visible).toBeFalse();
+    expect(component.executionPreview).toBeNull();
+    expect(component.previewLoading).toBeFalse();
+    expect(component.confirmationVisible).toBeFalse();
+    expect(service.execute).not.toHaveBeenCalled();
+  });
+
+  it('discards a pending preview when switching responses and never carries its dates into the next response', () => {
+    begin();
+    const pending = new Subject<RenewalLinkPreview>(); service.preview.and.returnValue(pending);
+    component.previewExecution();
+    const nextResponse = { ...response, id: 'response-2' };
+    component.links.push(nextResponse); component.selectResponse(nextResponse);
+    expect(pending.observers.length).toBe(0);
+    pending.error({ status: 500, error: { message: 'Error anterior' } });
+    expect(component.selectedId).toBe(nextResponse.id);
+    expect(component.action).toBeNull();
+    expect(component.executionPreview).toBeNull();
+    expect(component.previewError).toBe('');
+    expect(component.confirmationVisible).toBeFalse();
+    expect(service.execute).not.toHaveBeenCalled();
+  });
+
+  it('unsubscribes from previews on destroy without emitting completion', () => {
+    begin();
+    const pending = new Subject<RenewalLinkPreview>(); service.preview.and.returnValue(pending);
+    const processed = spyOn(component.processed, 'emit');
+    component.previewExecution(); fixture.destroy();
+    expect(pending.observers.length).toBe(0);
+    pending.next(previewItems({ deviceId: 'device-1', renew: true, canExecute: true, effect: 'renewal' }));
+    expect(processed).not.toHaveBeenCalled();
+    expect(service.execute).not.toHaveBeenCalled();
   });
 });

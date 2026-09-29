@@ -62,6 +62,21 @@ export interface ExecuteRenewalLink {
   notes?: string;
 }
 
+export interface RenewalLinkPreviewItem {
+  deviceId: string;
+  renew: boolean;
+  canExecute: boolean;
+  currentExpirationDate?: string | null;
+  expirationDate?: string | null;
+  requestedExpirationDate?: string;
+  effect: 'renewal' | 'pre_renewal' | 'unchanged' | 'completed' | 'unavailable';
+  message?: string;
+}
+
+export interface RenewalLinkPreview {
+  items: RenewalLinkPreviewItem[];
+}
+
 export interface RenewalLinkExecutionResult {
   deviceId: string;
   status: 'pending' | 'succeeded' | 'failed';
@@ -131,6 +146,10 @@ export class RenewalLinksService {
 
   execute(id: string, request: ExecuteRenewalLink): Observable<RenewalLinkSummary> {
     return this.http.post<RenewalLinkSummary>(`${this.apiUrl}/${encodeURIComponent(id)}/execute`, request);
+  }
+
+  preview(id: string, request: ExecuteRenewalLink): Observable<RenewalLinkPreview> {
+    return this.http.post<RenewalLinkPreview>(`${this.apiUrl}/${encodeURIComponent(id)}/preview`, request);
   }
 
   getPublic(token: string): Observable<PublicRenewalInfo> {

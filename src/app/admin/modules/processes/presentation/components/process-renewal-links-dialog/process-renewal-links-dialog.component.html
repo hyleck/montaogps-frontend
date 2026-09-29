@@ -67,7 +67,7 @@
 
 <p-dialog *ngIf="visible && responseVisible" [visible]="true" (visibleChange)="onVisibleChange($event)" [modal]="true"
     [closable]="!executing" [closeOnEscape]="!executing"
-    [draggable]="false" [resizable]="false" [style]="{ width: '960px', maxWidth: '96vw' }"
+    [draggable]="false" [resizable]="false" [style]="{ width: '1180px', maxWidth: '96vw' }"
     styleClass="process-renewal-links-dialog process-renewal-response-dialog">
     <ng-template pTemplate="header">
         <div class="renewal-links-heading">
@@ -133,25 +133,25 @@
                     <fieldset [disabled]="busy || actionLocked || confirmationVisible">
                         <div class="renewal-bulk-fields">
                             <label for="bulk-renewal-years">Duración <span>(requerida)</span>
-                                <select id="bulk-renewal-years" name="bulk-renewal-years" [(ngModel)]="renewalYears">
+                                <select id="bulk-renewal-years" name="bulk-renewal-years" [(ngModel)]="renewalYears" (ngModelChange)="onExecutionOptionsChange()">
                                     <option *ngFor="let years of yearOptions" [ngValue]="years">{{ years }} {{ years === 1 ? 'año' : 'años' }}</option>
                                 </select>
                             </label>
                             <label for="bulk-registration-date">Fecha de registro <span>(requerida)</span>
-                                <input id="bulk-registration-date" name="bulk-registration-date" type="date" [(ngModel)]="registrationDate" required>
+                                <input id="bulk-registration-date" name="bulk-registration-date" type="date" [(ngModel)]="registrationDate" (ngModelChange)="onExecutionOptionsChange()" required>
                             </label>
                         </div>
                         <label class="renewal-bulk-toggle" for="bulk-common-expiration">
-                            <input id="bulk-common-expiration" name="bulk-common-expiration" type="checkbox" [(ngModel)]="useCommonExpiration">
+                            <input id="bulk-common-expiration" name="bulk-common-expiration" type="checkbox" [(ngModel)]="useCommonExpiration" (ngModelChange)="onExecutionOptionsChange()">
                             Establecer el mismo vencimiento para todos
                         </label>
                         <p *ngIf="!useCommonExpiration" class="renewal-links-feedback">Se sumará la duración al vencimiento de cada GPS. Si no tiene vencimiento, se usará la fecha de registro.</p>
                         <label *ngIf="useCommonExpiration" for="bulk-expiration-date" class="renewal-bulk-common">Nuevo vencimiento para todos <span>(requerido)</span>
-                            <input id="bulk-expiration-date" name="bulk-expiration-date" type="date" [(ngModel)]="expirationDate" required>
+                            <input id="bulk-expiration-date" name="bulk-expiration-date" type="date" [(ngModel)]="expirationDate" (ngModelChange)="onExecutionOptionsChange()" required>
                             <small>Esta fecha sustituye el cálculo por duración para todos los GPS de esta acción.</small>
                         </label>
                         <label for="bulk-renewal-notes">Observación <span>(opcional)</span>
-                            <textarea id="bulk-renewal-notes" name="bulk-renewal-notes" [(ngModel)]="notes" maxlength="1000" rows="2"></textarea>
+                            <textarea id="bulk-renewal-notes" name="bulk-renewal-notes" [(ngModel)]="notes" [ngModelOptions]="{ updateOn: 'blur' }" (ngModelChange)="onExecutionOptionsChange()" maxlength="1000" rows="2"></textarea>
                         </label>
                     </fieldset>
                     <p class="renewal-bulk-effect">{{ action === 'pre_renewal' ? 'Se registrará una renovación con facturación al contado por GPS. El vencimiento cambiará cuando Incosis facture el proceso.' : 'Se registrará una renovación con facturación a crédito por GPS y se actualizará su vencimiento.' }}</p>
@@ -159,26 +159,51 @@
                     <p *ngIf="!executionError && executionValidation" class="renewal-links-error" role="alert">{{ executionValidation }}</p>
 
                     <div *ngIf="!confirmationVisible" class="renewal-links-actions">
-                        <button type="button" class="renewal-action renewal-action--primary" [disabled]="!canConfirmExecution" (click)="previewExecution()">{{ actionLocked ? 'Reintentar pendientes' : 'Revisar y confirmar' }}</button>
+                        <button type="button" class="renewal-action renewal-action--primary" [disabled]="!canReviewExecution || previewLoading" (click)="previewExecution()">{{ actionLocked ? 'Reintentar pendientes' : 'Revisar y confirmar' }}</button>
                         <button *ngIf="!actionLocked" type="button" class="renewal-action" [disabled]="executing" (click)="cancelExecution()">Cancelar</button>
-                    </div>
-                    <div *ngIf="confirmationVisible" class="renewal-bulk-confirmation" role="group" aria-label="Confirmar acción">
-                        <strong>Confirmar: {{ renewalActionLabel(action) }} de {{ remainingCount }} GPS</strong>
-                        <p>Solo se procesarán los dispositivos marcados «Renovar» que aún no se completaron en esta respuesta.</p>
-                        <p>{{ renewalYears }} {{ renewalYears === 1 ? 'año' : 'años' }} · Registro: {{ displayDate(registrationDate) | date:'dd/MM/yyyy' }}<ng-container *ngIf="useCommonExpiration"> · Nuevo vencimiento: {{ displayDate(expirationDate) | date:'dd/MM/yyyy' }}</ng-container></p>
-                        <div class="renewal-links-actions">
-                            <button type="button" class="renewal-action renewal-action--primary" [disabled]="!canConfirmExecution" (click)="confirmExecution()"><i *ngIf="executing" class="pi pi-spin pi-spinner" aria-hidden="true"></i>{{ executing ? 'Procesando…' : 'Confirmar: ' + renewalActionLabel(action) }}</button>
-                            <button type="button" class="renewal-action" [disabled]="executing" (click)="confirmationVisible = false">Volver</button>
-                        </div>
                     </div>
                 </section>
             </div>
-            <div class="renewal-response-table">
+            <section *ngIf="action && canProcess" class="renewal-preview-heading" aria-label="Vista previa de vencimientos">
+                <div>
+                    <h4>Revisa los vencimientos antes de confirmar</h4>
+                    <p>La tabla muestra el vencimiento actual y cómo quedará cada GPS con esta operación.</p>
+                    <p *ngIf="action === 'pre_renewal'">Al contado, confirmar conserva el vencimiento actual. La fecha solicitada queda pendiente de facturación; Incosis determina el vencimiento definitivo.</p>
+                </div>
+                <button type="button" class="renewal-action" [disabled]="busy || previewLoading || !!executionValidation" (click)="refreshExecutionPreview()"><i class="pi pi-refresh" aria-hidden="true"></i> Actualizar fechas</button>
+                <p *ngIf="previewLoading" class="renewal-links-feedback" role="status">Consultando vencimientos y calculando la vista previa…</p>
+                <p *ngIf="previewError" class="renewal-links-error" role="alert">{{ previewError }}</p>
+                <p *ngIf="hasCurrentPreview && !canConfirmExecution && remainingCount && !busy" class="renewal-links-feedback" role="status">Revisa los avisos de la tabla. No hay dispositivos disponibles para procesar con estos datos.</p>
+            </section>
+            <div class="renewal-response-table" [class.renewal-response-table--preview]="action && canProcess" [attr.aria-busy]="previewLoading">
                 <table>
-                    <thead><tr><th>Dispositivo</th><th>Vencimiento al responder</th><th>Selección</th><th *ngIf="response.execution">Resultado</th></tr></thead>
+                    <thead><tr><th>Dispositivo</th><th>{{ action && canProcess ? 'Vencimiento actual' : 'Vencimiento al responder' }}</th><th *ngIf="action && canProcess">Al confirmar</th><th>Selección</th><th *ngIf="response.execution">Resultado</th></tr></thead>
                     <tbody><tr *ngFor="let decision of response.decisions">
                         <td><strong>{{ decision.name || decision.imei }}</strong><small>IMEI {{ decision.imei }}<span *ngIf="decision.plate"> · {{ decision.plate }}</span></small></td>
-                        <td>{{ (displayDate(decision.expirationDate) | date:'dd/MM/yyyy') || 'Sin fecha' }}</td>
+                        <td class="renewal-preview-date">
+                            <ng-container *ngIf="action && canProcess; else responseExpiration">
+                                <ng-container *ngIf="previewFor(decision.deviceId) as preview; else previewPending">
+                                    {{ (displayPreviewDate(preview.currentExpirationDate) | date:'dd/MM/yyyy') || (preview.currentExpirationDate === undefined ? 'No disponible' : 'Sin fecha') }}
+                                </ng-container>
+                                <small>Al responder: {{ (displayDate(decision.expirationDate) | date:'dd/MM/yyyy') || 'Sin fecha' }}</small>
+                            </ng-container>
+                            <ng-template #responseExpiration>{{ (displayDate(decision.expirationDate) | date:'dd/MM/yyyy') || 'Sin fecha' }}</ng-template>
+                        </td>
+                        <td *ngIf="action && canProcess" class="renewal-preview-outcome">
+                            <ng-container *ngIf="previewFor(decision.deviceId) as preview; else previewPending">
+                                <strong [class.renewal-preview-changed]="preview.effect === 'renewal'" [class.renewal-preview-unavailable]="preview.effect === 'unavailable'">
+                                    {{ (displayPreviewDate(preview.expirationDate) | date:'dd/MM/yyyy') || (preview.expirationDate === undefined ? 'No disponible' : 'Sin fecha') }}
+                                </strong>
+                                <small *ngIf="preview.effect === 'renewal'">Se actualizará el vencimiento</small>
+                                <small *ngIf="preview.effect === 'unchanged' && !preview.renew">Sin cambios · no seleccionado para renovar</small>
+                                <small *ngIf="preview.effect === 'unchanged' && preview.renew">Sin cambios en el vencimiento</small>
+                                <small *ngIf="preview.effect === 'completed'">Sin cambios · ya procesado</small>
+                                <small *ngIf="preview.effect === 'pre_renewal'">Sin cambios al confirmar · pendiente de factura</small>
+                                <small *ngIf="preview.requestedExpirationDate">Fecha solicitada: <strong>{{ displayPreviewDate(preview.requestedExpirationDate) | date:'dd/MM/yyyy' }}</strong></small>
+                                <small *ngIf="preview.message" [class.renewal-preview-unavailable]="preview.effect === 'unavailable'">{{ preview.message }}</small>
+                            </ng-container>
+                        </td>
+                        <ng-template #previewPending><span class="renewal-preview-pending">{{ previewLoading ? 'Consultando…' : 'Vista previa pendiente' }}</span></ng-template>
                         <td><span class="renewal-decision" [class.renewal-decision--yes]="decision.renew">{{ decision.renew ? 'Renovar' : 'No renovar' }}</span></td>
                         <td *ngIf="response.execution" class="renewal-result" [class.renewal-result--success]="resultFor(decision.deviceId)?.status === 'succeeded'" [class.renewal-result--failed]="resultFor(decision.deviceId)?.status === 'failed'">
                             <ng-container *ngIf="decision.renew; else excludedDecision">
@@ -190,6 +215,15 @@
                         </td>
                     </tr></tbody>
                 </table>
+            </div>
+            <div *ngIf="confirmationVisible" class="renewal-bulk-confirmation" role="group" aria-label="Confirmar acción">
+                <strong>Confirmar: {{ renewalActionLabel(action) }} de {{ remainingCount }} GPS</strong>
+                <p>Solo se procesarán los dispositivos marcados «Renovar» que aún no se completaron en esta respuesta.</p>
+                <p>{{ renewalYears }} {{ renewalYears === 1 ? 'año' : 'años' }} · Registro: {{ displayDate(registrationDate) | date:'dd/MM/yyyy' }}<ng-container *ngIf="useCommonExpiration"> · Nuevo vencimiento: {{ displayDate(expirationDate) | date:'dd/MM/yyyy' }}</ng-container></p>
+                <div class="renewal-links-actions">
+                    <button type="button" class="renewal-action renewal-action--primary" [disabled]="!canConfirmExecution" (click)="confirmExecution()"><i *ngIf="executing" class="pi pi-spin pi-spinner" aria-hidden="true"></i>{{ executing ? 'Procesando…' : 'Confirmar: ' + renewalActionLabel(action) }}</button>
+                    <button type="button" class="renewal-action" [disabled]="executing" (click)="confirmationVisible = false">Volver</button>
+                </div>
             </div>
         </section>
     </section>

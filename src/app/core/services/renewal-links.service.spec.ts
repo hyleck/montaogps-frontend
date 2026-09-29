@@ -82,6 +82,35 @@ describe('RenewalLinksService', () => {
     request.flush({});
   });
 
+  it('requests an authenticated preview for the saved response with the exact execution options', () => {
+    const body = { action: 'pre_renewal' as const, years: 3, registrationDate: '2026-09-29', expirationDate: '2029-02-28', notes: 'Confirmado' };
+    let result: unknown;
+    service.preview('response/id', body).subscribe(preview => result = preview);
+    const request = http.expectOne(`${adminUrl}/response%2Fid/preview`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer existing-gps-session');
+    expect(request.request.body).toEqual(body);
+    expect(request.request.body.deviceIds).toBeUndefined();
+    const preview = { items: [{
+      deviceId: 'device-1', renew: true, canExecute: true, effect: 'pre_renewal',
+      currentExpirationDate: '2024-02-29T00:00:00.000Z', expirationDate: '2024-02-29T00:00:00.000Z', requestedExpirationDate: '2029-02-28',
+    }] };
+    request.flush(preview);
+    expect(result).toEqual(preview);
+    http.expectNone(`${adminUrl}/response%2Fid/execute`);
+  });
+
+  it('passes preview errors to the caller without starting an execution', () => {
+    let message = '';
+    service.preview('response-1', { action: 'renewal', years: 1, registrationDate: '2026-09-29' })
+      .subscribe({ error: error => message = error.error.message });
+    const request = http.expectOne(`${adminUrl}/response-1/preview`);
+    expect(request.request.body.expirationDate).toBeUndefined();
+    request.flush({ message: 'La respuesta ya no está disponible.' }, { status: 409, statusText: 'Conflict' });
+    expect(message).toBe('La respuesta ya no está disponible.');
+    http.expectNone(`${adminUrl}/response-1/execute`);
+  });
+
   it('preserves optional common expiration and notes and exposes retry conflicts to the dialog', () => {
     const body = { action: 'pre_renewal' as const, years: 2, registrationDate: '2026-09-29', expirationDate: '2028-10-01', notes: 'Confirmado' };
     let status = 0;
