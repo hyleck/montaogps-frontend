@@ -59,4 +59,25 @@ describe('RenewalLinksService', () => {
     http.expectOne(`${environment.apiUrl}/public/renewals/expired%2Ftoken`).flush({ message: 'Vencido' }, { status: 410, statusText: 'Gone' });
     expect(status).toBe(410);
   });
+
+  it('executes only the saved response with authenticated action, years and registration date', () => {
+    const body = { action: 'renewal' as const, years: 1, registrationDate: '2026-09-29' };
+    service.execute('response/id', body).subscribe();
+    const request = http.expectOne(`${adminUrl}/response%2Fid/execute`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer existing-gps-session');
+    expect(request.request.body).toEqual(body);
+    expect(request.request.body.deviceIds).toBeUndefined();
+    request.flush({});
+  });
+
+  it('preserves optional common expiration and notes and exposes retry conflicts to the dialog', () => {
+    const body = { action: 'pre_renewal' as const, years: 2, registrationDate: '2026-09-29', expirationDate: '2028-10-01', notes: 'Confirmado' };
+    let status = 0;
+    service.execute('response-1', body).subscribe({ error: error => status = error.status });
+    const request = http.expectOne(`${adminUrl}/response-1/execute`);
+    expect(request.request.body).toEqual(body);
+    request.flush({ message: 'Acción fijada.' }, { status: 409, statusText: 'Conflict' });
+    expect(status).toBe(409);
+  });
 });

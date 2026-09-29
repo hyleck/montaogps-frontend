@@ -38,6 +38,37 @@ export interface CreatedRenewalLink {
   deviceCount: number;
 }
 
+export type RenewalLinkAction = 'renewal' | 'pre_renewal';
+
+export interface ExecuteRenewalLink {
+  action: RenewalLinkAction;
+  years: number;
+  expirationDate?: string;
+  registrationDate: string;
+  notes?: string;
+}
+
+export interface RenewalLinkExecutionResult {
+  deviceId: string;
+  status: 'pending' | 'succeeded' | 'failed';
+  processId?: string;
+  expirationDate?: string;
+  message?: string;
+  completedAt?: string;
+  attempts?: number;
+}
+
+export interface RenewalLinkExecution extends ExecuteRenewalLink {
+  status: 'processing' | 'completed' | 'partial';
+  startedAt: string;
+  finishedAt?: string;
+  actor: { id: string; name: string };
+  results: RenewalLinkExecutionResult[];
+  succeeded: number;
+  failed: number;
+  pending: number;
+}
+
 export interface RenewalLinkSummary {
   id: string;
   client: RenewalLinkClient;
@@ -46,6 +77,7 @@ export interface RenewalLinkSummary {
   status: 'active' | 'submitted' | 'revoked' | 'expired';
   deviceCount: number;
   submittedAt?: string;
+  execution?: RenewalLinkExecution;
   decisions?: Array<RenewalDecision & {
     name: string;
     imei: string;
@@ -74,6 +106,10 @@ export class RenewalLinksService {
 
   revoke(id: string): Observable<RenewalLinkSummary> {
     return this.http.patch<RenewalLinkSummary>(`${this.apiUrl}/${encodeURIComponent(id)}/revoke`, {});
+  }
+
+  execute(id: string, request: ExecuteRenewalLink): Observable<RenewalLinkSummary> {
+    return this.http.post<RenewalLinkSummary>(`${this.apiUrl}/${encodeURIComponent(id)}/execute`, request);
   }
 
   getPublic(token: string): Observable<PublicRenewalInfo> {

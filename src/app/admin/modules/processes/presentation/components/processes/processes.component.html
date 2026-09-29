@@ -284,7 +284,7 @@
 </app-process-templates-dialog>
 
 <app-process-renewal-links-dialog *ngIf="renewalLinksDialogVisible" [(visible)]="renewalLinksDialogVisible"
-    [client]="renewalLinksClient" [mode]="renewalLinksMode">
+    [client]="renewalLinksClient" [mode]="renewalLinksMode" (processed)="onRenewalResponseProcessed()">
 </app-process-renewal-links-dialog>
 
 <p-dialog [(visible)]="detailDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"

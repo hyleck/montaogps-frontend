@@ -25,7 +25,7 @@ describe('Processes filter templates integration', () => {
   let component: ProcessesComponent;
   let service: jasmine.SpyObj<ProcessesService>;
   let renewalLinks: jasmine.SpyObj<RenewalLinksService>;
-  const client = { id: 'client-1', label: 'Cliente Uno', email: 'cliente@example.test' };
+  const client = { id: 'client-1', label: 'Cliente Uno', email: 'cliente@example.test', phone: '8095550100' };
   const configuration: ProcessTemplateConfiguration = {
     types: [4], client,
     dateFrom: new Date(2026, 8, 1, 0, 0, 0, 0),
@@ -51,7 +51,7 @@ describe('Processes filter templates integration', () => {
         { provide: ProtocolsService, useValue: { getAllProtocols: () => of([]) } },
         { provide: TargetsService, useValue: {} },
         { provide: SolicitudesService, useValue: {} },
-        { provide: AuthService, useValue: {} },
+        { provide: AuthService, useValue: { getCurrentUser: () => ({ root: true }), hasPrivilege: () => true } },
         { provide: ContactsService, useValue: {} },
         { provide: TagsService, useValue: {} },
       ],
@@ -321,6 +321,23 @@ describe('Processes filter templates integration', () => {
     expect(fixture.nativeElement.querySelector('.process-renewal-link-generate')).toBeNull();
   });
 
+  it('refreshes the first page with the current filters after processing a client response', () => {
+    component.selectedClient = client;
+    component.selectedTypes = [22];
+    component.dateFrom = component.dateTo = null;
+    component.currentPage = 3;
+    component.openRenewalLinks('responses');
+    fixture.detectChanges();
+    service.getPaginated.calls.reset();
+
+    const responseDialog = fixture.debugElement.query(By.directive(ProcessRenewalLinksDialogComponent)).componentInstance;
+    responseDialog.processed.emit();
+
+    expect(component.currentPage).toBe(1);
+    expect(service.getPaginated).toHaveBeenCalledOnceWith(1, 20, { types: [22], client: client.id });
+    expect(component.renewalLinksDialogVisible).toBeTrue();
+  });
+
   it('generates the full client link regardless of page, search or date filters', () => {
     component.selectedClient = client; component.selectedTypes = [22];
     component.currentPage = 3; component.searchQuery = 'Toyota';
@@ -330,7 +347,7 @@ describe('Processes filter templates integration', () => {
     fixture.detectChanges();
     const modal = fixture.debugElement.query(By.directive(ProcessRenewalLinksDialogComponent)).componentInstance as ProcessRenewalLinksDialogComponent;
     expect(modal.mode).toBe('generate');
-    expect(modal.client).toEqual({ id: client.id, label: client.label });
+    expect(modal.client).toEqual(client);
     expect(modal.client).not.toBe(client);
     expect(renewalLinks.create).toHaveBeenCalledOnceWith(client.id);
     expect(service.getPaginated).not.toHaveBeenCalled();
@@ -341,6 +358,9 @@ describe('Processes filter templates integration', () => {
     fixture.nativeElement.querySelector('.process-renewal-link-responses').click();
     fixture.detectChanges();
     expect(component.renewalLinksMode).toBe('responses');
+    const modal = fixture.debugElement.query(By.directive(ProcessRenewalLinksDialogComponent)).componentInstance as ProcessRenewalLinksDialogComponent;
+    expect(modal.client).toEqual(client);
+    expect(modal.client).not.toBe(client);
     expect(renewalLinks.getForClient).toHaveBeenCalledOnceWith(client.id);
     expect(renewalLinks.create).not.toHaveBeenCalled();
   });

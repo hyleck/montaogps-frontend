@@ -47,7 +47,20 @@
 .renewal-action:focus-visible { outline: 2px solid var(--renewal-accent); outline-offset: 3px; }
 .renewal-links-error { color: var(--renewal-accent); padding: 12px; border-radius: 8px; background: var(--renewal-soft); font-size: .85rem; }
 .renewal-links-footer { justify-content: flex-end; flex-wrap: wrap; }
-.renewal-client-response { margin-top: 24px; }
+.renewal-client-response { margin-top: 0; }
+.renewal-response-client { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; padding: 18px; border: 1px solid var(--renewal-border); border-radius: 12px; background: var(--renewal-soft); }
+.renewal-response-client__identity { display: grid; align-content: start; gap: 8px; min-width: 0; }
+.renewal-response-client__identity h3 { font-size: 1.06rem; overflow-wrap: anywhere; }
+.renewal-response-caption, .renewal-response-dates dt { font-size: .76rem; color: var(--renewal-muted); }
+.renewal-response-contact { display: flex; align-items: center; gap: 8px; font-size: .83rem; overflow-wrap: anywhere; min-width: 0; }
+.renewal-response-contact i { flex: 0 0 auto; color: var(--renewal-muted); }
+.renewal-response-dates { display: grid; gap: 12px; margin: 0; }
+.renewal-response-dates dd { margin: 4px 0 0; font-size: .84rem; font-weight: 600; }
+.renewal-response-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.renewal-response-overview > div { display: grid; gap: 4px; padding: 14px; border: 1px solid var(--renewal-border); border-radius: 10px; }
+.renewal-response-overview strong { font-size: 1.35rem; }
+.renewal-response-overview span { font-size: .8rem; color: var(--renewal-muted); }
+.renewal-response-overview__yes strong { color: #15803d; }
 .renewal-response-table { overflow-x: auto; border: 1px solid var(--renewal-border); border-radius: 10px; }
 .renewal-response-table table { width: 100%; border-collapse: collapse; min-width: 460px; }
 .renewal-response-table th, .renewal-response-table td { padding: 12px; font-size: .82rem; text-align: left; border-bottom: 1px solid var(--renewal-border); }
@@ -55,12 +68,46 @@
 .renewal-response-table tr:last-child td { border-bottom: 0; }
 .renewal-decision { font-weight: 600; white-space: nowrap; }
 .renewal-decision--yes { color: #15803d; }
+.renewal-bulk { margin: 18px 0; padding: 16px; border: 1px solid var(--renewal-border); border-radius: 12px; }
+.renewal-bulk-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.renewal-bulk h4 { margin: 0; font-size: .9rem; }
+.renewal-bulk p { margin: 8px 0; }
+.renewal-bulk-heading .renewal-links-actions { margin-top: 0; }
+.renewal-bulk-form { border-top: 1px solid var(--renewal-border); margin-top: 16px; padding-top: 16px; }
+.renewal-bulk fieldset { padding: 0; margin: 12px 0; border: 0; min-width: 0; }
+.renewal-bulk-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.renewal-bulk label { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; font-weight: 600; font-size: .83rem; }
+.renewal-bulk label > span, .renewal-bulk label > small { font-weight: 400; color: var(--renewal-muted); }
+.renewal-bulk label > small { width: 100%; }
+.renewal-bulk input:not([type=checkbox]), .renewal-bulk select, .renewal-bulk textarea { display: block; width: 100%; min-width: 0; box-sizing: border-box; padding: 10px; min-height: 42px; border: 1px solid var(--renewal-border); border-radius: 8px; background: var(--renewal-surface); color: var(--renewal-text); font: inherit; }
+.renewal-bulk textarea { resize: vertical; }
+.renewal-bulk-toggle, .renewal-bulk-common { margin: 16px 0; }
+.renewal-bulk-toggle input { width: 18px; height: 18px; margin: 0 5px 0 0; accent-color: var(--renewal-accent); }
+.renewal-bulk fieldset:disabled { opacity: .75; }
+.renewal-bulk-confirmation { margin-top: 16px; padding: 16px; border-radius: 10px; border: 1px solid var(--renewal-accent); background: var(--renewal-soft); }
+.renewal-bulk-confirmation > strong { font-size: .9rem; }
+.renewal-execution-summary { display: grid; gap: 6px; margin-top: 14px; font-size: .84rem; }
+.renewal-execution-summary > small { color: var(--renewal-muted); }
+.renewal-result { min-width: 170px; }
+.renewal-result--success > strong { color: #15803d; }
+.renewal-result--failed > strong { color: var(--renewal-accent); }
+.renewal-bulk :is(input, select, textarea):focus-visible { outline: 2px solid var(--renewal-accent); outline-offset: 2px; }
 ::ng-deep html.app-dark .process-renewal-links-dialog.p-dialog { --renewal-text: #f4f4f5; --renewal-muted: #a1a1aa; --renewal-surface: #202024; --renewal-border: #3f3f46; --renewal-accent: #f87171; --renewal-soft: #3b2529; }
 ::ng-deep html.app-dark .process-renewal-links-dialog .renewal-action--primary { color: #18181b; }
 ::ng-deep html.app-dark .process-renewal-links-dialog .renewal-link-status--submitted,
-::ng-deep html.app-dark .process-renewal-links-dialog .renewal-decision--yes { color: #4ade80; }
+::ng-deep html.app-dark .process-renewal-links-dialog .renewal-decision--yes,
+::ng-deep html.app-dark .process-renewal-links-dialog .renewal-result--success > strong,
+::ng-deep html.app-dark .process-renewal-links-dialog .renewal-response-overview__yes strong { color: #4ade80; }
 @media (max-width: 540px) {
     .renewal-link-record { align-items: flex-start; flex-direction: column; }
     .renewal-links-actions .renewal-action { flex: 1; }
     .renewal-link-created { padding: 12px; }
+    .renewal-bulk-fields { grid-template-columns: 1fr; }
+    .renewal-bulk { padding: 12px; }
+    .renewal-response-client { grid-template-columns: 1fr; gap: 16px; padding: 14px; }
+    .renewal-response-dates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .renewal-response-overview { gap: 7px; }
+    .renewal-response-overview > div { padding: 10px; }
+    .renewal-response-overview strong { font-size: 1.15rem; }
+    .renewal-response-overview span { font-size: .74rem; }
 }

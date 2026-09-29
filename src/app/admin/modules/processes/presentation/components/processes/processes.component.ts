@@ -112,7 +112,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
   templateFiltersApplied = false;
   renewalLinksDialogVisible = false;
   renewalLinksMode: 'generate' | 'responses' = 'generate';
-  renewalLinksClient: { id: string; label: string } | null = null;
+  renewalLinksClient: { id: string; label: string; email?: string; phone?: string } | null = null;
 
   private readonly allTypeOptions = Object.entries(PROCESS_TYPE_LABELS).map(([key, label]) => ({
     label,
@@ -296,9 +296,14 @@ export class ProcessesComponent implements OnInit, OnDestroy {
 
   openRenewalLinks(mode: 'generate' | 'responses'): void {
     if (!this.hasPendingRenewalFilter || !this.hasSelectedClient) return;
-    this.renewalLinksClient = { id: this.selectedClient!.id, label: this.selectedClient!.label };
+    this.renewalLinksClient = { ...this.selectedClient! };
     this.renewalLinksMode = mode;
     this.renewalLinksDialogVisible = true;
+  }
+
+  onRenewalResponseProcessed(): void {
+    this.currentPage = 1;
+    this.loadProcesses();
   }
 
   get onlyPendingRenewals(): boolean {
