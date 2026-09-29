@@ -16,7 +16,7 @@ import { SystemService } from '../../../../core/services/system.service';
 import { AppUpdateService } from '../../../../core/services/app-update.service';
 import { ProtocolsService } from '../../../../core/services/protocols.service';
 import { SIM_CARD_TYPES } from '../../../../core/constants/sim-card-types.constant';
-import { Subject, takeUntil, debounceTime, distinctUntilChanged, filter, firstValueFrom } from 'rxjs';
+import { Subject, takeUntil, debounceTime, distinctUntilChanged, filter, firstValueFrom, timeout, finalize } from 'rxjs';
 import { AlertsService, AlertResponse, AlertStatus, CreateAlertDto } from '../../../../core/services/alerts.service';
 import * as XLSX from 'xlsx-js-style';
 
@@ -128,6 +128,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   currentTheme: string = 'light';
   currentUser: any;
   indexLauncherOpen = false;
+  openingMontaoIndex = false;
 
   // Control de suscripciones
   private destroy$ = new Subject<void>();
@@ -2535,7 +2536,34 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   openMontaoIndex(): void {
-    window.location.assign('https://index.montao.net');
+    if (this.openingMontaoIndex) return;
+    const userId = this.authService.getCurrentUser()?.id;
+    if (!userId) return;
+    this.openingMontaoIndex = true;
+    this.authService.createIndexBrowserSession().pipe(
+      timeout(15_000),
+      takeUntil(this.destroy$),
+      finalize(() => this.openingMontaoIndex = false),
+    ).subscribe({
+      next: ({ code }) => {
+        if (this.authService.getCurrentUser()?.id !== userId) return;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'https://index.montao.net/browser-session/gps/open';
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'code';
+        input.value = code;
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
+      },
+      error: () => this.messageService.add({
+        severity: 'error', summary: 'Montao Index',
+        detail: 'No se pudo abrir Montao Index con tu cuenta de GPS. Inténtalo de nuevo.',
+      }),
+    });
   }
 
   toggleIndexLauncher(): void {

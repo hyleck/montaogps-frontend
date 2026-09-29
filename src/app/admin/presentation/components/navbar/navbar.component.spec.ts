@@ -1,7 +1,7 @@
 /// <reference types="google.maps" />
 
 import { fakeAsync, tick } from '@angular/core/testing';
-import { NEVER, of } from 'rxjs';
+import { NEVER, of, Subject, throwError } from 'rxjs';
 import { InternalChatMessage } from '../../../../core/services/internal-chat.service';
 import { NavbarComponent } from './navbar.component';
 import { FloatingCommunicationMessage } from './floating-communication-message';
@@ -638,6 +638,49 @@ describe('NavbarComponent realtime links', () => {
 
     indexItem?.command?.({ item: indexItem } as any);
     expect(openIndex).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens Index with a one-use code from the active GPS account', () => {
+    const { component } = createComponent();
+    spyOn(component.authService, 'getCurrentUser').and.returnValue({ id: 'gps-user' } as any);
+    component.authService.createIndexBrowserSession = jasmine.createSpy().and.returnValue(of({ code: 'one-use-code' }));
+    const submit = spyOn(HTMLFormElement.prototype, 'submit').and.callFake(function (this: HTMLFormElement) {
+      expect(this.method).toBe('post');
+      expect(this.action).toBe('https://index.montao.net/browser-session/gps/open');
+      expect(new FormData(this).get('code')).toBe('one-use-code');
+      expect(this.action).not.toContain('one-use-code');
+    });
+    component.openMontaoIndex();
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(component.openingMontaoIndex).toBeFalse();
+  });
+
+  it('does not transfer an account after GPS switches users or duplicate pending requests', () => {
+    const { component } = createComponent();
+    const user = spyOn(component.authService, 'getCurrentUser').and.returnValue({ id: 'gps-user' } as any);
+    const result = new Subject<{ code: string }>();
+    const create = jasmine.createSpy().and.returnValue(result);
+    component.authService.createIndexBrowserSession = create;
+    const submit = spyOn(HTMLFormElement.prototype, 'submit');
+    component.openMontaoIndex();
+    component.openMontaoIndex();
+    expect(create).toHaveBeenCalledTimes(1);
+    user.and.returnValue({ id: 'other-user' } as any);
+    result.next({ code: 'old-user-code' });
+    result.complete();
+    expect(submit).not.toHaveBeenCalled();
+    expect(component.openingMontaoIndex).toBeFalse();
+  });
+
+  it('shows an error without opening the previous Index account when the transfer fails', () => {
+    const { component, messageService } = createComponent();
+    spyOn(component.authService, 'getCurrentUser').and.returnValue({ id: 'gps-user' } as any);
+    component.authService.createIndexBrowserSession = jasmine.createSpy().and.returnValue(throwError(() => new Error('Unavailable')));
+    const submit = spyOn(HTMLFormElement.prototype, 'submit');
+    component.openMontaoIndex();
+    expect(submit).not.toHaveBeenCalled();
+    expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error' }));
+    expect(component.openingMontaoIndex).toBeFalse();
   });
 
   it('generates one independent realtime link per selected target', async () => {
