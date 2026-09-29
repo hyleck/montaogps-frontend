@@ -779,6 +779,7 @@ describe('NavbarComponent realtime links', () => {
     expect(component.bulkProcessOptions.map(option => option.value)).toEqual([
       'installation',
       'expiration',
+      'cash_renewal',
       'renewal',
       'technician_change',
       'installation_details_change',
@@ -820,6 +821,97 @@ describe('NavbarComponent realtime links', () => {
     )).toEqual([2, 2]);
     expect(component.bulkProcessSuccessCount).toBe(2);
     expect(component.bulkProcessErrorCount).toBe(0);
+    expect(component.bulkProcessProgress).toBe(100);
+  });
+
+  it('records cash renewals as pending invoice without changing device expiration', async () => {
+    const { component, targetsService } = createComponent();
+    component.currentSelectedTargets = [{ _id: 'cash-target', name: 'Cliente contado', expiration_date: '2027-01-01' }] as any;
+    component.bulkProcessForm.type = 'cash_renewal';
+    component.bulkProcessForm.registrationDate = '2026-09-29';
+    component.bulkProcessForm.renewalYears = 2;
+
+    expect(component.isBulkRenewalProcess).toBeTrue();
+    expect(component.canApplyBulkProcess).toBeTrue();
+    expect(component.bulkProcessOptions.find(option => option.value === 'cash_renewal')?.labelKey)
+      .toBe('management.targetForm.processTypeCashRenewal');
+    await component.applyBulkProcess();
+
+    expect(targetsService.updateTarget).not.toHaveBeenCalled();
+    expect(targetsService.createProcess).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+      type: 20,
+      reference: 'cash-target',
+      registrationDate: '2026-09-29',
+      before: { expiration_date: '2027-01-01' },
+      after: jasmine.objectContaining({
+        status: 'pending_invoice', processType: 'pre_renewal', bulk: true,
+        expiration_date: '2029-01-01', pendingRenewalDate: '2029-01-01', renewalYears: 2,
+      }),
+    }));
+    expect(component.currentSelectedTargets[0].expiration_date).toBe('2027-01-01');
+    expect(component.bulkProcessSuccessCount).toBe(1);
+  });
+
+  it('waits for backend approval before applying a credit renewal expiration', async () => {
+    const { component, targetsService } = createComponent();
+    component.currentSelectedTargets = [{ _id: 'credit-target', name: 'Cliente crédito', expiration_date: '2027-01-01' }] as any;
+    component.bulkProcessForm.type = 'renewal';
+    component.bulkProcessForm.registrationDate = '2026-09-29';
+    component.bulkProcessForm.renewalYears = 1;
+    let resolveProcess!: (value: any) => void;
+    targetsService.createProcess.and.callFake(() => new Promise(resolve => { resolveProcess = resolve; }));
+
+    const applying = component.applyBulkProcess();
+    await Promise.resolve();
+    expect(targetsService.createProcess).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+      type: 4,
+      after: jasmine.objectContaining({ status: 'completed', processType: 'renewal', expiration_date: '2028-01-01' }),
+    }));
+    expect(targetsService.updateTarget).not.toHaveBeenCalled();
+    resolveProcess({ _id: 'approved-process' });
+    await applying;
+
+    expect(targetsService.updateTarget).toHaveBeenCalledOnceWith('credit-target', jasmine.objectContaining({ expiration_date: '2028-01-01' }));
+    expect(component.currentSelectedTargets[0].expiration_date).toBe('2028-01-01');
+    expect(component.bulkProcessSuccessCount).toBe(1);
+  });
+
+  for (const type of ['renewal', 'cash_renewal'] as const) {
+    it(`keeps the expiration unchanged when Incosis rejects ${type}`, async () => {
+      const { component, targetsService } = createComponent();
+      component.currentSelectedTargets = [{ _id: 'rejected-target', name: 'Rechazado', expiration_date: '2027-01-01' }] as any;
+      component.bulkProcessForm.type = type;
+      component.bulkProcessForm.registrationDate = '2026-09-29';
+      targetsService.createProcess.and.rejectWith({ status: 409, error: { message: 'El método de renovación cambió en Incosis.' } });
+
+      await component.applyBulkProcess();
+
+      expect(targetsService.updateTarget).not.toHaveBeenCalled();
+      expect(component.currentSelectedTargets[0].expiration_date).toBe('2027-01-01');
+      expect(component.bulkProcessErrorCount).toBe(1);
+      expect(component.bulkProcessResults[0].error).toBe('El método de renovación cambió en Incosis.');
+    });
+  }
+
+  it('continues mixed client selections while leaving rejected GPS untouched', async () => {
+    const { component, targetsService } = createComponent();
+    component.currentSelectedTargets = [
+      { _id: 'cash-target', name: 'Cliente contado', expiration_date: '2027-01-01' },
+      { _id: 'credit-target', name: 'Cliente crédito', expiration_date: '2027-01-01' },
+    ] as any;
+    component.bulkProcessForm.type = 'renewal';
+    component.bulkProcessForm.registrationDate = '2026-09-29';
+    targetsService.createProcess.and.callFake(async (payload: any) => {
+      if (payload.reference === 'cash-target') throw { error: { message: 'El cliente tiene renovación de contado en Incosis.' } };
+      return { _id: 'approved', ...payload };
+    });
+
+    await component.applyBulkProcess();
+
+    expect(targetsService.createProcess).toHaveBeenCalledTimes(2);
+    expect(targetsService.updateTarget).toHaveBeenCalledOnceWith('credit-target', jasmine.objectContaining({ expiration_date: '2028-01-01' }));
+    expect(component.currentSelectedTargets[0].expiration_date).toBe('2027-01-01');
+    expect(component.bulkProcessResults.map(result => result.status)).toEqual(['error', 'success']);
     expect(component.bulkProcessProgress).toBe(100);
   });
 });

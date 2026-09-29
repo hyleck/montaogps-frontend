@@ -14,7 +14,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
   const client = { id: 'client-1', label: 'MARIA GARCIA', email: 'maria@example.com', phone: '8095550100' };
   const created: CreatedRenewalLink = { id: 'link-1', token: 'secret-token', client: { id: client.id, name: client.label }, deviceCount: 2, expiresAt: '2026-10-06T12:00:00Z' };
   const active: RenewalLinkSummary = { id: created.id, client: created.client, createdAt: '2026-09-29T12:00:00Z', expiresAt: created.expiresAt, status: 'active', deviceCount: 2 };
-  const response: RenewalLinkSummary = { ...active, id: 'response-1', status: 'submitted', submittedAt: '2026-09-29T13:00:00Z', decisions: [
+  const response: RenewalLinkSummary = { ...active, id: 'response-1', status: 'submitted', renewalMethod: 'credit', submittedAt: '2026-09-29T13:00:00Z', decisions: [
     { deviceId: 'device-1', name: 'Toyota', imei: '123', renew: true, expirationDate: '2026-09-20T00:00:00.000Z' },
     { deviceId: 'device-2', name: 'Honda', imei: '456', renew: false },
   ] };
@@ -58,6 +58,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
   }
 
   function begin(action: 'renewal' | 'pre_renewal' = 'renewal') {
+    if (action === 'pre_renewal') service.getForClient.and.returnValue(of([{ ...response, renewalMethod: 'cash' }]));
     openResponse(); component.beginExecution(action); component.registrationDate = '2026-09-29';
   }
 
@@ -161,7 +162,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     expect(service.getForClient).toHaveBeenCalledTimes(2);
   });
 
-  it('offers both actions only for the client devices marked to renew and requires confirmation', () => {
+  it('offers the configured action only for the client devices marked to renew and requires confirmation', () => {
     begin();
     expect(component.remainingCount).toBe(1);
     expect(component.renewalYears).toBe(1);
@@ -170,7 +171,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     component.confirmExecution();
     expect(service.execute).not.toHaveBeenCalled();
     component.previewExecution(); fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Confirmar renovación de 1 GPS');
+    expect(fixture.nativeElement.textContent).toContain('Confirmar: Renovar ( Facturación a crédito ) de 1 GPS');
     const processed = spyOn(component.processed, 'emit');
     component.confirmExecution();
     expect(service.execute).toHaveBeenCalledOnceWith(response.id, { action: 'renewal', years: 1, registrationDate: '2026-09-29' });
@@ -191,7 +192,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     expect(service.execute).toHaveBeenCalledOnceWith(response.id, {
       action: 'pre_renewal', years: 2, registrationDate: '2026-09-29', expirationDate: '2028-09-29', notes: 'Cliente confirmó',
     });
-    expect(fixture.nativeElement.textContent).toContain('Pre-renovación registrada');
+    expect(fixture.nativeElement.textContent).toContain('Renovación al contado registrada');
     expect(fixture.nativeElement.textContent).toContain('pendientes de facturación en Incosis');
   });
 
@@ -229,7 +230,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     service.getForClient.and.returnValue(of([{ ...response, decisions: response.decisions!.map(decision => ({ ...decision, renew: false })) }]));
     begin(); component.previewExecution(); component.confirmExecution();
     expect(component.action).toBeNull();
-    expect(fixture.nativeElement.textContent).not.toContain('Renovar todos');
+    expect(fixture.nativeElement.textContent).not.toContain('Renovar ( Facturación a crédito )');
     expect(service.execute).not.toHaveBeenCalled();
   });
 
@@ -318,6 +319,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     service.execute.and.returnValue(throwError(() => ({ status: 400, error: { message: 'Fecha rechazada.' } })));
     begin(); component.previewExecution(); component.confirmExecution();
     expect(component.executionError).toBe('Fecha rechazada.');
+    service.getForClient.and.returnValue(of([{ ...response, renewalMethod: 'cash' }]));
     component.refresh(); expect(component.actionLocked).toBeFalse();
     component.beginExecution('pre_renewal'); expect(component.action).toBe('pre_renewal');
   });
@@ -325,7 +327,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
   it('cancels drafts without requests and clears them when selecting another response', () => {
     begin(); component.previewExecution(); component.cancelExecution();
     expect(component.action).toBeNull(); expect(service.execute).not.toHaveBeenCalled();
-    component.beginExecution('pre_renewal'); component.notes = 'Borrador';
+    component.beginExecution('renewal'); component.notes = 'Borrador';
     const other = { ...response, id: 'other-response' }; component.links.push(other);
     component.selectResponse(other);
     expect(component.action).toBeNull(); expect(component.notes).toBe('');
@@ -452,5 +454,87 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     component.confirmExecution();
     expect(component.canConfirmExecution).toBeFalse();
     expect(service.execute).not.toHaveBeenCalled();
+  });
+
+  it('shows only pre-renewal for a cash client and rejects starting ordinary renewal', () => {
+    service.getForClient.and.returnValue(of([{ ...response, renewalMethod: 'cash' }]));
+    openResponse();
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).map(button => button.textContent?.trim());
+    expect(buttons).toContain('Renovar ( Facturación al contado )'); expect(buttons).not.toContain('Renovar ( Facturación a crédito )');
+    expect(fixture.nativeElement.textContent).toContain('Renovar ( Facturación al contado )');
+    component.beginExecution('renewal'); expect(component.action).toBeNull();
+    component.beginExecution('pre_renewal'); expect(component.action).toBe('pre_renewal');
+  });
+
+  it('shows only renewal for a credit client and rejects starting pre-renewal', () => {
+    openResponse();
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).map(button => button.textContent?.trim());
+    expect(buttons).toContain('Renovar ( Facturación a crédito )'); expect(buttons).not.toContain('Renovar ( Facturación al contado )');
+    expect(fixture.nativeElement.textContent).toContain('Renovar ( Facturación a crédito )');
+    component.beginExecution('pre_renewal'); expect(component.action).toBeNull();
+  });
+
+  it('blocks new operations when the method is missing, invalid or accompanied by an integration error', () => {
+    openResponse();
+    for (const config of [
+      { renewalMethod: undefined }, { renewalMethod: null }, { renewalMethod: 'invalid' as any },
+      { renewalMethod: 'cash' as const, renewalMethodError: 'No se pudo consultar Incosis.' },
+    ]) {
+      component.links = [{ ...response, ...config }]; fixture.detectChanges();
+      expect(component.permittedNewAction).toBeNull();
+      component.beginExecution('renewal'); component.beginExecution('pre_renewal');
+      expect(component.action).toBeNull();
+      expect(fixture.nativeElement.querySelector('.renewal-method-info')?.textContent).toBeTruthy();
+    }
+    expect(service.execute).not.toHaveBeenCalled();
+  });
+
+  it('shows method loading and permits the new action after a successful refresh', () => {
+    const pending = new Subject<RenewalLinkSummary[]>();
+    openResponse(); service.getForClient.and.returnValue(pending); component.refresh(); fixture.detectChanges();
+    expect(component.permittedNewAction).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Consultando el método');
+    component.beginExecution('renewal'); expect(component.action).toBeNull();
+    pending.next([{ ...response, renewalMethod: 'cash' }]);
+    component.beginExecution('pre_renewal'); expect(component.action).toBe('pre_renewal');
+  });
+
+  it('does not use a previous method after refreshing the response fails', () => {
+    openResponse(); service.getForClient.and.returnValue(throwError(() => ({ status: 503 })));
+    component.refresh(); component.beginExecution('renewal');
+    expect(component.permittedNewAction).toBeNull(); expect(component.action).toBeNull();
+    expect(component.renewalMethodMessage).toContain('No se pudo actualizar');
+  });
+
+  it('preserves a started operation when the client method changes or Incosis becomes unavailable', () => {
+    for (const method of ['cash' as const, null]) {
+      service.getForClient.and.returnValue(of([completedResponse({
+        status: 'partial', succeeded: 0, failed: 1, results: [{ deviceId: 'device-1', status: 'failed', message: 'Reintentar' }],
+      })]));
+      openResponse();
+      component.links = [{ ...component.selectedLink!, renewalMethod: method, renewalMethodError: method ? undefined : 'Incosis no disponible.' }];
+      expect(component.action).toBe('renewal'); expect(component.canConfirmExecution).toBeTrue();
+      component.previewExecution(); component.confirmExecution();
+      expect(service.execute.calls.mostRecent().args[1].action).toBe('renewal');
+      component.close(); fixture.componentRef.setInput('visible', false); fixture.detectChanges();
+    }
+    expect(service.execute).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves an uncertain attempt and its exact retry payload after the returned method changes', () => {
+    service.execute.and.returnValue(throwError(() => ({ status: 0 })));
+    begin(); component.previewExecution(); component.confirmExecution();
+    service.getForClient.and.returnValue(of([{ ...response, renewalMethod: 'cash' }])); component.refresh();
+    expect(component.actionLocked).toBeTrue(); expect(component.action).toBe('renewal');
+    expect(component.executionError).toContain('No pudimos comprobar');
+    component.previewExecution(); component.confirmExecution();
+    expect(service.execute.calls.argsFor(1)).toEqual(service.execute.calls.argsFor(0));
+  });
+
+  it('rechecks the method before confirming a draft that has not started', () => {
+    begin(); component.previewExecution();
+    component.links = [{ ...response, renewalMethod: 'cash' }];
+    expect(component.canConfirmExecution).toBeFalse();
+    component.confirmExecution(); expect(service.execute).not.toHaveBeenCalled();
   });
 });

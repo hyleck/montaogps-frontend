@@ -99,7 +99,7 @@ export const PROCESS_TYPE_LABELS: { [key: number]: string } = {
   1: 'Instalación',
   2: 'Mod. Fecha Instalación',
   3: 'Mod. Fecha Expiración',
-  4: 'Renovación',
+  4: 'Renovar ( Facturación a crédito )',
   7: 'Cambio de SIM',
   8: 'Mod. Técnico',
   9: 'Cambio de GPS',
@@ -113,7 +113,7 @@ export const PROCESS_TYPE_LABELS: { [key: number]: string } = {
   17: 'Activación Automática',
   18: 'Reinstalación',
   19: 'Desinstalación',
-  20: 'Pre-renovación',
+  20: 'Renovar ( Facturación al contado )',
   21: 'Cambio de vehículo',
   22: 'Renovación pendiente',
 };

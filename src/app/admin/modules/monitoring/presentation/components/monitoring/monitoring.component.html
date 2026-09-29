@@ -7,7 +7,7 @@
       </h2>
       <div class="header-subtitle-container">
         <p class="header-subtitle">{{ monitoringPanelSubtitle }}</p>
-        <button *ngIf="userEmail && selectedExpirationFilter === 'expired'" pButton label="Renovación Masiva"
+        <button *ngIf="userEmail && selectedExpirationFilter === 'expired'" pButton label="Renovar ( Facturación a crédito )"
           [icon]="isDataStale ? 'pi pi-exclamation-triangle' : 'pi pi-calendar-plus'"
           [class]="isDataStale ? 'p-button-text p-button-sm p-button-warning' : 'p-button-text p-button-sm'"
           (click)="openMassiveProcesses()"></button>
@@ -791,7 +791,7 @@
   </div>
 
   <!-- Massive Renewal Modal -->
-  <p-dialog header="Renovación Masiva" [(visible)]="displayMassiveProcessesDialog" [modal]="true"
+  <p-dialog header="Renovar ( Facturación a crédito )" [(visible)]="displayMassiveProcessesDialog" [modal]="true"
     [style]="{width: '95vw', height: '90vh'}" [draggable]="false" [resizable]="false"
     styleClass="massive-processes-dialog">
 
@@ -959,7 +959,7 @@
             placeholder="Opcional: agregue una nota" class="w-full" />
         </div>
 
-        <p-button label="Ejecutar Renovaciones" icon="pi pi-play" (onClick)="executeMassiveProcess()"
+        <p-button label="Renovar ( Facturación a crédito )" icon="pi pi-play" (onClick)="executeMassiveProcess()"
           styleClass="p-button-primary" [disabled]="!hasDevicesWithYears()"></p-button>
       </div>
       <div class="flex justify-content-end gap-2"

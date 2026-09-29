@@ -49,7 +49,7 @@ describe('ProcessTemplatesDialogComponent', () => {
     await open();
     const cards: HTMLButtonElement[] = [...fixture.nativeElement.querySelectorAll('.template-card')];
     expect(cards.map(card => card.querySelector('strong')?.textContent?.trim())).toEqual([
-      'Renovación', 'Pre-renovación', 'Instalación', 'Reinstalación', 'Revisión', 'Desinstalación', 'Renovación pendiente',
+      'Renovar ( Facturación a crédito )', 'Renovar ( Facturación al contado )', 'Instalación', 'Reinstalación', 'Revisión', 'Desinstalación', 'Renovación pendiente',
     ]);
     choose();
     expect(fixture.nativeElement.querySelectorAll('.p-dialog').length).toBe(1);
@@ -93,11 +93,12 @@ describe('ProcessTemplatesDialogComponent', () => {
     expect(component.dateFrom).toBeNull();
     expect(component.dateTo).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('incluidos los de meses anteriores');
-    expect(fixture.nativeElement.textContent).toContain('vencidos del cliente seleccionado');
-    expect(fixture.nativeElement.textContent).toContain('Al renovarse, el dispositivo deja de aparecer');
+    expect(fixture.nativeElement.textContent).toContain('vencidos o por vencer del cliente seleccionado');
+    expect(fixture.nativeElement.textContent).toContain('Sin fechas se muestran solo los dispositivos actualmente vencidos');
+    expect(fixture.nativeElement.textContent).toContain('Si una renovación mueve el vencimiento fuera de esos límites');
     expect(fixture.nativeElement.textContent).not.toContain('Procesos registrados en este período');
-    expect(fixture.nativeElement.querySelector('label[for="template-date-from"]').textContent).toContain('Vencido desde');
-    expect(fixture.nativeElement.querySelector('label[for="template-date-to"]').textContent).toContain('Vencido hasta');
+    expect(fixture.nativeElement.querySelector('label[for="template-date-from"]').textContent).toContain('Vencimiento desde');
+    expect(fixture.nativeElement.querySelector('label[for="template-date-to"]').textContent).toContain('Vencimiento hasta');
     component.generate();
     expect(generated).toHaveBeenCalledOnceWith({
       types: [22], client: { ...client, label: 'María Pérez' }, dateFrom: null, dateTo: null,
@@ -150,19 +151,20 @@ describe('ProcessTemplatesDialogComponent', () => {
     expect(component.dateTo).toEqual(to);
   });
 
-  it('allows either expiry boundary independently and includes the whole local boundary day', async () => {
+  it('allows either future expiry boundary independently and includes the whole local boundary day', async () => {
     const generated = spyOn(component.generated, 'emit');
     fixture.componentRef.setInput('initialClient', client);
+    const futureYear = new Date().getFullYear() + 1;
     for (const boundary of ['from', 'to', 'both']) {
       await open();
       choose(22);
-      const day = new Date(2025, 1, 6, 11, 24);
+      const day = new Date(futureYear, 1, 6, 11, 24);
       component.dateFrom = boundary === 'to' ? null : day;
       component.dateTo = boundary === 'from' ? null : day;
       component.generate();
       const result = generated.calls.mostRecent().args[0]!;
-      expect(result.dateFrom).withContext(boundary).toEqual(boundary === 'to' ? null : new Date(2025, 1, 6, 0, 0, 0, 0));
-      expect(result.dateTo).withContext(boundary).toEqual(boundary === 'from' ? null : new Date(2025, 1, 6, 23, 59, 59, 999));
+      expect(result.dateFrom).withContext(boundary).toEqual(boundary === 'to' ? null : new Date(futureYear, 1, 6, 0, 0, 0, 0));
+      expect(result.dateTo).withContext(boundary).toEqual(boundary === 'from' ? null : new Date(futureYear, 1, 6, 23, 59, 59, 999));
       expect(day.getHours()).toBe(11);
       expect(result.types).toEqual([22]);
     }
@@ -184,7 +186,7 @@ describe('ProcessTemplatesDialogComponent', () => {
     component.dateFrom = new Date(2025, 7, 20);
     component.dateTo = new Date(2025, 7, 19);
     component.generate();
-    expect(component.validationError).toContain('Vencido desde debe ser anterior o igual a Vencido hasta');
+    expect(component.validationError).toContain('Vencimiento desde debe ser anterior o igual a Vencimiento hasta');
     expect(generated).not.toHaveBeenCalled();
     expect(component.visible).toBeTrue();
   });

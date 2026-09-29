@@ -20,6 +20,33 @@ describe('MonitoringComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  for (const rejected of [false, true]) {
+    it(`${rejected ? 'preserves expiration when Incosis rejects' : 'authorizes before updating'} a massive credit renewal`, async () => {
+      const originalDate = '2026-09-29T12:00:00.000Z';
+      const device: any = { _id: 'gps-1', name: 'GPS de prueba', expiration_date: originalDate, customRenewalYears: 1 };
+      const order: string[] = [];
+      const targets = {
+        createProcess: jasmine.createSpy().and.callFake(async () => {
+          order.push('authorize');
+          expect(device.expiration_date).toBe(originalDate);
+          if (rejected) throw { status: 409, error: { message: 'El cliente requiere facturación al contado.' } };
+          return { _id: 'process-1' };
+        }),
+        updateTarget: jasmine.createSpy().and.callFake(async () => { order.push('update'); }),
+      };
+      Object.assign(component as any, { targetsService: targets, authService: { getCurrentUser: () => ({ id: 'operator' }) }, messageService: { add: jasmine.createSpy() } });
+      component.monitoringResult = {} as any;
+      component.massiveProcessDevices = [device];
+      component.processForm.type = 'renewal';
+      spyOnProperty(component, 'filteredMonitoringData', 'get').and.returnValue([]);
+      spyOn(window, 'confirm').and.returnValue(true);
+      await component.executeMassiveProcess();
+      expect(order).toEqual(rejected ? ['authorize'] : ['authorize', 'update']);
+      expect(device.expiration_date).toBe(rejected ? originalDate : '2027-09-29');
+      expect(targets.createProcess.calls.mostRecent().args[0].type).toBe(4);
+    });
+  }
+
   it('formats the report creator name while preserving their stored identity and email', () => {
     const creator = { name: 'mARÍA', last_name: 'PÉREZ', email: 'MPerez@Example.COM' };
     expect(component.getStatusCreatorLabel({ creator } as any)).toBe('María Pérez (MPerez@Example.COM)');

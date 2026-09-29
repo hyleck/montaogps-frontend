@@ -1286,7 +1286,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
               const newDay = String(newDate.getDate()).padStart(2, '0');
               const newExpDateCalculated = `${newYear}-${newMonth}-${newDay}`;
 
-              details = `Renovación de servicio por ${renewalYears} año(s). Nueva fecha de expiración: ${newExpDateCalculated}.`;
+              details = `Renovar ( Facturación a crédito ) por ${renewalYears} año(s). Nueva fecha de expiración: ${newExpDateCalculated}.`;
               (device as any)._calculatedNewExpiration = newExpDateCalculated;
             } else if (!device.expiration_date) {
               throw new Error(`El dispositivo no tiene una fecha de expiración actual.`);
@@ -1346,6 +1346,15 @@ export class MonitoringComponent implements OnInit, OnDestroy {
           creator: currentUser?.id || "sistema"
         };
 
+        // Renewal authorization must run before the expiration changes.
+        if (this.processForm.type === 'renewal') {
+          processData.before = { ...processData.before, expiration_date: device.expiration_date };
+          processData.after = { ...processData.after,
+            expiration_date: (device as any)._calculatedNewExpiration,
+            renewalYears: device.customRenewalYears };
+          await this.targetsService.createProcess(processData);
+        }
+
         // Assign specific fields based on type and update local state
         if (this.processForm.type === 'technician_change') {
           await this.targetsService.updateTarget(device._id!, { mechanic_id: this.processForm.newTechnician });
@@ -1369,7 +1378,9 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         }
 
         // Call create process
-        await this.targetsService.createProcess(processData);
+        if (this.processForm.type !== 'renewal') {
+          await this.targetsService.createProcess(processData);
+        }
 
         this.massiveProcessResults.success++;
 

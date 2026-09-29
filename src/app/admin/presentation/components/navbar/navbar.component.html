@@ -627,7 +627,7 @@
                             [disabled]="applyingBulkProcess">
                     </label>
 
-                    <label class="bulk-process__field" *ngIf="bulkProcessForm.type === 'renewal'">
+                    <label class="bulk-process__field" *ngIf="isBulkRenewalProcess">
                         <span>Duración de la renovación <b>(Requerido)</b></span>
                         <select [(ngModel)]="bulkProcessForm.renewalYears" [disabled]="applyingBulkProcess">
                             <option [ngValue]="1">1 año</option>
@@ -637,6 +637,8 @@
                             <option [ngValue]="5">5 años</option>
                         </select>
                         <small>Se sumará esta duración a la expiración actual de cada objetivo.</small>
+                        <small *ngIf="bulkProcessForm.type === 'cash_renewal'">La nueva fecha se aplicará cuando Incosis facture la renovación.</small>
+                        <small>Se comprobará el método configurado en Incosis para cada cliente. Los objetivos con otro método mostrarán el motivo y conservarán su vencimiento.</small>
                     </label>
 
                     <label class="bulk-process__field" *ngIf="bulkProcessForm.type === 'technician_change'">

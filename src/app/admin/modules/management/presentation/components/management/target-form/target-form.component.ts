@@ -201,7 +201,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     ];
     renewalYearOptions: number[] = Array.from({ length: 10 }, (_, i) => i + 1);
     isCheckingIncosisClientProfile = false;
-    isConsignmentClient = false;
+    gpsRenewalMethod: 'cash' | 'credit' | null = null;
+    incosisClientProfileError = '';
     private incosisProfileRequestId = 0;
 
     // Bandera para evitar recálculo automático de fecha de expiración
@@ -258,7 +259,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         'installation': 2, // Modificación de fecha de instalación
         'expiration': 3, // Modificación de fecha de expiración
         'renewal': 4, // Renovación de servicio
-        'cash_renewal': 20, // Pre-renovación para clientes a consignación
+        'cash_renewal': 20, // Pre-renovación para clientes con método al contado en Incosis
         'technician_change': 8, // Modificar técnico
         'gps_change': 9, // Cambio de GPS
         'installation_details_change': 10, // Modificar detalles de instalación
@@ -1701,6 +1702,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     private async setupEditTarget(target: TargetDevice) {
         try {
+        this.incosisProfileRequestId++;
+        this.gpsRenewalMethod = null;
+        this.incosisClientProfileError = '';
+        this.isCheckingIncosisClientProfile = false;
         this.deviceRecords = [];
         this.deviceRecordsError = '';
         this.deviceRecordsRequestId++;
@@ -2258,7 +2263,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.displayColorName = '';
         this.incosisProfileRequestId++;
         this.isCheckingIncosisClientProfile = false;
-        this.isConsignmentClient = false;
+        this.gpsRenewalMethod = null;
+        this.incosisClientProfileError = '';
         this.deviceRecords = [];
         this.deviceRecordsError = '';
         this.isLoadingDeviceRecords = false;
@@ -3344,6 +3350,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     ngOnDestroy() {
+        this.incosisProfileRequestId++;
         if (this.activationPollingInterval) {
             clearInterval(this.activationPollingInterval);
         }
@@ -3941,6 +3948,20 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
             // Validaciones específicas para renovación de servicio
             if (this.isRenewalProcessType()) {
+                if (!this.canUseRenewalProcessType(this.processForm.type)) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Método de renovación',
+                        detail: this.isCheckingIncosisClientProfile
+                            ? 'Espera mientras se consulta el método de renovación en Incosis.'
+                            : this.incosisClientProfileError || (this.gpsRenewalMethod === 'cash'
+                                ? 'Selecciona «Renovar ( Facturación al contado )» para este cliente.'
+                                : this.gpsRenewalMethod === 'credit'
+                                    ? 'Selecciona «Renovar ( Facturación a crédito )» para este cliente.'
+                                    : 'Consulta el método de renovación del cliente en Incosis antes de continuar.')
+                    });
+                    return;
+                }
                 if (!this.processForm.newRenewalDate) {
                     this.messageService.add({
                         severity: 'warn',
@@ -4107,8 +4128,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 const renewalYears = this.processForm.renewalYears || 0;
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = this.processForm.type === 'cash_renewal'
-                    ? `El usuario ${userName} ha registrado una pre-renovación del dispositivo ${targetName}. La fecha ${newRenewalDate} (${renewalYears} ${renewalYears === 1 ? 'año' : 'años'}) queda pendiente y sustituirá la expiración actual ${currentExpirationDate} cuando Incosis facture el proceso${reason}.`
-                    : `El usuario ${userName} ha renovado el servicio del dispositivo ${targetName} cambiando la fecha de expiración de ${currentExpirationDate} a ${newRenewalDate} (${renewalYears} ${renewalYears === 1 ? 'año' : 'años'})${reason}.`;
+                    ? `El usuario ${userName} ha registrado «Renovar ( Facturación al contado )» para el dispositivo ${targetName}. La fecha ${newRenewalDate} (${renewalYears} ${renewalYears === 1 ? 'año' : 'años'}) queda pendiente y sustituirá la expiración actual ${currentExpirationDate} cuando Incosis facture el proceso${reason}.`
+                    : `El usuario ${userName} ha registrado «Renovar ( Facturación a crédito )» para el dispositivo ${targetName}, cambiando la fecha de expiración de ${currentExpirationDate} a ${newRenewalDate} (${renewalYears} ${renewalYears === 1 ? 'año' : 'años'})${reason}.`;
             }
 
             if (this.processForm.type === 'technician_change') {
@@ -4315,7 +4336,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 this.target.pending_renewal_process_id = response?._id;
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Pre-renovación registrada',
+                    summary: 'Renovar ( Facturación al contado )',
                     detail: 'La fecha quedó pendiente y se aplicará automáticamente cuando Incosis emita la factura.'
                 });
             }
@@ -4346,8 +4367,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
                     this.messageService.add({
                         severity: 'success',
-                        summary: 'Servicio renovado',
-                        detail: 'El servicio ha sido renovado correctamente'
+                        summary: 'Renovar ( Facturación a crédito )',
+                        detail: 'Proceso registrado y vencimiento actualizado correctamente.'
                     });
 
                 } catch (error) {
@@ -4355,7 +4376,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: getApiErrorMessage(error, 'No se pudo renovar el servicio del target')
+                        detail: getApiErrorMessage(error, 'No se pudo completar «Renovar ( Facturación a crédito )» para este objetivo.')
                     });
 
                     // Activar bandera para evitar recálculo automático
@@ -4655,7 +4676,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.messageService.add({
                 severity: 'success',
                 summary: 'Proceso agregado',
-                detail: `El proceso de ${this.processForm.type} ha sido registrado exitosamente`
+                detail: `El proceso de ${this.isRenewalProcessType() ? this.getProcessTypeName(this.processTypeMap[this.processForm.type]) : this.processForm.type} ha sido registrado exitosamente`
             });
 
             // Limpiar el formulario
@@ -4862,26 +4883,41 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return type === 'renewal' || type === 'cash_renewal';
     }
 
+    canUseRenewalProcessType(type: string): boolean {
+        return !this.isCheckingIncosisClientProfile && !this.incosisClientProfileError
+            && ((this.gpsRenewalMethod === 'cash' && type === 'cash_renewal')
+                || (this.gpsRenewalMethod === 'credit' && type === 'renewal'));
+    }
+
+    retryIncosisClientProfile(): void {
+        if (!this.isCheckingIncosisClientProfile) void this.loadIncosisClientProfile();
+    }
+
     private async loadIncosisClientProfile(): Promise<void> {
         const targetId = this.getCurrentTargetId();
         const requestId = ++this.incosisProfileRequestId;
-        this.isConsignmentClient = false;
+        this.gpsRenewalMethod = null;
+        this.incosisClientProfileError = '';
         if (!targetId) {
             this.isCheckingIncosisClientProfile = false;
+            this.incosisClientProfileError = 'Guarda el objetivo para consultar el método de renovación del cliente en Incosis.';
             return;
         }
 
         this.isCheckingIncosisClientProfile = true;
         try {
             const profile = await this.targetsService.getIncosisBillingProfile(targetId);
-            if (requestId !== this.incosisProfileRequestId) return;
-            this.isConsignmentClient = profile.found && profile.active && profile.isConsignment;
+            if (requestId !== this.incosisProfileRequestId || targetId !== this.getCurrentTargetId()) return;
+            if (!profile.found) this.incosisClientProfileError = 'El cliente no está registrado en Incosis. Revisa su configuración para renovar.';
+            else if (!profile.active) this.incosisClientProfileError = 'El cliente está inactivo en Incosis. Revisa su configuración para renovar.';
+            else if (profile.gpsRenewalMethod === 'cash' || profile.gpsRenewalMethod === 'credit') this.gpsRenewalMethod = profile.gpsRenewalMethod;
+            else this.incosisClientProfileError = 'No se pudo obtener el método de renovación del cliente. Configúralo en Incosis y vuelve a consultar.';
         } catch (error) {
-            if (requestId !== this.incosisProfileRequestId) return;
-            this.isConsignmentClient = false;
-            console.error('No se pudo verificar el tipo comercial del cliente en Incosis:', error);
+            if (requestId !== this.incosisProfileRequestId || targetId !== this.getCurrentTargetId()) return;
+            this.gpsRenewalMethod = null;
+            this.incosisClientProfileError = 'No se pudo consultar el método de renovación en Incosis. Intenta nuevamente.';
         } finally {
-            if (requestId === this.incosisProfileRequestId) {
+            if (requestId === this.incosisProfileRequestId && targetId === this.getCurrentTargetId()) {
                 this.isCheckingIncosisClientProfile = false;
                 this.cdr.detectChanges();
             }
@@ -5525,7 +5561,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             1: 'Instalación inicial',
             2: 'Fecha de instalación',
             3: 'Fecha de expiración',
-            4: 'Renovación de servicio',
+            4: 'Renovar ( Facturación a crédito )',
             5: 'Cambio de plan',
             6: 'Cambio de plan', // Compatibilidad con tipos anteriores
             7: 'Cambio de plan', // Compatibilidad con tipos anteriores
@@ -5541,7 +5577,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             17: 'Activación automática',
             18: 'Reinstalación',
             19: 'Desinstalación',
-            20: 'Pre-renovación',
+            20: 'Renovar ( Facturación al contado )',
             21: 'Cambio de vehículo'
         };
         return typeNames[type] || `Proceso desconocido`;

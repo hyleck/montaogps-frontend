@@ -45,13 +45,13 @@ export class ProcessTemplatesDialogComponent implements OnChanges, OnDestroy {
   @Output() generated = new EventEmitter<ProcessTemplateConfiguration>();
 
   readonly templates: ProcessTemplate[] = [
-    { name: 'Renovación', type: 4, icon: 'pi pi-refresh', description: 'Consulta las renovaciones registradas.' },
-    { name: 'Pre-renovación', type: 20, icon: 'pi pi-calendar-plus', description: 'Consulta las pre-renovaciones registradas.' },
+    { name: 'Renovar ( Facturación a crédito )', type: 4, icon: 'pi pi-refresh', description: 'Consulta las renovaciones con facturación a crédito.' },
+    { name: 'Renovar ( Facturación al contado )', type: 20, icon: 'pi pi-calendar-plus', description: 'Consulta las renovaciones con facturación al contado.' },
     { name: 'Instalación', type: 1, icon: 'pi pi-map-marker', description: 'Consulta las instalaciones registradas.' },
     { name: 'Reinstalación', type: 18, icon: 'pi pi-sync', description: 'Consulta las reinstalaciones registradas.' },
     { name: 'Revisión', type: 10, icon: 'pi pi-search', description: 'Consulta las revisiones registradas.' },
     { name: 'Desinstalación', type: 19, icon: 'pi pi-minus-circle', description: 'Consulta las desinstalaciones registradas.' },
-    { name: 'Renovación pendiente', type: 22, icon: 'pi pi-clock', description: 'Consulta los dispositivos vencidos de un cliente.' },
+    { name: 'Renovación pendiente', type: 22, icon: 'pi pi-clock', description: 'Consulta los dispositivos de un cliente por fecha de vencimiento.' },
   ];
   selectedTemplate: ProcessTemplate | null = null;
   clientDraft: ProcessTemplateClient | string | null = null;
@@ -188,7 +188,7 @@ export class ProcessTemplatesDialogComponent implements OnChanges, OnDestroy {
     const dateTo = this.dateTo === null ? null : this.endOfDay(this.dateTo);
     if (dateFrom && dateTo && dateFrom > dateTo) {
       this.validationError = this.isPendingRenewal
-        ? 'La fecha Vencido desde debe ser anterior o igual a Vencido hasta.'
+        ? 'La fecha Vencimiento desde debe ser anterior o igual a Vencimiento hasta.'
         : 'La fecha Desde debe ser anterior o igual a Hasta.';
       return;
     }

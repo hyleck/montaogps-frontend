@@ -75,6 +75,7 @@ export interface IncosisClientBillingProfile {
   active: boolean;
   commercialType: string;
   isConsignment: boolean;
+  gpsRenewalMethod?: 'cash' | 'credit' | null;
 }
 
 export interface VehicleRegistrationFinalizeResponse {

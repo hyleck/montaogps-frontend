@@ -73,6 +73,7 @@ type BulkProcessType =
   | 'installation'
   | 'expiration'
   | 'renewal'
+  | 'cash_renewal'
   | 'technician_change'
   | 'installation_details_change'
   | 'gps_model_change'
@@ -229,6 +230,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
       value: 'expiration',
       labelKey: 'management.targetForm.processTypeExpirationDateChange',
       icon: 'pi pi-calendar-times'
+    },
+    {
+      value: 'cash_renewal',
+      labelKey: 'management.targetForm.processTypeCashRenewal',
+      icon: 'pi pi-wallet'
     },
     {
       value: 'renewal',
@@ -3916,6 +3922,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
       && this.bulkProcessResults.every(result => result.status === 'success' || result.status === 'error');
   }
 
+  get isBulkRenewalProcess(): boolean {
+    return this.bulkProcessForm.type === 'renewal' || this.bulkProcessForm.type === 'cash_renewal';
+  }
+
   get canApplyBulkProcess(): boolean {
     if (
       this.applyingBulkProcess
@@ -3933,6 +3943,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       case 'expiration':
         return !!this.bulkProcessForm.newExpirationDate;
       case 'renewal':
+      case 'cash_renewal':
         return Number(this.bulkProcessForm.renewalYears) > 0;
       case 'technician_change':
         return !!this.bulkProcessForm.newTechnician;
@@ -4025,7 +4036,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
         const currentUser = this.authService.getCurrentUser();
         const processType = this.bulkProcessForm.type as BulkProcessType;
 
-        await this.targetsService.updateTarget(targetId, change.update);
+        // Renewals are authorized by the process endpoint using the current
+        // Incosis method before any client-side expiration change is sent.
+        if (!this.isBulkRenewalProcess) {
+          await this.targetsService.updateTarget(targetId, change.update);
+        }
 
         const processData: CreateProcessDto = {
           type: this.getBulkProcessTypeId(processType),
@@ -4047,8 +4062,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
           before: change.before,
           after: {
             ...change.after,
-            status: 'completed',
-            processType,
+            status: processType === 'cash_renewal' ? 'pending_invoice' : 'completed',
+            processType: processType === 'cash_renewal' ? 'pre_renewal' : processType,
             processDate: this.bulkProcessForm.registrationDate,
             bulk: true
           },
@@ -4056,6 +4071,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
         };
 
         await this.targetsService.createProcess(processData);
+        if (processType === 'renewal') {
+          await this.targetsService.updateTarget(targetId, change.update);
+        }
         Object.assign(selectedTarget as any, change.update);
         result.status = 'success';
       } catch (error: any) {
@@ -4163,17 +4181,22 @@ export class NavbarComponent implements OnInit, OnDestroy {
           details: `El usuario ${actorName} cambió la fecha de expiración de ${targetName} de ${previousDate} a ${newDate}.${reason}`
         };
       }
-      case 'renewal': {
+      case 'renewal':
+      case 'cash_renewal': {
         if (!target.expiration_date) {
           throw new Error('El objetivo no tiene una fecha de expiración para renovar.');
         }
         const years = Number(this.bulkProcessForm.renewalYears);
         const newDate = this.addYearsToDateInput(target.expiration_date, years);
+        const isCashRenewal = this.bulkProcessForm.type === 'cash_renewal';
         return {
-          update: { expiration_date: newDate, last_change_date: new Date() },
+          update: isCashRenewal ? {} : { expiration_date: newDate, last_change_date: new Date() },
           before: { expiration_date: target.expiration_date },
-          after: { expiration_date: newDate, renewalYears: years },
-          details: `El usuario ${actorName} renovó el servicio de ${targetName} por ${years} ${years === 1 ? 'año' : 'años'}, cambiando la expiración de ${target.expiration_date} a ${newDate}.${reason}`
+          after: { expiration_date: newDate, renewalYears: years,
+            ...(isCashRenewal ? { pendingRenewalDate: newDate } : {}) },
+          details: isCashRenewal
+            ? `El usuario ${actorName} registró una renovación con facturación al contado de ${targetName} por ${years} ${years === 1 ? 'año' : 'años'}. La expiración ${newDate} queda pendiente de facturación en Incosis; la expiración actual es ${target.expiration_date}.${reason}`
+            : `El usuario ${actorName} renovó el servicio de ${targetName} por ${years} ${years === 1 ? 'año' : 'años'}, cambiando la expiración de ${target.expiration_date} a ${newDate}.${reason}`
         };
       }
       case 'technician_change': {
@@ -4234,6 +4257,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       installation: 2,
       expiration: 3,
       renewal: 4,
+      cash_renewal: 20,
       technician_change: 8,
       installation_details_change: 10,
       gps_model_change: 11,

@@ -78,6 +78,8 @@ export interface RenewalLinkSummary {
   deviceCount: number;
   submittedAt?: string;
   execution?: RenewalLinkExecution;
+  renewalMethod?: 'cash' | 'credit' | null;
+  renewalMethodError?: string;
   decisions?: Array<RenewalDecision & {
     name: string;
     imei: string;

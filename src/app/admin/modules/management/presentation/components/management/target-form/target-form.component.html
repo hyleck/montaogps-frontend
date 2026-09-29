@@ -976,13 +976,18 @@
                                                     </option>
 
                                                     <!-- Procesos especiales -->
-                                                    <option value="renewal">{{
+                                                    <option value="renewal" *ngIf="canUseRenewalProcessType('renewal')">{{
                                                         translate('management.targetForm.processTypeServiceRenewal') }}
                                                     </option>
-                                                    <option value="cash_renewal" *ngIf="isConsignmentClient">{{
+                                                    <option value="cash_renewal" *ngIf="canUseRenewalProcessType('cash_renewal')">{{
                                                         translate('management.targetForm.processTypeCashRenewal') }}
                                                     </option>
                                                 </select>
+                                                <small *ngIf="isCheckingIncosisClientProfile" role="status">Consultando el método de renovación en Incosis…</small>
+                                                <small *ngIf="!isCheckingIncosisClientProfile && gpsRenewalMethod">Método de renovación en Incosis: {{ gpsRenewalMethod === 'cash' ? 'Renovar ( Facturación al contado )' : 'Renovar ( Facturación a crédito )' }}.</small>
+                                                <small *ngIf="!isCheckingIncosisClientProfile && !gpsRenewalMethod" role="alert">{{ incosisClientProfileError || 'Consulta el método de renovación del cliente en Incosis antes de renovar.' }}</small>
+                                                <small *ngIf="gpsRenewalMethod && isRenewalProcessType() && !canUseRenewalProcessType(processForm.type)" role="alert">Selecciona {{ gpsRenewalMethod === 'cash' ? 'Renovar ( Facturación al contado )' : 'Renovar ( Facturación a crédito )' }} para usar el método actual del cliente.</small>
+                                                <button type="button" class="view-history-btn" [disabled]="isCheckingIncosisClientProfile" (click)="retryIncosisClientProfile()">{{ gpsRenewalMethod ? 'Actualizar método' : 'Consultar método' }}</button>
                                             </div>
 
 
@@ -1178,7 +1183,7 @@
 
                                             <!-- Botón para agregar proceso (con el estilo del botón de agregar campos) -->
                                             <div class="add-process-container">
-                                                <button type="button" class="add-field-btn" (click)="onSubmitProcess()">
+                                                <button type="button" class="add-field-btn" [disabled]="isRenewalProcessType() && !canUseRenewalProcessType(processForm.type)" (click)="onSubmitProcess()">
                                                     <i class="pi pi-plus"></i>
                                                     {{ translate('management.targetForm.addProcess') }}
                                                 </button>

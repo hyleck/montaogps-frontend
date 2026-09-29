@@ -31,7 +31,7 @@
                 <strong>{{ selectedTemplate!.name }}</strong>
             </div>
             <p class="templates-description" *ngIf="!isPendingRenewal">Procesos registrados en este período. Se incluyen completos los días Desde y Hasta.</p>
-            <p class="templates-description" *ngIf="isPendingRenewal">Sin fechas se muestran todos los dispositivos actualmente vencidos del cliente seleccionado, incluidos los de meses anteriores. Las fechas filtran por vencimiento e incluyen los días completos. Al renovarse, el dispositivo deja de aparecer.</p>
+            <p class="templates-description" *ngIf="isPendingRenewal">Con fechas se muestran los dispositivos vencidos o por vencer del cliente seleccionado dentro de los límites elegidos, incluidos los días completos. Si una renovación mueve el vencimiento fuera de esos límites, el dispositivo deja de aparecer. Sin fechas se muestran solo los dispositivos actualmente vencidos, incluidos los de meses anteriores.</p>
             <div class="template-form">
                 <div class="template-field template-field--client">
                     <div class="template-field__label">
@@ -53,7 +53,7 @@
                             </div>
                         </ng-template>
                     </p-autoComplete>
-                    <small class="template-client-hint" *ngIf="isPendingRenewal && (clientSelectionPending || !hasSelectedClient)">Selecciona un cliente de la lista para consultar sus dispositivos vencidos.</small>
+                    <small class="template-client-hint" *ngIf="isPendingRenewal && (clientSelectionPending || !hasSelectedClient)">Selecciona un cliente de la lista para consultar sus dispositivos por fecha de vencimiento.</small>
                     <small class="template-client-hint" *ngIf="!isPendingRenewal && clientSelectionPending">Selecciona un cliente de la lista o pulsa «Todos los clientes».</small>
                     <small class="template-search-loading" *ngIf="loadingClients" role="status">
                         <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Buscando clientes…
@@ -64,13 +64,13 @@
                     </div>
                 </div>
                 <div class="template-field">
-                    <label for="template-date-from">{{ isPendingRenewal ? 'Vencido desde' : 'Desde' }} <span *ngIf="isPendingRenewal">(opcional)</span></label>
+                    <label for="template-date-from">{{ isPendingRenewal ? 'Vencimiento desde' : 'Desde' }} <span *ngIf="isPendingRenewal">(opcional)</span></label>
                     <p-datepicker inputId="template-date-from" [ngModel]="dateFrom" (ngModelChange)="dateFrom = $event === '' ? null : $event" dateFormat="dd/mm/yy"
                         [showIcon]="true" [showClear]="true" [keepInvalid]="true" appendTo="body"
                         [placeholder]="isPendingRenewal ? 'Sin límite inicial' : 'Selecciona una fecha'"></p-datepicker>
                 </div>
                 <div class="template-field">
-                    <label for="template-date-to">{{ isPendingRenewal ? 'Vencido hasta' : 'Hasta' }} <span *ngIf="isPendingRenewal">(opcional)</span></label>
+                    <label for="template-date-to">{{ isPendingRenewal ? 'Vencimiento hasta' : 'Hasta' }} <span *ngIf="isPendingRenewal">(opcional)</span></label>
                     <p-datepicker inputId="template-date-to" [ngModel]="dateTo" (ngModelChange)="dateTo = $event === '' ? null : $event" dateFormat="dd/mm/yy"
                         [showIcon]="true" [showClear]="true" [keepInvalid]="true" appendTo="body"
                         [placeholder]="isPendingRenewal ? 'Sin límite final' : 'Selecciona una fecha'"></p-datepicker>

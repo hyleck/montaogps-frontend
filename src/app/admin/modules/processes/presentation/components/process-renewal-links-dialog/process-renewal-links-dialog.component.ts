@@ -7,6 +7,7 @@ import { CreatedRenewalLink, ExecuteRenewalLink, RenewalLinkAction, RenewalLinkE
 import { AuthService } from 'src/app/core/services/auth.service';
 import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
+import { PROCESS_TYPE_LABELS } from '../../services/processes.service';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
 
 @Component({
@@ -46,6 +47,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   confirmationVisible = false;
   private attemptedRequest: ExecuteRenewalLink | null = null;
   private attemptedLinkId = '';
+  private preserveAttemptOnRefresh = false;
   private requests = new Subscription();
   private generation = 0;
 
@@ -83,6 +85,25 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     return !!this.selectedLink?.execution || (this.attemptedLinkId === this.selectedId && !!this.attemptedRequest);
   }
 
+  get permittedNewAction(): RenewalLinkAction | null {
+    if (this.loading || this.historyError || this.selectedLink?.renewalMethodError) return null;
+    const method = this.selectedLink?.renewalMethod;
+    return method === 'cash' ? 'pre_renewal' : method === 'credit' ? 'renewal' : null;
+  }
+
+  renewalActionLabel(action: RenewalLinkAction | null): string {
+    return action ? PROCESS_TYPE_LABELS[action === 'pre_renewal' ? 20 : 4] : '';
+  }
+
+  get renewalMethodMessage(): string {
+    if (this.loading) return 'Consultando el método de renovación en Incosis…';
+    if (this.historyError) return 'No se pudo actualizar el método de renovación. Actualiza la respuesta antes de iniciar una operación.';
+    if (this.selectedLink?.renewalMethodError) return this.selectedLink.renewalMethodError;
+    if (this.selectedLink?.renewalMethod === 'cash') return `Método de renovación en Incosis: ${this.renewalActionLabel('pre_renewal')}.`;
+    if (this.selectedLink?.renewalMethod === 'credit') return `Método de renovación en Incosis: ${this.renewalActionLabel('renewal')}.`;
+    return 'El método de renovación no está disponible. Revisa la configuración en Incosis y actualiza la respuesta.';
+  }
+
   get busy(): boolean { return this.creating || this.loading || !!this.revokingId || this.executing; }
 
   get executionValidation(): string { return this.action ? this.validateExecution() : ''; }
@@ -90,6 +111,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   get canConfirmExecution(): boolean {
     return this.visible && this.responseVisible && this.canProcess && !this.busy && !!this.action
       && this.selectedLink?.status === 'submitted' && this.remainingCount > 0
+      && (this.actionLocked || this.action === this.permittedNewAction)
       && !this.validateExecution();
   }
 
@@ -204,7 +226,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   }
 
   beginExecution(action: RenewalLinkAction): void {
-    if (!this.visible || !this.responseVisible || !this.canProcess || this.busy || this.actionLocked
+    if (!this.visible || !this.responseVisible || !this.canProcess || this.busy || this.actionLocked || action !== this.permittedNewAction
       || this.selectedLink?.status !== 'submitted' || !this.remainingCount) return;
     this.resetExecution();
     this.action = action;
@@ -231,6 +253,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
       ? { ...this.attemptedRequest } : this.executionRequest();
     this.attemptedRequest = request;
     this.attemptedLinkId = link.id;
+    this.preserveAttemptOnRefresh = true;
     this.executing = true;
     this.executionError = '';
     this.requests.add(this.service.execute(link.id, request).subscribe({
@@ -245,6 +268,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
         if (generation !== this.generation) return;
         this.executing = false;
         this.confirmationVisible = false;
+        this.preserveAttemptOnRefresh = !error?.status || error.status >= 500;
         this.executionError = getApiErrorMessage(error, 'No pudimos comprobar el resultado. Actualiza la respuesta o reintenta con los mismos datos. Los GPS completados no se volverán a procesar.');
       },
     }));
@@ -256,7 +280,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
 
   resultLabel(result?: RenewalLinkExecutionResult): string {
     if (!result) return 'Por procesar';
-    if (result.status === 'succeeded') return this.selectedLink?.execution?.action === 'pre_renewal' ? 'Pre-renovación registrada' : 'Renovado';
+    if (result.status === 'succeeded') return this.selectedLink?.execution?.action === 'pre_renewal' ? 'Renovación al contado registrada' : 'Renovado a crédito';
     return result.status === 'failed' ? 'No completado' : 'Pendiente';
   }
 
@@ -264,6 +288,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
 
   private restoreExecution(): void {
     const execution = this.selectedLink?.execution;
+    if (!execution && this.preserveAttemptOnRefresh && this.attemptedRequest && this.attemptedLinkId === this.selectedId) return;
     this.resetExecution();
     if (!execution) return;
     this.action = execution.action;
@@ -287,6 +312,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     this.confirmationVisible = false;
     this.attemptedRequest = null;
     this.attemptedLinkId = '';
+    this.preserveAttemptOnRefresh = false;
   }
 
   private executionRequest(): ExecuteRenewalLink {

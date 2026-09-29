@@ -119,7 +119,7 @@ describe('Processes filter templates integration', () => {
     expect(component.filtersExpanded).toBeFalse();
     fixture.detectChanges();
     const summary = fixture.nativeElement.querySelector('.process-template-summary');
-    expect(summary.textContent).toContain('Renovación');
+    expect(summary.textContent).toContain('Renovar ( Facturación a crédito )');
     expect(summary.textContent).toContain(client.label);
     expect(summary.textContent).toContain('01/09/2026');
     expect(summary.textContent).toContain('30/09/2026');
@@ -214,12 +214,51 @@ describe('Processes filter templates integration', () => {
     component.applyTemplate({ types: [22], client, dateFrom: null, dateTo: null });
     fixture.detectChanges();
     expect(service.getPaginated.calls.mostRecent().args).toEqual([1, 20, { types: [22], client: client.id }]);
-    expect(fixture.nativeElement.querySelector('.process-template-summary').textContent).toContain('Todos los vencimientos');
+    expect(fixture.nativeElement.querySelector('.process-template-summary').textContent).toContain('Todos los dispositivos vencidos');
+    expect(fixture.nativeElement.querySelector('.process-pending-renewal-note').textContent).toContain('Sin fechas se muestran solo los dispositivos actualmente vencidos');
     expect(fixture.nativeElement.querySelector('.column-date').textContent).toContain('Vencimiento');
     component.applyTemplate({ types: [22], client, dateFrom: null, dateTo: configuration.dateTo });
     expect(service.getPaginated.calls.mostRecent().args).toEqual([1, 20, {
       types: [22], client: client.id, dateTo: configuration.dateTo!.toISOString(),
     }]);
+  });
+
+  it('generates a future expiry range and displays the returned device before it expires', () => {
+    const futureYear = new Date().getFullYear() + 1;
+    const from = new Date(futureYear, 0, 10, 12);
+    const to = new Date(futureYear, 0, 12, 12);
+    const pending = {
+      _id: 'pending-renewal:future-device', type: 22, readOnly: true,
+      target: { _id: 'future-device', name: 'Vehículo por vencer', device_imei: '123456789012345' },
+      user: {}, client, creator: null, verificationStatus: 'pending',
+      registrationDate: new Date(futureYear, 0, 11, 12).toISOString(),
+      createdAt: new Date(futureYear, 0, 11, 12).toISOString(),
+    } as unknown as ProcessItem;
+    service.getPaginated.and.returnValue(of({ data: [pending], total: 1, page: 1, lastPage: 1 }));
+    component.selectedClient = client;
+    openTemplates();
+    (fixture.nativeElement.querySelector('[data-process-type="22"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    dialog().dateFrom = from;
+    dialog().dateTo = to;
+    (fixture.nativeElement.querySelector('.template-button--generate') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(service.getPaginated).toHaveBeenCalledOnceWith(1, 20, {
+      types: [22], client: client.id,
+      dateFrom: new Date(futureYear, 0, 10, 0, 0, 0, 0).toISOString(),
+      dateTo: new Date(futureYear, 0, 12, 23, 59, 59, 999).toISOString(),
+    });
+    expect(component.processes).toEqual([pending]);
+    expect(component.totalRecords).toBe(1);
+    expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('Vehículo Por Vencer');
+    expect(fixture.nativeElement.querySelector('.process-pending-renewal-note').textContent).toContain('vencidos o por vencer');
+    expect(fixture.nativeElement.querySelector('.process-template-summary').textContent).toContain(`10/01/${futureYear}`);
+    expect(fixture.nativeElement.querySelector('.process-template-summary').textContent).toContain(`12/01/${futureYear}`);
+    component.showDetail(pending);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.detail-summary__status').textContent).toContain('su vencimiento está dentro de las fechas seleccionadas');
+    expect(fixture.nativeElement.querySelector('.detail-summary__status').textContent).toContain('fuera de esos límites');
   });
 
   it('keeps mixed process types and manually narrowed dates when paging pending renewals', () => {

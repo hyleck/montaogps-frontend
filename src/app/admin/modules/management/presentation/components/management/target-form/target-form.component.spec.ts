@@ -46,4 +46,21 @@ describe('TargetFormComponent', () => {
     expect(fixture.nativeElement.querySelector('.terminal-body .chat-text').textContent).toContain(reply);
     expect(component.smsMessages[0].content).toBe(reply);
   });
+
+  it('renders only the process allowed by the Incosis renewal method and disables stale choices', () => {
+    component.target._id = '507f1f77bcf86cd799439042';
+    component.currentUserAffiliationTypeId = 'empleado'; component.activeTabIndex = 2;
+    component.gpsRenewalMethod = 'cash'; fixture.detectChanges();
+    const options = () => Array.from(fixture.nativeElement.querySelectorAll('#process_type option') as NodeListOf<HTMLOptionElement>).map(option => option.value);
+    expect(options()).toContain('cash_renewal'); expect(options()).not.toContain('renewal');
+    expect(fixture.nativeElement.textContent).toContain('Renovar ( Facturación al contado )');
+    component.gpsRenewalMethod = 'credit'; component.processForm.type = 'cash_renewal'; fixture.detectChanges();
+    expect(options()).toContain('renewal'); expect(options()).not.toContain('cash_renewal');
+    expect((fixture.nativeElement.querySelector('.add-process-container button') as HTMLButtonElement).disabled).toBeTrue();
+    component.gpsRenewalMethod = null; component.incosisClientProfileError = 'Método no disponible'; fixture.detectChanges();
+    expect(options()).not.toContain('renewal'); expect(options()).not.toContain('cash_renewal');
+    expect(fixture.nativeElement.textContent).toContain('Método no disponible');
+    component.processForm.type = 'installation'; fixture.detectChanges();
+    expect((fixture.nativeElement.querySelector('.add-process-container button') as HTMLButtonElement).disabled).toBeFalse();
+  });
 });

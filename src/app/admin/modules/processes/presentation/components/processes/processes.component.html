@@ -109,7 +109,7 @@
             </div>
 
             <div class="filter-field">
-                <label>{{ onlyPendingRenewals ? 'Vencido desde' : hasPendingRenewalFilter ? 'Fecha desde' : 'Registrado desde' }}</label>
+                <label>{{ onlyPendingRenewals ? 'Vencimiento desde' : hasPendingRenewalFilter ? 'Fecha desde' : 'Registrado desde' }}</label>
                 <p-calendar [(ngModel)]="dateFrom" dateFormat="dd/mm/yy"
                     (ngModelChange)="templateFiltersApplied = false"
                     placeholder="Fecha inicial" [showIcon]="true" [showTime]="true"
@@ -119,7 +119,7 @@
             </div>
 
             <div class="filter-field">
-                <label>{{ onlyPendingRenewals ? 'Vencido hasta' : hasPendingRenewalFilter ? 'Fecha hasta' : 'Registrado hasta' }}</label>
+                <label>{{ onlyPendingRenewals ? 'Vencimiento hasta' : hasPendingRenewalFilter ? 'Fecha hasta' : 'Registrado hasta' }}</label>
                 <p-calendar [(ngModel)]="dateTo" dateFormat="dd/mm/yy"
                     (ngModelChange)="templateFiltersApplied = false"
                     placeholder="Fecha final" [showIcon]="true" [showTime]="true"
@@ -143,7 +143,7 @@
             <span *ngIf="dateFrom && dateTo">{{ dateFrom | date:'dd/MM/yyyy' }} – {{ dateTo | date:'dd/MM/yyyy' }}</span>
             <span *ngIf="dateFrom && !dateTo">Desde {{ dateFrom | date:'dd/MM/yyyy' }}</span>
             <span *ngIf="!dateFrom && dateTo">Hasta {{ dateTo | date:'dd/MM/yyyy' }}</span>
-            <span *ngIf="!dateFrom && !dateTo">Todos los vencimientos</span>
+            <span *ngIf="!dateFrom && !dateTo">{{ onlyPendingRenewals ? 'Todos los dispositivos vencidos' : 'Sin límite de fechas' }}</span>
         </div>
         <button type="button" class="process-template-summary__edit"
             (click)="filtersExpanded = !filtersExpanded" [attr.aria-expanded]="filtersExpanded">
@@ -153,7 +153,8 @@
 
     <p *ngIf="hasPendingRenewalFilter" class="process-pending-renewal-note">
         <i class="pi pi-clock" aria-hidden="true"></i>
-        Dispositivos actualmente vencidos. Dejan de aparecer cuando su renovación los deja vigentes.
+        <span *ngIf="dateFrom || dateTo">Dispositivos vencidos o por vencer dentro de las fechas de vencimiento seleccionadas. Dejan de aparecer si una renovación mueve su vencimiento fuera de esos límites.</span>
+        <span *ngIf="!dateFrom && !dateTo">Sin fechas se muestran solo los dispositivos actualmente vencidos. Dejan de aparecer cuando su renovación los deja vigentes.</span>
         <span *ngIf="!onlyPendingRenewals">En Renovación pendiente, el rango de fechas corresponde al vencimiento; en los demás procesos, al registro.</span>
     </p>
 
@@ -400,7 +401,8 @@
                 <div class="detail-summary__status">
                     <label>{{ isPendingRenewal(selectedProcess) ? 'Estado del servicio' : 'Estado de revisión' }}</label>
                     <p-tag *ngIf="!canVerifyProcess(selectedProcess)" value="Pendiente de renovar" severity="warn" [rounded]="true"></p-tag>
-                    <small *ngIf="isPendingRenewal(selectedProcess)">Se mantiene pendiente hasta que la renovación deje vigente el dispositivo.</small>
+                    <small *ngIf="isPendingRenewal(selectedProcess) && (dateFrom || dateTo)">Aparece porque su vencimiento está dentro de las fechas seleccionadas. Deja de aparecer si una renovación mueve el vencimiento fuera de esos límites.</small>
+                    <small *ngIf="isPendingRenewal(selectedProcess) && !dateFrom && !dateTo">Sin fechas se muestran solo dispositivos vencidos. Deja de aparecer cuando su renovación lo deja vigente.</small>
                     <p-dropdown *ngIf="canVerifyProcess(selectedProcess)" class="verification-status-dropdown verification-status-dropdown--detail"
                         [ngClass]="getVerificationStatusClass(selectedProcess.verificationStatus)"
                         [options]="verificationStatusOptions"
