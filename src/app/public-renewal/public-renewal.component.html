@@ -1,0 +1,128 @@
+<main class="renewal-page" data-replay-block>
+    <div class="renewal-shell">
+        <header class="renewal-brand">
+            <span class="renewal-brand__mark" aria-hidden="true">M</span>
+            <div><strong>Montao GPS</strong><span>Selección de renovación</span></div>
+        </header>
+
+        <section class="renewal-state" *ngIf="loading" role="status" aria-live="polite">
+            <span class="renewal-spinner" aria-hidden="true"></span>
+            <h1>Cargando tu solicitud</h1>
+            <p>Estamos consultando los dispositivos de este enlace.</p>
+        </section>
+
+        <section class="renewal-state renewal-state--error" *ngIf="!loading && loadError" role="alert">
+            <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+            <h1>{{ loadErrorTitle }}</h1>
+            <p>{{ loadError }}</p>
+            <button type="button" class="renewal-primary" (click)="reload()">Volver a intentar</button>
+        </section>
+
+        <ng-container *ngIf="!loading && !loadError && info as renewal">
+            <header class="renewal-intro" *ngIf="!submitted">
+                <span class="renewal-eyebrow">{{ renewal.client.name | userName }}</span>
+                <h1>Elige qué dispositivos renovar</h1>
+                <p>Marca <strong>Renovar</strong> o <strong>No renovar</strong> para cada dispositivo. Tu selección se enviará a Montao GPS para gestionar la solicitud.</p>
+            </header>
+            <header class="renewal-confirmed" *ngIf="submitted" role="status">
+                <span class="renewal-confirmed__icon"><i class="pi pi-check" aria-hidden="true"></i></span>
+                <div>
+                    <span class="renewal-eyebrow">{{ renewal.client.name | userName }}</span>
+                    <h1>Recibimos tu selección</h1>
+                    <p>La selección quedó registrada. Puedes consultar el detalle a continuación.</p>
+                    <span class="renewal-confirmed__date" *ngIf="submittedOn">Confirmada el {{ submittedOn | date:'dd/MM/yyyy, h:mm a' }}</span>
+                </div>
+            </header>
+
+            <div class="renewal-notice" *ngIf="refreshNotice" role="status">{{ refreshNotice }}</div>
+            <div class="renewal-notice renewal-notice--warning" *ngIf="submitError" role="alert">
+                <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+                <div><p>{{ submitError }}</p><button type="button" class="renewal-text-button" (click)="reload()">{{ requiresRefresh ? 'Actualizar lista' : 'Actualizar estado' }}</button></div>
+            </div>
+
+            <div class="renewal-layout">
+                <section class="renewal-devices" aria-labelledby="renewal-devices-heading">
+                    <div class="renewal-list-heading">
+                        <h2 id="renewal-devices-heading">Tus dispositivos <span>{{ devices.length }}</span></h2>
+                        <p>Incluye dispositivos vigentes y vencidos.</p>
+                    </div>
+                    <label class="renewal-search" *ngIf="devices.length">
+                        <i class="pi pi-search" aria-hidden="true"></i>
+                        <span class="sr-only">Buscar por nombre, IMEI o placa</span>
+                        <input type="search" [(ngModel)]="query" placeholder="Buscar por nombre, IMEI o placa" [disabled]="submitting">
+                    </label>
+                    <div class="renewal-bulk" *ngIf="!submitted && devices.length">
+                        <span>Marcar los {{ devices.length }} dispositivos:</span>
+                        <div>
+                            <button type="button" (click)="selectAll(true)" [disabled]="submitting || requiresRefresh">Renovar todos</button>
+                            <button type="button" (click)="selectAll(false)" [disabled]="submitting || requiresRefresh">No renovar ninguno</button>
+                        </div>
+                        <small *ngIf="query">Estas acciones incluyen los dispositivos ocultos por la búsqueda.</small>
+                    </div>
+
+                    <div class="renewal-empty" *ngIf="!devices.length">
+                        <i class="pi pi-car" aria-hidden="true"></i>
+                        <h3>No hay dispositivos disponibles</h3>
+                        <p>Este enlace no tiene dispositivos para seleccionar.</p>
+                    </div>
+                    <div class="renewal-empty" *ngIf="devices.length && !filteredDevices.length">
+                        <i class="pi pi-search" aria-hidden="true"></i>
+                        <h3>No hay resultados para esta búsqueda</h3>
+                        <button type="button" class="renewal-text-button" (click)="query = ''">Ver todos los dispositivos</button>
+                    </div>
+
+                    <article *ngFor="let device of filteredDevices; trackBy: trackDevice" class="renewal-device"
+                        [class.renewal-device--chosen]="decisionFor(device.id) !== undefined" [attr.data-device-id]="device.id">
+                        <div class="renewal-device__identity">
+                            <span class="renewal-device__icon"><i class="pi pi-car" aria-hidden="true"></i></span>
+                            <div>
+                                <h3>{{ device.name || 'Dispositivo sin nombre' }}</h3>
+                                <span class="renewal-device__imei">IMEI {{ device.imei || 'No disponible' }}</span>
+                                <div class="renewal-device__details">
+                                    <span *ngIf="device.plate"><span>Placa</span> {{ device.plate }}</span>
+                                    <span><span>Vencimiento</span> {{ device.expiration ? (device.expiration | date:'dd/MM/yyyy') : 'Sin fecha disponible' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <fieldset *ngIf="!submitted" class="renewal-options" [disabled]="submitting || requiresRefresh">
+                            <legend class="sr-only">Selección para {{ device.name || device.imei }}</legend>
+                            <label [class.renewal-option--yes]="decisionFor(device.id) === true">
+                                <input type="radio" [name]="'renewal-' + device.id" [checked]="decisionFor(device.id) === true" (change)="setDecision(device.id, true)">
+                                <span>Renovar</span>
+                            </label>
+                            <label [class.renewal-option--no]="decisionFor(device.id) === false">
+                                <input type="radio" [name]="'renewal-' + device.id" [checked]="decisionFor(device.id) === false" (change)="setDecision(device.id, false)">
+                                <span>No renovar</span>
+                            </label>
+                        </fieldset>
+                        <span *ngIf="submitted" class="renewal-recorded" [class.renewal-recorded--yes]="decisionFor(device.id) === true">
+                            <i class="pi" [class.pi-check-circle]="decisionFor(device.id) === true" [class.pi-minus-circle]="decisionFor(device.id) !== true" aria-hidden="true"></i>
+                            {{ decisionFor(device.id) === true ? 'Renovar' : (decisionFor(device.id) === false ? 'No renovar' : 'Sin decisión registrada') }}
+                        </span>
+                    </article>
+                </section>
+
+                <aside class="renewal-summary" aria-labelledby="renewal-summary-heading">
+                    <span class="renewal-summary__eyebrow">{{ submitted ? 'Confirmación registrada' : 'Antes de confirmar' }}</span>
+                    <h2 id="renewal-summary-heading">Tu selección</h2>
+                    <dl aria-live="polite" aria-atomic="true">
+                        <div class="renewal-summary__yes"><dt><i class="pi pi-check-circle" aria-hidden="true"></i> Renovar</dt><dd>{{ renewCount }}</dd></div>
+                        <div><dt><i class="pi pi-minus-circle" aria-hidden="true"></i> No renovar</dt><dd>{{ noRenewCount }}</dd></div>
+                        <div class="renewal-summary__pending" *ngIf="!submitted"><dt><i class="pi pi-clock" aria-hidden="true"></i> Por elegir</dt><dd>{{ undecidedCount }}</dd></div>
+                    </dl>
+                    <ng-container *ngIf="!submitted && devices.length">
+                        <p *ngIf="undecidedCount">Elige una opción para los {{ undecidedCount }} dispositivos pendientes.</p>
+                        <p *ngIf="!undecidedCount">Revisa tu selección antes de enviarla.</p>
+                        <button type="button" class="renewal-primary renewal-submit" [disabled]="!canSubmit" (click)="confirmSelection()">
+                            <i class="pi pi-spin pi-spinner" *ngIf="submitting" aria-hidden="true"></i>
+                            {{ submitting ? 'Confirmando selección…' : 'Confirmar selección' }}
+                        </button>
+                    </ng-container>
+                    <p *ngIf="submitted">Estas son las opciones que recibimos para tu solicitud.</p>
+                </aside>
+            </div>
+            <footer class="renewal-footer" *ngIf="linkExpiresOn && !submitted">Enlace válido hasta el {{ linkExpiresOn | date:'dd/MM/yyyy, h:mm a' }}.</footer>
+        </ng-container>
+        <footer class="renewal-signature">Montao GPS · Gestión de renovaciones</footer>
+    </div>
+</main>

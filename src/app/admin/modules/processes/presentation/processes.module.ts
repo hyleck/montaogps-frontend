@@ -8,12 +8,16 @@ import { ProcessesComponent } from './components/processes/processes.component';
 import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.module';
 import { TranslateModule } from '@ngx-translate/core';
 import { DeviceRecordsComponent } from 'src/app/shareds/components/device-records/device-records.component';
+import { ProcessTemplatesDialogComponent } from './components/process-templates-dialog/process-templates-dialog.component';
+import { ProcessRenewalLinksDialogComponent } from './components/process-renewal-links-dialog/process-renewal-links-dialog.component';
 
 @NgModule({
   declarations: [
     ProcessesComponent
   ],
   imports: [
+    ProcessTemplatesDialogComponent,
+    ProcessRenewalLinksDialogComponent,
     UserNamePipe,
     DeviceRecordsComponent,
     DeviceLabelPipe,

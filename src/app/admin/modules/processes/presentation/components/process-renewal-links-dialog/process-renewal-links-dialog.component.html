@@ -1,0 +1,76 @@
+<p-dialog [visible]="visible" (visibleChange)="onVisibleChange($event)" [modal]="true"
+    [draggable]="false" [resizable]="false" [style]="{ width: '860px', maxWidth: '96vw' }"
+    styleClass="process-renewal-links-dialog">
+    <ng-template pTemplate="header">
+        <div class="renewal-links-heading">
+            <i class="pi pi-link" aria-hidden="true"></i>
+            <div><strong>Enlaces de renovación</strong><span>{{ clientName }}</span></div>
+        </div>
+    </ng-template>
+
+    <section class="renewal-links-content">
+        <p class="renewal-links-intro">El cliente podrá elegir cuáles dispositivos renovar. Su selección quedará guardada aquí para continuar la gestión.</p>
+        <p *ngIf="creating" class="renewal-links-feedback" role="status"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Generando enlace…</p>
+        <p *ngIf="error" class="renewal-links-error" role="alert">{{ error }}</p>
+
+        <section *ngIf="created && linkUrl" class="renewal-link-created" data-replay-block>
+            <h3>Enlace listo para compartir</h3>
+            <p>Incluye los {{ created.deviceCount }} dispositivos del cliente. Disponible hasta {{ created.expiresAt | date:'dd/MM/yyyy · HH:mm' }}.</p>
+            <label for="renewal-public-link">Enlace público</label>
+            <input id="renewal-public-link" data-activity-private [value]="linkUrl" readonly (focus)="$any($event.target).select()">
+            <div class="renewal-links-actions">
+                <button type="button" class="renewal-action renewal-action--primary" (click)="copyLink()"><i class="pi pi-copy" aria-hidden="true"></i> Copiar enlace</button>
+                <button type="button" class="renewal-action" (click)="shareLink()"><i class="pi pi-share-alt" aria-hidden="true"></i> Compartir</button>
+                <a class="renewal-action" [href]="linkUrl" target="_blank" rel="noopener noreferrer">Abrir <i class="pi pi-external-link" aria-hidden="true"></i></a>
+            </div>
+            <small *ngIf="copyMessage" role="status">{{ copyMessage }}</small>
+        </section>
+
+        <div class="renewal-links-section-heading">
+            <h3>Enlaces y respuestas</h3>
+            <button type="button" class="renewal-action" [disabled]="loading || creating || !!revokingId" (click)="refresh()"><i class="pi pi-refresh" aria-hidden="true"></i> Actualizar</button>
+        </div>
+        <p *ngIf="loading" role="status" class="renewal-links-feedback">Cargando enlaces…</p>
+        <p *ngIf="historyError" role="alert" class="renewal-links-error">{{ historyError }}</p>
+        <p *ngIf="!loading && !historyError && !links.length" class="renewal-links-feedback">Este cliente aún no tiene enlaces de renovación.</p>
+
+        <div class="renewal-link-list">
+            <article *ngFor="let link of links" class="renewal-link-record" [class.renewal-link-record--selected]="selectedId === link.id">
+                <div>
+                    <strong class="renewal-link-status" [class.renewal-link-status--submitted]="link.status === 'submitted'">{{ statusLabel(link.status) }}</strong>
+                    <span>Creado {{ link.createdAt | date:'dd/MM/yyyy · HH:mm' }} · {{ link.deviceCount }} dispositivos</span>
+                    <span *ngIf="link.status === 'submitted'">{{ renewalCount(link) }} para renovar · {{ declineCount(link) }} sin renovar</span>
+                    <span *ngIf="link.status === 'active'">Vence {{ link.expiresAt | date:'dd/MM/yyyy · HH:mm' }}</span>
+                </div>
+                <button *ngIf="link.status === 'submitted'" type="button" class="renewal-action" (click)="selectedId = link.id">Ver selección</button>
+                <button *ngIf="link.status === 'active'" type="button" class="renewal-action" [disabled]="!!revokingId || loading || creating" (click)="revoke(link)">
+                    {{ revokingId === link.id ? 'Revocando…' : 'Revocar enlace' }}
+                </button>
+            </article>
+        </div>
+
+        <section *ngIf="selectedLink as response" class="renewal-client-response">
+            <h3>Selección del cliente</h3>
+            <p>Confirmada {{ response.submittedAt | date:'dd/MM/yyyy · HH:mm' }}</p>
+            <div class="renewal-response-table">
+                <table>
+                    <thead><tr><th>Dispositivo</th><th>Vencimiento</th><th>Selección</th></tr></thead>
+                    <tbody><tr *ngFor="let decision of response.decisions">
+                        <td><strong>{{ decision.name || decision.imei }}</strong><small>IMEI {{ decision.imei }}<span *ngIf="decision.plate"> · {{ decision.plate }}</span></small></td>
+                        <td>{{ (displayDate(decision.expirationDate) | date:'dd/MM/yyyy') || 'Sin fecha' }}</td>
+                        <td><span class="renewal-decision" [class.renewal-decision--yes]="decision.renew">{{ decision.renew ? 'Renovar' : 'No renovar' }}</span></td>
+                    </tr></tbody>
+                </table>
+            </div>
+        </section>
+    </section>
+
+    <ng-template pTemplate="footer">
+        <div class="renewal-links-footer">
+            <button type="button" class="renewal-action" (click)="close()">Cerrar</button>
+            <button type="button" class="renewal-action renewal-action--primary" [disabled]="creating || loading || !!revokingId" (click)="generate()">
+                <i class="pi pi-link" aria-hidden="true"></i> {{ created ? 'Generar otro enlace' : 'Generar enlace' }}
+            </button>
+        </div>
+    </ng-template>
+</p-dialog>

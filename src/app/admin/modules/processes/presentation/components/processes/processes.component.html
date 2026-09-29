@@ -25,6 +25,11 @@
                 <span *ngIf="getAppliedFilterCount() > 0" class="filter-count">{{ getAppliedFilterCount() }}</span>
             </button>
 
+            <button type="button" pButton icon="pi pi-th-large" label="Plantillas"
+                class="p-button-outlined processes-templates-button" aria-haspopup="dialog"
+                (click)="templatesDialogVisible = true">
+            </button>
+
             <button type="button" pButton icon="pi pi-file-excel" label="Exportar"
                 class="p-button-outlined processes-export-button" (click)="exportExcel()">
             </button>
@@ -40,6 +45,7 @@
                     optionLabel="label" optionValue="value" appendTo="body"
                     (ngModelChange)="onProcessTypesChange($event)">
                 </p-multiselect>
+                <small *ngIf="!hasSelectedClient" class="process-client-required-hint">Selecciona un cliente para habilitar Renovación pendiente.</small>
             </div>
 
             <div class="filter-field">
@@ -83,8 +89,9 @@
             </div>
 
             <div class="filter-field">
-                <label>Cliente</label>
-                <p-autoComplete [(ngModel)]="selectedClient" [suggestions]="clientOptions"
+                <label>Cliente <span *ngIf="hasPendingRenewalFilter">(obligatorio)</span></label>
+                <p-autoComplete [ngModel]="selectedClient" [suggestions]="clientOptions"
+                    (ngModelChange)="onClientFilterChange($event)"
                     (completeMethod)="searchClients($event)" (onSelect)="onClientSelected()"
                     (onClear)="clearClientFilter()" optionLabel="label" [forceSelection]="true"
                     dataKey="id" [dropdown]="true" [minLength]="0" appendTo="body"
@@ -102,8 +109,9 @@
             </div>
 
             <div class="filter-field">
-                <label>Registrado desde</label>
+                <label>{{ onlyPendingRenewals ? 'Vencido desde' : hasPendingRenewalFilter ? 'Fecha desde' : 'Registrado desde' }}</label>
                 <p-calendar [(ngModel)]="dateFrom" dateFormat="dd/mm/yy"
+                    (ngModelChange)="templateFiltersApplied = false"
                     placeholder="Fecha inicial" [showIcon]="true" [showTime]="true"
                     [hourFormat]="'24'" [showSeconds]="false" appendTo="body"
                     (onSelect)="applyFilters()" (onClear)="applyFilters()">
@@ -111,8 +119,9 @@
             </div>
 
             <div class="filter-field">
-                <label>Registrado hasta</label>
+                <label>{{ onlyPendingRenewals ? 'Vencido hasta' : hasPendingRenewalFilter ? 'Fecha hasta' : 'Registrado hasta' }}</label>
                 <p-calendar [(ngModel)]="dateTo" dateFormat="dd/mm/yy"
+                    (ngModelChange)="templateFiltersApplied = false"
                     placeholder="Fecha final" [showIcon]="true" [showTime]="true"
                     [hourFormat]="'24'" [showSeconds]="false" appendTo="body"
                     (onSelect)="applyFilters()" (onClear)="applyFilters()">
@@ -127,6 +136,34 @@
         </div>
     </section>
 
+    <div *ngIf="templateFiltersApplied" class="process-template-summary" role="status">
+        <div class="process-template-summary__details">
+            <strong><i class="pi pi-th-large" aria-hidden="true"></i> {{ getTypeLabel(selectedTypes[0]) }}</strong>
+            <span>{{ selectedClient?.label || 'Todos los clientes' }}</span>
+            <span *ngIf="dateFrom && dateTo">{{ dateFrom | date:'dd/MM/yyyy' }} – {{ dateTo | date:'dd/MM/yyyy' }}</span>
+            <span *ngIf="dateFrom && !dateTo">Desde {{ dateFrom | date:'dd/MM/yyyy' }}</span>
+            <span *ngIf="!dateFrom && dateTo">Hasta {{ dateTo | date:'dd/MM/yyyy' }}</span>
+            <span *ngIf="!dateFrom && !dateTo">Todos los vencimientos</span>
+        </div>
+        <button type="button" class="process-template-summary__edit"
+            (click)="filtersExpanded = !filtersExpanded" [attr.aria-expanded]="filtersExpanded">
+            {{ filtersExpanded ? 'Ocultar filtros' : 'Editar filtros' }}
+        </button>
+    </div>
+
+    <p *ngIf="hasPendingRenewalFilter" class="process-pending-renewal-note">
+        <i class="pi pi-clock" aria-hidden="true"></i>
+        Dispositivos actualmente vencidos. Dejan de aparecer cuando su renovación los deja vigentes.
+        <span *ngIf="!onlyPendingRenewals">En Renovación pendiente, el rango de fechas corresponde al vencimiento; en los demás procesos, al registro.</span>
+    </p>
+
+    <div *ngIf="hasPendingRenewalFilter && hasSelectedClient" class="process-renewal-link-actions">
+        <button type="button" pButton icon="pi pi-link" label="Generar link de renovación"
+            class="process-renewal-link-generate" aria-haspopup="dialog" (click)="openRenewalLinks('generate')"></button>
+        <button type="button" pButton icon="pi pi-list" label="Ver respuestas"
+            class="p-button-outlined process-renewal-link-responses" aria-haspopup="dialog" (click)="openRenewalLinks('responses')"></button>
+    </div>
+
     <section class="processes-list-card">
         <div class="processes-table">
             <p-table [value]="processes" [loading]="loading" [lazy]="true"
@@ -139,7 +176,7 @@
 
                 <ng-template pTemplate="header">
                     <tr>
-                        <th class="column-date">Fecha</th>
+                        <th class="column-date">{{ onlyPendingRenewals ? 'Vencimiento' : 'Fecha' }}</th>
                         <th class="column-process">Proceso</th>
                         <th class="column-target">Objetivo</th>
                         <th class="column-client">Cliente</th>
@@ -153,6 +190,7 @@
                     <tr [ngClass]="getProcessRowClass(process.verificationStatus)">
                         <td>
                             <div class="process-date">
+                                <span *ngIf="isPendingRenewal(process) && !onlyPendingRenewals">Vencimiento</span>
                                 <strong>{{ getProcessDate(process) | date:'dd MMM yyyy' }}</strong>
                             </div>
                         </td>
@@ -182,7 +220,8 @@
                             </div>
                         </td>
                         <td>
-                            <p-dropdown class="verification-status-dropdown"
+                            <p-tag *ngIf="!canVerifyProcess(process)" value="Pendiente de renovar" severity="warn" [rounded]="true"></p-tag>
+                            <p-dropdown *ngIf="canVerifyProcess(process)" class="verification-status-dropdown"
                                 [ngClass]="getVerificationStatusClass(process.verificationStatus)"
                                 [options]="verificationStatusOptions"
                                 [ngModel]="getVerificationStatus(process.verificationStatus)"
@@ -238,6 +277,15 @@
         </div>
     </section>
 </div>
+
+<app-process-templates-dialog [(visible)]="templatesDialogVisible"
+    [initialClient]="selectedClient" [initialDateFrom]="dateFrom" [initialDateTo]="dateTo"
+    (generated)="applyTemplate($event)">
+</app-process-templates-dialog>
+
+<app-process-renewal-links-dialog *ngIf="renewalLinksDialogVisible" [(visible)]="renewalLinksDialogVisible"
+    [client]="renewalLinksClient" [mode]="renewalLinksMode">
+</app-process-renewal-links-dialog>
 
 <p-dialog [(visible)]="detailDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"
     (onHide)="closeDetail()"
@@ -340,18 +388,20 @@
 
             <section class="detail-summary">
                 <div class="detail-summary__main">
-                    <span class="detail-summary__eyebrow">Registro operativo</span>
+                    <span class="detail-summary__eyebrow">{{ isPendingRenewal(selectedProcess) ? 'Renovación pendiente' : 'Registro operativo' }}</span>
                     <p>{{ (selectedProcess.description || 'Proceso registrado en el historial operativo.') | deviceLabel }}</p>
                     <div class="detail-summary__meta">
-                        <span><i class="pi pi-calendar"></i>Fecha del proceso: {{ getProcessDate(selectedProcess) | date:'dd/MM/yyyy' }}</span>
-                        <span><i class="pi pi-clock"></i>Creado: {{ selectedProcess.createdAt | date:'dd/MM/yyyy · HH:mm:ss' }}</span>
+                        <span><i class="pi pi-calendar"></i>{{ isPendingRenewal(selectedProcess) ? 'Vencimiento' : 'Fecha del proceso' }}: {{ getProcessDate(selectedProcess) | date:'dd/MM/yyyy' }}</span>
+                        <span *ngIf="!isPendingRenewal(selectedProcess)"><i class="pi pi-clock"></i>Creado: {{ selectedProcess.createdAt | date:'dd/MM/yyyy · HH:mm:ss' }}</span>
                         <span><i class="pi pi-hashtag"></i>{{ selectedProcess.reference || selectedProcess._id }}</span>
                     </div>
                 </div>
 
                 <div class="detail-summary__status">
-                    <label>Estado de revisión</label>
-                    <p-dropdown class="verification-status-dropdown verification-status-dropdown--detail"
+                    <label>{{ isPendingRenewal(selectedProcess) ? 'Estado del servicio' : 'Estado de revisión' }}</label>
+                    <p-tag *ngIf="!canVerifyProcess(selectedProcess)" value="Pendiente de renovar" severity="warn" [rounded]="true"></p-tag>
+                    <small *ngIf="isPendingRenewal(selectedProcess)">Se mantiene pendiente hasta que la renovación deje vigente el dispositivo.</small>
+                    <p-dropdown *ngIf="canVerifyProcess(selectedProcess)" class="verification-status-dropdown verification-status-dropdown--detail"
                         [ngClass]="getVerificationStatusClass(selectedProcess.verificationStatus)"
                         [options]="verificationStatusOptions"
                         [ngModel]="getVerificationStatus(selectedProcess.verificationStatus)"
@@ -391,6 +441,9 @@
                         <div *ngIf="selectedProcess.target?.sim_card_number">
                             <dt>SIM</dt><dd class="mono-value">{{ selectedProcess.target.sim_card_number }}</dd>
                         </div>
+                        <div *ngIf="isPendingRenewal(selectedProcess)">
+                            <dt>Vencimiento</dt><dd>{{ getProcessDate(selectedProcess) | date:'dd/MM/yyyy' }}</dd>
+                        </div>
                     </dl>
                 </section>
 
@@ -401,6 +454,9 @@
                     </div>
                     <dl class="detail-data-list">
                         <div><dt>Cliente</dt><dd>{{ getClientName(selectedProcess) }}</dd></div>
+                        <div *ngIf="selectedProcess.client?.['subclient'] as subclient">
+                            <dt>Subcliente</dt><dd>{{ getCreatorName(subclient) }}</dd>
+                        </div>
                         <div><dt>Usuario</dt><dd>{{ (selectedProcess.user.name | userName) || selectedProcess.user.email || '-' }}</dd></div>
                         <div><dt>Empleado</dt><dd>{{ getCreatorName(selectedProcess.creator) }}</dd></div>
                         <div><dt>Técnico</dt><dd>{{ isInstallationProcess ? installationTechnicianName : getTechnicianName(selectedProcess) }}</dd></div>

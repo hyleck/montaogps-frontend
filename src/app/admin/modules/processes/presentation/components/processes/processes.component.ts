@@ -25,6 +25,7 @@ import * as XLSX from 'xlsx-js-style';
 import { MessageService } from 'primeng/api';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
+import { ProcessTemplateConfiguration } from '../process-templates-dialog/process-templates-dialog.component';
 
 type StructuredDetailTone = 'success' | 'danger' | 'warning' | 'info' | 'neutral';
 
@@ -107,11 +108,25 @@ export class ProcessesComponent implements OnInit, OnDestroy {
   dateFrom: Date | null = this.getCurrentMonthRange().from;
   dateTo: Date | null = this.getCurrentMonthRange().to;
   filtersExpanded = false;
+  templatesDialogVisible = false;
+  templateFiltersApplied = false;
+  renewalLinksDialogVisible = false;
+  renewalLinksMode: 'generate' | 'responses' = 'generate';
+  renewalLinksClient: { id: string; label: string } | null = null;
 
-  typeOptions = Object.entries(PROCESS_TYPE_LABELS).map(([key, label]) => ({
+  private readonly allTypeOptions = Object.entries(PROCESS_TYPE_LABELS).map(([key, label]) => ({
     label,
     value: Number(key)
   }));
+  private readonly generalTypeOptions = this.allTypeOptions.filter(option => option.value !== 22);
+
+  get typeOptions(): Array<{ label: string; value: number }> {
+    return this.hasSelectedClient ? this.allTypeOptions : this.generalTypeOptions;
+  }
+
+  get hasSelectedClient(): boolean {
+    return typeof this.selectedClient?.id === 'string' && !!this.selectedClient.id.trim();
+  }
 
   processTypeLabels = PROCESS_TYPE_LABELS;
   verificationStatusOptions = Object.entries(PROCESS_VERIFICATION_STATUS_LABELS).map(([value, label]) => ({
@@ -191,6 +206,13 @@ export class ProcessesComponent implements OnInit, OnDestroy {
 
   loadProcesses(): void {
     this.processesRequest?.unsubscribe();
+    if (this.hasPendingRenewalFilter && !this.hasSelectedClient) {
+      this.processes = [];
+      this.totalRecords = 0;
+      this.loading = false;
+      this.filtersExpanded = true;
+      return;
+    }
     this.loading = true;
     const filters: any = {};
     if (this.selectedTypes.length) filters.types = [...this.selectedTypes];
@@ -208,8 +230,16 @@ export class ProcessesComponent implements OnInit, OnDestroy {
         this.totalRecords = res.total;
         this.loading = false;
       },
-      error: () => {
+      error: (error) => {
         this.loading = false;
+        this.processes = [];
+        this.totalRecords = 0;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudieron cargar los procesos',
+          detail: getApiErrorMessage(error, 'Intenta aplicar los filtros nuevamente.'),
+          life: 4000,
+        });
       }
     });
   }
@@ -221,16 +251,70 @@ export class ProcessesComponent implements OnInit, OnDestroy {
   }
 
   applyFilters(): void {
+    this.templateFiltersApplied = false;
     this.currentPage = 1;
     this.loadProcesses();
   }
 
+  applyTemplate(configuration: ProcessTemplateConfiguration): void {
+    if (configuration.types.includes(22) && !configuration.client?.id?.trim()) {
+      this.messageService.add({ severity: 'warn', summary: 'Cliente obligatorio',
+        detail: 'Selecciona un cliente para consultar Renovación pendiente.', life: 4000 });
+      return;
+    }
+    this.selectedTypes = [...configuration.types];
+    this.selectedClient = configuration.client ? { ...configuration.client } : null;
+    this.dateFrom = configuration.dateFrom ? new Date(configuration.dateFrom.getTime()) : null;
+    this.dateTo = configuration.dateTo ? new Date(configuration.dateTo.getTime()) : null;
+    this.searchQuery = '';
+    this.selectedCreator = null;
+    this.selectedMechanic = null;
+    this.selectedVerificationStatus = null;
+    this.clientOptions = [];
+    this.templatesDialogVisible = false;
+    this.filtersExpanded = false;
+    this.applyFilters();
+    this.templateFiltersApplied = true;
+  }
+
   onProcessTypesChange(types: number[] | null): void {
+    types = (types ?? []).filter(type => type !== 22 || this.hasSelectedClient);
+    if (types?.includes(22) && !this.selectedTypes.includes(22)) {
+      // The default current-month range would hide devices that expired earlier.
+      this.dateFrom = null;
+      this.dateTo = null;
+      this.selectedCreator = null;
+      this.selectedVerificationStatus = null;
+    }
     this.selectedTypes = types ?? [];
     this.applyFilters();
   }
 
+  get hasPendingRenewalFilter(): boolean {
+    return this.selectedTypes.includes(22);
+  }
+
+  openRenewalLinks(mode: 'generate' | 'responses'): void {
+    if (!this.hasPendingRenewalFilter || !this.hasSelectedClient) return;
+    this.renewalLinksClient = { id: this.selectedClient!.id, label: this.selectedClient!.label };
+    this.renewalLinksMode = mode;
+    this.renewalLinksDialogVisible = true;
+  }
+
+  get onlyPendingRenewals(): boolean {
+    return this.selectedTypes.length === 1 && this.hasPendingRenewalFilter;
+  }
+
+  isPendingRenewal(process: ProcessItem): boolean {
+    return Number(process.type) === 22;
+  }
+
+  canVerifyProcess(process: ProcessItem): boolean {
+    return !process.readOnly && !this.isPendingRenewal(process);
+  }
+
   clearFilters(): void {
+    this.templateFiltersApplied = false;
     this.searchQuery = '';
     this.selectedTypes = [];
     this.selectedCreator = null;
@@ -246,6 +330,11 @@ export class ProcessesComponent implements OnInit, OnDestroy {
   }
 
   async exportExcel(): Promise<void> {
+    if (this.hasPendingRenewalFilter && !this.hasSelectedClient) {
+      this.messageService.add({ severity: 'warn', summary: 'Cliente obligatorio',
+        detail: 'Selecciona un cliente para exportar Renovación pendiente.', life: 4000 });
+      return;
+    }
     // Ensure brands/models are loaded before exporting
     if (Object.keys(this.brandsMap).length === 0) {
       await this.loadBrandsAndModels();
@@ -343,6 +432,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
       19: 'B71C1C',  // Desinstalación
       20: '2E7D32',  // Pre-renovación
       21: '0284C7',  // Cambio de vehículo
+      22: 'B45309',  // Renovación pendiente
     };
 
     // Apply type colors to column B (Tipo)
@@ -398,6 +488,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
       19: 'danger',   // Desinstalación
       20: 'success',  // Pre-renovación
       21: 'info',     // Cambio de vehículo
+      22: 'warn',     // Renovación pendiente
     };
     return severities[type] || 'info';
   }
@@ -446,7 +537,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     process: ProcessItem,
     status: ProcessVerificationStatus,
   ): void {
-    if (this.updatingVerificationId || this.getVerificationStatus(process.verificationStatus) === status) {
+    if (!this.canVerifyProcess(process) || this.updatingVerificationId || this.getVerificationStatus(process.verificationStatus) === status) {
       return;
     }
 
@@ -1446,7 +1537,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
               || client.email
               || client.phone
               || 'Cliente sin nombre';
-            const id = String(client._id || client.email || client.phone || '').trim();
+            const id = String(client._id || client.id || client.email || client.phone || '').trim();
             return {
               label,
               id,
@@ -1466,9 +1557,20 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     this.applyFilters();
   }
 
+  onClientFilterChange(client: typeof this.selectedClient | string): void {
+    const previouslySelected = this.hasSelectedClient;
+    this.selectedClient = typeof client === 'object' && client?.id?.trim() ? client : null;
+    this.templateFiltersApplied = false;
+    if (!this.hasSelectedClient && (previouslySelected || this.hasPendingRenewalFilter)) {
+      this.selectedTypes = this.selectedTypes.filter(type => type !== 22);
+      this.processes = [];
+      this.totalRecords = 0;
+      this.applyFilters();
+    }
+  }
+
   clearClientFilter(): void {
-    this.selectedClient = null;
-    this.applyFilters();
+    this.onClientFilterChange(null);
   }
 
   private async loadBrandsAndModels(): Promise<void> {

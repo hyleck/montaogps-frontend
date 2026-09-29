@@ -1,0 +1,297 @@
+:host {
+    display: contents;
+}
+
+::ng-deep .process-templates-dialog.p-dialog {
+    --template-accent: #dc2626;
+    --template-soft: #fef2f2;
+    --template-border: #e2e8f0;
+    --template-surface: #ffffff;
+    --template-muted: #64748b;
+    --template-text: #172033;
+    border: 1px solid var(--template-border);
+    border-radius: 20px;
+    color: var(--template-text);
+    background: var(--template-surface);
+    overflow: hidden;
+}
+
+::ng-deep .process-templates-dialog .p-dialog-header,
+::ng-deep .process-templates-dialog .p-dialog-content,
+::ng-deep .process-templates-dialog .p-dialog-footer {
+    color: var(--template-text);
+    background: var(--template-surface);
+    padding: 22px;
+}
+
+::ng-deep .process-templates-dialog .p-dialog-content {
+    padding-top: 0;
+}
+
+::ng-deep .process-templates-dialog .p-dialog-footer {
+    border-top: 1px solid var(--template-border);
+    padding-top: 16px;
+    padding-bottom: 16px;
+}
+
+.templates-heading,
+.templates-heading__icon,
+.template-selection,
+.template-button,
+.template-field__label,
+.templates-footer,
+.templates-footer__actions,
+.template-search-error {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.templates-heading__icon {
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+    border-radius: 12px;
+    color: var(--template-accent);
+    background: var(--template-soft);
+    font-size: 1.2rem;
+}
+
+.templates-heading > div,
+.template-field,
+.template-client-option {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.templates-heading strong {
+    font-size: 1.12rem;
+}
+
+.templates-heading span:not(.templates-heading__icon),
+.templates-description,
+.template-card > span,
+.template-field label > span,
+.template-client-hint,
+.template-client-option small,
+.template-search-loading {
+    color: var(--template-muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.templates-description {
+    margin: 0 0 20px;
+}
+
+.templates-grid,
+.template-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.template-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 20px;
+    border: 1px solid var(--template-border);
+    border-radius: 14px;
+    color: var(--template-text);
+    background: var(--template-surface);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.template-card:hover,
+.template-card:focus-visible {
+    border-color: var(--template-accent);
+    background: var(--template-soft);
+}
+
+.template-card:focus-visible,
+.template-button:focus-visible,
+.template-clear-client:focus-visible,
+.template-search-error button:focus-visible {
+    outline: 2px solid var(--template-accent);
+    outline-offset: 3px;
+}
+
+.template-card > i:first-child {
+    color: var(--template-accent);
+    font-size: 1.3rem;
+}
+
+.template-card strong {
+    font-size: 0.95rem;
+}
+
+.template-card__arrow {
+    position: absolute;
+    right: 20px;
+    top: 22px;
+    color: var(--template-muted);
+    font-size: 0.85rem;
+}
+
+.template-selection {
+    width: fit-content;
+    margin-bottom: 14px;
+    padding: 9px 13px;
+    border-radius: 10px;
+    color: var(--template-accent);
+    background: var(--template-soft);
+}
+
+.template-field {
+    gap: 8px;
+}
+
+.template-field--client {
+    grid-column: 1 / -1;
+}
+
+.template-field label {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.template-field__label,
+.templates-footer {
+    justify-content: space-between;
+}
+
+.template-clear-client,
+.template-search-error button {
+    padding: 3px 0;
+    border: 0;
+    color: var(--template-accent);
+    background: transparent;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+::ng-deep .process-templates-dialog .template-field .p-autocomplete,
+::ng-deep .process-templates-dialog .template-field .p-datepicker,
+::ng-deep .process-templates-dialog .template-field .p-inputtext {
+    width: 100%;
+}
+
+::ng-deep .process-templates-dialog .template-field .p-inputtext,
+::ng-deep .process-templates-dialog .template-field .p-autocomplete-dropdown,
+::ng-deep .process-templates-dialog .template-field .p-datepicker-dropdown {
+    min-height: 44px;
+    min-width: 0;
+    border-color: var(--template-border);
+    color: var(--template-text);
+    background: var(--template-surface);
+}
+
+.template-client-option strong,
+.template-client-option small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.template-client-option small {
+    color: var(--globalColorTextMuted, #64748b);
+}
+
+.template-search-error,
+.template-validation {
+    color: var(--template-accent);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.template-search-error {
+    flex-wrap: wrap;
+}
+
+.template-validation {
+    margin: 18px 0 0;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--template-soft);
+}
+
+.templates-footer__actions {
+    margin-left: auto;
+}
+
+.template-button {
+    min-height: 42px;
+    justify-content: center;
+    padding: 10px 16px;
+    border: 1px solid var(--template-border);
+    border-radius: 10px;
+    color: var(--template-text);
+    background: var(--template-surface);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.template-button--generate {
+    border-color: var(--template-accent);
+    color: #ffffff;
+    background: var(--template-accent);
+}
+
+.template-button--back {
+    border-color: transparent;
+}
+
+.template-button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+::ng-deep html.app-dark .process-templates-dialog.p-dialog {
+    --template-accent: #f87171;
+    --template-soft: #3b2529;
+    --template-border: #3f3f46;
+    --template-surface: #202024;
+    --template-muted: #a1a1aa;
+    --template-text: #f4f4f5;
+}
+
+::ng-deep html.app-dark .process-templates-dialog .template-button--generate {
+    color: #18181b;
+}
+
+@media (max-width: 540px) {
+    ::ng-deep .process-templates-dialog .p-dialog-header,
+    ::ng-deep .process-templates-dialog .p-dialog-content,
+    ::ng-deep .process-templates-dialog .p-dialog-footer {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .templates-grid,
+    .template-form {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .template-card {
+        padding: 16px;
+        gap: 8px;
+    }
+
+    .template-button {
+        padding: 10px 12px;
+    }
+
+    .templates-footer,
+    .templates-footer__actions {
+        gap: 5px;
+    }
+}

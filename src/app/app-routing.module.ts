@@ -20,6 +20,10 @@ const routes: Routes = [
     loadChildren: () => import('./public-registration/public-registration.module').then(m => m.PublicRegistrationModule)
   },
   {
+    path: 'renovar/:token',
+    loadComponent: () => import('./public-renewal/public-renewal.component').then(m => m.PublicRenewalComponent)
+  },
+  {
     path: 'verificar-cuenta',
     loadChildren: () => import('./public-identity-verification/public-identity-verification.module').then(m => m.PublicIdentityVerificationModule)
   },

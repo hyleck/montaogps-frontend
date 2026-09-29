@@ -1,0 +1,89 @@
+:host { display: block; min-height: 100dvh; --renewal-bg: #f7f7fa; --renewal-surface: #fff; --renewal-text: #20232e; --renewal-muted: #6b7280; --renewal-border: #e6e7ec; --renewal-accent: #c9343d; --renewal-soft: #fff2f3; --renewal-green: #087f5b; --renewal-green-soft: #ecfdf5; color: var(--renewal-text); background: var(--renewal-bg); }
+.renewal-page { min-height: 100dvh; padding: 30px 24px; }
+.renewal-shell { max-width: 1110px; margin: 0 auto; }
+h1, h2, h3, p { margin: 0; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+button:focus-visible, input:focus-visible { outline: 3px solid #f5a4aa; outline-offset: 3px; }
+.renewal-brand { display: flex; align-items: center; gap: 12px; padding-bottom: 25px; border-bottom: 1px solid var(--renewal-border); }
+.renewal-brand__mark { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; color: #fff; background: var(--renewal-accent); font-size: 27px; font-weight: 900; }
+.renewal-brand > div { display: grid; gap: 2px; }
+.renewal-brand strong { font-size: 18px; }
+.renewal-brand > div > span { color: var(--renewal-muted); font-size: 13px; }
+.renewal-intro { max-width: 780px; padding: 34px 0 28px; }
+.renewal-eyebrow { display: block; color: var(--renewal-accent); font-size: 14px; font-weight: 700; margin-bottom: 9px; }
+h1 { font-size: clamp(25px, 3vw, 34px); line-height: 1.2; letter-spacing: -.035em; }
+.renewal-intro p, .renewal-confirmed p { margin-top: 12px; color: var(--renewal-muted); font-size: 15px; line-height: 1.65; }
+.renewal-layout { display: grid; grid-template-columns: minmax(0, 1fr) 278px; gap: 24px; align-items: start; }
+.renewal-list-heading { margin-bottom: 16px; }
+.renewal-list-heading h2 { font-size: 19px; display: flex; align-items: center; gap: 9px; }
+.renewal-list-heading h2 > span { padding: 3px 9px; border-radius: 8px; background: var(--renewal-border); font-size: 12px; }
+.renewal-list-heading p { margin-top: 5px; color: var(--renewal-muted); font-size: 13px; }
+.renewal-search { display: flex; align-items: center; gap: 11px; padding: 0 14px; min-height: 47px; margin-bottom: 14px; border: 1px solid var(--renewal-border); border-radius: 12px; background: var(--renewal-surface); color: var(--renewal-muted); }
+.renewal-search input { width: 100%; min-width: 0; border: 0; outline: none; background: transparent; color: var(--renewal-text); font-size: 14px; padding: 13px 0; }
+.renewal-search:focus-within { border-color: var(--renewal-accent); box-shadow: 0 0 0 3px var(--renewal-soft); }
+.renewal-bulk { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 15px; }
+.renewal-bulk > span, .renewal-bulk small { font-size: 12px; color: var(--renewal-muted); }
+.renewal-bulk > div { display: flex; gap: 8px; flex-wrap: wrap; }
+.renewal-bulk small { flex-basis: 100%; }
+.renewal-bulk button { padding: 7px 10px; border: 1px solid var(--renewal-border); border-radius: 8px; color: var(--renewal-text); background: var(--renewal-surface); font-size: 12px; font-weight: 600; }
+.renewal-device { padding: 19px; margin-bottom: 12px; border: 1px solid var(--renewal-border); border-radius: 15px; background: var(--renewal-surface); }
+.renewal-device--chosen { border-color: #bccbc4; }
+.renewal-device__identity { display: flex; align-items: flex-start; gap: 12px; }
+.renewal-device__identity > div { min-width: 0; flex: 1; }
+.renewal-device__icon { flex: 0 0 auto; width: 39px; height: 39px; display: grid; place-items: center; border-radius: 11px; color: var(--renewal-accent); background: var(--renewal-soft); font-size: 19px; }
+.renewal-device h3 { font-size: 16px; line-height: 1.4; overflow-wrap: anywhere; }
+.renewal-device__imei { display: block; margin-top: 3px; font-size: 12px; color: var(--renewal-muted); overflow-wrap: anywhere; }
+.renewal-device__details { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 12px; }
+.renewal-device__details > span > span { color: var(--renewal-muted); margin-right: 3px; }
+.renewal-options { display: flex; gap: 10px; padding: 0; margin: 17px 0 0 51px; border: 0; min-width: 0; }
+.renewal-options label { display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1; min-height: 43px; border: 1px solid var(--renewal-border); border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.renewal-options input { width: 15px; height: 15px; margin: 0; accent-color: var(--renewal-green); }
+.renewal-options label.renewal-option--yes { border-color: #73b89c; color: var(--renewal-green); background: var(--renewal-green-soft); }
+.renewal-options label.renewal-option--no { border-color: #94a3b8; background: var(--renewal-bg); }
+.renewal-options .renewal-option--no input { accent-color: #64748b; }
+.renewal-options:disabled label { cursor: not-allowed; opacity: .65; }
+.renewal-summary { position: sticky; top: 24px; padding: 23px; border: 1px solid var(--renewal-border); border-radius: 16px; background: var(--renewal-surface); box-shadow: 0 8px 22px #20232e04; }
+.renewal-summary__eyebrow { color: var(--renewal-muted); font-size: 12px; }
+.renewal-summary h2 { margin-top: 6px; font-size: 21px; }
+.renewal-summary dl { padding: 5px 0 19px; margin: 17px 0; border-bottom: 1px solid var(--renewal-border); }
+.renewal-summary dl > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+.renewal-summary dl > div:last-child { margin: 0; }
+.renewal-summary dt { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.renewal-summary dd { margin: 0; font-size: 21px; font-weight: 800; }
+.renewal-summary__yes { color: var(--renewal-green); }
+.renewal-summary__pending { color: #a56811; }
+.renewal-summary > p, .renewal-summary > ng-container > p { color: var(--renewal-muted); font-size: 13px; line-height: 1.6; }
+.renewal-primary { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 47px; padding: 13px 18px; border: 1px solid var(--renewal-accent); border-radius: 10px; background: var(--renewal-accent); color: #fff; font-size: 14px; font-weight: 700; }
+.renewal-primary:not(:disabled):hover { filter: brightness(.94); }
+.renewal-submit { width: 100%; margin-top: 16px; }
+.renewal-state, .renewal-empty { padding: 60px 25px; border: 1px solid var(--renewal-border); border-radius: 16px; text-align: center; background: var(--renewal-surface); }
+.renewal-state { margin: 45px auto; max-width: 620px; }
+.renewal-state h1 { font-size: 24px; margin: 20px 0 12px; }
+.renewal-state > p, .renewal-empty > p { font-size: 14px; color: var(--renewal-muted); line-height: 1.65; }
+.renewal-state > .renewal-primary { margin-top: 22px; }
+.renewal-state > i { font-size: 38px; color: var(--renewal-accent); }
+.renewal-spinner { display: inline-block; width: 34px; height: 34px; border: 3px solid var(--renewal-border); border-top-color: var(--renewal-accent); border-radius: 50%; animation: renewal-spin 1s linear infinite; }
+.renewal-empty > i { display: block; color: var(--renewal-muted); font-size: 26px; margin-bottom: 14px; }
+.renewal-empty h3 { font-size: 16px; margin-bottom: 8px; }
+.renewal-text-button { padding: 6px 0; border: 0; background: transparent; color: var(--renewal-accent); font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.renewal-confirmed { display: flex; align-items: flex-start; gap: 17px; padding: 30px 0; }
+.renewal-confirmed__icon { flex: 0 0 auto; display: grid; place-items: center; width: 49px; height: 49px; border-radius: 50%; background: var(--renewal-green-soft); color: var(--renewal-green); font-size: 23px; }
+.renewal-confirmed__date { display: block; margin-top: 10px; font-size: 13px; color: var(--renewal-muted); }
+.renewal-recorded { display: inline-flex; align-items: center; gap: 7px; margin: 17px 0 0 51px; padding: 7px 10px; border-radius: 8px; font-size: 13px; font-weight: 700; background: var(--renewal-bg); }
+.renewal-recorded--yes { color: var(--renewal-green); background: var(--renewal-green-soft); }
+.renewal-notice { display: flex; gap: 12px; margin-bottom: 23px; padding: 16px 19px; border: 1px solid var(--renewal-border); border-radius: 12px; color: var(--renewal-text); background: var(--renewal-surface); font-size: 14px; line-height: 1.55; }
+.renewal-notice--warning { border-color: #f0d299; background: #fff8e9; color: #805219; }
+.renewal-notice > i { padding-top: 4px; }
+.renewal-footer, .renewal-signature { color: var(--renewal-muted); text-align: center; font-size: 12px; line-height: 1.6; }
+.renewal-footer { margin-top: 25px; }
+.renewal-signature { padding-top: 28px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+:host-context(.app-dark) { --renewal-bg: #18191e; --renewal-surface: #23252c; --renewal-text: #f1f2f6; --renewal-muted: #acb0bd; --renewal-border: #3c3e49; --renewal-accent: #e2545c; --renewal-soft: #3d262c; --renewal-green: #6fdeb4; --renewal-green-soft: #183b32; }
+:host-context(.app-dark) .renewal-summary__pending { color: #e8bd73; }
+:host-context(.app-dark) .renewal-notice--warning { background: #392f20; color: #ebca91; border-color: #6a5433; }
+@keyframes renewal-spin { to { transform: rotate(360deg); } }
+@media (max-width: 760px) { .renewal-page { padding: 22px 16px; } .renewal-layout { grid-template-columns: 1fr; gap: 18px; } .renewal-summary { position: static; padding: 20px; } .renewal-summary dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; } .renewal-summary dl > div { display: grid; justify-content: start; gap: 9px; margin: 0; } .renewal-summary dt { font-size: 12px; } .renewal-intro { padding: 26px 0 24px; } .renewal-device { padding: 16px; } .renewal-options { margin-left: 0; } .renewal-confirmed { gap: 12px; } .renewal-confirmed h1 { font-size: 26px; } .renewal-confirmed__icon { width: 39px; height: 39px; font-size: 19px; } }
+@media (max-width: 380px) { .renewal-summary dt { display: grid; gap: 5px; } .renewal-device__details { flex-direction: column; } .renewal-brand { padding-bottom: 18px; } }
+@media (prefers-reduced-motion: reduce) { .renewal-spinner { animation: none; } }

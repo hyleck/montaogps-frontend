@@ -6,6 +6,7 @@ import { environment } from 'src/environments/environment';
 export interface ProcessItem {
   _id: string;
   type: number;
+  readOnly?: boolean;
   description: string;
   details?: string;
   target: {
@@ -114,6 +115,7 @@ export const PROCESS_TYPE_LABELS: { [key: number]: string } = {
   19: 'Desinstalación',
   20: 'Pre-renovación',
   21: 'Cambio de vehículo',
+  22: 'Renovación pendiente',
 };
 
 @Injectable({

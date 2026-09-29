@@ -2,9 +2,10 @@ import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ThemesService } from './shareds/services/themes.service';
 import { AuthService } from './core/services/auth.service';
-import { Router } from '@angular/router';
+import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router } from '@angular/router';
 import { takeUntil } from 'rxjs/operators';
-import { Subject } from 'rxjs';
+import { fromEvent, interval, Subject, Subscription } from 'rxjs';
+import { isPublicRenewalRoute } from './core/utils/public-renewal-route.util';
 import { FirebaseNotificationsService, PublicRegistrationNotification } from './core/services/firebase-notifications.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../environments/environment';
@@ -22,6 +23,9 @@ import { UserConsoleLogService } from './core/services/user-console-log.service'
 })
 export class AppComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+  private publicRenewalPage = false;
+  private backgroundServicesStarted = false;
+  private sessionRequest?: Subscription;
   public registrationNotificationVisible = false;
   public registrationNotification: PublicRegistrationNotification | null = null;
 
@@ -43,15 +47,21 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.dialogOverlayCleanup.start();
 
-    // Monitorear cambios en la autenticación
+    this.setPublicRenewalPage(isPublicRenewalRoute(window.location.pathname) || isPublicRenewalRoute(this.router.url));
+    this.router.events.pipe(takeUntil(this.destroy$)).subscribe(event => {
+      if (event instanceof NavigationStart && isPublicRenewalRoute(event.url)) {
+        this.setPublicRenewalPage(true);
+      } else if (event instanceof NavigationEnd) {
+        this.setPublicRenewalPage(isPublicRenewalRoute(event.urlAfterRedirects));
+      } else if (event instanceof NavigationCancel || event instanceof NavigationError) {
+        this.setPublicRenewalPage(isPublicRenewalRoute(this.router.url));
+      }
+    });
     this.monitorAuthentication();
-    this.communicationNotifications.start();
-    this.userActivityService.start();
-    this.userConsoleLogs.start();
-    this.employeeMonitoring.start();
     this.firebaseNotifications.publicRegistrationCompleted$
       .pipe(takeUntil(this.destroy$))
       .subscribe((notification) => {
+        if (this.publicRenewalPage) return;
         this.registrationNotification = notification;
         this.registrationNotificationVisible = true;
       });
@@ -62,6 +72,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
 
+    this.sessionRequest?.unsubscribe();
     this.communicationNotifications.stop();
     this.employeeMonitoring.stop();
     this.userActivityService.stop();
@@ -79,48 +90,63 @@ export class AppComponent implements OnInit, OnDestroy {
     );
 
     // Monitorear cambios en localStorage (login/logout)
-    window.addEventListener('storage', (event) => {
+    fromEvent<StorageEvent>(window, 'storage').pipe(takeUntil(this.destroy$)).subscribe(event => {
       if (event.key === 'authtoken' || event.key === 'user') {
-        this.handleAuthenticationChange().catch((error) =>
-          console.error('Error handling auth change', error),
-        );
+        this.handleAuthenticationChange().catch(error => console.error('Error handling auth change', error));
       }
     });
 
-    // También monitorear cambios directos en el servicio
-    // Nota: Esto es un workaround ya que AuthService no emite eventos
-    // En una implementación más robusta, AuthService debería usar BehaviorSubject
-    setInterval(() => {
-      this.handleAuthenticationChange().catch((error) =>
-        console.error('Error handling auth change', error),
-      );
-    }, 5000); // Verificar cada 5 segundos
+    interval(5000).pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.handleAuthenticationChange().catch(error => console.error('Error handling auth change', error));
+    });
 
-    // Verificar si la sesión es válida en la base de datos (cada 2 minutos)
-    setInterval(() => {
+    interval(10000).pipe(takeUntil(this.destroy$)).subscribe(() => {
+      if (this.publicRenewalPage) return;
       const user = this.authService.getCurrentUser();
       const sessionDate = localStorage.getItem('session_date');
-
       if (user && user.id && sessionDate && !this.authService.isSupportImpersonating()) {
-        this.http.get<{ valid: boolean }>(`${environment.apiUrl}/users/${user.id}/verify-session?session_date=${sessionDate}`)
+        this.sessionRequest?.unsubscribe();
+        this.sessionRequest = this.http.get<{ valid: boolean }>(`${environment.apiUrl}/users/${user.id}/verify-session?session_date=${sessionDate}`)
           .subscribe({
-            next: (res: { valid: boolean }) => {
-              if (!res.valid) {
-                console.warn('La sesión ha sido invalidada desde el servidor. Cerrando sesión automáticamente...');
+            next: res => {
+              if (!this.publicRenewalPage && !res.valid) {
                 this.authService.logout();
                 this.router.navigate(['/auth/login']);
               }
             },
-            error: (err: any) => console.error('Error verificando sesión:', err)
+            error: err => console.error('Error verificando sesión:', err),
           });
       }
-    }, 10000); // 10 segundos (10,000 ms)
+    });
+  }
+
+  private setPublicRenewalPage(isPublic: boolean): void {
+    this.publicRenewalPage = isPublic;
+    if (isPublic) {
+      this.sessionRequest?.unsubscribe();
+      this.registrationNotificationVisible = false;
+      this.registrationNotification = null;
+      if (this.backgroundServicesStarted) {
+        this.communicationNotifications.stop();
+        this.userActivityService.stop();
+        this.userConsoleLogs.stop();
+        this.employeeMonitoring.stop();
+        this.backgroundServicesStarted = false;
+      }
+    } else if (!this.backgroundServicesStarted) {
+      this.communicationNotifications.start();
+      this.userActivityService.start();
+      this.userConsoleLogs.start();
+      this.employeeMonitoring.start();
+      this.backgroundServicesStarted = true;
+    }
   }
 
   /**
    * Maneja cambios en el estado de autenticación
    */
   private async handleAuthenticationChange(): Promise<void> {
+    if (this.publicRenewalPage) return;
     const isAuthenticated = this.authService.isAuthenticated();
 
     if (isAuthenticated) {

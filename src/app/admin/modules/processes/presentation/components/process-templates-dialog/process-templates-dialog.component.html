@@ -1,0 +1,97 @@
+<p-dialog [visible]="visible" (visibleChange)="onVisibleChange($event)" [modal]="true"
+    [draggable]="false" [resizable]="false" [closeOnEscape]="true"
+    [style]="{ width: '740px', maxWidth: '96vw' }" styleClass="process-templates-dialog">
+    <ng-template pTemplate="header">
+        <div class="templates-heading">
+            <span class="templates-heading__icon"><i class="pi pi-th-large" aria-hidden="true"></i></span>
+            <div>
+                <strong>Plantillas de procesos</strong>
+                <span>{{ selectedTemplate ? 'Configura la consulta' : 'Elige el tipo de proceso' }}</span>
+            </div>
+        </div>
+    </ng-template>
+
+    <section class="templates-content">
+        <ng-container *ngIf="!selectedTemplate; else configuration">
+            <p class="templates-description">Elige una plantilla y consulta los procesos por cliente y período.</p>
+            <div class="templates-grid">
+                <button *ngFor="let template of templates" type="button" class="template-card"
+                    [attr.data-process-type]="template.type" (click)="chooseTemplate(template)">
+                    <i [class]="template.icon" aria-hidden="true"></i>
+                    <strong>{{ template.name }}</strong>
+                    <span>{{ template.description }}</span>
+                    <i class="pi pi-arrow-right template-card__arrow" aria-hidden="true"></i>
+                </button>
+            </div>
+        </ng-container>
+
+        <ng-template #configuration>
+            <div class="template-selection">
+                <i [class]="selectedTemplate!.icon" aria-hidden="true"></i>
+                <strong>{{ selectedTemplate!.name }}</strong>
+            </div>
+            <p class="templates-description" *ngIf="!isPendingRenewal">Procesos registrados en este período. Se incluyen completos los días Desde y Hasta.</p>
+            <p class="templates-description" *ngIf="isPendingRenewal">Sin fechas se muestran todos los dispositivos actualmente vencidos del cliente seleccionado, incluidos los de meses anteriores. Las fechas filtran por vencimiento e incluyen los días completos. Al renovarse, el dispositivo deja de aparecer.</p>
+            <div class="template-form">
+                <div class="template-field template-field--client">
+                    <div class="template-field__label">
+                        <label for="template-client">Cliente o subcliente <span>{{ isPendingRenewal ? '(obligatorio)' : '(opcional)' }}</span></label>
+                        <button *ngIf="clientDraft || clientSelectionPending" type="button" class="template-clear-client" (click)="clearClient()">{{ isPendingRenewal ? 'Limpiar cliente' : 'Todos los clientes' }}</button>
+                    </div>
+                    <p-autoComplete inputId="template-client" [(ngModel)]="clientDraft" [suggestions]="clientOptions"
+                        (completeMethod)="searchClients($event)" (onClear)="clearClient()"
+                        (input)="onClientInput($event)" (onSelect)="onClientSelected()"
+                        optionLabel="label" dataKey="id" [forceSelection]="true" [showClear]="true"
+                        [dropdown]="true" [minLength]="0" appendTo="body" [required]="isPendingRenewal"
+                        [placeholder]="isPendingRenewal ? 'Selecciona un cliente' : 'Todos los clientes'"
+                        [emptyMessage]="loadingClients ? 'Buscando clientes…' : (clientSearchError ? 'No se pudieron cargar los clientes.' : 'No se encontraron clientes.')"
+                        panelStyleClass="process-template-client-panel">
+                        <ng-template let-client pTemplate="item">
+                            <div class="template-client-option">
+                                <strong>{{ client.label }}</strong>
+                                <small *ngIf="client.email || client.phone">{{ client.email || client.phone }}</small>
+                            </div>
+                        </ng-template>
+                    </p-autoComplete>
+                    <small class="template-client-hint" *ngIf="isPendingRenewal && (clientSelectionPending || !hasSelectedClient)">Selecciona un cliente de la lista para consultar sus dispositivos vencidos.</small>
+                    <small class="template-client-hint" *ngIf="!isPendingRenewal && clientSelectionPending">Selecciona un cliente de la lista o pulsa «Todos los clientes».</small>
+                    <small class="template-search-loading" *ngIf="loadingClients" role="status">
+                        <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Buscando clientes…
+                    </small>
+                    <div class="template-search-error" *ngIf="clientSearchError" role="alert">
+                        <span>{{ clientSearchError }}</span>
+                        <button type="button" (click)="retryClientSearch()">Reintentar</button>
+                    </div>
+                </div>
+                <div class="template-field">
+                    <label for="template-date-from">{{ isPendingRenewal ? 'Vencido desde' : 'Desde' }} <span *ngIf="isPendingRenewal">(opcional)</span></label>
+                    <p-datepicker inputId="template-date-from" [ngModel]="dateFrom" (ngModelChange)="dateFrom = $event === '' ? null : $event" dateFormat="dd/mm/yy"
+                        [showIcon]="true" [showClear]="true" [keepInvalid]="true" appendTo="body"
+                        [placeholder]="isPendingRenewal ? 'Sin límite inicial' : 'Selecciona una fecha'"></p-datepicker>
+                </div>
+                <div class="template-field">
+                    <label for="template-date-to">{{ isPendingRenewal ? 'Vencido hasta' : 'Hasta' }} <span *ngIf="isPendingRenewal">(opcional)</span></label>
+                    <p-datepicker inputId="template-date-to" [ngModel]="dateTo" (ngModelChange)="dateTo = $event === '' ? null : $event" dateFormat="dd/mm/yy"
+                        [showIcon]="true" [showClear]="true" [keepInvalid]="true" appendTo="body"
+                        [placeholder]="isPendingRenewal ? 'Sin límite final' : 'Selecciona una fecha'"></p-datepicker>
+                </div>
+            </div>
+            <p class="template-validation" *ngIf="validationError" role="alert">{{ validationError }}</p>
+        </ng-template>
+    </section>
+
+    <ng-template pTemplate="footer">
+        <div class="templates-footer">
+            <button *ngIf="selectedTemplate" type="button" class="template-button template-button--back" (click)="back()">
+                <i class="pi pi-arrow-left" aria-hidden="true"></i> Volver
+            </button>
+            <div class="templates-footer__actions">
+                <button type="button" class="template-button template-button--cancel" (click)="close()">Cancelar</button>
+                <button *ngIf="selectedTemplate" type="button" class="template-button template-button--generate"
+                    [disabled]="clientSelectionPending || (isPendingRenewal && !hasSelectedClient)" (click)="generate()">
+                    <i class="pi pi-filter" aria-hidden="true"></i> Generar
+                </button>
+            </div>
+        </div>
+    </ng-template>
+</p-dialog>

@@ -92,7 +92,7 @@ export class UserActivityService {
     const target = event.target instanceof Element
       ? event.target.closest('button, a, [role="button"], input, select, textarea')
       : null;
-    if (!target) return;
+    if (!target || target.closest('[data-replay-block], [data-activity-private]')) return;
     const element = this.describeElement(target);
     this.enqueue({
       platform: this.platform,

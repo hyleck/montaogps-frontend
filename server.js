@@ -52,6 +52,14 @@ function readAppVersionManifest() {
   };
 }
 
+// Public bearer links must not be indexed or forwarded as referrers.
+app.use('/renovar', (req, res, next) => {
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
 // Servir archivos estáticos de Angular controlando el cache
 const hashedAssetRegex = /-[A-F0-9]{8,}\.(?:js|css|png|jpe?g|webp|svg|woff2?)$/i;
 app.use(express.static(staticDir, {

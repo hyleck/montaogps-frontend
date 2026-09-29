@@ -446,9 +446,14 @@ export class AuthService {
   }
 
   private isTokenExpired(token: string): boolean {
-    const decodedToken = jwtDecode<TokenPayload>(token);
-    const currentTime = Date.now() / 1000;
-    return decodedToken.exp < currentTime;
+    try {
+      const decodedToken = jwtDecode<TokenPayload>(token);
+      return typeof decodedToken.exp !== 'number' || !Number.isFinite(decodedToken.exp)
+        || decodedToken.exp <= Date.now() / 1000;
+    } catch {
+      // A stale or malformed saved session must not prevent public pages from loading.
+      return true;
+    }
   }
 
   private getExpirationTime(token: string): number {

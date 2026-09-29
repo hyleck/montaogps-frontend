@@ -1,5 +1,6 @@
 import { HttpErrorResponse, HttpHandlerFn, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
+import { isPublicRenewalRoute } from '../utils/public-renewal-route.util';
 import { getApiErrorMessage } from '../utils/api-error.util';
 
 export const errorInterceptor: HttpInterceptorFn = (
@@ -18,7 +19,7 @@ export const errorInterceptor: HttpInterceptorFn = (
         // Verificar si es un error JWT específico (código 1017)
         if (error.error?.code === 1017) {
           // Si ya estamos en el login, no recargar la página
-          if (window.location.pathname.includes('/login')) {
+          if (window.location.pathname.includes('/login') || isPublicRenewalRoute(window.location.pathname)) {
             return throwError(() => error);
           }
 
