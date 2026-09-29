@@ -1577,13 +1577,15 @@
       "language": "Idioma",
       "notifications": "Notificaciones",
       "affiliationType": "Tipo de Afiliación",
+      "installationPrice": "Monto que cobra por instalación (RD$)",
       "affiliationTypes": {
         "cliente": "Cliente",
         "subcliente": "Subcliente",
         "socio": "Socio",
         "empleado": "Empleado",
         "tecnico_empleado": "Tecnico (empleado)",
-        "tecnico_independiente": "Tecnico (independiente)",
+        "tecnico_independiente": "Técnico (independiente)",
+        "tecnico_externo": "Técnico externo",
         "otro": "Otro"
       },
       "profileType": "Tipo de Perfil",

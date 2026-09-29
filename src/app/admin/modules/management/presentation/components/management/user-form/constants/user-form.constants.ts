@@ -95,6 +95,7 @@ export const AFFILIATION_TYPES: AffiliationTypeOption[] = [
     { label: 'Empleado', value: 'empleado' },
     { label: 'Tecnico (empleado)', value: 'tecnico_empleado' },
     { label: 'Tecnico (independiente)', value: 'tecnico_independiente' },
+    { label: 'Técnico externo', value: 'tecnico_externo' },
     { label: 'Otro', value: 'otro' }
 ];
 

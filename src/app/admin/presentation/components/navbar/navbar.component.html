@@ -75,10 +75,7 @@
                     aria-label="Cerrar aplicaciones" (click)="closeIndexLauncher()"></button>
                 <section class="index-app-launcher__popover" [class.is-open]="indexLauncherOpen"
                     aria-label="Aplicaciones de Montao Index">
-                    <iframe src="https://index.montao.net/app-menu?application=gps"
-                        title="Aplicaciones disponibles en Montao Index"
-                        loading="eager"
-                        sandbox="allow-scripts allow-same-origin allow-top-navigation"></iframe>
+                    <app-index-app-menu *ngIf="indexLauncherOpen"></app-index-app-menu>
                 </section>
             </div>
 
@@ -763,31 +760,30 @@
 }
 
 @defer (when alertsDialogVisible) {
-<p-dialog header="Crear una alerta" [(visible)]="alertsDialogVisible" [modal]="true"
+<p-dialog header="Alertas" [(visible)]="alertsDialogVisible" [modal]="true"
     [dismissableMask]="true" [closeOnEscape]="true" [draggable]="false" appendTo="body"
     [style]="{width: '1180px', maxWidth: '96vw'}" styleClass="alerts-hub-dialog">
     <section class="alerts-hub">
         <header class="alerts-hub__intro">
             <div class="alerts-hub__headline">
-                <span class="alerts-hub__eyebrow" aria-label="Alertas inteligentes" title="Alertas inteligentes">
-                    <i class="pi pi-sparkles"></i>
+                <span class="alerts-hub__eyebrow" aria-hidden="true">
+                    <i class="pi pi-bell"></i>
                 </span>
                 <div class="alerts-hub__title-copy">
-                    <h2>¿Qué quieres cuidar hoy?</h2>
-                    <p>Elige una situación cotidiana y configuramos las reglas por ti.</p>
-                </div>
-                <div class="alerts-hub__stats" role="tablist" aria-label="Disponibilidad de alertas">
-                    <button type="button" role="tab" [attr.aria-selected]="alertPresetView === 'available'"
-                        [class.active]="alertPresetView === 'available'" (click)="selectAlertPresetView('available')">
-                        <strong>{{ readyAlertPresetCount }}</strong> disponibles
-                    </button>
-                    <button type="button" role="tab" class="premium" [attr.aria-selected]="alertPresetView === 'premium'"
-                        [class.active]="alertPresetView === 'premium'" (click)="selectAlertPresetView('premium')">
-                        <i class="pi pi-crown"></i><strong>{{ premiumAlertPresetCount }}</strong> Premium
-                    </button>
+                    <h2>Crea una alerta para tu vehículo</h2>
+                    <p>Elige el vehículo y qué quieres saber. Luego revisa los detalles antes de guardarla.</p>
                 </div>
             </div>
+        </header>
 
+        <section class="alerts-hub__step" aria-labelledby="alerts-select-title">
+            <div class="alerts-hub__step-heading">
+                <span class="alerts-hub__step-number">1</span>
+                <div>
+                    <h3 id="alerts-select-title">Elige el vehículo</h3>
+                    <p>La alerta se aplicará a los vehículos seleccionados en el mapa.</p>
+                </div>
+            </div>
             <div class="alerts-hub__selection" [class.alerts-hub__selection--empty]="!currentSelectedTargets.length">
                 <div class="alerts-hub__selection-count">
                     <i class="pi pi-car"></i>
@@ -804,52 +800,66 @@
                         </span>
                     </div>
                     <small *ngIf="!currentSelectedTargets.length">
-                        Selecciona uno o varios dispositivos en el mapa
+                        Todavía no has seleccionado ninguno.
                     </small>
                 </div>
-            </div>
-
-            <div class="alerts-hub__tools">
-                <label class="alerts-hub__search">
-                    <i class="pi pi-search"></i>
-                    <input type="search" [(ngModel)]="alertPresetSearch"
-                        placeholder="Buscar alertas..." aria-label="Buscar tipos de alertas">
-                    <button *ngIf="alertPresetSearch" type="button" (click)="alertPresetSearch = ''" aria-label="Limpiar búsqueda">
-                        <i class="pi pi-times"></i>
-                    </button>
-                </label>
-                <span class="alerts-hub__result-count" [title]="filteredAlertPresets.length + ' resultados'">
-                    {{ filteredAlertPresets.length }}
-                </span>
-            </div>
-        </header>
-
-        <section class="alerts-hub__manual alerts-hub__manual--top">
-            <div>
-                <span><i class="pi pi-sliders-h"></i> ¿Prefieres crear tu propia regla?</span>
-                <small>Abre la configuración técnica y define cada detalle manualmente.</small>
-            </div>
-            <div class="alerts-hub__manual-options">
-                <button *ngFor="let option of manualAlertOptions" type="button" (click)="openManualAlertOption(option)"
-                    [title]="option.description">
-                    <i [class]="option.icon"></i>
-                    <span>{{ option.label }}</span>
+                <button type="button" class="alerts-hub__map-button" (click)="alertsDialogVisible = false">
+                    {{ currentSelectedTargets.length ? 'Cambiar selección' : 'Seleccionar en el mapa' }}
+                    <i class="pi pi-arrow-right"></i>
                 </button>
             </div>
         </section>
 
-        <nav class="alerts-hub__categories" aria-label="Categorías de alertas">
+        <section class="alerts-hub__step" aria-labelledby="alerts-type-title">
+            <div class="alerts-hub__step-heading">
+                <span class="alerts-hub__step-number">2</span>
+                <div>
+                    <h3 id="alerts-type-title">¿Cuándo quieres recibir un aviso?</h3>
+                    <p>{{ !currentSelectedTargets.length ? 'Primero selecciona un vehículo en el paso 1.' : (showAllAlertPresets ? 'Busca una alerta disponible o filtra por tema.' : 'Estas son las alertas más comunes para empezar.') }}</p>
+                </div>
+            </div>
+
+            <div class="alerts-hub__browse-tools" *ngIf="showAllAlertPresets">
+                <div class="alerts-hub__stats" role="tablist" aria-label="Disponibilidad de alertas">
+                    <button type="button" role="tab" [attr.aria-selected]="alertPresetView === 'available'"
+                        [class.active]="alertPresetView === 'available'" (click)="selectAlertPresetView('available')">
+                        Disponibles
+                    </button>
+                    <button type="button" role="tab" [attr.aria-selected]="alertPresetView === 'premium'"
+                        [class.active]="alertPresetView === 'premium'" (click)="selectAlertPresetView('premium')">
+                        Próximamente
+                    </button>
+                </div>
+                <div class="alerts-hub__tools">
+                    <label class="alerts-hub__search">
+                        <i class="pi pi-search"></i>
+                        <input type="search" [(ngModel)]="alertPresetSearch"
+                            placeholder="Buscar alertas..." aria-label="Buscar tipos de alertas">
+                        <button *ngIf="alertPresetSearch" type="button" (click)="alertPresetSearch = ''" aria-label="Limpiar búsqueda">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </label>
+                    <span class="alerts-hub__result-count" [title]="filteredAlertPresets.length + ' resultados'">
+                        {{ filteredAlertPresets.length }}
+                    </span>
+                </div>
+            </div>
+
+            <nav *ngIf="showAllAlertPresets" class="alerts-hub__categories" aria-label="Categorías de alertas">
             <button *ngFor="let category of alertPresetCategories" type="button"
                 [class.active]="alertPresetCategory === category.key"
                 (click)="selectAlertPresetCategory(category.key)">
                 <i [class]="category.icon"></i>
                 <span>{{ category.label }}</span>
             </button>
-        </nav>
+            </nav>
 
-        <div class="alerts-hub__grid" *ngIf="filteredAlertPresets.length; else noAlertPresetResults">
-            <button *ngFor="let preset of filteredAlertPresets" type="button" class="alert-type-card"
+        <div class="alerts-hub__grid" *ngIf="visibleAlertPresets.length; else noAlertPresetResults">
+            <button *ngFor="let preset of visibleAlertPresets" type="button" class="alert-type-card"
                 [ngClass]="['alert-type-card--' + preset.tone, preset.availability !== 'ready' ? 'alert-type-card--premium' : '']"
+                [class.alert-type-card--disabled]="!!getAlertPresetDisabledReason(preset)"
+                [disabled]="!!getAlertPresetDisabledReason(preset)"
+                [title]="getAlertPresetDisabledReason(preset) || preset.description"
                 (click)="openAlertPreset(preset)"
                 [attr.aria-label]="preset.name + '. ' + preset.description">
                 <span class="alert-type-card__glow"></span>
@@ -865,15 +875,15 @@
                     <p>{{ preset.description }}</p>
                 </div>
 
-                <div class="alert-type-card__availability"
+                <div *ngIf="showAllAlertPresets" class="alert-type-card__availability"
                     [class.alert-type-card__availability--ready]="preset.availability === 'ready'"
                     [class.alert-type-card__availability--premium]="preset.availability !== 'ready'">
-                    <i [class]="preset.availability === 'ready' ? 'pi pi-check-circle' : 'pi pi-crown'"></i>
+                    <i [class]="preset.availability === 'ready' ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
                     <span>{{ getAlertPresetAvailabilityLabel(preset) }}</span>
                 </div>
 
                 <div class="alert-type-card__footer">
-                    <span>{{ preset.availability === 'ready' ? 'Configurar' : 'Premium' }}</span>
+                    <span>{{ preset.availability === 'ready' ? 'Elegir esta alerta' : 'No disponible aún' }}</span>
                     <i class="pi pi-arrow-right"></i>
                 </div>
             </button>
@@ -888,6 +898,28 @@
             </div>
         </ng-template>
 
+        <div class="alerts-hub__more">
+            <button type="button" class="alerts-hub__more-button" [attr.aria-expanded]="showAllAlertPresets"
+                (click)="showAllAlertPresets = !showAllAlertPresets; alertPresetView = 'available'; alertPresetCategory = 'all'; alertPresetSearch = ''">
+                <i [class]="showAllAlertPresets ? 'pi pi-chevron-up' : 'pi pi-th-large'"></i>
+                {{ showAllAlertPresets ? 'Ver solo las recomendadas' : 'Ver todas las alertas' }}
+            </button>
+        </div>
+
+        <section *ngIf="showAllAlertPresets" class="alerts-hub__manual">
+            <div>
+                <span><i class="pi pi-sliders-h"></i> ¿Necesitas una configuración personalizada?</span>
+                <small>Usa estas opciones si quieres definir todos los detalles tú mismo.</small>
+            </div>
+            <div class="alerts-hub__manual-options">
+                <button *ngFor="let option of manualAlertOptions" type="button" (click)="openManualAlertOption(option)"
+                    [title]="option.description">
+                    <i [class]="option.icon"></i>
+                    <span>{{ option.label }}</span>
+                </button>
+            </div>
+        </section>
+        </section>
     </section>
 </p-dialog>
 }
@@ -896,7 +928,7 @@
     <div class="alert-config__navigation">
         <button type="button" (click)="backToAlertCatalog()">
             <i class="pi pi-arrow-left"></i>
-            Todos los tipos de alertas
+            Elegir otra alerta
         </button>
     </div>
     <section class="alert-config__hero" *ngIf="activeAlertPreset as preset">
@@ -904,7 +936,7 @@
             <i [class]="preset.icon"></i>
         </span>
         <div>
-            <span class="alert-config__eyebrow">Configuración inteligente</span>
+            <span class="alert-config__eyebrow">Último paso: revisa el aviso</span>
             <h3>{{ preset.name }}</h3>
             <p>{{ activeAlertPresetDescription }}</p>
         </div>

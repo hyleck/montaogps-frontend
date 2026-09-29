@@ -562,6 +562,8 @@ export class TargetsService {
     data: {
       installationDate: string;
       mechanicId: string;
+      additionalCost?: number;
+      additionalCostComment?: string;
       installationLocation?: string;
       installationDetails?: string;
       engineShutdown?: string;

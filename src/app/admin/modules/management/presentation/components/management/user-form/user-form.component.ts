@@ -1674,7 +1674,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
         // Cuando cambia la afiliación, si es técnico mostrar sección y resetear selects
         if (key === 'affiliation_type' && typeof value === 'string') {
-            const isTech = value === 'tecnico_empleado' || value === 'tecnico_independiente';
+            const isTech = value === 'tecnico_empleado' || value === 'tecnico_independiente' || value === 'tecnico_externo';
             if (!isTech) {
                 this.selectedProvince = '';
                 this.selectedMunicipality = '';

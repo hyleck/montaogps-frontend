@@ -12,6 +12,7 @@ describe('TargetFormComponent installation dates', () => {
       }),
     };
     Object.assign(component, {
+      installationTechniciansById: new Map(),
       target: {
         _id: deviceId,
         activation_date: '2026-08-28',

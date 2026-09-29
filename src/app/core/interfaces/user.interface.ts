@@ -30,6 +30,7 @@ export interface BasicUser {
   email: string;
   access_level_id: AccessLevel;
   affiliation_type_id?: string;
+  installation_price?: number;
   profile_type_id?: string;
   company_type_id?: string;
   company_type?: string;
@@ -72,6 +73,7 @@ export interface User {
   settings?: UserSettings[];
   profile_type_id?: string;
   affiliation_type_id?: string;
+  installation_price?: number;
   department_id?: string;
   root?: boolean;
   parent_id?: string;

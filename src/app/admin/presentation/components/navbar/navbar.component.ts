@@ -295,6 +295,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   alertPresetCategory: 'all' | AlertPresetCategory = 'all';
   alertPresetView: 'available' | 'premium' = 'available';
   alertPresetSearch = '';
+  showAllAlertPresets = false;
   activeAlertPreset: AlertPresetCard | null = null;
   alertScheduleStart = '';
   alertScheduleEnd = '';
@@ -2436,8 +2437,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     this.selectedActionItems = [
       {
-        label: this.translate.instant('navbar.alerts'),
-        icon: 'pi pi-cog',
+        label: 'Crear alerta para la selección',
+        icon: 'pi pi-bell',
         command: () => this.openAlertsModal()
       },
       {
@@ -2547,7 +2548,21 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   openAlertsModal(): void {
     this.alertPresetView = 'available';
+    this.alertPresetCategory = 'all';
+    this.alertPresetSearch = '';
+    this.showAllAlertPresets = false;
     this.alertsDialogVisible = true;
+  }
+
+  get suggestedAlertPresets(): AlertPresetCard[] {
+    const suggestedKeys = ['parking-guard', 'gps-disconnected', 'family-speed', 'arrived-home'];
+    return suggestedKeys
+      .map((key) => this.alertPresets.find((preset) => preset.key === key))
+      .filter((preset): preset is AlertPresetCard => !!preset);
+  }
+
+  get visibleAlertPresets(): AlertPresetCard[] {
+    return this.showAllAlertPresets ? this.filteredAlertPresets : this.suggestedAlertPresets;
   }
 
   get filteredAlertPresets(): AlertPresetCard[] {
@@ -2640,12 +2655,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   getAlertPresetAvailabilityLabel(preset: AlertPresetCard): string {
-    return preset.availability === 'ready' ? 'Disponible ahora' : 'Premium';
+    return preset.availability === 'ready' ? 'Disponible ahora' : 'Próximamente';
   }
 
   getAlertPresetDisabledReason(preset: AlertPresetCard): string | null {
     if (preset.availability !== 'ready') {
-      return 'Esta alerta forma parte del catálogo Premium y todavía no está disponible en tu plan.';
+      return 'Esta alerta todavía no está disponible.';
     }
     if (!this.currentSelectedTargets.length) {
       return 'Selecciona al menos un dispositivo para configurarla.';

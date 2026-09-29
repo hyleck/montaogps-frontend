@@ -1462,6 +1462,7 @@
       "language": "Language",
       "notifications": "Notifications",
       "affiliationType": "Affiliation Type",
+      "installationPrice": "Fee per installation (DOP)",
       "profileType": "Profile Type",
       "profileTypes": {
         "empresa": "Business",
@@ -1475,6 +1476,7 @@
         "empleado": "Employee",
         "tecnico_empleado": "Technician (employee)",
         "tecnico_independiente": "Technician (independent)",
+        "tecnico_externo": "External technician",
         "otro": "Other"
       },
       "role": "Role",

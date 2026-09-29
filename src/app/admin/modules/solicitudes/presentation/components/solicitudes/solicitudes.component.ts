@@ -2621,6 +2621,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         if (!technicianId) return;
 
         this.selectedSolicitud.mechanic_id = technicianId;
+        this.selectedSolicitud.technician_affiliation_type = technician.affiliation_type_id || '';
+        this.selectedSolicitud.technician_installation_price = technician.affiliation_type_id === 'tecnico_independiente'
+            ? Number(technician.installation_price || 0) : 0;
         this.closeTechnicianSelection();
         this.onSelectedTechnicianChange();
     }
@@ -2633,6 +2636,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             return;
         }
         this.selectedSolicitud.mechanic_id = undefined;
+        this.selectedSolicitud.technician_affiliation_type = '';
+        this.selectedSolicitud.technician_installation_price = 0;
         this.closeTechnicianSelection();
         this.onSelectedTechnicianChange();
     }
@@ -5939,6 +5944,10 @@ async initLocationMap(): Promise<void> {
         }
         this.selectedSolicitud.mechanic_id =
             this.technicianRecommendation.technician_id;
+        const recommendedTechnician = this.getTechnicianById(this.technicianRecommendation.technician_id);
+        this.selectedSolicitud.technician_affiliation_type = recommendedTechnician?.affiliation_type_id || '';
+        this.selectedSolicitud.technician_installation_price = recommendedTechnician?.affiliation_type_id === 'tecnico_independiente'
+            ? Number(recommendedTechnician.installation_price || 0) : 0;
         void this.validateSelectedTechnicianSchedule();
     }
 

@@ -258,7 +258,7 @@ export class UserConsoleLogService {
       const user = JSON.parse(localStorage.getItem('user') || 'null');
       const settings = Array.isArray(user?.settings) ? user.settings[0] : user?.settings;
       const affiliation = String(user?.affiliation_type_id || settings?.affiliation_type || '').trim().toLowerCase();
-      return ['empleado', 'tecnico', 'tecnico_empleado', 'tecnico_independiente'].includes(affiliation);
+      return ['empleado', 'tecnico', 'tecnico_empleado', 'tecnico_independiente', 'tecnico_externo'].includes(affiliation);
     } catch {
       return false;
     }

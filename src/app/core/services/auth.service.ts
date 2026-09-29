@@ -114,6 +114,10 @@ export class AuthService {
       );
   }
 
+  createIndexBrowserSession(): Observable<{ code: string }> {
+    return this._httpClient.post<{ code: string }>(environment.apiUrl + '/auth/index/browser-session', {});
+  }
+
   completeSsoLogin(token: string, user: BasicUser, sessionDate?: string): Observable<any> {
     this.clearStoredSession({ keepRememberedEmail: false, clearSessionStorage: true });
     this.saveToken(token);

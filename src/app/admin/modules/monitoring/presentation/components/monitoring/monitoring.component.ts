@@ -93,6 +93,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     'empleado',
     'tecnico_empleado',
     'tecnico_independiente',
+      'tecnico_externo',
     'otro'
   ];
 

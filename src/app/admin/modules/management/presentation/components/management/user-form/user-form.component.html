@@ -744,7 +744,7 @@
                                         </div>
 
                                         <div class="settings-item tech-item"
-                                            *ngIf="selectedAffiliationType === 'tecnico_empleado' || selectedAffiliationType === 'tecnico_independiente'">
+                                            *ngIf="selectedAffiliationType === 'tecnico_empleado' || selectedAffiliationType === 'tecnico_independiente' || selectedAffiliationType === 'tecnico_externo'">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-briefcase"></i>
                                                 <label>{{ 'management.userForm.services' | translate }}</label>
@@ -758,6 +758,12 @@
                                                     <label [for]="'srv_'+srv.id">{{ srv.i18nKey | translate }}</label>
                                                 </div>
                                             </div>
+                                        </div>
+
+                                        <div class="settings-item" *ngIf="selectedAffiliationType === 'tecnico_independiente'">
+                                            <label for="technician-installation-price">{{ 'management.userForm.installationPrice' | translate }}</label>
+                                            <input id="technician-installation-price" type="number" min="0" step="0.01"
+                                                [(ngModel)]="user.installation_price" name="installation_price" />
                                         </div>
 
 

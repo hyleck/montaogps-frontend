@@ -182,6 +182,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     availableSimCardTypes: SelectOption[] = SIM_CARD_TYPES;
     filteredColors: SelectOption[] = [];
     availableTechnicians: SelectOption[] = [];
+    private installationTechniciansById = new Map<string, User>();
+
+    get selectedInstallationRegistrationTechnician(): User | undefined {
+        return this.installationTechniciansById.get(this.installationRegistrationForm.mechanicId);
+    }
     availableTags: Tag[] = [];
     readonly targetCategoryOptions: SelectOption[] = [
         { value: 'unspecified', label: 'Sin especificar' },
@@ -1649,6 +1654,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Cargar técnicos desde el servicio
             this.userService.getTechnicians().pipe(takeUntil(this.destroy$)).subscribe({
                 next: (technicians: User[]) => {
+                    this.installationTechniciansById = new Map(technicians.map(tech => [tech._id, tech]));
                     this.availableTechnicians = technicians.map(tech => ({
                         label: `${tech.name} ${tech.last_name}`.trim(),
                         value: tech._id
@@ -5309,6 +5315,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 this.target.installation_date || this.target.activation_date || new Date().toISOString()
             ),
             mechanicId: this.target.mechanic_id || '',
+            additionalCost: 0,
+            additionalCostComment: '',
             installationLocation: this.target.installation_location || '',
             installationDetails: this.target.installation_details || '',
             engineShutdown: this.target.engine_shutdown || 'No',
@@ -5420,6 +5428,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 {
                     installationDate: form.installationDate,
                     mechanicId: form.mechanicId,
+                    ...(this.selectedInstallationRegistrationTechnician?.affiliation_type_id === 'tecnico_independiente'
+                        ? { additionalCost: form.additionalCost, additionalCostComment: form.additionalCostComment.trim() }
+                        : {}),
                     installationLocation: form.installationLocation.trim(),
                     installationDetails: form.installationDetails.trim(),
                     engineShutdown: form.engineShutdown,
@@ -5478,6 +5489,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return {
             installationDate: this.getTodayInputDate(),
             mechanicId: '',
+            additionalCost: 0,
+            additionalCostComment: '',
             installationLocation: '',
             installationDetails: '',
             engineShutdown: 'No',

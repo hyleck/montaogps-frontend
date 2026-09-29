@@ -2407,6 +2407,16 @@
                         <option *ngFor="let tech of availableTechnicians" [value]="tech.value">{{ tech.label | userName }}</option>
                     </select>
                 </div>
+                <div class="target-form__field" *ngIf="selectedInstallationRegistrationTechnician?.affiliation_type_id === 'tecnico_independiente'">
+                    <label for="registration_additional_cost">Costo adicional (RD$)</label>
+                    <input id="registration_additional_cost" type="number" min="0" step="0.01"
+                        [(ngModel)]="installationRegistrationForm.additionalCost" />
+                </div>
+                <div class="target-form__field" *ngIf="selectedInstallationRegistrationTechnician?.affiliation_type_id === 'tecnico_independiente'">
+                    <label for="registration_additional_comment">Comentario del costo adicional</label>
+                    <input id="registration_additional_comment" type="text" maxlength="500"
+                        [(ngModel)]="installationRegistrationForm.additionalCostComment" />
+                </div>
                 <div class="target-form__field installation-registration-grid__wide">
                     <label for="registration_location">Lugar de instalación</label>
                     <app-installation-location-select

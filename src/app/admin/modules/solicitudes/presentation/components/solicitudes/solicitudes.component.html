@@ -3089,6 +3089,19 @@
                                         </small>
                                     </label>
                                 </div>
+                                <div class="sol-mixed-process-fields" *ngIf="(selectedSolicitud.technician_affiliation_type || selectedSolicitudTechnician?.affiliation_type_id) === 'tecnico_independiente' && (selectedSolicitud.type === 'instalacion' || install.process_type === 'instalacion')" (click)="$event.stopPropagation()">
+                                    <label>
+                                        <span>Costo adicional (RD$)</span>
+                                        <input type="number" min="0" step="0.01" [(ngModel)]="install.additional_cost"
+                                            [disabled]="isSelectedSolicitudFinalized()" />
+                                    </label>
+                                    <label>
+                                        <span>Comentario del costo adicional</span>
+                                        <input type="text" maxlength="500" [(ngModel)]="install.additional_cost_comment"
+                                            [disabled]="isSelectedSolicitudFinalized()" placeholder="Motivo del costo adicional" />
+                                    </label>
+                                    <span>Total: {{ ((selectedSolicitud.technician_installation_price ?? selectedSolicitudTechnician?.installation_price ?? 0) + (install.additional_cost || 0)) | currency:'DOP':'symbol':'1.2-2' }}</span>
+                                </div>
                                 <p>Equipo, ubicación y detalles del proceso</p>
                             </div>
                             <button
@@ -3722,6 +3735,8 @@
                     <strong>{{ getTechnicianName(technician) }}</strong>
                     <small>{{ technician.phone || technician.phone2 || 'Sin teléfono' }}</small>
                     <small>{{ technician.email || 'Sin correo' }}</small>
+                    <small *ngIf="technician.affiliation_type_id === 'tecnico_externo'">Técnico externo · Sin cobro</small>
+                    <small *ngIf="technician.affiliation_type_id === 'tecnico_independiente'">Técnico independiente · {{ (technician.installation_price || 0) | currency:'DOP':'symbol':'1.2-2' }} por instalación</small>
                     <em
                         class="sol-technician-card__status"
                         *ngIf="selectedSolicitud?.mechanic_id === getTechnicianSelectionId(technician)">

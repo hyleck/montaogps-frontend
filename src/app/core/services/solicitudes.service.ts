@@ -47,6 +47,8 @@ export interface InstallationDetail {
     engine_shutdown?: string;
     ignition_sensor?: string;
     installation_details?: string;
+    additional_cost?: number;
+    additional_cost_comment?: string;
     diagnosis?: string;
     resolution_type?: string;
     connection_status?: string;
@@ -177,6 +179,8 @@ export interface Solicitud {
     google_maps_url?: string;
     location_address?: string;
     mechanic_id?: string;
+    technician_affiliation_type?: string;
+    technician_installation_price?: number;
     scheduled_date?: string | Date;
     confirmation_permission?: string;
     completed_date?: string;

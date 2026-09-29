@@ -8,6 +8,7 @@ import { RouterModule } from '@angular/router';
 import { AdminRoutingModule } from './admin-routing.module';
 import { AdminComponent } from './components/admin-layout/admin.component';
 import { NavbarComponent } from './components/navbar/navbar.component';
+import { IndexAppMenuComponent } from './components/navbar/index-app-menu.component';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { MapAlertComponent } from './components/map-alert/map-alert.component';
 import { PrimengCoreModule } from '../../shareds/libraries/primeng/primeng-core.module';
@@ -21,6 +22,7 @@ import { CloudModule } from '../../shareds/components/cloud/cloud.module';
     SidebarComponent
   ],
   imports: [
+    IndexAppMenuComponent,
     UserNamePipe,
     DeviceLabelPipe,
     CommonModule,
