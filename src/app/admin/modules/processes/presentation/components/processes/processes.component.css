@@ -210,6 +210,7 @@
 }
 
 :host ::ng-deep .filter-field .p-dropdown,
+:host ::ng-deep .filter-field .p-multiselect,
 :host ::ng-deep .filter-field .p-calendar,
 :host ::ng-deep .filter-field .p-autocomplete,
 :host ::ng-deep .filter-field .p-autocomplete .p-inputtext,
@@ -218,6 +219,7 @@
 }
 
 :host ::ng-deep .filter-field .p-dropdown,
+:host ::ng-deep .filter-field .p-multiselect,
 :host ::ng-deep .filter-field .p-autocomplete .p-inputtext,
 :host ::ng-deep .filter-field .p-autocomplete-dropdown,
 :host ::ng-deep .filter-field .p-calendar .p-inputtext,
@@ -227,7 +229,8 @@
     background: var(--process-surface);
 }
 
-:host ::ng-deep .filter-field .p-dropdown {
+:host ::ng-deep .filter-field .p-dropdown,
+:host ::ng-deep .filter-field .p-multiselect {
     border-radius: 11px;
 }
 
@@ -1686,6 +1689,7 @@
 
 :host-context(.app-dark) .process-search input,
 :host-context(.app-dark) ::ng-deep .filter-field .p-dropdown,
+:host-context(.app-dark) ::ng-deep .filter-field .p-multiselect,
 :host-context(.app-dark) ::ng-deep .filter-field .p-autocomplete .p-inputtext,
 :host-context(.app-dark) ::ng-deep .filter-field .p-autocomplete-dropdown,
 :host-context(.app-dark) ::ng-deep .filter-field .p-calendar .p-inputtext,
@@ -1697,6 +1701,7 @@
 }
 
 :host-context(.app-dark) ::ng-deep .filter-field .p-dropdown-label,
+:host-context(.app-dark) ::ng-deep .filter-field .p-multiselect-label,
 :host-context(.app-dark) ::ng-deep .filter-field .p-inputtext,
 :host-context(.app-dark) ::ng-deep .verification-status-dropdown .p-dropdown-label {
     color: var(--process-text);

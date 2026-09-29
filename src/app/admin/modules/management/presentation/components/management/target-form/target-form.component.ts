@@ -35,6 +35,7 @@ import { InventoryService } from 'src/app/core/services/inventory.service';
 import { environment } from 'src/environments/environment';
 import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
+import { SmsCommandsDialogComponent } from 'src/app/shareds/components/sms-commands-dialog/sms-commands-dialog.component';
 
 
 
@@ -299,7 +300,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     @ViewChild('smsCommands') smsCommands!: ElementRef;
     @ViewChild('smsChat') smsChat!: ElementRef;
     @ViewChild('chatMessages') chatMessages!: ElementRef;
-    @ViewChild('protocolCommandsChatMessages') protocolCommandsChatMessages?: ElementRef;
+    @ViewChild(SmsCommandsDialogComponent) protocolCommandsDialog?: SmsCommandsDialogComponent;
     @ViewChild('vehicleRegistrationFileInput') vehicleRegistrationFileInput?: ElementRef<HTMLInputElement>;
 
     // Propiedad para el tipo de afiliación del usuario actual
@@ -3249,7 +3250,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         if (createdBy === 'montaogps') {
             return 'Montao GPS';
         }
-        // Si viene del dispositivo, usar el nombre del target
+        return this.getSmsDeviceName();
+    }
+
+    getSmsDeviceName(): string {
         const legacyName = (this.target as any)?.['target_name'];
         return this.target?.name || legacyName || 'Dispositivo';
     }
@@ -3580,14 +3584,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     private scrollProtocolCommandsChatToBottom(): void {
-        if (!this.protocolCommandsChatMessages) return;
-
-        setTimeout(() => {
-            const element = this.protocolCommandsChatMessages?.nativeElement;
-            if (element) {
-                element.scrollTop = element.scrollHeight;
-            }
-        }, 120);
+        this.protocolCommandsDialog?.scrollToBottom();
     }
 
     private getProtocolCommandKey(command: ProtocolCommand): string {

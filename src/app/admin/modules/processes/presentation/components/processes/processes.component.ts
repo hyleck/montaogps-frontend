@@ -6,7 +6,7 @@ import { AuthService } from 'src/app/core/services/auth.service';
 import { Contact, ContactsService } from 'src/app/core/services/contacts.service';
 import { TagsService } from 'src/app/core/services/tags.service';
 import { DeviceRecordEntry } from 'src/app/core/interfaces/target.interface';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { InstallationDetail, Solicitud, SolicitudesService } from 'src/app/core/services/solicitudes.service';
 import { buildInstallationProgress, InstallationProgressStep } from './installation-progress';
 import { environment } from 'src/environments/environment';
@@ -90,6 +90,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
 
   processes: ProcessItem[] = [];
   loading = false;
+  private processesRequest?: Subscription;
 
   // Pagination
   totalRecords = 0;
@@ -98,7 +99,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
 
   // Filters
   searchQuery = '';
-  selectedType: number | null = null;
+  selectedTypes: number[] = [];
   selectedCreator: string | null = null;
   selectedMechanic: string | null = null;
   selectedClient: { label: string; id: string; email?: string; phone?: string } | null = null;
@@ -189,9 +190,10 @@ export class ProcessesComponent implements OnInit, OnDestroy {
   }
 
   loadProcesses(): void {
+    this.processesRequest?.unsubscribe();
     this.loading = true;
     const filters: any = {};
-    if (this.selectedType !== null && this.selectedType !== undefined) filters.type = this.selectedType;
+    if (this.selectedTypes.length) filters.types = [...this.selectedTypes];
     if (this.selectedCreator) filters.creator = this.selectedCreator;
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
     if (this.selectedClient?.id) filters.client = this.selectedClient.id;
@@ -200,7 +202,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     if (this.dateTo) filters.dateTo = this.dateTo.toISOString();
     if (this.searchQuery?.trim()) filters.search = this.searchQuery.trim();
 
-    this.processesService.getPaginated(this.currentPage, this.rowsPerPage, filters).subscribe({
+    this.processesRequest = this.processesService.getPaginated(this.currentPage, this.rowsPerPage, filters).subscribe({
       next: (res) => {
         this.processes = res.data;
         this.totalRecords = res.total;
@@ -223,9 +225,14 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     this.loadProcesses();
   }
 
+  onProcessTypesChange(types: number[] | null): void {
+    this.selectedTypes = types ?? [];
+    this.applyFilters();
+  }
+
   clearFilters(): void {
     this.searchQuery = '';
-    this.selectedType = null;
+    this.selectedTypes = [];
     this.selectedCreator = null;
     this.selectedMechanic = null;
     this.selectedClient = null;
@@ -246,7 +253,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
 
     // Fetch ALL records with current filters (not just current page)
     const filters: any = {};
-    if (this.selectedType !== null && this.selectedType !== undefined) filters.type = this.selectedType;
+    if (this.selectedTypes.length) filters.types = [...this.selectedTypes];
     if (this.selectedCreator) filters.creator = this.selectedCreator;
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
     if (this.selectedClient?.id) filters.client = this.selectedClient.id;
@@ -427,7 +434,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
 
   getAppliedFilterCount(): number {
     return [
-      this.selectedType,
+      this.selectedTypes.length ? this.selectedTypes : null,
       this.selectedCreator,
       this.selectedMechanic,
       this.selectedClient?.id,
@@ -491,6 +498,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.processesRequest?.unsubscribe();
     this.closeDetail();
   }
 

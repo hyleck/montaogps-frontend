@@ -10,6 +10,8 @@ import { CloudComponent } from '../../../../../../../shareds/components/cloud/cl
 import { ContactsModule } from '../../../../../contacts/contacts.module';
 import { InstallationLocationSelectComponent } from '../../../../../../../shareds/components/installation-location-select/installation-location-select.component';
 import { DeviceRecordsComponent } from '../../../../../../../shareds/components/device-records/device-records.component';
+import { SmsCommandsDialogComponent } from 'src/app/shareds/components/sms-commands-dialog/sms-commands-dialog.component';
+import { SmsLocationPipe } from 'src/app/shareds/pipes/sms-location.pipe';
 
 
 @NgModule({
@@ -26,7 +28,9 @@ import { DeviceRecordsComponent } from '../../../../../../../shareds/components/
     CloudComponent,
     ContactsModule,
     InstallationLocationSelectComponent,
-    DeviceRecordsComponent
+    DeviceRecordsComponent,
+    SmsCommandsDialogComponent,
+    SmsLocationPipe
   ],
   exports: [
     TargetFormComponent

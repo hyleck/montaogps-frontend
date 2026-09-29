@@ -46,6 +46,7 @@
     <button type="button" class="revision-button" (click)="loadDevices()" [disabled]="loading">
       <i class="pi pi-refresh" [class.pi-spin]="loading"></i><span>Actualizar</span>
     </button>
+    <app-simcard-testing></app-simcard-testing>
   </form>
 
   <div *ngIf="error" class="revision-message revision-message--error">

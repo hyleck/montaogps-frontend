@@ -32,12 +32,14 @@
 
         <div class="processes-toolbar__filters" *ngIf="filtersExpanded">
             <div class="filter-field">
-                <label>Tipo de proceso</label>
-                <p-dropdown [options]="typeOptions" [(ngModel)]="selectedType"
-                    placeholder="Todos los tipos" [showClear]="true"
+                <label for="process-types">Tipo de proceso</label>
+                <p-multiselect inputId="process-types" [options]="typeOptions" [ngModel]="selectedTypes"
+                    placeholder="Todos los tipos" [showClear]="true" [filter]="true"
+                    filterPlaceHolder="Buscar tipo de proceso" [maxSelectedLabels]="1"
+                    selectedItemsLabel="{0} tipos seleccionados"
                     optionLabel="label" optionValue="value" appendTo="body"
-                    (onChange)="applyFilters()">
-                </p-dropdown>
+                    (ngModelChange)="onProcessTypesChange($event)">
+                </p-multiselect>
             </div>
 
             <div class="filter-field">
@@ -129,6 +131,7 @@
         <div class="processes-table">
             <p-table [value]="processes" [loading]="loading" [lazy]="true"
                 [paginator]="true" [rows]="rowsPerPage" [totalRecords]="totalRecords"
+                [first]="(currentPage - 1) * rowsPerPage"
                 (onLazyLoad)="onPageChange($event)" [rowsPerPageOptions]="[10, 20, 50]"
                 [showCurrentPageReport]="true"
                 currentPageReportTemplate="{first}–{last} de {totalRecords}"

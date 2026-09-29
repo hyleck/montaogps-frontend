@@ -1,4 +1,7 @@
-<section class="sim-selector" aria-label="SIM card del dispositivo">
+<button *ngIf="pickerOnly" type="button" class="sim-selector__button" (click)="openPicker()" aria-haspopup="dialog">
+  <i class="pi pi-search" aria-hidden="true"></i> {{ pickerLabel }}
+</button>
+<section *ngIf="!pickerOnly" class="sim-selector" aria-label="SIM card del dispositivo">
   <div class="sim-selector__fields" [class.sim-selector__fields--two-columns]="twoColumns">
     <div class="sim-selector__controls">
       <label class="sim-selector__search sim-selector__code">

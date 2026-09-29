@@ -1,0 +1,139 @@
+<p-dialog [visible]="visible" (visibleChange)="onVisibleChange($event)" [modal]="true" [closable]="!sending" [closeOnEscape]="!sending" [draggable]="false" [resizable]="false"
+    [style]="{ width: '980px', maxWidth: '96vw' }" styleClass="server-commands-dialog"
+    (onHide)="closed.emit()" (onShow)="scrollToBottom()">
+    <ng-template pTemplate="header">
+        <div class="server-commands-title">
+            <i class="pi pi-send"></i>
+            <div>
+                <strong>Comandos</strong>
+                <span>{{ (modelName) | deviceLabel }}</span>
+            </div>
+        </div>
+    </ng-template>
+
+    <div class="server-commands-content">
+        <ng-content select="[commandSettings]"></ng-content>
+        <div class="server-commands-layout">
+            <section class="server-commands-panel">
+                <div class="server-commands-panel__header">
+                    <div>
+                        <strong>Lista de comandos</strong>
+                        <span>{{ commands.length }} disponibles</span>
+                    </div>
+                    <span class="server-command-quota"
+                        *ngIf="loadingQuota || quota">
+                        <i class="pi pi-wallet"></i>
+                        {{ quotaLabel }}
+                    </span>
+                </div>
+
+                <div class="server-commands-empty" *ngIf="error">
+                    <i class="pi pi-exclamation-triangle"></i>
+                    <p>{{ (error) | deviceLabel }}</p>
+                </div>
+
+                <div class="server-commands-empty"
+                    *ngIf="!error && commands.length === 0">
+                    <i class="pi pi-info-circle"></i>
+                    <p>Este protocolo no tiene comandos configurados.</p>
+                </div>
+
+                <div class="server-commands-list"
+                    *ngIf="!error && commands.length > 0">
+                    <div class="server-command-card" *ngFor="let command of commands">
+                        <div class="server-command-card__icon">
+                            <i [class]="command.icon || 'pi pi-bolt'"></i>
+                        </div>
+                        <div class="server-command-card__body">
+                            <div class="server-command-card__header">
+                                <strong>{{ command.name || 'Comando' }}</strong>
+                                <div class="server-command-card__actions">
+                                    <button type="button"
+                                        class="server-command-action server-command-action--copy"
+                                        (click)="copyCommand.emit(command)"
+                                        title="Copiar comando">
+                                        <i class="pi pi-copy"></i>
+                                        Copiar
+                                    </button>
+                                    <button type="button"
+                                        class="server-command-action server-command-action--send"
+                                        (click)="onSend(command)"
+                                        [disabled]="sending || isSendingCommand(command) || quotaExhausted || command.canSend === false"
+                                        title="Enviar comando">
+                                        <i class="pi" [ngClass]="isSendingCommand(command) ? 'pi-spin pi-spinner' : 'pi-send'"></i>
+                                        {{ isSendingCommand(command) ? 'Enviando' : 'Enviar' }}
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="server-command-card__value"
+                                (click)="copyCommand.emit(command)"
+                                title="Copiar comando">
+                                {{ command.value || 'Sin comando configurado' }}
+                            </button>
+                            <small *ngIf="command.reason" class="server-command-reason">{{ command.reason }}</small>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="server-commands-panel server-commands-panel--chat">
+                <div class="server-commands-panel__header">
+                    <div>
+                        <strong>Historial SMS</strong>
+                        <span>{{ simNumber || 'Sin SIM' }}</span>
+                    </div>
+                    <button type="button" class="server-command-refresh" aria-label="Actualizar historial SMS"
+                        (click)="refreshMessages.emit()"
+                        [disabled]="loadingMessages || !simNumber">
+                        <i class="pi" [ngClass]="loadingMessages ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
+                    </button>
+                </div>
+
+                <div class="server-commands-chat chat-body" #chatMessages>
+                    <div *ngIf="loadingMessages && !hasLoadedMessages" class="chat-loading">
+                        <i class="pi pi-spinner chat-spinner"></i>
+                        <span>Cargando mensajes...</span>
+                    </div>
+                    <div *ngIf="messages.length === 0 && !loadingMessages" class="chat-empty">
+                        <i class="pi pi-comments"></i>
+                        <span>No hay mensajes SMS disponibles</span>
+                    </div>
+
+                    <div *ngFor="let message of messages" class="chat-row"
+                        [ngClass]="{'out': message.type === 'sent', 'in': message.type === 'received'}">
+                        <div class="chat-meta">
+                            <span class="chat-author">{{ messageAuthor(message) }}</span>
+                            <span class="chat-time">{{ message.timestamp | date:'short' }}</span>
+                        </div>
+                        <div class="chat-bubble">
+                            <span class="chat-text">{{ message.content.trim() || '' }}</span>
+                            <ng-container *ngIf="message.type === 'received'">
+                                <a *ngIf="message.content | smsLocation as location" class="chat-map-link"
+                                    [href]="location.url" target="_blank" rel="noopener noreferrer">
+                                    <i class="pi pi-map-marker" aria-hidden="true"></i> Ver en Google Maps
+                                    <i class="pi pi-external-link" aria-hidden="true"></i>
+                                </a>
+                            </ng-container>
+                            <div class="chat-footer">
+                                <span class="chat-time-inline">{{ message.timestamp | date:'HH:mm' }}</span>
+                                <span class="chat-delivery" *ngIf="message.type === 'sent'"
+                                    [ngClass]="{'delivered': message.delivered}">
+                                    <i *ngIf="message.pending" class="pi pi-spinner chat-spinner"></i>
+                                    <i *ngIf="!message.pending" class="pi pi-check"></i>
+                                    {{ message.delivered ? 'Entregado' : 'Pendiente' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button type="button" class="cancel-btn" (click)="onVisibleChange(false)" [disabled]="sending">
+            <i class="pi pi-times"></i>
+            {{ closeLabel }}
+        </button>
+    </ng-template>
+</p-dialog>

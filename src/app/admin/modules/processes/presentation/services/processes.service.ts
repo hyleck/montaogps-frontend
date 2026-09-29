@@ -129,6 +129,7 @@ export class ProcessesService {
     limit = 20,
     filters?: {
       type?: number;
+      types?: number[];
       creator?: string;
       mechanic?: string;
       client?: string;
@@ -139,7 +140,8 @@ export class ProcessesService {
     }
   ): Observable<PaginatedProcessResponse> {
     let url = `${this.apiUrl}/paginated?page=${page}&limit=${limit}`;
-    if (filters?.type !== undefined && filters.type !== null) url += `&type=${filters.type}`;
+    if (filters?.types?.length) url += `&types=${encodeURIComponent(filters.types.join(','))}`;
+    else if (filters?.type !== undefined && filters.type !== null) url += `&type=${filters.type}`;
     if (filters?.creator) url += `&creator=${encodeURIComponent(filters.creator)}`;
     if (filters?.mechanic) url += `&mechanic=${encodeURIComponent(filters.mechanic)}`;
     if (filters?.client) url += `&client=${encodeURIComponent(filters.client)}`;

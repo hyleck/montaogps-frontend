@@ -1,0 +1,605 @@
+:host ::ng-deep .server-commands-dialog .p-dialog-header {
+    background-color: var(--globalColorCardBackground);
+    color: var(--globalColorTextDark);
+    border-bottom: 1px solid var(--globalColorBorderLight);
+    padding: 1rem;
+}
+
+:host ::ng-deep .server-commands-dialog .p-dialog-content {
+    background-color: var(--globalColorCardBackground);
+    color: var(--globalColorTextDark);
+    padding: 1rem;
+}
+
+:host ::ng-deep .server-commands-dialog .p-dialog-footer {
+    padding: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    border-top: 1px solid var(--globalColorBorderLight);
+}
+
+:host ::ng-deep .server-commands-dialog .p-dialog-footer button {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+:host ::ng-deep .server-commands-dialog .p-dialog-footer .apply-btn {
+    background-color: var(--globalColorAccent);
+    color: var(--globalColorTextStrong);
+    border: none;
+}
+
+:host ::ng-deep .server-commands-dialog .p-dialog-footer .apply-btn:hover {
+    background-color: var(--globalColorHighlight);
+}
+
+:host ::ng-deep .server-commands-dialog .p-dialog-footer .cancel-btn {
+    background-color: var(--globalColorInputBackground);
+    color: var(--globalColorTextDark);
+    border: 1px solid var(--globalColorBorderLight);
+}
+
+:host ::ng-deep .server-commands-dialog .p-dialog-footer .cancel-btn:hover {
+    background-color: var(--globalColorBorderLight);
+}
+
+/* Estilo de chat para mensajes SMS */
+.chat-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--managementSmsBackground);
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--managementSmsBorder);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.chat-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--managementSmsMuted);
+    font-size: 13px;
+    padding: 24px 12px;
+}
+
+.chat-empty i {
+    font-size: 16px;
+}
+
+.chat-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--managementSmsMuted);
+    font-size: 13px;
+    padding: 24px 12px;
+}
+
+.chat-row {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+}
+
+.chat-row.out {
+    align-self: flex-end;
+    text-align: right;
+}
+
+.chat-row.in {
+    align-self: flex-start;
+}
+
+.chat-meta {
+    display: flex;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--managementSmsMuted);
+    margin-bottom: 4px;
+}
+
+.chat-author {
+    font-weight: 700;
+    color: var(--managementSmsText);
+}
+
+.chat-bubble {
+    position: relative;
+    padding: 10px 12px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    background: var(--managementSmsIncomingBg);
+    color: var(--managementSmsIncomingText, var(--managementSmsText));
+    border: 1px solid var(--managementSmsIncomingBorder);
+}
+
+.chat-row.out .chat-bubble {
+    background: var(--managementSmsOutgoingBg);
+    color: var(--managementSmsOutgoingText);
+    border-color: var(--managementSmsOutgoingBorder);
+}
+
+.chat-text {
+    display: block;
+    font-size: 13px;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.chat-map-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 4px 0;
+    color: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.chat-map-link:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+    border-radius: 3px;
+}
+
+.chat-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chat-delivery {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--managementSmsStatusPending);
+}
+
+.chat-spinner {
+    animation: chat-spin 1s linear infinite;
+}
+
+.chat-delivery .pi-spinner {
+    font-size: 12px;
+}
+
+.chat-delivery.delivered {
+    color: var(--managementSmsStatusDelivered);
+}
+
+.chat-footer {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    font-size: 11px;
+    color: #ffffff;
+}
+
+.chat-time-inline {
+    font-variant-numeric: tabular-nums;
+}
+
+@keyframes chat-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .chat-row {
+        max-width: 100%;
+    }
+}
+
+.server-commands-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--managementColorTextUser);
+}
+
+.server-commands-title > i {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(197, 48, 54, 0.12);
+    color: var(--globalColorPrimaryInmutable);
+}
+
+.server-commands-title div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.server-commands-title strong {
+    font-size: 1rem;
+    line-height: 1.1;
+}
+
+.server-commands-title span {
+    color: var(--globalColorTextMuted);
+    font-size: 0.78rem;
+    font-weight: 500;
+}
+
+.server-commands-content {
+    min-height: 150px;
+}
+
+.server-commands-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.server-commands-panel {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.server-commands-panel__header {
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.server-commands-panel__header > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.server-commands-panel__header strong {
+    color: var(--managementColorTextUser);
+    font-size: 0.9rem;
+    line-height: 1.15;
+}
+
+.server-commands-panel__header span {
+    color: var(--globalColorTextMuted);
+    font-size: 0.76rem;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.server-command-quota {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 30px;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid rgba(199, 49, 56, 0.2);
+    border-radius: 999px;
+    background: rgba(199, 49, 56, 0.08);
+    color: #c73138 !important;
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+
+.server-command-quota i {
+    font-size: 0.82rem;
+}
+
+.server-command-refresh {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 7px;
+    background: rgba(197, 48, 54, 0.1);
+    color: var(--globalColorPrimaryInmutable);
+    cursor: pointer;
+}
+
+.server-command-refresh:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.server-commands-chat {
+    min-height: 420px;
+    max-height: 56vh;
+}
+
+.server-commands-loading,
+.server-commands-empty {
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.75rem;
+    color: var(--globalColorTextMuted);
+    text-align: center;
+}
+
+.server-commands-empty i {
+    color: var(--globalColorPrimaryInmutable);
+    font-size: 1.5rem;
+}
+
+.server-commands-empty p {
+    margin: 0;
+    max-width: 360px;
+    font-weight: 600;
+}
+
+.server-commands-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    max-height: 56vh;
+    overflow-y: auto;
+    padding-right: 0.15rem;
+}
+
+.server-command-card {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid rgba(197, 48, 54, 0.16);
+    border-radius: 8px;
+    background: rgba(197, 48, 54, 0.04);
+}
+
+.server-command-card__icon {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(197, 48, 54, 0.1);
+    color: var(--globalColorPrimaryInmutable);
+}
+
+.server-command-card__body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.server-command-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.server-command-card__body strong {
+    color: var(--managementColorTextUser);
+    font-size: 0.92rem;
+    line-height: 1.2;
+}
+
+.server-command-card__value {
+    width: 100%;
+    margin-top: 0.35rem;
+    padding: 0.6rem 0.7rem;
+    border: 1px dashed rgba(197, 48, 54, 0.24);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--globalColorTextMuted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: copy;
+    transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+
+.server-command-card__value:hover,
+.server-command-card__value:focus-visible {
+    border-color: rgba(197, 48, 54, 0.42);
+    background: #fff;
+    color: var(--managementColorTextUser);
+    outline: none;
+}
+
+.server-command-card__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+}
+
+.server-command-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 30px;
+    padding: 0.35rem 0.65rem;
+    border: 0;
+    border-radius: 6px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.16s ease, background 0.16s ease, opacity 0.16s ease;
+}
+
+.server-command-action:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.server-command-action:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+
+.server-command-action--copy {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--managementColorTextUser);
+}
+
+.server-command-action--send {
+    background: var(--globalColorPrimaryInmutable);
+    color: #fff;
+}
+
+@media (max-width: 860px) {
+    .server-commands-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .server-commands-list,
+    .server-commands-chat {
+        max-height: none;
+    }
+
+    .server-commands-chat {
+        min-height: 320px;
+    }
+
+    .server-command-card__header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+.server-command-card__attrs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.25rem;
+}
+
+.server-command-card__attrs small {
+    padding: 0.18rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--globalColorTextMuted);
+    font-weight: 600;
+}
+
+:host-context(.app-dark) ::ng-deep .server-commands-dialog .p-dialog,
+:host-context(.app-dark) ::ng-deep .server-commands-dialog.p-dialog {
+    background: #1f1f22;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) ::ng-deep .server-commands-dialog .p-dialog-header,
+:host-context(.app-dark) ::ng-deep .server-commands-dialog .p-dialog-content,
+:host-context(.app-dark) ::ng-deep .server-commands-dialog .p-dialog-footer {
+    background: #1f1f22;
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) ::ng-deep .server-commands-dialog .p-dialog-header,
+:host-context(.app-dark) ::ng-deep .server-commands-dialog .p-dialog-footer {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .server-commands-title,
+:host-context(.app-dark) .server-command-card__body strong,
+:host-context(.app-dark) .server-commands-panel__header strong {
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .server-commands-title > i,
+:host-context(.app-dark) .server-command-card__icon {
+    background: rgba(248, 113, 113, 0.12);
+    color: #ff6b72;
+}
+
+:host-context(.app-dark) .server-commands-title span,
+:host-context(.app-dark) .server-commands-panel__header span,
+:host-context(.app-dark) .server-commands-loading,
+:host-context(.app-dark) .server-commands-empty,
+:host-context(.app-dark) .server-command-card__value {
+    color: rgba(255, 255, 255, 0.68);
+}
+
+:host-context(.app-dark) .server-command-quota {
+    background: rgba(248, 113, 113, 0.16);
+    border-color: rgba(248, 113, 113, 0.34);
+    color: #ff8a91 !important;
+}
+
+:host-context(.app-dark) .server-command-refresh {
+    background: rgba(248, 113, 113, 0.12);
+    color: #ff6b72;
+}
+
+:host-context(.app-dark) .server-command-card {
+    background: rgba(255, 255, 255, 0.035);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .server-command-card__value {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+:host-context(.app-dark) .server-command-card__value:hover,
+:host-context(.app-dark) .server-command-card__value:focus-visible {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(248, 113, 113, 0.36);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+:host-context(.app-dark) .server-command-action--copy {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.84);
+}
+
+:host-context(.app-dark) .server-command-action--send {
+    background: #ff6b72;
+    color: #1f1f22;
+}
+
+:host-context(.app-dark) .server-command-card__attrs small {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.72);
+}
+
+
+.server-command-reason {
+    color: var(--globalColorTextMuted);
+    font-size: 0.76rem;
+    line-height: 1.4;
+    margin-top: 0.35rem;
+}
+
+.cancel-btn:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}

@@ -21,9 +21,12 @@ export class InventorySimcardSelectorComponent implements OnChanges, OnDestroy {
   @Input() idsim: string | undefined = '';
   @Input() warehouses: Warehouse[] = [];
   @Input() twoColumns = false;
+  @Input() pickerOnly = false;
+  @Input() pickerLabel = 'Seleccionar simcard';
   @Output() simChange = new EventEmitter<string>();
   @Output() idsimChange = new EventEmitter<string>();
   @Output() lookupPendingChange = new EventEmitter<boolean>();
+  @Output() simcardSelected = new EventEmitter<SimcardItem>();
 
   selected: SimcardItem | null = null;
   resolving = false;
@@ -220,6 +223,7 @@ export class InventorySimcardSelectorComponent implements OnChanges, OnDestroy {
     this.simChange.emit(this.sim);
     this.idsimChange.emit(this.idsim);
     this.closePicker();
+    this.simcardSelected.emit(simcard);
   }
 
   remove(): void {

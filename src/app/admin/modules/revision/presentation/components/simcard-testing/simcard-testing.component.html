@@ -1,0 +1,235 @@
+<div *ngIf="allowed" class="testing-entry-actions">
+<button type="button" class="testing-button" (click)="openTesting()"
+  [disabled]="loadingActive || starting || ending" aria-haspopup="dialog">
+  <i class="pi" [ngClass]="loadingActive ? 'pi-spin pi-spinner' : 'pi-wrench'" aria-hidden="true"></i>
+  {{ session ? 'Continuar Testing' : 'Testing' }}
+</button>
+<button type="button" class="testing-button testing-history-open" (click)="openHistory()" aria-haspopup="dialog">
+  <i class="pi pi-history" aria-hidden="true"></i> Logs de pruebas
+</button>
+</div>
+<p *ngIf="allowed && !visible && !setupVisible && error" class="testing-error" role="alert">{{ error }}</p>
+<p *ngIf="!visible && !setupVisible && feedback" class="testing-feedback" role="status">{{ feedback }}</p>
+
+<p-dialog [visible]="setupVisible" (visibleChange)="!$event && closeSetup()" header="Testing de SIM y GPS"
+  [modal]="true" [closable]="!starting" [closeOnEscape]="!starting" [draggable]="false" [resizable]="false"
+  [style]="{width: '740px', maxWidth: '96vw'}" styleClass="app-dark-dialog">
+  <div class="testing-setup">
+    <p class="testing-intro">Selecciona la SIM y el GPS que vas a probar, aunque tengan otras asociaciones. La prueba usa esta pareja y conserva sus asignaciones permanentes. Al iniciar, el GPS se registra temporalmente en el servidor 5.</p>
+    <section class="testing-section" aria-label="SIM card para la prueba">
+      <h3>1. SIM card</h3>
+      <app-inventory-simcard-selector *ngIf="!starting" [pickerOnly]="true"
+        [pickerLabel]="selected ? 'Cambiar SIM card' : 'Seleccionar SIM card'"
+        (simcardSelected)="selectSim($event)"></app-inventory-simcard-selector>
+      <p *ngIf="selected" class="testing-selection">
+        <i class="pi pi-id-card" aria-hidden="true"></i>
+        <strong>{{ selected.iccid }}</strong><span *ngIf="selected.idsim"> · ID SIM: {{ selected.idsim }}</span>
+      </p>
+    </section>
+    <section class="testing-section" aria-label="GPS para la prueba">
+      <h3>2. GPS del inventario</h3>
+      <label class="testing-search">
+        <span>Buscar GPS</span>
+        <input type="search" [ngModel]="gpsQuery" (ngModelChange)="onGpsQueryChange($event)"
+          [ngModelOptions]="{standalone: true}" [disabled]="starting" autocomplete="off"
+          (keydown.enter)="$event.preventDefault(); searchGps(1)" placeholder="Buscar por IMEI, SIM o ID SIM" />
+      </label>
+      <p *ngIf="selectedGps" class="testing-selection">
+        <i class="pi pi-check-circle" aria-hidden="true"></i>
+        GPS seleccionado: <strong>{{ gpsImei(selectedGps) }}</strong> · {{ gpsModel(selectedGps) | deviceLabel }}
+      </p>
+      <p *ngIf="gpsLoading" role="status">Buscando GPS…</p>
+      <p *ngIf="gpsError" class="testing-error" role="alert">{{ gpsError }}
+        <button type="button" (click)="searchGps(gpsPage)">Reintentar</button>
+      </p>
+      <p *ngIf="!gpsLoading && !gpsError && !gpsResults.length" role="status">No se encontraron GPS en el inventario.</p>
+      <div *ngIf="!gpsLoading && !gpsError" class="testing-gps-results" aria-label="Resultados de GPS">
+        <button *ngFor="let gps of gpsResults" type="button" class="testing-gps-result"
+          [class.testing-gps-result--selected]="selectedGps?._id === gps._id" [disabled]="starting || !gps._id || isMtag(gps)"
+          [attr.aria-pressed]="selectedGps?._id === gps._id" (click)="selectGps(gps)">
+          <span><strong>{{ gpsImei(gps) }}</strong><span>{{ gpsModel(gps) | deviceLabel }}</span>
+            <small *ngIf="isMtag(gps)">MTAG no utiliza SIM ni comandos SMS.</small>
+          </span>
+          <span class="testing-gps-state">{{ gps.inspection_required ? 'En revisión' : gps.installed ? 'Instalado' : 'Inventario' }}
+            <i class="pi" [ngClass]="selectedGps?._id === gps._id ? 'pi-check-circle' : 'pi-plus-circle'" aria-hidden="true"></i>
+          </span>
+        </button>
+      </div>
+      <div *ngIf="!gpsLoading && !gpsError && gpsTotal" class="testing-pagination">
+        <span>{{ gpsTotal }} GPS · Página {{ gpsPage }} de {{ gpsLastPage }}</span>
+        <div>
+          <button type="button" class="testing-button" (click)="searchGps(gpsPage - 1)" [disabled]="starting || gpsPage <= 1" aria-label="Página anterior de GPS"><i class="pi pi-chevron-left" aria-hidden="true"></i></button>
+          <button type="button" class="testing-button" (click)="searchGps(gpsPage + 1)" [disabled]="starting || gpsPage >= gpsLastPage" aria-label="Página siguiente de GPS"><i class="pi pi-chevron-right" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </section>
+    <p class="testing-notice">Al finalizar, se elimina el registro temporal del servidor 5. Si configuras el GPS para S5 durante la prueba y está disponible la configuración de su servidor original, primero se envía esa configuración. Si sales de esta pantalla, la prueba vence tras 30 minutos sin actividad.</p>
+    <p *ngIf="error" class="testing-error" role="alert">{{ error }}
+      <button *ngIf="recoveryRequired" type="button" (click)="recoverSession()" [disabled]="loadingActive">{{ loadingActive ? 'Comprobando…' : 'Comprobar prueba y reintentar' }}</button>
+    </p>
+  </div>
+  <ng-template pTemplate="footer">
+    <button type="button" class="testing-button" (click)="closeSetup()" [disabled]="starting">Cancelar</button>
+    <button type="button" class="testing-button testing-button--primary" (click)="start()" [disabled]="!canStart">
+      <i class="pi" [ngClass]="starting ? 'pi-spin pi-spinner' : 'pi-play'" aria-hidden="true"></i>
+      {{ starting ? 'Registrando GPS…' : 'Iniciar prueba en S5' }}
+    </button>
+  </ng-template>
+</p-dialog>
+
+<app-sms-commands-dialog [visible]="visible" [controlledClose]="true" (closeRequested)="close()"
+  [closeLabel]="ending ? 'Retirando GPS de S5…' : 'Finalizar prueba'"
+  [modelName]="session?.gps?.modelName || context?.modelName || 'Testing'"
+  [deviceName]="session?.imei || ''" [simNumber]="session?.sim?.iccid || ''"
+  [commands]="loadingContext || finishRequested || session?.status !== 'active' ? [] : context?.commands || []"
+  [error]="loadingContext ? 'Cargando comandos…' : finishRequested || session?.status !== 'active' ? sessionStatus : (!context ? error : '')"
+  [loadingQuota]="loadingContext" [quota]="context?.quota || null" [quotaExhausted]="sendDisabled"
+  [sending]="sending || ending" [sendingKey]="sendingKey" [messages]="messages" [loadingMessages]="loadingMessages"
+  [hasLoadedMessages]="hasLoadedMessages" (copyCommand)="copyCommand($event)"
+  (sendCommand)="sendCommand($event)" (refreshMessages)="loadMessages()">
+  <div commandSettings class="testing-settings">
+    <div class="testing-session-status" [class.testing-session-status--pending]="session?.status !== 'active'" role="status">
+      <i class="pi" [ngClass]="session?.status === 'active' ? 'pi-check-circle' : 'pi-clock'" aria-hidden="true"></i>
+      <strong>{{ sessionStatus }}</strong>
+      <button type="button" class="testing-button testing-session-logs" (click)="openLogs(session?.sessionId || '')">
+        <i class="pi pi-history" aria-hidden="true"></i> Ver logs
+      </button>
+    </div>
+    <section *ngIf="session?.status === 'active' && !finishRequested" class="testing-connection" aria-label="Conexión del GPS">
+      <div class="testing-connection-heading">
+        <div>
+          <strong>Conexión del GPS</strong>
+          <span class="testing-connection-badge" [attr.data-status]="connectionStatus" role="status" aria-live="polite">
+            <i class="pi" [ngClass]="connectionStatus === 'online' ? 'pi-wifi' : connectionStatus === 'offline' ? 'pi-times-circle' : 'pi-info-circle'" aria-hidden="true"></i>
+            {{ connectionLabel }}
+          </span>
+        </div>
+        <button type="button" class="testing-button" (click)="refreshConnection()" [disabled]="connectionLoading" aria-label="Actualizar conexión del GPS">
+          <i class="pi" [ngClass]="connectionLoading ? 'pi-spin pi-spinner' : 'pi-refresh'" aria-hidden="true"></i>
+          {{ connectionLoading ? 'Consultando…' : 'Actualizar' }}
+        </button>
+      </div>
+      <dl class="testing-connection-dates">
+        <div><dt>{{ connectionStatus === 'unavailable' ? 'Última comunicación conocida' : 'Última comunicación' }}</dt>
+          <dd>{{ connection?.lastCommunicationAt ? (connection?.lastCommunicationAt | date:'dd/MM/yyyy HH:mm:ss') : connectionStatus === 'unavailable' ? 'No disponible' : connection ? 'Sin fecha disponible' : 'Pendiente' }}</dd>
+        </div>
+        <div><dt>Última comprobación</dt><dd>{{ connection?.checkedAt ? (connection?.checkedAt | date:'dd/MM/yyyy HH:mm:ss') : 'Pendiente' }}</dd></div>
+      </dl>
+      <p *ngIf="connectionStale" class="testing-connection-message" role="status">La última comprobación tiene más de 15 segundos. El estado se actualizará cuando se restablezca la consulta.</p>
+      <p *ngIf="connectionError || connection?.reason" class="testing-connection-message" role="status">{{ connectionError || connection?.reason }}</p>
+      <small>Actualización automática cada 5 segundos.</small>
+    </section>
+    <dl class="testing-session-details">
+      <div><dt>GPS · IMEI</dt><dd>{{ session?.imei }}</dd></div>
+      <div><dt>Modelo</dt><dd>{{ session?.gps?.modelName || context?.modelName | deviceLabel }}</dd></div>
+      <div><dt>SIM card</dt><dd>{{ session?.sim?.iccid }}</dd></div>
+      <div><dt>ID SIM</dt><dd>{{ session?.sim?.idsim || 'No registrado' }}</dd></div>
+      <div><dt>Servidor de prueba</dt><dd>Servidor 5 · s5.dorhu.com</dd></div>
+      <div><dt>Vence sin actividad</dt><dd>{{ session?.expiresAt | date:'dd/MM/yyyy HH:mm' }}</dd></div>
+    </dl>
+    <p class="testing-notice">La prueba utiliza la SIM y el GPS seleccionados y conserva sus asignaciones permanentes. Finalizar prueba retira el registro temporal de S5. Si configuraste el GPS para S5 y está disponible la configuración de su servidor original, primero se envía esa configuración.</p>
+    <p *ngIf="sessionError || session?.reason" class="testing-error" role="alert">{{ sessionError || session?.reason }}</p>
+    <p *ngIf="context?.reason" class="testing-notice" role="status">{{ context?.reason }}</p>
+    <p *ngIf="error" class="testing-error" role="alert">{{ error }}
+      <button *ngIf="!context && session?.status === 'active'" type="button" (click)="loadContext()" [disabled]="loadingContext">Reintentar</button>
+    </p>
+    <p *ngIf="feedback" class="testing-feedback" role="status">{{ feedback }}</p>
+    <p *ngIf="historyError" class="testing-error" role="alert">{{ historyError }}
+      <button type="button" (click)="loadMessages()" [disabled]="loadingMessages">Reintentar historial</button>
+    </p>
+  </div>
+</app-sms-commands-dialog>
+
+<p-dialog [visible]="logsVisible" (visibleChange)="!$event && closeHistory()" header="Logs de pruebas"
+  [modal]="true" [draggable]="false" [resizable]="false" [style]="{width: '940px', maxWidth: '96vw'}"
+  styleClass="app-dark-dialog testing-logs-dialog">
+  <div class="testing-logs">
+    <ng-container *ngIf="!logSessionId; else testLogDetail">
+      <div class="testing-log-search">
+        <label class="testing-search">
+          <span>Buscar pruebas</span>
+          <input type="search" [(ngModel)]="testHistoryQuery" [ngModelOptions]="{standalone: true}"
+            (keydown.enter)="$event.preventDefault(); $event.stopPropagation(); loadHistory(1)"
+            placeholder="IMEI, SIM, ID SIM o usuario" autocomplete="off" maxlength="120" />
+        </label>
+        <button type="button" class="testing-button" (click)="loadHistory(1)" [disabled]="testHistoryLoading"><i class="pi pi-search" aria-hidden="true"></i> Buscar</button>
+        <button type="button" class="testing-button" (click)="loadHistory(testHistoryPage)" [disabled]="testHistoryLoading" aria-label="Actualizar logs de pruebas"><i class="pi pi-refresh" aria-hidden="true"></i></button>
+      </div>
+      <p *ngIf="testHistoryLoading" class="testing-log-empty" role="status"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Cargando pruebas…</p>
+      <p *ngIf="testHistoryError" class="testing-error" role="alert">{{ testHistoryError }}
+        <button type="button" (click)="loadHistory(testHistoryPage)" [disabled]="testHistoryLoading">Reintentar</button>
+      </p>
+      <p *ngIf="!testHistoryLoading && !testHistoryError && !testHistory.length" class="testing-log-empty" role="status">
+        {{ testHistoryQuery.trim() ? 'No se encontraron pruebas con esa búsqueda.' : 'Todavía no hay pruebas registradas.' }}
+      </p>
+      <div *ngIf="!testHistoryLoading && !testHistoryError && testHistory.length" class="testing-history-list">
+        <button *ngFor="let test of testHistory" type="button" class="testing-history-item" (click)="openLogs(test.sessionId)">
+          <span class="testing-history-heading"><strong>{{ test.imei }}</strong><span class="testing-history-state" [attr.data-status]="test.status">{{ historyStatus(test.status) }}</span></span>
+          <span>{{ test.gps.modelName | deviceLabel }} · SIM: {{ test.sim.iccid }}<ng-container *ngIf="test.sim.idsim"> · ID SIM: {{ test.sim.idsim }}</ng-container></span>
+          <span><i class="pi pi-user" aria-hidden="true"></i> {{ test.ownerName | userName }}</span>
+          <span class="testing-history-date">{{ test.createdAt | date:'dd/MM/yyyy HH:mm' }}<ng-container *ngIf="test.finishedAt"> · Finalizó {{ test.finishedAt | date:'dd/MM/yyyy HH:mm' }}</ng-container></span>
+          <span class="testing-history-detail">Ver detalle <i class="pi pi-arrow-right" aria-hidden="true"></i></span>
+        </button>
+      </div>
+      <div *ngIf="!testHistoryLoading && !testHistoryError && testHistoryTotal" class="testing-pagination">
+        <span>{{ testHistoryTotal }} pruebas · Página {{ testHistoryPage }} de {{ testHistoryLastPage }}</span>
+        <div>
+          <button type="button" class="testing-button" (click)="loadHistory(testHistoryPage - 1)" [disabled]="testHistoryPage <= 1" aria-label="Página anterior de pruebas"><i class="pi pi-chevron-left" aria-hidden="true"></i></button>
+          <button type="button" class="testing-button" (click)="loadHistory(testHistoryPage + 1)" [disabled]="testHistoryPage >= testHistoryLastPage" aria-label="Página siguiente de pruebas"><i class="pi pi-chevron-right" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </ng-container>
+    <ng-template #testLogDetail>
+      <div class="testing-log-toolbar">
+        <button type="button" class="testing-button" (click)="backToHistory()"><i class="pi pi-arrow-left" aria-hidden="true"></i> Todas las pruebas</button>
+        <button type="button" class="testing-button" (click)="loadLogs(logsPage)" [disabled]="logsLoading"><i class="pi pi-refresh" aria-hidden="true"></i> Actualizar</button>
+      </div>
+      <section *ngIf="logSession as test" class="testing-log-summary" aria-label="Datos de la prueba">
+        <div class="testing-history-heading"><strong>{{ test.gps.modelName | deviceLabel }}</strong><span class="testing-history-state" [attr.data-status]="test.status">{{ historyStatus(test.status) }}</span></div>
+        <dl class="testing-session-details">
+          <div><dt>GPS · IMEI</dt><dd>{{ test.imei }}</dd></div>
+          <div><dt>SIM card</dt><dd>{{ test.sim.iccid }}</dd></div>
+          <div><dt>ID SIM</dt><dd>{{ test.sim.idsim || 'No registrado' }}</dd></div>
+          <div><dt>Usuario</dt><dd>{{ test.ownerName | userName }}</dd></div>
+          <div><dt>Inicio</dt><dd>{{ test.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</dd></div>
+          <div><dt>Finalización</dt><dd>{{ test.finishedAt ? (test.finishedAt | date:'dd/MM/yyyy HH:mm:ss') : 'Pendiente' }}</dd></div>
+          <div><dt>Servidor temporal</dt><dd>Servidor 5</dd></div>
+        </dl>
+        <p *ngIf="test.reason" class="testing-notice">{{ test.reason }}</p>
+      </section>
+      <p *ngIf="logsLoading" class="testing-log-empty" role="status"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Cargando registros…</p>
+      <p *ngIf="logsError" class="testing-error" role="alert">{{ logsError }}
+        <button type="button" (click)="loadLogs(logsPage)" [disabled]="logsLoading">Reintentar</button>
+      </p>
+      <p *ngIf="!logsLoading && !logsError && !logEvents.length" class="testing-log-empty" role="status">No hay eventos disponibles para esta prueba.</p>
+      <ol *ngIf="!logsLoading && !logsError && logEvents.length" class="testing-log-timeline" aria-label="Registro cronológico de la prueba">
+        <li *ngFor="let event of logEvents" class="testing-log-event" [class.testing-log-event--error]="logIsError(event)">
+          <i class="pi testing-log-marker" [ngClass]="logIsError(event) ? 'pi-exclamation-triangle' : 'pi-check-circle'" aria-hidden="true"></i>
+          <div class="testing-log-event-body">
+            <strong>{{ event.message }}</strong>
+            <p class="testing-log-meta"><time>{{ event.occurredAt | date:'dd/MM/yyyy HH:mm:ss' }}</time> · {{ (event.actorName || 'Sistema') | userName }}</p>
+            <dl class="testing-log-event-details" *ngIf="logDetails(event).length">
+              <div *ngFor="let detail of logDetails(event)"><dt>{{ detail.label }}</dt><dd [class.testing-log-code]="detail.code">{{ detail.value }}</dd></div>
+            </dl>
+            <ng-container *ngIf="event.type === 'sms_received'">
+              <a *ngIf="event.details?.['content'] | smsLocation as location" class="testing-button testing-log-location"
+                [href]="location.url" target="_blank" rel="noopener noreferrer">
+                <i class="pi pi-map-marker" aria-hidden="true"></i> Ver en Google Maps
+              </a>
+            </ng-container>
+          </div>
+        </li>
+      </ol>
+      <div *ngIf="!logsLoading && !logsError && logsTotal" class="testing-pagination">
+        <span>{{ logsTotal }} registros · Página {{ logsPage }} de {{ logsLastPage }}</span>
+        <div>
+          <button type="button" class="testing-button" (click)="loadLogs(logsPage - 1)" [disabled]="logsPage <= 1" aria-label="Página anterior de registros"><i class="pi pi-chevron-left" aria-hidden="true"></i></button>
+          <button type="button" class="testing-button" (click)="loadLogs(logsPage + 1)" [disabled]="logsPage >= logsLastPage" aria-label="Página siguiente de registros"><i class="pi pi-chevron-right" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+  <ng-template pTemplate="footer">
+    <button type="button" class="testing-button" (click)="closeHistory()">Cerrar logs</button>
+  </ng-template>
+</p-dialog>
