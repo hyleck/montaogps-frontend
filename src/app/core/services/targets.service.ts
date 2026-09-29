@@ -15,6 +15,10 @@ export interface TargetStatusResponse {
   _id: string;
   device_imei: string;
   traccarInfo?: Target['traccarInfo'];
+  expiration_date?: string | null;
+  pending_renewal_date?: string | null;
+  pending_renewal_process_id?: string | null;
+  pending_renewal_requested_at?: string | null;
 }
 
 export interface DeviceDistanceResponse {

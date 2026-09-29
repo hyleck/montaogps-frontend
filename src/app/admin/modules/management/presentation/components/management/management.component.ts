@@ -19,7 +19,7 @@ import { Tag } from '@core/interfaces/tag.interface';
 import { AuthService } from '@core/services/auth.service';
 import { UserLatestLocation, UserService, UsersResponse } from '@core/services/user.service';
 import { UserRolesService } from '@core/services/user-roles.service';
-import { HistoryBlockResponse, TargetsService, TargetsResponse } from '@core/services/targets.service';
+import { HistoryBlockResponse, TargetStatusResponse, TargetsService, TargetsResponse } from '@core/services/targets.service';
 import { StatusService } from '@shared/services/status.service';
 import { ManagementService } from '@management/presentation/services/management.service';
 import { ScreenService } from '@management/presentation/services/screen.service';
@@ -751,6 +751,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
   private pollingInterval: any = null;
   private readonly POLLING_INTERVAL_MS = 10000; // 10 segundos
+  private pollingInProgress = false;
+  private destroyed = false;
 
   // Estado para seguimiento de cambios de status de targets
   // (integrado en el polling principal de 10s, no requiere polling separado)
@@ -1087,6 +1089,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     this.stopUserActivityMonitorPolling();
     this.userLocationMarker?.remove?.();
     this.userLocationMapInstance?.remove?.();
@@ -5271,12 +5274,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private async updateSelectedTargetData(): Promise<void> {
+    if (this.destroyed || this.pollingInProgress) return;
     // Si no hay usuario seleccionado o targets cargados, detener polling
     if (!this.selectedUser || this.targetsList.length === 0) {
       this.stopPolling();
       return;
     }
 
+    this.pollingInProgress = true;
     try {
       let logMessage = '📡 Actualizando ';
       let selectedTargetName = '';
@@ -5285,7 +5290,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // compartido conservamos la consulta individual porque pertenece a otra cuenta.
       if (this.selectedTargetForMap?.isShared) {
         logMessage += 'target seleccionado y ';
-        const updatedTarget = await this.targetsService.getTargetById(this.selectedTargetForMap._id);
+        const targetId = this.selectedTargetForMap._id;
+        const userId = this.selectedUser._id;
+        const updatedTarget = await this.targetsService.getTargetById(targetId);
+        if (this.destroyed || this.selectedUser?._id !== userId || this.selectedTargetForMap?._id !== targetId) return;
 
         // Actualizar el target seleccionado con la nueva información
         this.selectedTargetForMap = {
@@ -5307,13 +5315,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
       // 2. Actualizar status de TODOS los targets
       await this.updateAllTargetsStatusInPolling();
+      if (this.destroyed) return;
 
       // Forzar detección de cambios para actualizar la UI
       this.cdr.detectChanges();
 
       // Timeout adicional para asegurar que el mapa detecte los cambios en selectedTarget
       setTimeout(() => {
-        this.cdr.detectChanges();
+        if (!this.destroyed) this.cdr.detectChanges();
       }, 50);
 
       const summary: any = {
@@ -5328,11 +5337,28 @@ export class ManagementComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('❌ Error en polling:', error);
       // No mostrar error al usuario para evitar spam, solo log en consola
+    } finally {
+      this.pollingInProgress = false;
     }
   }
 
+  @HostListener('window:focus')
+  @HostListener('document:visibilitychange')
+  refreshTargetsOnResume(): void {
+    if (document.visibilityState === 'hidden') return;
+    void this.updateSelectedTargetData();
+  }
+
+  private renewalStatusUpdate(status: TargetStatusResponse): Partial<TargetStatusResponse> {
+    const update: Partial<TargetStatusResponse> = {};
+    for (const field of ['expiration_date', 'pending_renewal_date', 'pending_renewal_process_id', 'pending_renewal_requested_at'] as const) {
+      if (Object.prototype.hasOwnProperty.call(status, field)) update[field] = status[field];
+    }
+    return update;
+  }
+
   private async updateAllTargetsStatusInPolling(): Promise<void> {
-    if (!this.selectedUser || this.targetsList.length === 0) {
+    if (this.destroyed || !this.selectedUser || this.targetsList.length === 0) {
       return;
     }
 
@@ -5343,10 +5369,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
         .filter(Boolean);
       if (ownTargetIds.length === 0) return;
 
+      const userId = this.selectedUser._id;
+      const loadRequestId = this.targetsLoadRequestId;
       const statuses = await this.targetsService.getTargetStatuses(
-        this.selectedUser._id,
+        userId,
         ownTargetIds,
       );
+      if (this.destroyed || this.selectedUser?._id !== userId || this.targetsLoadRequestId !== loadRequestId) return;
       const statusesById = new Map(statuses.map(status => [String(status._id), status]));
 
       this.targetsList = this.targetsList.map(previousTarget => {
@@ -5355,8 +5384,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
         if (!liveStatus) return previousTarget;
 
         const previousOriginalTarget = previousTarget.originalTarget || previousTarget;
+        const renewalUpdate = this.renewalStatusUpdate(liveStatus);
         const mergedTarget = {
           ...previousOriginalTarget,
+          ...renewalUpdate,
           traccarInfo: liveStatus.traccarInfo,
         };
         const newStatus = this.getDisplayTraccarStatus({
@@ -5402,6 +5433,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
         return {
           ...previousTarget,
+          ...renewalUpdate,
           status: isOnline
             ? this.translate.instant('management.status.online')
             : isWeakSignal
@@ -5418,10 +5450,18 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.targets = this.targets.map(target => {
         const liveStatus = statusesById.get(String(target._id || ''));
         return liveStatus
-          ? { ...target, traccarInfo: liveStatus.traccarInfo } as Target
+          ? { ...target, ...this.renewalStatusUpdate(liveStatus), traccarInfo: liveStatus.traccarInfo } as Target
           : target;
       });
       this.refreshTargetsCardList();
+
+      const editingStatus = statusesById.get(String(this.targetToEdit?._id || ''));
+      if (editingStatus) {
+        this.targetFormRef?.applyRenewalStatus?.(editingStatus);
+        const renewalUpdate = this.renewalStatusUpdate(editingStatus);
+        Object.assign(this.targetToEdit, renewalUpdate);
+        if (this.targetToEdit.originalTarget) Object.assign(this.targetToEdit.originalTarget, renewalUpdate);
+      }
 
       if (this.selectedTargetForMap) {
         const selectedUpdate = this.targetsList.find(

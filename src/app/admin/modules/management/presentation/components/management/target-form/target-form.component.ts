@@ -16,7 +16,7 @@ import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 import { CloudComponent } from 'src/app/shareds/components/cloud/cloud.component';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { ColorsService } from 'src/app/core/services/colors.service';
-import { TargetsService } from 'src/app/core/services/targets.service';
+import { TargetsService, TargetStatusResponse } from 'src/app/core/services/targets.service';
 import { ServersService } from 'src/app/core/services/servers.service';
 import { CreateTargetDto, Target, UpdateTargetDto, TargetDevice, CreateProcessDto, ProcessResponse, TargetTransferHistoryEntry, DeviceRecordEntry } from 'src/app/core/interfaces/target.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
@@ -89,6 +89,10 @@ interface PendingInstallationEvidence {
 export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterViewInit {
     private destroy$ = new Subject<void>();
     private smsPollingSub: Subscription | null = null;
+    private lastServerExpirationDate: string | undefined;
+    private renewalDateAnchor: { date: string; years: number } | null = null;
+    private lastCalculatedRenewalDate = '';
+    private lastSelectedRenewalYears = 0;
     readonly installationEvidenceDefinitions: InstallationEvidenceDefinition[] = [
         { key: 'chasis_img', label: 'Chasis', icon: 'pi-hashtag', section: 'before' },
         { key: 'placa_img', label: 'Placa', icon: 'pi-car', section: 'before' },
@@ -1700,8 +1704,26 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }
     }
 
+    applyRenewalStatus(status: TargetStatusResponse): void {
+        if (!this.target?._id || this.target._id !== status._id) return;
+        if (Object.prototype.hasOwnProperty.call(status, 'expiration_date')) {
+            const currentDate = this.formatDateToInput(this.target.expiration_date || '');
+            const previousDate = this.lastServerExpirationDate ?? currentDate;
+            const serverDate = this.formatDateToInput(status.expiration_date || '');
+            // Refresh persisted dates without overwriting a date edited in this form.
+            if (currentDate === previousDate) this.target.expiration_date = serverDate;
+            this.lastServerExpirationDate = serverDate;
+        }
+        for (const key of ['pending_renewal_date', 'pending_renewal_process_id', 'pending_renewal_requested_at'] as const) {
+            if (Object.prototype.hasOwnProperty.call(status, key)) {
+                (this.target as any)[key] = status[key] ?? null;
+            }
+        }
+    }
+
     private async setupEditTarget(target: TargetDevice) {
         try {
+        this.resetRenewalDateCalculation();
         this.incosisProfileRequestId++;
         this.gpsRenewalMethod = null;
         this.incosisClientProfileError = '';
@@ -1854,6 +1876,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             console.log('🔍 DEBUG setupEditTarget: Fecha de expiración FORMATEADA:', formattedExpirationDate);
             this.target.expiration_date = formattedExpirationDate;
         }
+        this.lastServerExpirationDate = this.target.expiration_date || '';
 
         // Formatear la fecha de instalación (usar activation_date como fuente principal)
         if (this.target.activation_date) {
@@ -4700,6 +4723,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Método para limpiar el formulario de proceso
     private resetProcessForm(): void {
+        this.resetRenewalDateCalculation();
         this.processForm = {
             type: '',
             registrationDate: this.getTodayInputDate(),
@@ -4721,6 +4745,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Método para manejar el cambio de tipo de proceso
     onProcessTypeChange(): void {
+        this.resetRenewalDateCalculation();
         console.log('🔍 DEBUG: Cambio de tipo de proceso a:', this.processForm.type);
 
         // Limpiar campos específicos de cambio de fechas cuando se cambia el tipo
@@ -4866,17 +4891,27 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     onRenewalYearsChange(): void {
-        const years = this.processForm.renewalYears;
-        if (!years) {
-            return;
-        }
+        const years = Number(this.processForm.renewalYears);
+        if (!Number.isInteger(years) || years < 1) return;
+        const selectedDate = this.processForm.newRenewalDate || this.target.expiration_date || this.getTodayInputDate();
+        const anchor = !this.renewalDateAnchor || selectedDate !== this.lastCalculatedRenewalDate
+            ? { date: selectedDate, years: this.lastSelectedRenewalYears || 0 }
+            : this.renewalDateAnchor;
+        const baseDate = this.parseLocalDate(anchor.date);
+        if (!Number.isFinite(baseDate.getTime())) return;
+        const year = baseDate.getFullYear() + years - anchor.years;
+        const month = baseDate.getMonth();
+        const day = Math.min(baseDate.getDate(), new Date(year, month + 1, 0).getDate());
+        this.processForm.newRenewalDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        this.renewalDateAnchor = anchor;
+        this.lastSelectedRenewalYears = years;
+        this.lastCalculatedRenewalDate = this.processForm.newRenewalDate;
+    }
 
-        // Base: fecha seleccionada, expiración actual o hoy
-        const baseDateStr = this.processForm.newRenewalDate || this.target.expiration_date || this.getTodayInputDate();
-        const baseDate = this.parseLocalDate(baseDateStr);
-        baseDate.setFullYear(baseDate.getFullYear() + years);
-
-        this.processForm.newRenewalDate = this.formatDateToInput(baseDate.toISOString());
+    private resetRenewalDateCalculation(): void {
+        this.renewalDateAnchor = null;
+        this.lastCalculatedRenewalDate = '';
+        this.lastSelectedRenewalYears = 0;
     }
 
     isRenewalProcessType(type: string = this.processForm.type): boolean {
