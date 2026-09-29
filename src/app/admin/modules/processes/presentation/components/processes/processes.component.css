@@ -376,27 +376,26 @@
 }
 
 .processes-table {
-    display: flex;
     flex: 1 1 auto;
     min-width: 0;
     min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
     background: var(--process-surface);
 }
 
 :host ::ng-deep .processes-table > p-table,
 :host ::ng-deep .processes-data-table.p-datatable {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
+    display: block;
     min-width: 0;
     min-height: 0;
     width: 100%;
 }
 
-:host ::ng-deep .processes-data-table .p-datatable-wrapper {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: auto;
+:host ::ng-deep .processes-data-table .p-datatable-wrapper,
+:host ::ng-deep .processes-data-table .p-datatable-table-container {
+    overflow: visible;
 }
 
 :host ::ng-deep .processes-data-table .p-datatable-table {
@@ -692,33 +691,30 @@
     background: rgba(16, 185, 129, 0.12);
 }
 
-/* Paginación y estados vacíos */
-:host ::ng-deep .processes-data-table .p-paginator {
-    flex: 0 0 auto;
-    justify-content: flex-end;
-    min-height: 46px;
-    padding: 5px 10px;
-    border: 0;
-    color: var(--process-muted);
-    background: var(--process-surface);
-}
-
-:host ::ng-deep .processes-data-table .p-paginator-current {
-    margin-right: auto;
+/* Carga progresiva y estados vacíos */
+.processes-list-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 8px 12px;
     color: var(--process-muted);
     font-size: 0.72rem;
 }
 
-:host ::ng-deep .processes-data-table .p-paginator .p-paginator-element {
-    min-width: 34px;
-    height: 34px;
-    border-radius: 9px;
-    color: var(--process-muted);
+.processes-list-status i {
+    margin-right: 4px;
 }
 
-:host ::ng-deep .processes-data-table .p-paginator .p-highlight {
-    color: #ffffff;
-    background: var(--process-accent);
+.processes-load-retry {
+    border: 0;
+    padding: 6px;
+    background: transparent;
+    color: var(--process-accent-strong);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
 }
 
 .processes-empty-state {
@@ -1857,10 +1853,6 @@
 
 :host-context(.app-dark) ::ng-deep .processes-data-table .p-datatable-tbody > tr.process-row--verified:hover > td {
     background: rgba(5, 150, 105, 0.2);
-}
-
-:host-context(.app-dark) ::ng-deep .processes-data-table .p-paginator .p-paginator-element:hover {
-    background: rgba(255, 255, 255, 0.08);
 }
 
 ::ng-deep html.app-dark .process-detail-dialog .detail-technical-data span {

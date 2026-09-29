@@ -56,6 +56,7 @@ describe('ProcessesComponent installation detail', () => {
     component = new ProcessesComponent(
       processesApi, users, {} as any, {} as any, {} as any,
       jasmine.createSpyObj('MessageService', ['add']), targets, auth, tags, contacts, solicitudes,
+      {} as any,
     );
   });
 

@@ -68,9 +68,9 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     fixture.detectChanges();
   }
 
-  it('generates one link for the full client and displays its shareable URL and responses', () => {
+  it('generates a link without date bounds and displays its shareable URL and responses', () => {
     open();
-    expect(service.create).toHaveBeenCalledOnceWith(client.id);
+    expect(service.create).toHaveBeenCalledOnceWith(client.id, { dateFrom: undefined, dateTo: undefined });
     expect(service.getForClient).toHaveBeenCalledOnceWith(client.id);
     expect(component.clientName).toBe('Maria Garcia');
     expect(component.linkUrl).toBe(`${window.location.origin}/renovar/secret-token`);
@@ -79,6 +79,42 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     expect(fixture.nativeElement.querySelector('.renewal-client-response')).toBeNull();
     expect(component.renewalCount(response)).toBe(1);
     expect(component.declineCount(response)).toBe(1);
+  });
+
+  it('sends the selected calendar range and displays the range saved in the link separately from its validity', () => {
+    fixture.componentRef.setInput('dateFrom', new Date(2026, 8, 1));
+    fixture.componentRef.setInput('dateTo', new Date(2026, 8, 30, 23, 59));
+    service.create.and.returnValue(of({ ...created,
+      expirationFilter: { mode: 'range', dateFrom: '2026-09-01', dateTo: '2026-09-30' },
+    }));
+    open();
+    expect(service.create).toHaveBeenCalledOnceWith(client.id, { dateFrom: '2026-09-01', dateTo: '2026-09-30' });
+    const range = fixture.nativeElement.querySelector('.renewal-created-range').textContent;
+    expect(range).toContain('Del 01/09/2026 al 30/09/2026');
+    expect(range).not.toContain('06/10/2026');
+    expect(fixture.nativeElement.textContent).toContain('cliente y sus subcuentas');
+  });
+
+  it('sends an open-ended range without inventing another date', () => {
+    fixture.componentRef.setInput('dateFrom', new Date(2026, 8, 1));
+    open();
+    expect(service.create).toHaveBeenCalledOnceWith(client.id, { dateFrom: '2026-09-01', dateTo: undefined });
+  });
+
+  it('rejects reversed date bounds before creating a link', () => {
+    fixture.componentRef.setInput('dateFrom', new Date(2026, 9, 1));
+    fixture.componentRef.setInput('dateTo', new Date(2026, 8, 1));
+    open();
+    expect(service.create).not.toHaveBeenCalled();
+    expect(component.error).toContain('rango de vencimientos válido');
+  });
+
+  it('shows the saved range when reviewing the client response', () => {
+    service.getForClient.and.returnValue(of([{ ...response,
+      expirationFilter: { mode: 'range', dateFrom: '2026-09-01', dateTo: '2026-09-30' },
+    }]));
+    openResponse();
+    expect(fixture.nativeElement.querySelector('.renewal-response-dates').textContent).toContain('Del 01/09/2026 al 30/09/2026');
   });
 
   it('opens the response list without automatically selecting a response or creating another link', () => {

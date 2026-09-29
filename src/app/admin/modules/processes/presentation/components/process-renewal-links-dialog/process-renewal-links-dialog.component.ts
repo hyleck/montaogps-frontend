@@ -3,12 +3,13 @@ import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleCha
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { Subscription } from 'rxjs';
-import { CreatedRenewalLink, ExecuteRenewalLink, RenewalLinkAction, RenewalLinkExecutionResult, RenewalLinkSummary, RenewalLinksService } from 'src/app/core/services/renewal-links.service';
+import { CreatedRenewalLink, ExecuteRenewalLink, RenewalExpirationFilter, RenewalLinkAction, RenewalLinkExecutionResult, RenewalLinkSummary, RenewalLinksService } from 'src/app/core/services/renewal-links.service';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 import { PROCESS_TYPE_LABELS } from '../../services/processes.service';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
+import { renewalExpirationFilterLabel, renewalFilterDate } from 'src/app/core/utils/renewal-expiration-filter.util';
 
 @Component({
   selector: 'app-process-renewal-links-dialog',
@@ -21,6 +22,8 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   @Input() visible = false;
   @Input() client: { id: string; label: string; email?: string; phone?: string } | null = null;
   @Input() mode: 'generate' | 'responses' = 'generate';
+  @Input() dateFrom: Date | null = null;
+  @Input() dateTo: Date | null = null;
   @Output() visibleChange = new EventEmitter<boolean>();
   @Output() processed = new EventEmitter<void>();
 
@@ -55,6 +58,16 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
 
   get clientName(): string {
     return formatUserName(this.client?.label) || 'Cliente';
+  }
+
+  expirationFilterLabel(filter?: RenewalExpirationFilter): string {
+    return renewalExpirationFilterLabel(filter);
+  }
+
+  get selectedExpirationRangeLabel(): string {
+    const dateFrom = renewalFilterDate(this.dateFrom);
+    const dateTo = renewalFilterDate(this.dateTo);
+    return renewalExpirationFilterLabel({ mode: dateFrom || dateTo ? 'range' : 'expired', dateFrom, dateTo });
   }
 
   get selectedLink(): RenewalLinkSummary | undefined {
@@ -117,7 +130,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!this.visible) { this.cancelRequests(); this.responseVisible = false; return; }
-    if (changes['visible'] || changes['client']) {
+    if (changes['visible'] || changes['client'] || changes['dateFrom'] || changes['dateTo']) {
       this.cancelRequests();
       this.created = null;
       this.linkUrl = '';
@@ -151,10 +164,16 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   generate(): void {
     if (this.busy || !this.visible || this.responseVisible) return;
     if (!this.client?.id?.trim()) { this.error = 'Selecciona un cliente para generar su enlace.'; return; }
+    const dateFrom = renewalFilterDate(this.dateFrom);
+    const dateTo = renewalFilterDate(this.dateTo);
+    if ((this.dateFrom && !dateFrom) || (this.dateTo && !dateTo) || (dateFrom && dateTo && dateFrom > dateTo)) {
+      this.error = 'Selecciona un rango de vencimientos válido antes de generar el enlace.';
+      return;
+    }
     const generation = this.generation;
     this.creating = true;
     this.error = this.copyMessage = '';
-    this.requests.add(this.service.create(this.client.id).subscribe({
+    this.requests.add(this.service.create(this.client.id, { dateFrom, dateTo }).subscribe({
       next: created => {
         if (generation !== this.generation) return;
         this.creating = false;

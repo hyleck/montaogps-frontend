@@ -87,6 +87,47 @@ describe('PublicRenewalComponent', () => {
     expect(component.undecidedCount).toBe(2);
   });
 
+  it('shows the saved expiration range even for an empty list, independently of the link validity', () => {
+    service.getPublic.and.returnValue(of({ ...info, devices: [],
+      expirationFilter: { mode: 'range', dateFrom: '2026-09-01', dateTo: '2026-09-30' },
+    }));
+    render();
+    const range = fixture.nativeElement.querySelector('.renewal-range').textContent;
+    expect(range).toContain('Del 01/09/2026 al 30/09/2026, ambas fechas incluidas');
+    expect(range).not.toContain('31/10/2026');
+    expect(fixture.nativeElement.textContent).toContain('cliente y sus subcuentas');
+    expect(fixture.nativeElement.querySelector('.renewal-footer').textContent).toContain('31/10/2026');
+  });
+
+  it('keeps the saved range visible after the client confirms their response', () => {
+    const expirationFilter = { mode: 'range' as const, dateFrom: '2026-08-01', dateTo: '2027-10-31' };
+    service.getPublic.and.returnValue(of({ ...info, expirationFilter }));
+    service.submitPublic.and.returnValue(of({ ...submitted, expirationFilter }));
+    render(); component.selectAll(false); component.confirmSelection(); render();
+    expect(component.submitted).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.renewal-range').textContent).toContain('Del 01/08/2026 al 31/10/2027');
+  });
+
+  for (const example of [
+    { filter: { mode: 'range' as const, dateFrom: '2026-09-01' }, label: 'Desde el 01/09/2026, inclusive' },
+    { filter: { mode: 'range' as const, dateTo: '2026-09-30' }, label: 'Hasta el 30/09/2026, inclusive' },
+    { filter: { mode: 'expired' as const, asOf: '2026-09-29' }, label: 'Vencidos antes del 29/09/2026' },
+  ]) {
+    it(`shows the filter accurately: ${example.label}`, () => {
+      service.getPublic.and.returnValue(of({ ...info, expirationFilter: example.filter }));
+      render();
+      expect(fixture.nativeElement.querySelector('.renewal-range').textContent).toContain(example.label);
+    });
+  }
+
+  it('does not infer a range from device dates or link validity in older links', () => {
+    render();
+    const range = fixture.nativeElement.querySelector('.renewal-range').textContent;
+    expect(range).toContain('Sin rango de vencimiento registrado');
+    expect(range).not.toContain('26/08/2026');
+    expect(range).not.toContain('31/10/2026');
+  });
+
   it('records each explicit radio choice and enables confirmation only when every device is decided', () => {
     render();
     radio('device-1', true).click();

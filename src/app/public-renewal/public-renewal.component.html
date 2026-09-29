@@ -34,6 +34,10 @@
                 </div>
             </header>
 
+            <section class="renewal-range" aria-label="Rango de vencimientos">
+                <i class="pi pi-calendar" aria-hidden="true"></i>
+                <div><strong>Vencimientos incluidos</strong><span>{{ expirationRangeLabel }}</span></div>
+            </section>
             <div class="renewal-notice" *ngIf="refreshNotice" role="status">{{ refreshNotice }}</div>
             <div class="renewal-notice renewal-notice--warning" *ngIf="submitError" role="alert">
                 <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
@@ -44,7 +48,7 @@
                 <section class="renewal-devices" aria-labelledby="renewal-devices-heading">
                     <div class="renewal-list-heading">
                         <h2 id="renewal-devices-heading">Tus dispositivos <span>{{ devices.length }}</span></h2>
-                        <p>Incluye dispositivos vigentes y vencidos.</p>
+                        <p>{{ renewal.expirationFilter ? 'Dispositivos del cliente y sus subcuentas.' : 'Dispositivos incluidos en este enlace.' }}</p>
                     </div>
                     <label class="renewal-search" *ngIf="devices.length">
                         <i class="pi pi-search" aria-hidden="true"></i>

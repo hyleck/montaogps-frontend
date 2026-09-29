@@ -8,6 +8,18 @@ export interface RenewalDecision {
   renew: boolean;
 }
 
+export interface RenewalExpirationFilter {
+  mode: 'range' | 'expired' | 'all';
+  dateFrom?: string;
+  dateTo?: string;
+  asOf?: string;
+}
+
+export interface RenewalLinkDateRange {
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 export interface PublicRenewalDevice {
   id: string;
   name: string;
@@ -18,6 +30,7 @@ export interface PublicRenewalDevice {
 }
 
 export interface PublicRenewalInfo {
+  expirationFilter?: RenewalExpirationFilter;
   client: { name: string };
   expiresAt: string;
   status: 'active' | 'submitted';
@@ -31,6 +44,7 @@ export interface RenewalLinkClient {
 }
 
 export interface CreatedRenewalLink {
+  expirationFilter?: RenewalExpirationFilter;
   id: string;
   token: string;
   client: RenewalLinkClient;
@@ -70,6 +84,7 @@ export interface RenewalLinkExecution extends ExecuteRenewalLink {
 }
 
 export interface RenewalLinkSummary {
+  expirationFilter?: RenewalExpirationFilter;
   id: string;
   client: RenewalLinkClient;
   createdAt: string;
@@ -98,8 +113,12 @@ export class RenewalLinksService {
     this.publicHttp = new HttpClient(backend);
   }
 
-  create(clientId: string): Observable<CreatedRenewalLink> {
-    return this.http.post<CreatedRenewalLink>(this.apiUrl, { clientId });
+  create(clientId: string, range: RenewalLinkDateRange = {}): Observable<CreatedRenewalLink> {
+    return this.http.post<CreatedRenewalLink>(this.apiUrl, {
+      clientId,
+      ...(range.dateFrom ? { dateFrom: range.dateFrom } : {}),
+      ...(range.dateTo ? { dateTo: range.dateTo } : {}),
+    });
   }
 
   getForClient(clientId: string): Observable<RenewalLinkSummary[]> {

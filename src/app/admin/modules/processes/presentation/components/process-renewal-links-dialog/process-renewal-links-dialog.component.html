@@ -11,12 +11,15 @@
 
     <section class="renewal-links-content">
         <p class="renewal-links-intro">El cliente podrá elegir cuáles dispositivos renovar. Su selección quedará guardada aquí para continuar la gestión.</p>
+        <p class="renewal-links-intro" *ngIf="!created && mode === 'generate'"><strong>Vencimientos incluidos:</strong> {{ selectedExpirationRangeLabel }}. Incluye las subcuentas del cliente.</p>
         <p *ngIf="creating" class="renewal-links-feedback" role="status"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Generando enlace…</p>
         <p *ngIf="error" class="renewal-links-error" role="alert">{{ error }}</p>
 
         <section *ngIf="created && linkUrl" class="renewal-link-created" data-replay-block>
             <h3>Enlace listo para compartir</h3>
-            <p>Incluye los {{ created.deviceCount }} dispositivos del cliente. Disponible hasta {{ created.expiresAt | date:'dd/MM/yyyy · HH:mm' }}.</p>
+            <p>Incluye {{ created.deviceCount }} dispositivos del cliente y sus subcuentas.</p>
+            <p class="renewal-created-range"><strong>Vencimientos incluidos:</strong> {{ expirationFilterLabel(created.expirationFilter) }}.</p>
+            <p>Enlace disponible hasta {{ created.expiresAt | date:'dd/MM/yyyy · HH:mm' }}.</p>
             <label for="renewal-public-link">Enlace público</label>
             <input id="renewal-public-link" data-activity-private [value]="linkUrl" readonly (focus)="$any($event.target).select()">
             <div class="renewal-links-actions">
@@ -40,6 +43,7 @@
                 <div>
                     <strong class="renewal-link-status" [class.renewal-link-status--submitted]="link.status === 'submitted'">{{ statusLabel(link.status) }}</strong>
                     <span>Creado {{ link.createdAt | date:'dd/MM/yyyy · HH:mm' }} · {{ link.deviceCount }} dispositivos</span>
+                    <span>{{ expirationFilterLabel(link.expirationFilter) }}</span>
                     <span *ngIf="link.status === 'submitted'">{{ renewalCount(link) }} para renovar · {{ declineCount(link) }} sin renovar</span>
                     <span *ngIf="link.status === 'active'">Vence {{ link.expiresAt | date:'dd/MM/yyyy · HH:mm' }}</span>
                 </div>
@@ -84,6 +88,7 @@
                     <span *ngIf="responseClientContact?.phone" class="renewal-response-contact"><i class="pi pi-phone" aria-hidden="true"></i>{{ responseClientContact?.phone }}</span>
                 </div>
                 <dl class="renewal-response-dates">
+                    <div><dt>Vencimientos incluidos</dt><dd>{{ expirationFilterLabel(response.expirationFilter) }}</dd></div>
                     <div><dt>Respuesta confirmada</dt><dd>{{ response.submittedAt | date:'dd/MM/yyyy · HH:mm' }}</dd></div>
                     <div><dt>Enlace creado</dt><dd>{{ response.createdAt | date:'dd/MM/yyyy · HH:mm' }}</dd></div>
                 </dl>

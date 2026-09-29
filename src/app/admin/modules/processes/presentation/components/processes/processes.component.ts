@@ -1,5 +1,5 @@
 import { DeviceLabelMessageService } from 'src/app/shareds/services/device-label-messages.service';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { TargetsService } from 'src/app/core/services/targets.service';
 import { AuthService } from 'src/app/core/services/auth.service';
@@ -25,9 +25,11 @@ import * as XLSX from 'xlsx-js-style';
 import { MessageService } from 'primeng/api';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
+import { renewalFilterDate } from 'src/app/core/utils/renewal-expiration-filter.util';
 import { ProcessTemplateConfiguration } from '../process-templates-dialog/process-templates-dialog.component';
 
 type StructuredDetailTone = 'success' | 'danger' | 'warning' | 'info' | 'neutral';
+type ProcessFilters = NonNullable<Parameters<ProcessesService['getPaginated']>[2]>;
 
 interface InstallationAccount {
   id: string;
@@ -87,13 +89,23 @@ interface DetailChangeRow {
   styleUrls: ['./processes.component.css'],
   providers: [{ provide: MessageService, useClass: DeviceLabelMessageService }],
 })
-export class ProcessesComponent implements OnInit, OnDestroy {
+export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   processes: ProcessItem[] = [];
   loading = false;
+  loadingMore = false;
+  hasMoreProcesses = false;
+  processesLoadError = '';
   private processesRequest?: Subscription;
+  private processesRequestId = 0;
+  private activeFilters: ProcessFilters = {};
+  private failedPage = 1;
+  private destroyed = false;
+  private scrollCheckFrame: number | null = null;
+  private scrollResizeObserver?: ResizeObserver;
+  @ViewChild('processesScroll') private processesScroll?: ElementRef<HTMLElement>;
 
-  // Pagination
+  // The API remains paginated; rows are appended as the list scrolls.
   totalRecords = 0;
   currentPage = 1;
   rowsPerPage = 20;
@@ -194,6 +206,7 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     private tagsService: TagsService,
     private contactsService: ContactsService,
     private solicitudesService: SolicitudesService,
+    private ngZone: NgZone,
   ) {}
 
   ngOnInit(): void {
@@ -205,7 +218,15 @@ export class ProcessesComponent implements OnInit, OnDestroy {
   }
 
   loadProcesses(): void {
+    this.processesRequestId++;
     this.processesRequest?.unsubscribe();
+    this.currentPage = 1;
+    this.processes = [];
+    this.totalRecords = 0;
+    this.hasMoreProcesses = false;
+    this.loadingMore = false;
+    this.processesLoadError = '';
+    if (this.processesScroll) this.processesScroll.nativeElement.scrollTop = 0;
     if (this.hasPendingRenewalFilter && !this.hasSelectedClient) {
       this.processes = [];
       this.totalRecords = 0;
@@ -213,41 +234,91 @@ export class ProcessesComponent implements OnInit, OnDestroy {
       this.filtersExpanded = true;
       return;
     }
-    this.loading = true;
-    const filters: any = {};
+    const filters: ProcessFilters = {};
     if (this.selectedTypes.length) filters.types = [...this.selectedTypes];
     if (this.selectedCreator) filters.creator = this.selectedCreator;
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
     if (this.selectedClient?.id) filters.client = this.selectedClient.id;
     if (this.selectedVerificationStatus) filters.verificationStatus = this.selectedVerificationStatus;
-    if (this.dateFrom) filters.dateFrom = this.dateFrom.toISOString();
-    if (this.dateTo) filters.dateTo = this.dateTo.toISOString();
+    if (this.dateFrom) filters.dateFrom = this.hasPendingRenewalFilter ? renewalFilterDate(this.dateFrom) : this.dateFrom.toISOString();
+    if (this.dateTo) filters.dateTo = this.hasPendingRenewalFilter ? renewalFilterDate(this.dateTo) : this.dateTo.toISOString();
     if (this.searchQuery?.trim()) filters.search = this.searchQuery.trim();
+    this.activeFilters = filters;
+    this.fetchProcessesPage(1);
+  }
 
-    this.processesRequest = this.processesService.getPaginated(this.currentPage, this.rowsPerPage, filters).subscribe({
+  loadMoreProcesses(): void {
+    if (this.destroyed || this.loading || this.loadingMore || !this.hasMoreProcesses) return;
+    this.fetchProcessesPage(this.currentPage + 1);
+  }
+
+  retryProcesses(): void {
+    if (this.destroyed || this.loading || this.loadingMore || !this.processesLoadError) return;
+    this.fetchProcessesPage(this.failedPage);
+  }
+
+  private fetchProcessesPage(page: number): void {
+    if (this.destroyed) return;
+    const requestId = ++this.processesRequestId;
+    this.processesRequest?.unsubscribe();
+    this.loading = page === 1;
+    this.loadingMore = page > 1;
+    this.processesLoadError = '';
+    this.processesRequest = this.processesService.getPaginated(page, this.rowsPerPage, this.activeFilters).subscribe({
       next: (res) => {
-        this.processes = res.data;
+        if (this.destroyed || requestId !== this.processesRequestId) return;
+        const rows = page === 1 ? [] : [...this.processes];
+        const seenIds = new Set(rows.map(process => process._id));
+        for (const process of res.data) {
+          if (seenIds.has(process._id)) continue;
+          rows.push(process);
+          seenIds.add(process._id);
+        }
+        this.processes = rows;
         this.totalRecords = res.total;
+        this.currentPage = page;
+        this.hasMoreProcesses = res.data.length > 0 && page < res.lastPage;
         this.loading = false;
+        this.loadingMore = false;
+        this.scheduleScrollCheck();
       },
       error: (error) => {
+        if (this.destroyed || requestId !== this.processesRequestId) return;
         this.loading = false;
-        this.processes = [];
-        this.totalRecords = 0;
+        this.loadingMore = false;
+        this.failedPage = page;
+        this.processesLoadError = getApiErrorMessage(error, 'Intenta nuevamente.');
         this.messageService.add({
           severity: 'error',
           summary: 'No se pudieron cargar los procesos',
-          detail: getApiErrorMessage(error, 'Intenta aplicar los filtros nuevamente.'),
+          detail: this.processesLoadError,
           life: 4000,
         });
       }
     });
   }
 
-  onPageChange(event: any): void {
-    this.currentPage = Math.floor(event.first / event.rows) + 1;
-    this.rowsPerPage = event.rows;
-    this.loadProcesses();
+  ngAfterViewInit(): void {
+    if (typeof ResizeObserver !== 'undefined' && this.processesScroll) {
+      this.scrollResizeObserver = new ResizeObserver(() => this.scheduleScrollCheck());
+      this.scrollResizeObserver.observe(this.processesScroll.nativeElement);
+    }
+    this.scheduleScrollCheck();
+  }
+
+  onProcessesScroll(): void {
+    const container = this.processesScroll?.nativeElement;
+    if (!container || container.clientHeight <= 0 || this.processesLoadError) return;
+    if (container.scrollHeight - container.scrollTop - container.clientHeight <= 160) this.loadMoreProcesses();
+  }
+
+  @HostListener('window:resize')
+  private scheduleScrollCheck(): void {
+    if (this.destroyed || this.scrollCheckFrame !== null) return;
+    this.scrollCheckFrame = requestAnimationFrame(() => {
+      this.scrollCheckFrame = null;
+      if (!this.destroyed) this.ngZone.run(() => this.onProcessesScroll());
+    });
   }
 
   applyFilters(): void {
@@ -352,8 +423,8 @@ export class ProcessesComponent implements OnInit, OnDestroy {
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
     if (this.selectedClient?.id) filters.client = this.selectedClient.id;
     if (this.selectedVerificationStatus) filters.verificationStatus = this.selectedVerificationStatus;
-    if (this.dateFrom) filters.dateFrom = this.dateFrom.toISOString();
-    if (this.dateTo) filters.dateTo = this.dateTo.toISOString();
+    if (this.dateFrom) filters.dateFrom = this.hasPendingRenewalFilter ? renewalFilterDate(this.dateFrom) : this.dateFrom.toISOString();
+    if (this.dateTo) filters.dateTo = this.hasPendingRenewalFilter ? renewalFilterDate(this.dateTo) : this.dateTo.toISOString();
     if (this.searchQuery?.trim()) filters.search = this.searchQuery.trim();
 
     const res = await this.processesService.getPaginated(1, 10000, filters).toPromise();
@@ -594,7 +665,11 @@ export class ProcessesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
+    this.processesRequestId++;
     this.processesRequest?.unsubscribe();
+    this.scrollResizeObserver?.disconnect();
+    if (this.scrollCheckFrame !== null) cancelAnimationFrame(this.scrollCheckFrame);
     this.closeDetail();
   }
 

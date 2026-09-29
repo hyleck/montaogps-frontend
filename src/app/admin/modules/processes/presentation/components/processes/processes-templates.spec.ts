@@ -134,9 +134,11 @@ describe('Processes filter templates integration', () => {
   });
 
   it('keeps the template filters on subsequent pages and supports all clients', () => {
+    service.getPaginated.and.callFake(page => of({ data: [{ _id: `page-${page}` } as ProcessItem], total: 60, page: page!, lastPage: 3 }));
     component.selectedClient = client;
     component.applyTemplate({ ...configuration, client: null, types: [20] });
-    component.onPageChange({ first: 40, rows: 20 });
+    component.loadMoreProcesses();
+    component.loadMoreProcesses();
     expect(service.getPaginated.calls.mostRecent().args).toEqual([3, 20, {
       types: [20], dateFrom: configuration.dateFrom!.toISOString(), dateTo: configuration.dateTo!.toISOString(),
     }]);
@@ -219,7 +221,7 @@ describe('Processes filter templates integration', () => {
     expect(fixture.nativeElement.querySelector('.column-date').textContent).toContain('Vencimiento');
     component.applyTemplate({ types: [22], client, dateFrom: null, dateTo: configuration.dateTo });
     expect(service.getPaginated.calls.mostRecent().args).toEqual([1, 20, {
-      types: [22], client: client.id, dateTo: configuration.dateTo!.toISOString(),
+      types: [22], client: client.id, dateTo: '2026-09-30',
     }]);
   });
 
@@ -246,8 +248,8 @@ describe('Processes filter templates integration', () => {
 
     expect(service.getPaginated).toHaveBeenCalledOnceWith(1, 20, {
       types: [22], client: client.id,
-      dateFrom: new Date(futureYear, 0, 10, 0, 0, 0, 0).toISOString(),
-      dateTo: new Date(futureYear, 0, 12, 23, 59, 59, 999).toISOString(),
+      dateFrom: `${futureYear}-01-10`,
+      dateTo: `${futureYear}-01-12`,
     });
     expect(component.processes).toEqual([pending]);
     expect(component.totalRecords).toBe(1);
@@ -262,15 +264,16 @@ describe('Processes filter templates integration', () => {
   });
 
   it('keeps mixed process types and manually narrowed dates when paging pending renewals', () => {
+    service.getPaginated.and.callFake(page => of({ data: [{ _id: `page-${page}` } as ProcessItem], total: 40, page: page!, lastPage: 2 }));
     component.selectedClient = client;
     component.onProcessTypesChange([22]);
     component.dateFrom = configuration.dateFrom;
     component.dateTo = configuration.dateTo;
     component.onProcessTypesChange([22, 4]);
-    component.onPageChange({ first: 20, rows: 20 });
+    component.loadMoreProcesses();
     expect(component.onlyPendingRenewals).toBeFalse();
     expect(service.getPaginated.calls.mostRecent().args).toEqual([2, 20, {
-      types: [22, 4], client: client.id, dateFrom: configuration.dateFrom!.toISOString(), dateTo: configuration.dateTo!.toISOString(),
+      types: [22, 4], client: client.id, dateFrom: '2026-09-01', dateTo: '2026-09-30',
     }]);
   });
 
@@ -377,10 +380,11 @@ describe('Processes filter templates integration', () => {
     expect(component.renewalLinksDialogVisible).toBeTrue();
   });
 
-  it('generates the full client link regardless of page, search or date filters', () => {
+  it('passes the selected expiry range to renewal links independently of loaded rows and search', () => {
     component.selectedClient = client; component.selectedTypes = [22];
     component.currentPage = 3; component.searchQuery = 'Toyota';
     component.dateFrom = configuration.dateFrom;
+    component.dateTo = configuration.dateTo;
     fixture.detectChanges();
     fixture.nativeElement.querySelector('.process-renewal-link-generate').click();
     fixture.detectChanges();
@@ -388,7 +392,9 @@ describe('Processes filter templates integration', () => {
     expect(modal.mode).toBe('generate');
     expect(modal.client).toEqual(client);
     expect(modal.client).not.toBe(client);
-    expect(renewalLinks.create).toHaveBeenCalledOnceWith(client.id);
+    expect(modal.dateFrom).toEqual(configuration.dateFrom);
+    expect(modal.dateTo).toEqual(configuration.dateTo);
+    expect(renewalLinks.create).toHaveBeenCalledOnceWith(client.id, { dateFrom: '2026-09-01', dateTo: '2026-09-30' });
     expect(service.getPaginated).not.toHaveBeenCalled();
   });
 

@@ -6,6 +6,7 @@ import { ActivatedRoute } from '@angular/router';
 import { distinctUntilChanged, map, Subscription } from 'rxjs';
 import { PublicRenewalDevice, PublicRenewalInfo, RenewalDecision, RenewalLinksService } from '../core/services/renewal-links.service';
 import { parseProcessDisplayDate } from '../core/utils/process-date.util';
+import { renewalExpirationFilterLabel } from '../core/utils/renewal-expiration-filter.util';
 import { UserNamePipe } from '../shareds/pipes/user-name.pipe';
 
 interface RenewalDeviceView extends PublicRenewalDevice {
@@ -80,6 +81,10 @@ export class PublicRenewalComponent implements OnInit, OnDestroy {
 
   get submitted(): boolean {
     return this.info?.status === 'submitted';
+  }
+
+  get expirationRangeLabel(): string {
+    return renewalExpirationFilterLabel(this.info?.expirationFilter);
   }
 
   get renewCount(): number {

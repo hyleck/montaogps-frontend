@@ -112,7 +112,7 @@
                 <label>{{ onlyPendingRenewals ? 'Vencimiento desde' : hasPendingRenewalFilter ? 'Fecha desde' : 'Registrado desde' }}</label>
                 <p-calendar [(ngModel)]="dateFrom" dateFormat="dd/mm/yy"
                     (ngModelChange)="templateFiltersApplied = false"
-                    placeholder="Fecha inicial" [showIcon]="true" [showTime]="true"
+                    placeholder="Fecha inicial" [showIcon]="true" [showTime]="!hasPendingRenewalFilter"
                     [hourFormat]="'24'" [showSeconds]="false" appendTo="body"
                     (onSelect)="applyFilters()" (onClear)="applyFilters()">
                 </p-calendar>
@@ -122,7 +122,7 @@
                 <label>{{ onlyPendingRenewals ? 'Vencimiento hasta' : hasPendingRenewalFilter ? 'Fecha hasta' : 'Registrado hasta' }}</label>
                 <p-calendar [(ngModel)]="dateTo" dateFormat="dd/mm/yy"
                     (ngModelChange)="templateFiltersApplied = false"
-                    placeholder="Fecha final" [showIcon]="true" [showTime]="true"
+                    placeholder="Fecha final" [showIcon]="true" [showTime]="!hasPendingRenewalFilter"
                     [hourFormat]="'24'" [showSeconds]="false" appendTo="body"
                     (onSelect)="applyFilters()" (onClear)="applyFilters()">
                 </p-calendar>
@@ -166,13 +166,9 @@
     </div>
 
     <section class="processes-list-card">
-        <div class="processes-table">
-            <p-table [value]="processes" [loading]="loading" [lazy]="true"
-                [paginator]="true" [rows]="rowsPerPage" [totalRecords]="totalRecords"
-                [first]="(currentPage - 1) * rowsPerPage"
-                (onLazyLoad)="onPageChange($event)" [rowsPerPageOptions]="[10, 20, 50]"
-                [showCurrentPageReport]="true"
-                currentPageReportTemplate="{first}–{last} de {totalRecords}"
+        <div #processesScroll class="processes-table" (scroll)="onProcessesScroll()"
+            tabindex="0" role="region" aria-label="Lista de procesos" [attr.aria-busy]="loading || loadingMore">
+            <p-table [value]="processes" [loading]="loading"
                 styleClass="processes-data-table" [rowHover]="true" responsiveLayout="scroll">
 
                 <ng-template pTemplate="header">
@@ -263,7 +259,7 @@
                 <ng-template pTemplate="emptymessage">
                     <tr>
                         <td colspan="7">
-                            <div class="processes-empty-state">
+                            <div *ngIf="!loading && !processesLoadError" class="processes-empty-state">
                                 <div class="processes-empty-state__icon"><i class="pi pi-search"></i></div>
                                 <h3>No encontramos procesos</h3>
                                 <p>Prueba con otra búsqueda o restablece los filtros seleccionados.</p>
@@ -275,6 +271,16 @@
                     </tr>
                 </ng-template>
             </p-table>
+            <div class="processes-list-status" aria-live="polite">
+                <span *ngIf="loading || loadingMore"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Cargando procesos…</span>
+                <ng-container *ngIf="processesLoadError">
+                    <span>No se pudieron cargar {{ processes.length ? 'más procesos' : 'los procesos' }}.</span>
+                    <button type="button" class="processes-load-retry" (click)="retryProcesses()">Reintentar</button>
+                </ng-container>
+                <span *ngIf="!loading && !loadingMore && !processesLoadError && processes.length">
+                    {{ processes.length }} de {{ totalRecords }} procesos{{ hasMoreProcesses ? ' · Desplázate para cargar más' : ' · Fin de la lista' }}
+                </span>
+            </div>
         </div>
     </section>
 </div>
@@ -285,7 +291,8 @@
 </app-process-templates-dialog>
 
 <app-process-renewal-links-dialog *ngIf="renewalLinksDialogVisible" [(visible)]="renewalLinksDialogVisible"
-    [client]="renewalLinksClient" [mode]="renewalLinksMode" (processed)="onRenewalResponseProcessed()">
+    [client]="renewalLinksClient" [mode]="renewalLinksMode" [dateFrom]="dateFrom" [dateTo]="dateTo"
+    (processed)="onRenewalResponseProcessed()">
 </app-process-renewal-links-dialog>
 
 <p-dialog [(visible)]="detailDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"

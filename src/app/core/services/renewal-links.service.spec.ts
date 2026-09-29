@@ -40,6 +40,17 @@ describe('RenewalLinksService', () => {
     revoke.flush({});
   });
 
+  it('sends the chosen expiration range without changing calendar dates or sending empty bounds', () => {
+    service.create('client-1', { dateFrom: '2026-09-01', dateTo: '2026-09-30' }).subscribe();
+    const bounded = http.expectOne(adminUrl);
+    expect(bounded.request.body).toEqual({ clientId: 'client-1', dateFrom: '2026-09-01', dateTo: '2026-09-30' });
+    bounded.flush({});
+    service.create('client-1', { dateTo: '2026-09-30' }).subscribe();
+    const openEnded = http.expectOne(adminUrl);
+    expect(openEnded.request.body).toEqual({ clientId: 'client-1', dateTo: '2026-09-30' });
+    openEnded.flush({});
+  });
+
   it('loads and submits public decisions independently of the stored GPS session', () => {
     service.getPublic('token').subscribe();
     const load = http.expectOne(publicUrl);
