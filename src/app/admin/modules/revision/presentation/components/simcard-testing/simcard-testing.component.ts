@@ -5,18 +5,20 @@ import { DialogModule } from 'primeng/dialog';
 import { Subscription, timeout, TimeoutError } from 'rxjs';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { InventoryItem, InventoryService, SimcardItem } from 'src/app/core/services/inventory.service';
-import { SimcardTestingContext, SimcardTestingService, SimcardTestingSession, TestingConnection, TestingHistorySession, TestingLogEvent, TestingSmsMessage } from 'src/app/core/services/simcard-testing.service';
+import { SimcardTestingContext, SimcardTestingService, SimcardTestingSession, TestingConnection, TestingGpsPosition, TestingHistorySession, TestingLogEvent, TestingSmsMessage } from 'src/app/core/services/simcard-testing.service';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 import { SmsCommandsDialogComponent, SmsDialogCommand } from 'src/app/shareds/components/sms-commands-dialog/sms-commands-dialog.component';
 import { DeviceLabelPipe } from 'src/app/shareds/pipes/device-label.pipe';
 import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { SmsLocationPipe } from 'src/app/shareds/pipes/sms-location.pipe';
+import { getValidGpsPosition } from 'src/app/shareds/helpers/gps-position.helper';
+import { TestingGpsMapComponent } from '../testing-gps-map/testing-gps-map.component';
 import { InventorySimcardSelectorComponent } from '../../../../inventory/presentation/components/inventory-simcard-selector/inventory-simcard-selector.component';
 
 @Component({
   selector: 'app-simcard-testing',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogModule, DeviceLabelPipe, UserNamePipe, SmsLocationPipe, InventorySimcardSelectorComponent, SmsCommandsDialogComponent],
+  imports: [CommonModule, FormsModule, DialogModule, DeviceLabelPipe, UserNamePipe, SmsLocationPipe, InventorySimcardSelectorComponent, SmsCommandsDialogComponent, TestingGpsMapComponent],
   templateUrl: './simcard-testing.component.html',
   styleUrls: ['./simcard-testing.component.css'],
 })
@@ -67,6 +69,8 @@ export class SimcardTestingComponent implements OnInit, OnDestroy {
   connection: TestingConnection | null = null;
   connectionLoading = false;
   connectionError = '';
+  testingPosition: TestingGpsPosition | null = null;
+  private positionCurrent = false;
   private connectionExpired = false;
   private connectionReceivedAt: number | null = null;
   private activeChecked = false;
@@ -138,6 +142,10 @@ export class SimcardTestingComponent implements OnInit, OnDestroy {
     return this.connectionStatusLabel(this.connectionStatus);
   }
 
+  get testingPositionStale(): boolean {
+    return !!this.testingPosition && (this.connectionStatus !== 'online' || !this.positionCurrent);
+  }
+
   connectionStatusLabel(status: string): string {
     const labels: Record<string, string> = { online: 'En línea', offline: 'Fuera de línea', unknown: 'Estado desconocido', unavailable: 'No disponible' };
     return labels[status] || status;
@@ -168,6 +176,13 @@ export class SimcardTestingComponent implements OnInit, OnDestroy {
           else this.stopConnectionMonitoring();
           return;
         }
+        const coordinates = getValidGpsPosition(connection.position);
+        const fixTime = connection.position ? Date.parse(connection.position.fixTime) : NaN;
+        if (coordinates && connection.position && Number.isFinite(fixTime)
+          && (!this.testingPosition || fixTime >= Date.parse(this.testingPosition.fixTime))) {
+          this.testingPosition = { ...connection.position, latitude: coordinates.lat, longitude: coordinates.lng };
+          this.positionCurrent = !connection.positionReason;
+        } else this.positionCurrent = false;
         this.connection = connection.status === 'unavailable' && !connection.lastCommunicationAt
           ? { ...connection, lastCommunicationAt: this.connection?.lastCommunicationAt || null }
           : connection;
@@ -637,5 +652,7 @@ export class SimcardTestingComponent implements OnInit, OnDestroy {
     this.connectionError = '';
     this.connectionExpired = false;
     this.connectionReceivedAt = null;
+    this.testingPosition = null;
+    this.positionCurrent = false;
   }
 }

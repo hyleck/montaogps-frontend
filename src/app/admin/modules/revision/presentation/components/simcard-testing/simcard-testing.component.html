@@ -119,6 +119,10 @@
       <p *ngIf="connectionError || connection?.reason" class="testing-connection-message" role="status">{{ connectionError || connection?.reason }}</p>
       <small>Actualización automática cada 5 segundos.</small>
     </section>
+    <app-testing-gps-map *ngIf="visible && session?.status === 'active' && !finishRequested"
+      [sessionId]="session?.sessionId || ''" [imei]="session?.imei || ''" [position]="testingPosition"
+      [stale]="testingPositionStale" [status]="connectionStatus" [statusLabel]="connectionLabel"
+      [positionReason]="connection?.positionReason || ''"></app-testing-gps-map>
     <dl class="testing-session-details">
       <div><dt>GPS · IMEI</dt><dd>{{ session?.imei }}</dd></div>
       <div><dt>Modelo</dt><dd>{{ session?.gps?.modelName || context?.modelName | deviceLabel }}</dd></div>

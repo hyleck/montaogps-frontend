@@ -66,6 +66,19 @@ export interface TestingConnection {
   lastCommunicationAt: string | null;
   checkedAt: string;
   reason?: string;
+  position?: TestingGpsPosition | null;
+  positionReason?: string;
+}
+
+export interface TestingGpsPosition {
+  id: number;
+  latitude: number;
+  longitude: number;
+  fixTime: string;
+  receivedAt: string | null;
+  speed: number | null;
+  course: number | null;
+  accuracy: number | null;
 }
 
 export interface TestingLogEvent {

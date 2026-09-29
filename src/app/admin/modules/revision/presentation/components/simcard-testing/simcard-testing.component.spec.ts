@@ -4,7 +4,8 @@ import { By } from '@angular/platform-browser';
 import { of, Subject, throwError } from 'rxjs';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { InventoryService } from 'src/app/core/services/inventory.service';
-import { SimcardTestingContext, SimcardTestingService, SimcardTestingSession, TestingConnection, TestingHistorySession, TestingLogEvent } from 'src/app/core/services/simcard-testing.service';
+import { SimcardTestingContext, SimcardTestingService, SimcardTestingSession, TestingConnection, TestingGpsPosition, TestingHistorySession, TestingLogEvent } from 'src/app/core/services/simcard-testing.service';
+import { MapUtils } from 'src/app/shareds/helpers/map.helper';
 import { SmsCommandsDialogComponent } from 'src/app/shareds/components/sms-commands-dialog/sms-commands-dialog.component';
 import { SimcardTestingComponent } from './simcard-testing.component';
 
@@ -41,8 +42,19 @@ describe('Revisión Testing temporal en S5', () => {
     sessionId: 'test-1', imei: gps.IMEI, sessionStatus: 'active', status: 'unknown',
     lastCommunicationAt: null, checkedAt: '2026-09-29T18:10:00Z',
   };
+  const gpsPosition: TestingGpsPosition = {
+    id: 10, latitude: 18.4861, longitude: -69.9312, fixTime: '2026-09-29T18:00:00Z',
+    receivedAt: '2026-09-29T18:00:01Z', speed: 0, course: 180, accuracy: 5,
+  };
 
   beforeEach(async () => {
+    const map = jasmine.createSpyObj('map', ['on', 'off', 'resize', 'setCenter', 'setZoom', 'remove']);
+    const marker = jasmine.createSpyObj('marker', ['setLngLat', 'addTo', 'remove', 'getElement']);
+    marker.setLngLat.and.returnValue(marker);
+    marker.addTo.and.returnValue(marker);
+    marker.getElement.and.returnValue(document.createElement('div'));
+    spyOn(MapUtils, 'createMap').and.returnValue(map);
+    spyOn(MapUtils, 'getMapLibrary').and.returnValue({ Marker: jasmine.createSpy('Marker').and.returnValue(marker) });
     testing = jasmine.createSpyObj('SimcardTestingService', [
       'getActiveSession', 'startSession', 'getSession', 'heartbeat', 'finishSession', 'getContext', 'getMessages', 'sendCommand', 'getHistory', 'getLogs', 'getConnection',
     ]);
@@ -640,4 +652,72 @@ describe('Revisión Testing temporal en S5', () => {
     fixture.detectChanges();
     tick(200);
   }));
+
+  it('updates the testing map only from connection position and keeps the fix date distinct from communication', fakeAsync(() => {
+    testing.getConnection.and.returnValues(
+      of({ ...connection, status: 'online', lastCommunicationAt: '2026-09-29T18:10:00Z', position: gpsPosition }),
+      of({ ...connection, status: 'online', position: { ...gpsPosition, id: 11, latitude: 18.49, fixTime: '2026-09-29T18:10:05Z' } }),
+    );
+    start();
+    fixture.detectChanges();
+    tick(200);
+    expect(component.testingPosition?.fixTime).toBe('2026-09-29T18:00:00Z');
+    expect(component.connection?.lastCommunicationAt).toBe('2026-09-29T18:10:00Z');
+    expect(component.testingPositionStale).toBeFalse();
+    expect(document.querySelector('app-testing-gps-map')).not.toBeNull();
+    tick(5000);
+    fixture.detectChanges();
+    tick();
+    expect(component.testingPosition?.latitude).toBe(18.49);
+    expect(component.testingPosition?.fixTime).toBe('2026-09-29T18:10:05Z');
+    expect(MapUtils.createMap).toHaveBeenCalledTimes(1);
+    component.close();
+    fixture.detectChanges();
+    tick(200);
+    expect(component.testingPosition).toBeNull();
+    expect(document.querySelector('app-testing-gps-map')).toBeNull();
+  }));
+
+  it('retains the last valid position and its date after invalid coordinates, fallback or failed polling', () => {
+    testing.getConnection.and.returnValues(
+      of({ ...connection, status: 'online', position: gpsPosition }),
+      of({ ...connection, status: 'online', position: { ...gpsPosition, id: 11, latitude: 0, longitude: 0, fixTime: '2026-09-29T19:00:00Z' } }),
+      of({ ...connection, status: 'online', position: gpsPosition, positionReason: 'Se descartó un reporte inválido.' }),
+      throwError(() => ({ error: { message: 'Sin conexión con S5' } })),
+    );
+    start();
+    component.refreshConnection();
+    expect(component.testingPosition).toEqual(gpsPosition);
+    expect(component.testingPositionStale).toBeTrue();
+    component.refreshConnection();
+    expect(component.testingPosition).toEqual(gpsPosition);
+    expect(component.testingPositionStale).toBeTrue();
+    component.refreshConnection();
+    expect(component.testingPosition?.fixTime).toBe(gpsPosition.fixTime);
+    expect(component.testingPositionStale).toBeTrue();
+  });
+
+  it('keeps the map empty for missing positions even when SMS includes coordinates', () => {
+    testing.getMessages.and.returnValue(of([{ type: 'received', content: 'lat:18.4861 lon:-69.9312', timestamp: new Date() }]));
+    start();
+    expect(component.testingPosition).toBeNull();
+    expect(MapUtils.createMap).not.toHaveBeenCalled();
+    testing.getConnection.and.returnValue(of({ ...connection, sessionId: 'other-test', status: 'online', position: gpsPosition }));
+    component.refreshConnection();
+    expect(component.testingPosition).toBeNull();
+  });
+
+  it('labels offline positions as last known and clears them before starting another session', () => {
+    testing.getConnection.and.returnValue(of({ ...connection, status: 'offline', position: gpsPosition }));
+    start();
+    expect(component.testingPositionStale).toBeTrue();
+    component.close();
+    expect(component.testingPosition).toBeNull();
+    testing.getConnection.and.returnValue(of({ ...connection, sessionId: 'test-2', position: null }));
+    testing.startSession.and.returnValue(of({ ...session, sessionId: 'test-2' }));
+    start();
+    expect(component.session?.sessionId).toBe('test-2');
+    expect(component.testingPosition).toBeNull();
+    expect(component.testingPositionStale).toBeFalse();
+  });
 });

@@ -1,0 +1,22 @@
+<section class="testing-map" aria-label="Ubicación del GPS en prueba">
+  <header class="testing-map-header">
+    <div><strong>Ubicación del GPS</strong><span class="testing-map-status" [attr.data-status]="status">{{ statusLabel }}</span></div>
+    <div *ngIf="point" class="testing-map-actions">
+      <button type="button" (click)="toggleFollow()" [attr.aria-pressed]="followGps" [disabled]="!!mapError">
+        <i class="pi pi-compass" aria-hidden="true"></i> {{ followGps ? 'Siguiendo GPS' : 'Seguir GPS' }}
+      </button>
+      <button type="button" (click)="recenter()" [disabled]="!!mapError"><i class="pi pi-map-marker" aria-hidden="true"></i> Centrar</button>
+    </div>
+  </header>
+  <p *ngIf="!point" class="testing-map-empty" role="status"><i class="pi pi-map-marker" aria-hidden="true"></i> Esperando la primera ubicación válida de esta prueba.</p>
+  <div #mapContainer class="testing-map-canvas" [hidden]="!point || !!mapError" aria-label="Mapa de la ubicación recibida del GPS"></div>
+  <p *ngIf="mapError" class="testing-map-warning" role="alert">{{ mapError }} <button type="button" (click)="retryMap()">Reintentar mapa</button></p>
+  <ng-container *ngIf="point">
+    <p class="testing-map-caption" [class.testing-map-caption--stale]="stale" role="status">{{ stale ? 'Última ubicación conocida. La actualización no está confirmada.' : 'Última ubicación válida de esta prueba.' }}</p>
+    <dl class="testing-map-details">
+      <div><dt>Fecha de la ubicación GPS</dt><dd>{{ point.fixTime | date:'dd/MM/yyyy HH:mm:ss' }}</dd></div>
+      <div><dt>Coordenadas</dt><dd>{{ point.latitude | number:'1.5-6' }}, {{ point.longitude | number:'1.5-6' }}</dd></div>
+    </dl>
+  </ng-container>
+  <p *ngIf="positionReason" class="testing-map-reason" role="status">{{ positionReason }}</p>
+</section>
