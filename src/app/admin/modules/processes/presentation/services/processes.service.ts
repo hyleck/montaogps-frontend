@@ -3,6 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
+export interface ProcessClientRouteEntry {
+  id: string;
+  fullName: string;
+  affiliation_type_id?: string;
+}
+
 export interface ProcessItem {
   _id: string;
   type: number;
@@ -28,6 +34,7 @@ export interface ProcessItem {
     phone?: string;
     [key: string]: any;
   };
+  clientRoute?: ProcessClientRouteEntry[];
   reference: string;
   before: any;
   after: any;

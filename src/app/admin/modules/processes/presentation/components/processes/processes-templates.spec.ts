@@ -213,6 +213,14 @@ describe('Processes filter templates integration', () => {
   });
 
   it('supports a pending-renewal template with no dates and a single optional date bound', () => {
+    // Client cards render their table headings only when that client has rows.
+    const pending = {
+      _id: 'pending-renewal:template-device', type: 22, readOnly: true,
+      target: { _id: 'template-device', name: 'Vehículo pendiente' },
+      client: { _id: client.id, name: client.label }, user: {}, creator: null,
+      registrationDate: '2026-09-01T00:00:00Z', createdAt: '2026-09-01T00:00:00Z',
+    } as ProcessItem;
+    service.getPaginated.and.returnValue(of({ data: [pending], total: 1, page: 1, lastPage: 1 }));
     component.applyTemplate({ types: [22], client, dateFrom: null, dateTo: null });
     fixture.detectChanges();
     expect(service.getPaginated.calls.mostRecent().args).toEqual([1, 20, { types: [22], client: client.id }]);

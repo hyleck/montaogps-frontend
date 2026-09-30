@@ -13,6 +13,7 @@ import { environment } from 'src/environments/environment';
 import {
   ProcessesService,
   ProcessItem,
+  ProcessClientRouteEntry,
   PROCESS_TYPE_LABELS,
   PROCESS_VERIFICATION_STATUS_LABELS,
   ProcessVerificationStatus,
@@ -30,6 +31,14 @@ import { ProcessTemplateConfiguration } from '../process-templates-dialog/proces
 
 type StructuredDetailTone = 'success' | 'danger' | 'warning' | 'info' | 'neutral';
 type ProcessFilters = NonNullable<Parameters<ProcessesService['getPaginated']>[2]>;
+
+interface ProcessClientGroup {
+  id: string;
+  name: string;
+  contact: string;
+  route: ProcessClientRouteEntry[];
+  processes: ProcessItem[];
+}
 
 interface InstallationAccount {
   id: string;
@@ -92,6 +101,63 @@ interface DetailChangeRow {
 export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   processes: ProcessItem[] = [];
+  private groupedProcessesSource: ProcessItem[] | null = null;
+  private cachedClientProcessGroups: ProcessClientGroup[] = [];
+
+  get clientProcessGroups(): ProcessClientGroup[] {
+    if (this.groupedProcessesSource === this.processes) return this.cachedClientProcessGroups;
+    const groups = new Map<string, ProcessClientGroup>();
+    for (const process of this.processes) {
+      const route = this.getProcessClientRoute(process);
+      const ownerId = route.at(-1)?.id || String(process.target?.['parent_id'] || '').trim()
+        || String(process.client?.['subclient']?._id || process.client?._id || '').trim();
+      const id = ownerId || 'unassigned';
+      let group = groups.get(id);
+      if (!group) {
+        const owner = [process.client?.['subclient'], process.client]
+          .find(account => account?._id && String(account._id) === ownerId);
+        const name = route.at(-1)?.fullName
+          || (owner ? `${owner.name || ''} ${owner.last_name || ''}`.trim() : '')
+          || (ownerId ? 'Nombre no disponible' : 'Sin cliente asociado');
+        group = { id, name: formatUserName(name), contact: owner?.email || owner?.phone || '',
+          route, processes: [] };
+        groups.set(id, group);
+      }
+      group.processes.push(process);
+    }
+    this.groupedProcessesSource = this.processes;
+    this.cachedClientProcessGroups = [...groups.values()];
+    return this.cachedClientProcessGroups;
+  }
+
+  trackByClientGroup(_index: number, group: ProcessClientGroup): string {
+    return group.id;
+  }
+
+  trackByProcess(_index: number, process: ProcessItem): string {
+    return process._id;
+  }
+
+  private getProcessClientRoute(process: ProcessItem): ProcessClientRouteEntry[] {
+    if (Array.isArray(process.clientRoute)) {
+      return process.clientRoute.filter(item => item?.id && item.fullName).map(item => ({
+        ...item, fullName: formatUserName(item.fullName),
+      }));
+    }
+    // Keep records readable while an older API response is still in use.
+    const route = [process.client, process.client?.['subclient']]
+      .filter((account, index, accounts) => account?._id
+        && accounts.findIndex(item => String(item?._id) === String(account._id)) === index)
+      .map(account => ({
+        id: String(account._id),
+        fullName: formatUserName(`${account.name || ''} ${account.last_name || ''}`.trim())
+          || account.email || 'Nombre no disponible',
+        affiliation_type_id: account.affiliation_type_id,
+      }));
+    const ownerId = String(process.target?.['parent_id'] || '').trim();
+    return ownerId && route.at(-1)?.id !== ownerId ? [] : route;
+  }
+
   loading = false;
   loadingMore = false;
   hasMoreProcesses = false;
@@ -621,10 +687,22 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.processesService.updateVerificationStatus(process._id, status).subscribe({
       next: (updated) => {
         const index = this.processes.findIndex(item => item._id === updated._id);
-        if (index >= 0) this.processes[index] = updated;
+        const current = index >= 0 ? this.processes[index] : null;
+        const refreshed = {
+          ...current,
+          ...updated,
+          // The API omits these fields after removing a previous review.
+          verifiedBy: updated.verifiedBy,
+          verifiedAt: updated.verifiedAt,
+          verificationNote: updated.verificationNote,
+          ...(current ? { client: current.client, clientRoute: current.clientRoute, target: current.target } : {}),
+        };
+        if (index >= 0) {
+          this.processes = this.processes.map(item => item._id === updated._id ? refreshed : item);
+        }
         if (this.selectedProcess?._id === updated._id) {
-          // Pending detail requests belong to this selected object.
-          Object.assign(this.selectedProcess, updated);
+          // Preserve the enriched account and target while updating the review.
+          Object.assign(this.selectedProcess, refreshed);
         }
         this.updatingVerificationId = null;
         this.messageService.add({

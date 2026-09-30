@@ -369,10 +369,8 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
-    border: 1px solid var(--process-border);
-    border-radius: 12px;
-    background: var(--process-surface);
-    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.035);
+    border: 0;
+    background: transparent;
 }
 
 .processes-table {
@@ -382,10 +380,49 @@
     overflow: auto;
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
-    background: var(--process-surface);
+    background: transparent;
 }
 
-:host ::ng-deep .processes-table > p-table,
+.process-client-group {
+    width: 100%;
+    min-width: 0;
+    margin: 0 0 16px;
+    border: 1px solid var(--process-border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--process-surface);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.035);
+}
+
+.process-client-group__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px 18px 12px;
+}
+
+.process-client-group__identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.process-client-group__details { min-width: 0; }
+.process-client-group__name { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+.process-client-group__contact { display: block; margin-top: 3px; color: var(--process-muted); font-size: 0.76rem; overflow-wrap: anywhere; }
+.process-client-group__icon { display: grid; place-items: center; flex: 0 0 38px; height: 38px; border-radius: 10px; color: var(--process-accent-strong); background: var(--process-accent-soft); }
+.process-client-group__count { flex-shrink: 0; padding: 5px 10px; border: 1px solid var(--process-border); border-radius: 20px; color: var(--process-muted); font-size: 0.74rem; white-space: nowrap; }
+.process-client-route { display: flex; align-items: baseline; gap: 8px; margin: 0; padding: 0 18px 14px; color: var(--process-muted); font-size: 0.76rem; line-height: 1.6; }
+.process-client-route > i { font-size: 0.76rem; flex-shrink: 0; }
+.process-client-route ol { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.process-client-route li { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.process-client-route li > i { font-size: 0.7rem; }
+.process-client-route__current { color: var(--process-text); font-weight: 600; }
+.process-client-route--unavailable { font-style: italic; }
+
+@media (max-width: 600px) {
+    .process-client-group__header { align-items: flex-start; flex-wrap: wrap; padding: 12px; }
+    .process-client-group__name { font-size: 0.9rem; }
+    .process-client-route { padding: 0 12px 12px; }
+}
+
+:host ::ng-deep .process-client-group > p-table,
 :host ::ng-deep .processes-data-table.p-datatable {
     display: block;
     min-width: 0;
@@ -395,11 +432,11 @@
 
 :host ::ng-deep .processes-data-table .p-datatable-wrapper,
 :host ::ng-deep .processes-data-table .p-datatable-table-container {
-    overflow: visible;
+    overflow-x: auto;
 }
 
 :host ::ng-deep .processes-data-table .p-datatable-table {
-    min-width: 1160px;
+    min-width: 920px;
     table-layout: fixed;
 }
 
@@ -438,7 +475,6 @@
 .column-date { width: 110px; }
 .column-process { width: 155px; }
 .column-target { width: 230px; }
-.column-client { width: 240px; max-width: 240px; }
 .column-status { width: 190px; }
 .column-people { width: 225px; }
 .column-action { width: 64px; }
@@ -1756,7 +1792,7 @@
 }
 
 :host-context(.app-dark) .processes-toolbar,
-:host-context(.app-dark) .processes-list-card {
+:host-context(.app-dark) .process-client-group {
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
 }
 
