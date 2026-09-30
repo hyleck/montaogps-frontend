@@ -1,6 +1,6 @@
 {
   "name": "montaogps-frontend",
-  "version": "8.6.0",
+  "version": "8.6.1",
   "scripts": {
     "ng": "ng",
     "start": "node server.js",
