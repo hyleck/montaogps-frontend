@@ -63,6 +63,37 @@ export interface PaginatedProcessResponse {
   lastPage: number;
 }
 
+export interface ProcessListFilters {
+  type?: number;
+  types?: number[];
+  creator?: string;
+  mechanic?: string;
+  client?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+  verificationStatus?: ProcessVerificationStatus;
+}
+
+export interface ProcessClientGroupResult {
+  id: string;
+  name: string;
+  contact: string;
+  route: ProcessClientRouteEntry[];
+  total: number;
+  processes: ProcessItem[];
+  page: number;
+  lastPage: number;
+}
+
+export interface PaginatedProcessClientGroupsResponse {
+  groups: ProcessClientGroupResult[];
+  total: number;
+  totalGroups: number;
+  page: number;
+  lastPage: number;
+}
+
 export interface ProcessClientOption {
   _id?: string;
   id?: string;
@@ -136,19 +167,25 @@ export class ProcessesService {
   getPaginated(
     page = 1,
     limit = 20,
-    filters?: {
-      type?: number;
-      types?: number[];
-      creator?: string;
-      mechanic?: string;
-      client?: string;
-      dateFrom?: string;
-      dateTo?: string;
-      search?: string;
-      verificationStatus?: ProcessVerificationStatus;
-    }
+    filters?: ProcessListFilters,
   ): Observable<PaginatedProcessResponse> {
-    let url = `${this.apiUrl}/paginated?page=${page}&limit=${limit}`;
+    return this.http.get<PaginatedProcessResponse>(`${this.apiUrl}/paginated?${this.processQuery(page, limit, filters)}`);
+  }
+
+  getClientGroups(page = 1, limit = 10, filters?: ProcessListFilters, processLimit = 20): Observable<PaginatedProcessClientGroupsResponse> {
+    return this.http.get<PaginatedProcessClientGroupsResponse>(
+      `${this.apiUrl}/client-groups?${this.processQuery(page, limit, filters)}&processLimit=${processLimit}`,
+    );
+  }
+
+  getClientGroupProcesses(clientId: string, page = 1, limit = 20, filters?: ProcessListFilters): Observable<PaginatedProcessResponse> {
+    return this.http.get<PaginatedProcessResponse>(
+      `${this.apiUrl}/client-groups/${encodeURIComponent(clientId)}/processes?${this.processQuery(page, limit, filters)}`,
+    );
+  }
+
+  private processQuery(page: number, limit: number, filters?: ProcessListFilters): string {
+    let url = `page=${page}&limit=${limit}`;
     if (filters?.types?.length) url += `&types=${encodeURIComponent(filters.types.join(','))}`;
     else if (filters?.type !== undefined && filters.type !== null) url += `&type=${filters.type}`;
     if (filters?.creator) url += `&creator=${encodeURIComponent(filters.creator)}`;
@@ -158,7 +195,7 @@ export class ProcessesService {
     if (filters?.dateTo) url += `&dateTo=${encodeURIComponent(filters.dateTo)}`;
     if (filters?.search) url += `&search=${encodeURIComponent(filters.search)}`;
     if (filters?.verificationStatus) url += `&verificationStatus=${encodeURIComponent(filters.verificationStatus)}`;
-    return this.http.get<PaginatedProcessResponse>(url);
+    return url;
   }
 
   updateVerificationStatus(

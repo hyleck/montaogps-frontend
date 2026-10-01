@@ -13,13 +13,14 @@ import { TargetsService } from 'src/app/core/services/targets.service';
 import { UserService } from 'src/app/core/services/user.service';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { ProcessesModule } from '../../processes.module';
-import { PaginatedProcessResponse, ProcessItem, ProcessesService } from '../../services/processes.service';
+import { PaginatedProcessResponse, PaginatedProcessClientGroupsResponse, ProcessClientGroupResult, ProcessItem, ProcessesService } from '../../services/processes.service';
 import { ProcessesComponent } from './processes.component';
 
 describe('Processes grouped by client', () => {
   let fixture: ComponentFixture<ProcessesComponent>;
   let component: ProcessesComponent;
-  let requests: Array<{ page: number; response: Subject<PaginatedProcessResponse> }>;
+  let requests: Array<{ page: number; filters: any; response: Subject<PaginatedProcessClientGroupsResponse> }>;
+  let rowRequests: Array<{ clientId: string; page: number; limit: number; filters: any; response: Subject<PaginatedProcessResponse> }>;
   let verification: Subject<ProcessItem>;
   let updateVerification: jasmine.Spy;
   const root = { id: 'root-account', fullName: 'Montao GPS', affiliation_type_id: 'administrador' };
@@ -49,6 +50,7 @@ describe('Processes grouped by client', () => {
 
   beforeEach(async () => {
     requests = [];
+    rowRequests = [];
     verification = new Subject<ProcessItem>();
     updateVerification = jasmine.createSpy('updateVerificationStatus').and.returnValue(verification.asObservable());
     await TestBed.configureTestingModule({
@@ -56,9 +58,14 @@ describe('Processes grouped by client', () => {
       providers: [
         provideRouter([]),
         { provide: ProcessesService, useValue: {
-          getPaginated: (page: number) => {
+          getClientGroups: (page: number, _limit: number, filters: any) => {
+            const response = new Subject<PaginatedProcessClientGroupsResponse>();
+            requests.push({ page, filters, response });
+            return response.asObservable();
+          },
+          getClientGroupProcesses: (clientId: string, page: number, limit: number, filters: any) => {
             const response = new Subject<PaginatedProcessResponse>();
-            requests.push({ page, response });
+            rowRequests.push({ clientId, page, limit, filters, response });
             return response.asObservable();
           },
           searchClients: () => of([]),
@@ -91,13 +98,37 @@ describe('Processes grouped by client', () => {
 
   afterEach(() => fixture.destroy());
 
-  function respond(index: number, data: ProcessItem[], total = data.length, lastPage = 1): void {
-    requests[index].response.next({ data, total, page: requests[index].page, lastPage });
+  function group(id: string, processes: ProcessItem[], overrides: Partial<ProcessClientGroupResult> = {}): ProcessClientGroupResult {
+    return { id, name: processes[0]?.client?.name || 'Cliente Uno', contact: '8095550100',
+      route: processes[0]?.clientRoute || [], total: processes.length, processes, page: 1, lastPage: 1, ...overrides };
+  }
+
+  function respondGroups(index: number, groups: ProcessClientGroupResult[], total = groups.reduce((sum, item) => sum + item.total, 0), lastPage = 1): void {
+    requests[index].response.next({ groups, total, totalGroups: groups.length, page: requests[index].page, lastPage });
     requests[index].response.complete();
     fixture.detectChanges();
   }
 
-  it('uses the last account in the route and keeps equally named clients and subaccounts separate', () => {
+  function respond(index: number, data: ProcessItem[], total = data.length, lastPage = 1): void {
+    const owners = [...new Set(data.map(row => String(row.target?.['parent_id'] || row.client?._id || 'unassigned')))];
+    respondGroups(index, owners.map(id => group(id, data.filter(row => String(row.target?.['parent_id'] || row.client?._id || 'unassigned') === id))), total, lastPage);
+  }
+
+  function installations(clientId: string, count: number, start = 0): ProcessItem[] {
+    return Array.from({ length: count }, (_, offset) => {
+      const index = start + offset;
+      return { ...ownedProcess(`${clientId}-${index}`, clientId), type: 1,
+        registrationDate: new Date(Date.UTC(2023, 0, 1, 0, 120 - index * 2)).toISOString() };
+    });
+  }
+
+  function respondRows(index: number, data: ProcessItem[], total: number, lastPage: number): void {
+    rowRequests[index].response.next({ data, total, page: rowRequests[index].page, lastPage });
+    rowRequests[index].response.complete();
+    fixture.detectChanges();
+  }
+
+  it('uses server ownership and keeps equally named clients and subaccounts separate', () => {
     const owner = { id: 'owner-a', fullName: 'Comercio Central', affiliation_type_id: 'cliente' };
     const subaccount = { id: 'subaccount-a', fullName: 'Sucursal Este', affiliation_type_id: 'subcliente' };
     const parentRow = ownedProcess('parent', owner.id, owner.fullName);
@@ -108,7 +139,11 @@ describe('Processes grouped by client', () => {
       clientRoute: [root, distributor, owner, subaccount],
     });
     const sameName = ownedProcess('other', 'owner-b', owner.fullName);
-    respond(0, [parentRow, childRow, sameName]);
+    respondGroups(0, [
+      group(owner.id, [parentRow]),
+      group(subaccount.id, [childRow], { name: subaccount.fullName, route: childRow.clientRoute! }),
+      group('owner-b', [sameName]),
+    ]);
 
     const groups = component.clientProcessGroups;
     expect(groups.map(group => group.id)).toEqual(['owner-a', 'subaccount-a', 'owner-b']);
@@ -120,54 +155,157 @@ describe('Processes grouped by client', () => {
     expect(groups[0].contact).toContain('8095550100');
   });
 
-  it('uses available owner IDs when the API has no route and groups unknown owners together', () => {
-    respond(0, [
-      process('parent-id', {
-        target: { _id: 'target-parent', parent_id: 'actual-owner' },
-        client: { _id: 'parent-client', subclient: { _id: 'sub-client' } },
-      }),
-      process('subclient-id', { client: { _id: 'parent-client', subclient: { _id: 'sub-client' } } }),
-      process('client-id', { client: { _id: 'parent-client', name: 'Cliente' } }),
-      process('unknown-a'),
-      process('unknown-b', { client: { name: 'Nombre sin identificador' } }),
-    ]);
+  it('keeps all 17 older installations together despite interleaved dates from another client', () => {
+    const firstClient = installations('client-a', 17);
+    const secondClient = installations('client-b', 17).map(row => ({ ...row,
+      registrationDate: new Date(new Date(row.registrationDate).getTime() - 60000).toISOString() }));
+    respondGroups(0, [group('client-a', firstClient), group('client-b', secondClient)]);
 
-    const groups = component.clientProcessGroups;
-    expect(groups.map(group => group.id)).toEqual(['actual-owner', 'sub-client', 'parent-client', 'unassigned']);
-    expect(groups[3].processes.map(row => row._id)).toEqual(['unknown-a', 'unknown-b']);
+    expect(requests[0].filters).toEqual({});
+    expect(component.dateFrom).toBeNull();
+    expect(component.dateTo).toBeNull();
+    expect(component.clientProcessGroups.map(item => item.total)).toEqual([17, 17]);
+    expect(component.clientProcessGroups[0].processes).toEqual(firstClient);
+    expect(component.processes.length).toBe(34);
+    const cards = fixture.nativeElement.querySelectorAll('article.process-client-group');
+    expect(cards[0].querySelectorAll('tbody > tr').length).toBe(17);
+    expect(cards[0].querySelector('.process-client-group__count').textContent).toContain('17 procesos');
+    expect(cards[0].querySelector('.process-client-group__load-more')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.process-history-scope').textContent).toMatch(/historial/i);
+    expect(rowRequests.length).toBe(0);
   });
 
-  it('appends later-page rows to their existing client and preserves first-seen client and row order', () => {
-    const first = ownedProcess('first', 'client-a');
-    const second = ownedProcess('second', 'client-b', 'Cliente Dos');
-    const third = ownedProcess('third', 'client-a');
-    respond(0, [first, second, third], 5, 2);
+  it('preserves an expanded client card when another group page repeats its initial preview', () => {
+    const first = installations('client-a', 20);
+    respondGroups(0, [group('client-a', first, { total: 25, lastPage: 2 })], 26, 2);
+    component.loadMoreClientProcesses(component.clientProcessGroups[0]);
+    const remaining = installations('client-a', 5, 20);
+    respondRows(0, remaining, 25, 2);
     component.loadMoreProcesses();
     expect(requests.map(request => request.page)).toEqual([1, 2]);
-    const fourth = ownedProcess('fourth', 'client-b', 'Cliente Dos');
-    const fifth = ownedProcess('fifth', 'client-a');
-    respond(1, [fourth, fifth], 5, 2);
+    const other = ownedProcess('other', 'client-b', 'Cliente Dos');
+    respondGroups(1, [group('client-a', first, { total: 25, lastPage: 2 }), group('client-b', [other])], 26, 2);
 
     const groups = component.clientProcessGroups;
-    expect(groups.map(group => group.id)).toEqual(['client-a', 'client-b']);
-    expect(groups[0].processes).toEqual([first, third, fifth]);
-    expect(groups[1].processes).toEqual([second, fourth]);
-    expect(component.processes).toEqual([first, second, third, fourth, fifth]);
+    expect(groups.map(item => item.id)).toEqual(['client-a', 'client-b']);
+    expect(groups[0].processes).toEqual([...first, ...remaining]);
+    expect(groups[0].page).toBe(2);
+    expect(groups[1].processes).toEqual([other]);
+    expect(component.processes.length).toBe(26);
     expect(fixture.nativeElement.querySelectorAll('article.process-client-group').length).toBe(2);
-    expect(fixture.nativeElement.querySelectorAll('.p-datatable-tbody > tr').length).toBe(5);
+    expect(fixture.nativeElement.querySelectorAll('.p-datatable-tbody > tr').length).toBe(26);
   });
 
-  it('reuses the groups until a new processes array is supplied', () => {
-    respond(0, [ownedProcess('first', 'client-a')]);
-    const groups = component.clientProcessGroups;
-    fixture.detectChanges();
-    expect(component.clientProcessGroups).toBe(groups);
+  it('labels installations without a recorded technician and preserves historical names', () => {
+    const rows: ProcessItem[] = [
+      { ...ownedProcess('without-technician', 'client-a'), type: 1,
+        target: { _id: 'target-null', mechanic_id: null }, details: 'Técnico asignado: No asignado.' },
+      { ...ownedProcess('blank-technician', 'client-a'), type: 18,
+        target: { _id: 'target-blank', mechanic_id: '   ' } },
+      { ...ownedProcess('historical-technician', 'client-a'), type: 1,
+        target: { _id: 'target-historical', mechanic_id: null }, details: 'Técnico asignado: luis pérez.' },
+      { ...ownedProcess('trimmed-technician', 'client-a'), type: 18,
+        target: { _id: 'target-trimmed', mechanic_id: ' technician-id ' } },
+      { ...ownedProcess('other-process', 'client-a'), type: 4,
+        target: { _id: 'target-other', mechanic_id: null } },
+    ];
+    component.techniciansMap['technician-id'] = 'Ana García';
+    respondGroups(0, [group('client-a', rows)]);
 
-    const second = ownedProcess('second', 'client-a');
-    component.processes = [...component.processes, second];
-    expect(component.clientProcessGroups).not.toBe(groups);
-    expect(component.clientProcessGroups[0].processes.map(row => row._id)).toEqual(['first', 'second']);
-    expect(groups[0].processes.map(row => row._id)).toEqual(['first']);
+    const labels = Array.from(fixture.nativeElement.querySelectorAll('tbody [title="Técnico"]') as NodeListOf<HTMLElement>)
+      .map(element => element.textContent?.trim().toLocaleLowerCase('es'));
+    expect(labels).toEqual([
+      'sin técnico registrado', 'sin técnico registrado', 'luis pérez', 'ana garcía', 'ninguno',
+    ]);
+    expect(component.getTechnicianName(rows[0])).toBe('Sin técnico registrado');
+    expect(component.getTechnicianName(rows[1])).toBe('Sin técnico registrado');
+  });
+
+  it('loads only the remaining processes of a 25-process client with independent counts and loaders', () => {
+    const first = installations('client-a', 20);
+    const other = ownedProcess('other', 'client-b', 'Cliente Dos');
+    respondGroups(0, [group('client-a', first, { total: 25, lastPage: 2 }), group('client-b', [other])]);
+    const current = component.clientProcessGroups[0];
+    const card: HTMLElement = fixture.nativeElement.querySelector('article.process-client-group');
+    expect(card.querySelector('.process-client-group__count')?.textContent).toContain('25 procesos');
+    expect(card.querySelector('.process-client-group__progress')?.textContent).toContain('20 de 25');
+    const loadMore = card.querySelector('.process-client-group__load-more') as HTMLButtonElement;
+    loadMore.click();
+    component.loadMoreClientProcesses(current);
+    fixture.detectChanges();
+
+    expect(rowRequests.length).toBe(1);
+    expect(rowRequests[0]).toEqual(jasmine.objectContaining({ clientId: 'client-a', page: 2, limit: 20, filters: {} }));
+    expect(current.loading).toBeTrue();
+    expect(component.clientProcessGroups[1].loading).toBeFalse();
+    expect(component.loadingMore).toBeFalse();
+    expect(loadMore.disabled).toBeTrue();
+    expect(requests.length).toBe(1);
+    const remaining = installations('client-a', 5, 20);
+    // An overlapping row must not be duplicated when the second page arrives.
+    respondRows(0, [first[19], ...remaining], 25, 2);
+    expect(current.processes).toEqual([...first, ...remaining]);
+    expect(current.loading).toBeFalse();
+    expect(component.processes.length).toBe(26);
+    expect(new Set(component.processes.map(row => row._id)).size).toBe(26);
+    expect(card.querySelector('.process-client-group__progress')?.textContent).toContain('25 de 25');
+    expect(card.querySelector('.process-client-group__load-more')).toBeNull();
+    component.loadMoreClientProcesses(current);
+    expect(rowRequests.length).toBe(1);
+  });
+
+  it('preserves a client history on error and retries the same page using the applied filters', () => {
+    component.searchQuery = 'Camión';
+    component.selectedTypes = [1];
+    component.dateFrom = new Date(2023, 0, 1);
+    component.dateTo = new Date(2023, 11, 31);
+    component.applyFilters();
+    const first = installations('client-a', 20);
+    respondGroups(1, [group('client-a', first, { total: 25, lastPage: 2 })]);
+    const current = component.clientProcessGroups[0];
+    component.searchQuery = 'borrador';
+    component.selectedTypes.push(4);
+    component.dateFrom = new Date(2030, 0, 1);
+    component.loadMoreClientProcesses(current);
+    expect(rowRequests[0].filters).toEqual(requests[1].filters);
+    expect(rowRequests[0].filters.types).toEqual([1]);
+    rowRequests[0].response.error(new Error('Unavailable'));
+    fixture.detectChanges();
+    expect(current.processes).toEqual(first);
+    expect(current.loading).toBeFalse();
+    expect(current.error).not.toBe('');
+    const retry = fixture.nativeElement.querySelector('.process-client-group__load-more') as HTMLButtonElement;
+    expect(retry.textContent).toContain('Reintentar');
+    retry.click();
+    expect(rowRequests[1].page).toBe(2);
+    expect(rowRequests[1].filters).toEqual(requests[1].filters);
+    respondRows(1, installations('client-a', 5, 20), 25, 2);
+    expect(current.error).toBe('');
+    expect(current.processes.length).toBe(25);
+  });
+
+  it('cancels an old client page when filters change even when that client reappears', () => {
+    respondGroups(0, [group('client-a', installations('client-a', 20), { total: 25, lastPage: 2 })]);
+    component.loadMoreClientProcesses(component.clientProcessGroups[0]);
+    const oldResponse = rowRequests[0].response;
+    component.selectedTypes = [4];
+    component.applyFilters();
+    expect(oldResponse.observed).toBeFalse();
+    expect(component.clientProcessGroups).toEqual([]);
+    const newRow = ownedProcess('only-renewal', 'client-a');
+    respondGroups(1, [group('client-a', [newRow])]);
+    oldResponse.next({ data: installations('client-a', 5, 20), total: 25, page: 2, lastPage: 2 });
+    expect(component.clientProcessGroups[0].processes).toEqual([newRow]);
+    expect(component.processes).toEqual([newRow]);
+  });
+
+  it('cancels pending client history and client-list requests when destroyed', () => {
+    respondGroups(0, [group('client-a', installations('client-a', 20), { total: 25, lastPage: 2 })], 30, 2);
+    component.loadMoreClientProcesses(component.clientProcessGroups[0]);
+    component.loadMoreProcesses();
+    fixture.destroy();
+    expect(rowRequests[0].response.observed).toBeFalse();
+    expect(requests[1].response.observed).toBeFalse();
   });
 
   it('clears cached client cards on new filters and ignores the previous page response', () => {
@@ -182,7 +320,7 @@ describe('Processes grouped by client', () => {
     expect(component.clientProcessGroups).toEqual([]);
     expect(fixture.nativeElement.querySelectorAll('article.process-client-group').length).toBe(0);
     expect(oldResponse.observed).toBeFalse();
-    oldResponse.next({ data: [ownedProcess('late', 'old-client')], total: 3, page: 2, lastPage: 2 });
+    oldResponse.next({ groups: [group('old-client', [ownedProcess('late', 'old-client')])], total: 3, totalGroups: 2, page: 2, lastPage: 2 });
     respond(2, [ownedProcess('new', 'new-client', 'Cliente Nuevo')]);
     expect(component.clientProcessGroups.map(group => group.id)).toEqual(['new-client']);
     expect(component.clientProcessGroups[0].processes.map(row => row._id)).toEqual(['new']);
@@ -192,7 +330,6 @@ describe('Processes grouped by client', () => {
     const original = ownedProcess('verified-process', 'client-a');
     respond(0, [original]);
     component.selectedProcess = original;
-    const previousGroups = component.clientProcessGroups;
     component.updateProcessVerificationStatus(original, 'verified');
     expect(updateVerification).toHaveBeenCalledOnceWith(original._id, 'verified');
     verification.next({
@@ -205,7 +342,6 @@ describe('Processes grouped by client', () => {
     fixture.detectChanges();
 
     const groups = component.clientProcessGroups;
-    expect(groups).not.toBe(previousGroups);
     expect(groups.length).toBe(1);
     expect(groups[0].id).toBe('client-a');
     expect(groups[0].processes[0].verificationStatus).toBe('verified');
@@ -257,6 +393,58 @@ describe('Processes grouped by client', () => {
     expect(fixture.nativeElement.querySelector('.verification-status-dropdown--detail')?.classList)
       .toContain('process-status--pending');
     expect(fixture.nativeElement.querySelector('.process-row--verified')).toBeNull();
+  });
+
+  it('reloads filtered history after verification and cancels pages that would skip a pending row', () => {
+    component.selectedVerificationStatus = 'pending';
+    component.applyFilters();
+    const first = installations('client-a', 20);
+    const original = first[0];
+    respondGroups(1, [group('client-a', first, { total: 25, lastPage: 2 })], 30, 2);
+    component.selectedProcess = original;
+    component.loadMoreClientProcesses(component.clientProcessGroups[0]);
+    component.loadMoreProcesses();
+    const staleRows = rowRequests[0].response;
+    const staleGroups = requests[2].response;
+    component.updateProcessVerificationStatus(original, 'verified');
+    verification.next({ _id: original._id, verificationStatus: 'verified' } as ProcessItem);
+    verification.complete();
+
+    expect(staleRows.observed).toBeFalse();
+    expect(staleGroups.observed).toBeFalse();
+    expect(requests[3].page).toBe(1);
+    expect(requests[3].filters.verificationStatus).toBe('pending');
+    expect(component.clientProcessGroups).toEqual([]);
+    expect(component.processes).toEqual([]);
+    expect(component.totalRecords).toBe(0);
+    expect(component.selectedProcess).toBe(original);
+    expect(component.selectedProcess?.verificationStatus).toBe('verified');
+    expect(component.selectedProcess?.target.name).toBe('Vehículo client-a-0');
+
+    const remaining = [...first.slice(1), ...installations('client-a', 5, 20)];
+    respondGroups(3, [group('client-a', remaining.slice(0, 20), { total: 24, lastPage: 2 })]);
+    staleRows.next({ data: installations('client-a', 4, 21), total: 24, page: 2, lastPage: 2 });
+    staleGroups.next({ groups: [group('obsolete-client', [ownedProcess('obsolete', 'obsolete-client')])], total: 30, totalGroups: 2, page: 2, lastPage: 2 });
+    component.loadMoreClientProcesses(component.clientProcessGroups[0]);
+    respondRows(1, remaining.slice(20), 24, 2);
+
+    expect(component.clientProcessGroups[0].processes).toEqual(remaining);
+    expect(component.clientProcessGroups[0].total).toBe(24);
+    expect(component.processes.map(row => row._id)).toContain('client-a-20');
+    expect(component.processes.some(row => row._id === original._id)).toBeFalse();
+  });
+
+  it('keeps unfiltered history when only a draft verification filter is incompatible', () => {
+    const original = ownedProcess('verified-process', 'client-a');
+    respond(0, [original]);
+    component.selectedVerificationStatus = 'pending';
+    component.updateProcessVerificationStatus(original, 'verified');
+    verification.next({ _id: original._id, verificationStatus: 'verified' } as ProcessItem);
+    verification.complete();
+
+    expect(requests.length).toBe(1);
+    expect(component.clientProcessGroups[0].processes[0].verificationStatus).toBe('verified');
+    expect(component.totalRecords).toBe(1);
   });
 
   it('renders one owner heading and hierarchy per card with a process table and no repeated client column', () => {

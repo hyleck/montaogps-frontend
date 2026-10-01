@@ -136,6 +136,20 @@
         </div>
     </section>
 
+    <div *ngIf="!templateFiltersApplied && !hasPendingRenewalFilter" class="process-template-summary process-history-scope" role="status">
+        <div class="process-template-summary__details">
+            <strong><i class="pi pi-history" aria-hidden="true"></i> {{ selectedClient?.label || 'Todos los clientes' }}</strong>
+            <span *ngIf="!dateFrom && !dateTo">Todo el historial · Sin límite de fechas</span>
+            <span *ngIf="dateFrom && dateTo">Registrado del {{ dateFrom | date:'dd/MM/yyyy' }} al {{ dateTo | date:'dd/MM/yyyy' }}</span>
+            <span *ngIf="dateFrom && !dateTo">Registrado desde {{ dateFrom | date:'dd/MM/yyyy' }}</span>
+            <span *ngIf="!dateFrom && dateTo">Registrado hasta {{ dateTo | date:'dd/MM/yyyy' }}</span>
+        </div>
+        <button type="button" class="process-template-summary__edit"
+            (click)="filtersExpanded = !filtersExpanded" [attr.aria-expanded]="filtersExpanded">
+            {{ filtersExpanded ? 'Ocultar filtros' : 'Editar filtros' }}
+        </button>
+    </div>
+
     <div *ngIf="templateFiltersApplied" class="process-template-summary" role="status">
         <div class="process-template-summary__details">
             <strong><i class="pi pi-th-large" aria-hidden="true"></i> {{ getTypeLabel(selectedTypes[0]) }}</strong>
@@ -169,7 +183,7 @@
         <div #processesScroll class="processes-table" (scroll)="onProcessesScroll()"
             tabindex="0" role="region" aria-label="Lista de procesos" [attr.aria-busy]="loading || loadingMore">
             <article *ngFor="let group of clientProcessGroups; trackBy: trackByClientGroup"
-                class="process-client-group" [attr.aria-label]="'Procesos de ' + group.name">
+                class="process-client-group" [attr.aria-label]="'Procesos de ' + group.name" [attr.aria-busy]="group.loading">
                 <header class="process-client-group__header">
                     <div class="process-client-group__identity">
                         <span class="process-client-group__icon" aria-hidden="true"><i class="pi pi-users"></i></span>
@@ -179,7 +193,7 @@
                             <span *ngIf="group.contact" class="process-client-group__contact">{{ group.contact }}</span>
                         </div>
                     </div>
-                    <span class="process-client-group__count">{{ group.processes.length }} {{ group.processes.length === 1 ? 'proceso' : 'procesos' }}</span>
+                    <span class="process-client-group__count" title="Total de procesos con los filtros aplicados">{{ group.total }} {{ group.total === 1 ? 'proceso' : 'procesos' }}</span>
                 </header>
                 <nav *ngIf="group.route.length" class="process-client-route" aria-label="Ruta de la cuenta">
                     <i class="pi pi-sitemap" aria-hidden="true"></i>
@@ -271,6 +285,18 @@
                     </ng-template>
 
                 </p-table>
+                <footer *ngIf="group.lastPage > 1 || group.error" class="process-client-group__footer">
+                    <div class="process-client-group__progress" aria-live="polite">
+                        <span>{{ group.processes.length }} de {{ group.total }} procesos cargados</span>
+                        <span *ngIf="group.error" class="process-client-group__error">{{ group.error }}</span>
+                    </div>
+                    <button *ngIf="group.page < group.lastPage" type="button"
+                        class="process-client-group__load-more" [disabled]="group.loading"
+                        (click)="loadMoreClientProcesses(group)" [attr.aria-label]="(group.error ? 'Reintentar procesos de ' : 'Cargar más procesos de ') + group.name">
+                        <i [class]="group.loading ? 'pi pi-spin pi-spinner' : 'pi pi-chevron-down'" aria-hidden="true"></i>
+                        {{ group.loading ? 'Cargando…' : group.error ? 'Reintentar' : 'Ver más procesos de este cliente' }}
+                    </button>
+                </footer>
             </article>
             <div *ngIf="!loading && !processesLoadError && !processes.length" class="processes-empty-state">
                 <div class="processes-empty-state__icon"><i class="pi pi-search"></i></div>
@@ -287,7 +313,7 @@
                     <button type="button" class="processes-load-retry" (click)="retryProcesses()">Reintentar</button>
                 </ng-container>
                 <span *ngIf="!loading && !loadingMore && !processesLoadError && processes.length">
-                    {{ processes.length }} de {{ totalRecords }} procesos{{ hasMoreProcesses ? ' · Desplázate para cargar más' : ' · Fin de la lista' }}
+                    {{ clientProcessGroups.length }} de {{ totalClientGroups }} clientes · {{ processes.length }} de {{ totalRecords }} procesos cargados{{ hasMoreProcesses ? ' · Desplázate para cargar más clientes' : ' · Todos los clientes cargados' }}
                 </span>
             </div>
         </div>

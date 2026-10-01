@@ -32,11 +32,23 @@ describe('Processes filter templates integration', () => {
     dateTo: new Date(2026, 8, 30, 23, 59, 59, 999),
   };
 
+  function groupResponse(data: ProcessItem[], page = 1, total = data.length, lastPage = 1) {
+    return {
+      groups: data.length ? [{
+        id: `client-page-${page}`, name: client.label, contact: client.email,
+        route: [{ id: `client-page-${page}`, fullName: client.label }],
+        total: data.length, processes: data, page: 1, lastPage: 1,
+      }] : [],
+      total, totalGroups: data.length ? lastPage : 0, page, lastPage,
+    };
+  }
+
   beforeEach(async () => {
     renewalLinks = jasmine.createSpyObj('RenewalLinksService', ['create', 'getForClient', 'revoke']);
     renewalLinks.create.and.returnValue(of({ id: 'link', token: 'token', client: { id: client.id, name: client.label }, expiresAt: '2026-10-06T12:00:00Z', deviceCount: 30 }));
     renewalLinks.getForClient.and.returnValue(of([]));
-    service = jasmine.createSpyObj('ProcessesService', ['getPaginated', 'searchClients', 'updateVerificationStatus']);
+    service = jasmine.createSpyObj('ProcessesService', ['getPaginated', 'getClientGroups', 'getClientGroupProcesses', 'searchClients', 'updateVerificationStatus']);
+    service.getClientGroups.and.returnValue(of(groupResponse([])));
     service.getPaginated.and.returnValue(of({ data: [], total: 0, page: 1, lastPage: 1 }));
     service.searchClients.and.returnValue(of([]));
     await TestBed.configureTestingModule({
@@ -60,7 +72,7 @@ describe('Processes filter templates integration', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
     await fixture.whenStable();
-    service.getPaginated.calls.reset();
+    service.getClientGroups.calls.reset();
   });
 
   afterEach(async () => {
@@ -92,13 +104,13 @@ describe('Processes filter templates integration', () => {
     expect(dialog().initialClient).toEqual(client);
     expect(dialog().initialDateFrom).toEqual(configuration.dateFrom);
     expect(dialog().initialDateTo).toEqual(configuration.dateTo);
-    expect(service.getPaginated).not.toHaveBeenCalled();
+    expect(service.getClientGroups).not.toHaveBeenCalled();
     expect(component.selectedTypes).toEqual([1, 18]);
   });
 
   it('applies the generated configuration, resets conflicting filters and displays the resulting processes', () => {
     const renewal = { _id: 'renewal-1', type: 4, target: {}, user: {}, client: { _id: client.id }, creator: {}, createdAt: '2026-09-20T16:00:00Z' } as ProcessItem;
-    service.getPaginated.and.returnValue(of({ data: [renewal], total: 1, page: 1, lastPage: 1 }));
+    service.getClientGroups.and.returnValue(of(groupResponse([renewal])));
     component.currentPage = 7;
     component.searchQuery = 'otra búsqueda';
     component.selectedTypes = [1, 18];
@@ -108,10 +120,10 @@ describe('Processes filter templates integration', () => {
     openTemplates();
     dialog().generated.emit(configuration);
 
-    expect(service.getPaginated).toHaveBeenCalledWith(1, 20, {
+    expect(service.getClientGroups).toHaveBeenCalledWith(1, 10, {
       types: [4], client: client.id,
       dateFrom: configuration.dateFrom!.toISOString(), dateTo: configuration.dateTo!.toISOString(),
-    });
+    }, 20);
     expect(component.currentPage).toBe(1);
     expect(component.processes).toEqual([renewal]);
     expect(component.totalRecords).toBe(1);
@@ -134,19 +146,19 @@ describe('Processes filter templates integration', () => {
   });
 
   it('keeps the template filters on subsequent pages and supports all clients', () => {
-    service.getPaginated.and.callFake(page => of({ data: [{ _id: `page-${page}` } as ProcessItem], total: 60, page: page!, lastPage: 3 }));
+    service.getClientGroups.and.callFake(page => of(groupResponse([{ _id: `page-${page}` } as ProcessItem], page, 60, 3)));
     component.selectedClient = client;
     component.applyTemplate({ ...configuration, client: null, types: [20] });
     component.loadMoreProcesses();
     component.loadMoreProcesses();
-    expect(service.getPaginated.calls.mostRecent().args).toEqual([3, 20, {
+    expect(service.getClientGroups.calls.mostRecent().args).toEqual([3, 10, {
       types: [20], dateFrom: configuration.dateFrom!.toISOString(), dateTo: configuration.dateTo!.toISOString(),
-    }]);
+    }, 20]);
     expect(component.selectedClient).toBeNull();
     expect(component.templateFiltersApplied).toBeTrue();
   });
 
-  it('keeps the summary when opening filters and removes it after a manual change or reset', () => {
+  it('replaces the template summary with the visible history scope after a manual change or reset', () => {
     component.applyTemplate(configuration);
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('.process-template-summary__edit') as HTMLButtonElement).click();
@@ -154,10 +166,16 @@ describe('Processes filter templates integration', () => {
     expect(component.templateFiltersApplied).toBeTrue();
     component.onProcessTypesChange([1]);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.process-template-summary')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.process-template-summary:not(.process-history-scope)')).toBeNull();
+    const scope = fixture.nativeElement.querySelector('.process-history-scope');
+    expect(scope.textContent).toContain('01/09/2026');
+    expect(scope.textContent).toContain('30/09/2026');
     component.applyTemplate(configuration);
     component.clearFilters();
+    fixture.detectChanges();
     expect(component.templateFiltersApplied).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.process-history-scope').textContent)
+      .toContain('Todo el historial · Sin límite de fechas');
   });
 
   it('cancelling the modal preserves the active filters and does not fetch processes', () => {
@@ -175,15 +193,15 @@ describe('Processes filter templates integration', () => {
     expect(component.currentPage).toBe(4);
     expect(component.dateFrom).toBe(beforeFrom);
     expect(component.dateTo).toBe(beforeTo);
-    expect(service.getPaginated).not.toHaveBeenCalled();
+    expect(service.getClientGroups).not.toHaveBeenCalled();
   });
 
   it('ignores a pending response for older filters after generating a template', () => {
     const previous = new Subject<any>();
-    service.getPaginated.and.returnValues(previous, of({ data: [], total: 0, page: 1, lastPage: 1 }));
+    service.getClientGroups.and.returnValues(previous, of(groupResponse([])));
     component.loadProcesses();
     component.applyTemplate(configuration);
-    previous.next({ data: [{ _id: 'wrong-filter' }], total: 1 });
+    previous.next(groupResponse([{ _id: 'wrong-filter' } as ProcessItem]));
     expect(component.processes).toEqual([]);
     expect(component.totalRecords).toBe(0);
   });
@@ -191,7 +209,7 @@ describe('Processes filter templates integration', () => {
   it('does not present previous results as matches when the template request fails', () => {
     component.processes = [{ _id: 'old-result', type: 1 } as ProcessItem];
     component.totalRecords = 1;
-    service.getPaginated.and.returnValue(throwError(() => new Error('Unavailable')));
+    service.getClientGroups.and.returnValue(throwError(() => new Error('Unavailable')));
     component.applyTemplate(configuration);
     expect(component.loading).toBeFalse();
     expect(component.processes).toEqual([]);
@@ -206,7 +224,7 @@ describe('Processes filter templates integration', () => {
     component.selectedVerificationStatus = 'verified';
     component.onProcessTypesChange([22]);
     expect(component.typeOptions).toContain({ label: 'Renovación pendiente', value: 22 });
-    expect(service.getPaginated).toHaveBeenCalledWith(1, 20, { types: [22], client: client.id });
+    expect(service.getClientGroups).toHaveBeenCalledWith(1, 10, { types: [22], client: client.id }, 20);
     expect(component.dateFrom).toBeNull();
     expect(component.dateTo).toBeNull();
     expect(component.onlyPendingRenewals).toBeTrue();
@@ -220,17 +238,17 @@ describe('Processes filter templates integration', () => {
       client: { _id: client.id, name: client.label }, user: {}, creator: null,
       registrationDate: '2026-09-01T00:00:00Z', createdAt: '2026-09-01T00:00:00Z',
     } as ProcessItem;
-    service.getPaginated.and.returnValue(of({ data: [pending], total: 1, page: 1, lastPage: 1 }));
+    service.getClientGroups.and.returnValue(of(groupResponse([pending])));
     component.applyTemplate({ types: [22], client, dateFrom: null, dateTo: null });
     fixture.detectChanges();
-    expect(service.getPaginated.calls.mostRecent().args).toEqual([1, 20, { types: [22], client: client.id }]);
+    expect(service.getClientGroups.calls.mostRecent().args).toEqual([1, 10, { types: [22], client: client.id }, 20]);
     expect(fixture.nativeElement.querySelector('.process-template-summary').textContent).toContain('Todos los dispositivos vencidos');
     expect(fixture.nativeElement.querySelector('.process-pending-renewal-note').textContent).toContain('Sin fechas se muestran solo los dispositivos actualmente vencidos');
     expect(fixture.nativeElement.querySelector('.column-date').textContent).toContain('Vencimiento');
     component.applyTemplate({ types: [22], client, dateFrom: null, dateTo: configuration.dateTo });
-    expect(service.getPaginated.calls.mostRecent().args).toEqual([1, 20, {
+    expect(service.getClientGroups.calls.mostRecent().args).toEqual([1, 10, {
       types: [22], client: client.id, dateTo: '2026-09-30',
-    }]);
+    }, 20]);
   });
 
   it('generates a future expiry range and displays the returned device before it expires', () => {
@@ -244,7 +262,7 @@ describe('Processes filter templates integration', () => {
       registrationDate: new Date(futureYear, 0, 11, 12).toISOString(),
       createdAt: new Date(futureYear, 0, 11, 12).toISOString(),
     } as unknown as ProcessItem;
-    service.getPaginated.and.returnValue(of({ data: [pending], total: 1, page: 1, lastPage: 1 }));
+    service.getClientGroups.and.returnValue(of(groupResponse([pending])));
     component.selectedClient = client;
     openTemplates();
     (fixture.nativeElement.querySelector('[data-process-type="22"]') as HTMLButtonElement).click();
@@ -254,11 +272,11 @@ describe('Processes filter templates integration', () => {
     (fixture.nativeElement.querySelector('.template-button--generate') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(service.getPaginated).toHaveBeenCalledOnceWith(1, 20, {
+    expect(service.getClientGroups).toHaveBeenCalledOnceWith(1, 10, {
       types: [22], client: client.id,
       dateFrom: `${futureYear}-01-10`,
       dateTo: `${futureYear}-01-12`,
-    });
+    }, 20);
     expect(component.processes).toEqual([pending]);
     expect(component.totalRecords).toBe(1);
     expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('Vehículo Por Vencer');
@@ -272,7 +290,7 @@ describe('Processes filter templates integration', () => {
   });
 
   it('keeps mixed process types and manually narrowed dates when paging pending renewals', () => {
-    service.getPaginated.and.callFake(page => of({ data: [{ _id: `page-${page}` } as ProcessItem], total: 40, page: page!, lastPage: 2 }));
+    service.getClientGroups.and.callFake(page => of(groupResponse([{ _id: `page-${page}` } as ProcessItem], page, 40, 2)));
     component.selectedClient = client;
     component.onProcessTypesChange([22]);
     component.dateFrom = configuration.dateFrom;
@@ -280,9 +298,9 @@ describe('Processes filter templates integration', () => {
     component.onProcessTypesChange([22, 4]);
     component.loadMoreProcesses();
     expect(component.onlyPendingRenewals).toBeFalse();
-    expect(service.getPaginated.calls.mostRecent().args).toEqual([2, 20, {
+    expect(service.getClientGroups.calls.mostRecent().args).toEqual([2, 10, {
       types: [22, 4], client: client.id, dateFrom: '2026-09-01', dateTo: '2026-09-30',
-    }]);
+    }, 20]);
   });
 
   it('shows pending renewals and details without allowing manual verification', () => {
@@ -294,7 +312,8 @@ describe('Processes filter templates integration', () => {
     } as unknown as ProcessItem;
     component.selectedClient = client;
     component.selectedTypes = [22];
-    component.processes = [pending];
+    service.getClientGroups.and.returnValue(of(groupResponse([pending])));
+    component.loadProcesses();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('Pendiente de renovar');
     expect(fixture.nativeElement.querySelector('tbody .verification-status-dropdown')).toBeNull();
@@ -321,21 +340,21 @@ describe('Processes filter templates integration', () => {
     component.clearClientFilter();
     expect(component.typeOptions.some(option => option.value === 22)).toBeFalse();
     expect(component.selectedTypes).toEqual([4]);
-    expect(service.getPaginated.calls.mostRecent().args).toEqual([1, 20, { types: [4] }]);
+    expect(service.getClientGroups.calls.mostRecent().args).toEqual([1, 10, { types: [4] }, 20]);
   });
 
   it('cancels a pending response and removes renewal rows when the client is cleared', () => {
     const previous = new Subject<any>();
-    service.getPaginated.and.returnValues(previous, of({ data: [], total: 0, page: 1, lastPage: 1 }));
+    service.getClientGroups.and.returnValues(previous, of(groupResponse([])));
     component.applyTemplate({ types: [22], client, dateFrom: null, dateTo: null });
     component.onClientFilterChange(null);
     expect(previous.observed).toBeFalse();
-    previous.next({ data: [{ _id: 'old-client-pending', type: 22 }], total: 1 });
+    previous.next(groupResponse([{ _id: 'old-client-pending', type: 22 } as ProcessItem]));
     expect(component.processes).toEqual([]);
     expect(component.totalRecords).toBe(0);
     expect(component.selectedTypes).toEqual([]);
     expect(component.templateFiltersApplied).toBeFalse();
-    expect(service.getPaginated.calls.mostRecent().args).toEqual([1, 20, {}]);
+    expect(service.getClientGroups.calls.mostRecent().args).toEqual([1, 10, {}, 20]);
   });
 
   it('treats free text or a blank client identifier as no client', () => {
@@ -357,6 +376,7 @@ describe('Processes filter templates integration', () => {
     component.selectedTypes = [22, 4];
     component.loadProcesses();
     await component.exportExcel();
+    expect(service.getClientGroups).not.toHaveBeenCalled();
     expect(service.getPaginated).not.toHaveBeenCalled();
     expect(component.loading).toBeFalse();
     expect(component.processes).toEqual([]);
@@ -378,13 +398,13 @@ describe('Processes filter templates integration', () => {
     component.currentPage = 3;
     component.openRenewalLinks('responses');
     fixture.detectChanges();
-    service.getPaginated.calls.reset();
+    service.getClientGroups.calls.reset();
 
     const responseDialog = fixture.debugElement.query(By.directive(ProcessRenewalLinksDialogComponent)).componentInstance;
     responseDialog.processed.emit();
 
     expect(component.currentPage).toBe(1);
-    expect(service.getPaginated).toHaveBeenCalledOnceWith(1, 20, { types: [22], client: client.id });
+    expect(service.getClientGroups).toHaveBeenCalledOnceWith(1, 10, { types: [22], client: client.id }, 20);
     expect(component.renewalLinksDialogVisible).toBeTrue();
   });
 
@@ -403,7 +423,7 @@ describe('Processes filter templates integration', () => {
     expect(modal.dateFrom).toEqual(configuration.dateFrom);
     expect(modal.dateTo).toEqual(configuration.dateTo);
     expect(renewalLinks.create).toHaveBeenCalledOnceWith(client.id, { dateFrom: '2026-09-01', dateTo: '2026-09-30' });
-    expect(service.getPaginated).not.toHaveBeenCalled();
+    expect(service.getClientGroups).not.toHaveBeenCalled();
   });
 
   it('opens saved responses without generating another link', () => {

@@ -432,6 +432,8 @@ describe('ProcessesComponent installation detail', () => {
       const updated = { ...item, verificationStatus: 'verified' as const, verifiedAt: '2026-09-28T15:00:00Z' };
       processesApi.updateVerificationStatus.and.returnValue(of(updated));
       component.processes = [item];
+      (component as any).processGroups = [{ id: clientId, name: 'Cliente actual', contact: '', route: [],
+        total: 1, processes: [item], page: 1, lastPage: 1, loading: false, error: '' }];
 
       component.showDetail(item);
       flushMicrotasks();

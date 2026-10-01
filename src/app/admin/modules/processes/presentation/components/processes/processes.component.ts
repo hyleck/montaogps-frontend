@@ -13,7 +13,7 @@ import { environment } from 'src/environments/environment';
 import {
   ProcessesService,
   ProcessItem,
-  ProcessClientRouteEntry,
+  ProcessClientGroupResult,
   PROCESS_TYPE_LABELS,
   PROCESS_VERIFICATION_STATUS_LABELS,
   ProcessVerificationStatus,
@@ -32,12 +32,9 @@ import { ProcessTemplateConfiguration } from '../process-templates-dialog/proces
 type StructuredDetailTone = 'success' | 'danger' | 'warning' | 'info' | 'neutral';
 type ProcessFilters = NonNullable<Parameters<ProcessesService['getPaginated']>[2]>;
 
-interface ProcessClientGroup {
-  id: string;
-  name: string;
-  contact: string;
-  route: ProcessClientRouteEntry[];
-  processes: ProcessItem[];
+interface ProcessClientGroup extends ProcessClientGroupResult {
+  loading: boolean;
+  error: string;
 }
 
 interface InstallationAccount {
@@ -101,33 +98,12 @@ interface DetailChangeRow {
 export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   processes: ProcessItem[] = [];
-  private groupedProcessesSource: ProcessItem[] | null = null;
-  private cachedClientProcessGroups: ProcessClientGroup[] = [];
+  private processGroups: ProcessClientGroup[] = [];
+  private clientGroupRequests = new Map<string, Subscription>();
+  private clientGroupsGeneration = 0;
 
   get clientProcessGroups(): ProcessClientGroup[] {
-    if (this.groupedProcessesSource === this.processes) return this.cachedClientProcessGroups;
-    const groups = new Map<string, ProcessClientGroup>();
-    for (const process of this.processes) {
-      const route = this.getProcessClientRoute(process);
-      const ownerId = route.at(-1)?.id || String(process.target?.['parent_id'] || '').trim()
-        || String(process.client?.['subclient']?._id || process.client?._id || '').trim();
-      const id = ownerId || 'unassigned';
-      let group = groups.get(id);
-      if (!group) {
-        const owner = [process.client?.['subclient'], process.client]
-          .find(account => account?._id && String(account._id) === ownerId);
-        const name = route.at(-1)?.fullName
-          || (owner ? `${owner.name || ''} ${owner.last_name || ''}`.trim() : '')
-          || (ownerId ? 'Nombre no disponible' : 'Sin cliente asociado');
-        group = { id, name: formatUserName(name), contact: owner?.email || owner?.phone || '',
-          route, processes: [] };
-        groups.set(id, group);
-      }
-      group.processes.push(process);
-    }
-    this.groupedProcessesSource = this.processes;
-    this.cachedClientProcessGroups = [...groups.values()];
-    return this.cachedClientProcessGroups;
+    return this.processGroups;
   }
 
   trackByClientGroup(_index: number, group: ProcessClientGroup): string {
@@ -138,24 +114,46 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     return process._id;
   }
 
-  private getProcessClientRoute(process: ProcessItem): ProcessClientRouteEntry[] {
-    if (Array.isArray(process.clientRoute)) {
-      return process.clientRoute.filter(item => item?.id && item.fullName).map(item => ({
-        ...item, fullName: formatUserName(item.fullName),
-      }));
-    }
-    // Keep records readable while an older API response is still in use.
-    const route = [process.client, process.client?.['subclient']]
-      .filter((account, index, accounts) => account?._id
-        && accounts.findIndex(item => String(item?._id) === String(account._id)) === index)
-      .map(account => ({
-        id: String(account._id),
-        fullName: formatUserName(`${account.name || ''} ${account.last_name || ''}`.trim())
-          || account.email || 'Nombre no disponible',
-        affiliation_type_id: account.affiliation_type_id,
-      }));
-    const ownerId = String(process.target?.['parent_id'] || '').trim();
-    return ownerId && route.at(-1)?.id !== ownerId ? [] : route;
+  private mergeProcesses(current: ProcessItem[], incoming: ProcessItem[]): ProcessItem[] {
+    const rows = new Map(current.map(process => [process._id, process]));
+    incoming.forEach(process => rows.set(process._id, process));
+    return [...rows.values()];
+  }
+
+  private syncProcessesFromGroups(): void {
+    this.processes = this.mergeProcesses([], this.processGroups.flatMap(group => group.processes));
+  }
+
+  loadMoreClientProcesses(group: ProcessClientGroup): void {
+    if (this.destroyed || group.loading || group.page >= group.lastPage) return;
+    const generation = this.clientGroupsGeneration;
+    const page = group.page + 1;
+    group.loading = true;
+    group.error = '';
+    this.clientGroupRequests.get(group.id)?.unsubscribe();
+    const request = this.processesService.getClientGroupProcesses(group.id, page, this.rowsPerPage, this.activeFilters).subscribe({
+      next: response => {
+        if (this.destroyed || generation !== this.clientGroupsGeneration) return;
+        group.processes = this.mergeProcesses(group.processes, response.data);
+        group.total = response.total;
+        group.page = response.page;
+        group.lastPage = response.lastPage;
+        group.loading = false;
+        this.syncProcessesFromGroups();
+      },
+      error: error => {
+        if (this.destroyed || generation !== this.clientGroupsGeneration) return;
+        group.loading = false;
+        group.error = getApiErrorMessage(error, 'No se pudieron cargar los demás procesos de este cliente.');
+      },
+    });
+    this.clientGroupRequests.set(group.id, request);
+  }
+
+  private cancelClientGroupRequests(): void {
+    this.clientGroupsGeneration++;
+    this.clientGroupRequests.forEach(request => request.unsubscribe());
+    this.clientGroupRequests.clear();
   }
 
   loading = false;
@@ -171,10 +169,12 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
   private scrollResizeObserver?: ResizeObserver;
   @ViewChild('processesScroll') private processesScroll?: ElementRef<HTMLElement>;
 
-  // The API remains paginated; rows are appended as the list scrolls.
+  // The outer scroll loads clients; each card loads only its own process history.
   totalRecords = 0;
+  totalClientGroups = 0;
   currentPage = 1;
   rowsPerPage = 20;
+  groupsPerPage = 10;
 
   // Filters
   searchQuery = '';
@@ -183,8 +183,8 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedMechanic: string | null = null;
   selectedClient: { label: string; id: string; email?: string; phone?: string } | null = null;
   selectedVerificationStatus: ProcessVerificationStatus | null = null;
-  dateFrom: Date | null = this.getCurrentMonthRange().from;
-  dateTo: Date | null = this.getCurrentMonthRange().to;
+  dateFrom: Date | null = null;
+  dateTo: Date | null = null;
   filtersExpanded = false;
   templatesDialogVisible = false;
   templateFiltersApplied = false;
@@ -286,9 +286,12 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
   loadProcesses(): void {
     this.processesRequestId++;
     this.processesRequest?.unsubscribe();
+    this.cancelClientGroupRequests();
     this.currentPage = 1;
     this.processes = [];
+    this.processGroups = [];
     this.totalRecords = 0;
+    this.totalClientGroups = 0;
     this.hasMoreProcesses = false;
     this.loadingMore = false;
     this.processesLoadError = '';
@@ -330,20 +333,33 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loading = page === 1;
     this.loadingMore = page > 1;
     this.processesLoadError = '';
-    this.processesRequest = this.processesService.getPaginated(page, this.rowsPerPage, this.activeFilters).subscribe({
+    this.processesRequest = this.processesService.getClientGroups(page, this.groupsPerPage, this.activeFilters, this.rowsPerPage).subscribe({
       next: (res) => {
         if (this.destroyed || requestId !== this.processesRequestId) return;
-        const rows = page === 1 ? [] : [...this.processes];
-        const seenIds = new Set(rows.map(process => process._id));
-        for (const process of res.data) {
-          if (seenIds.has(process._id)) continue;
-          rows.push(process);
-          seenIds.add(process._id);
+        const groups = new Map((page === 1 ? [] : this.processGroups).map(group => [group.id, group]));
+        for (const result of res.groups) {
+          const existing = groups.get(result.id);
+          if (existing) {
+            existing.processes = this.mergeProcesses(existing.processes, result.processes);
+            existing.total = result.total;
+            existing.lastPage = result.lastPage;
+          } else {
+            groups.set(result.id, {
+              ...result,
+              name: formatUserName(result.name),
+              route: result.route.map(account => ({ ...account, fullName: formatUserName(account.fullName) })),
+              processes: this.mergeProcesses([], result.processes),
+              loading: false,
+              error: '',
+            });
+          }
         }
-        this.processes = rows;
+        this.processGroups = [...groups.values()];
+        this.syncProcessesFromGroups();
         this.totalRecords = res.total;
+        this.totalClientGroups = res.totalGroups;
         this.currentPage = page;
-        this.hasMoreProcesses = res.data.length > 0 && page < res.lastPage;
+        this.hasMoreProcesses = res.groups.length > 0 && page < res.lastPage;
         this.loading = false;
         this.loadingMore = false;
         this.scheduleScrollCheck();
@@ -417,7 +433,7 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
   onProcessTypesChange(types: number[] | null): void {
     types = (types ?? []).filter(type => type !== 22 || this.hasSelectedClient);
     if (types?.includes(22) && !this.selectedTypes.includes(22)) {
-      // The default current-month range would hide devices that expired earlier.
+      // Renewal dates describe expiration rather than process registration.
       this.dateFrom = null;
       this.dateTo = null;
       this.selectedCreator = null;
@@ -464,9 +480,8 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedClient = null;
     this.clientOptions = [];
     this.selectedVerificationStatus = null;
-    const currentMonthRange = this.getCurrentMonthRange();
-    this.dateFrom = currentMonthRange.from;
-    this.dateTo = currentMonthRange.to;
+    this.dateFrom = null;
+    this.dateTo = null;
     this.currentPage = 1;
     this.loadProcesses();
   }
@@ -592,17 +607,6 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     XLSX.writeFile(wb, `procesos_${new Date().toISOString().split('T')[0]}.xlsx`);
   }
 
-  private getCurrentMonthRange(): { from: Date; to: Date } {
-    const now = new Date();
-    const from = new Date(now.getFullYear(), now.getMonth(), 1);
-    from.setHours(0, 0, 0, 0);
-
-    const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    to.setHours(23, 59, 59, 999);
-
-    return { from, to };
-  }
-
   getTypeLabel(type: number): string {
     return PROCESS_TYPE_LABELS[type] || `Tipo ${type}`;
   }
@@ -698,13 +702,21 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
           ...(current ? { client: current.client, clientRoute: current.clientRoute, target: current.target } : {}),
         };
         if (index >= 0) {
-          this.processes = this.processes.map(item => item._id === updated._id ? refreshed : item);
+          this.processGroups.forEach(group => {
+            group.processes = group.processes.map(item => item._id === updated._id ? refreshed : item);
+          });
+          this.syncProcessesFromGroups();
         }
         if (this.selectedProcess?._id === updated._id) {
           // Preserve the enriched account and target while updating the review.
           Object.assign(this.selectedProcess, refreshed);
         }
         this.updatingVerificationId = null;
+        if (this.activeFilters.verificationStatus
+          && this.activeFilters.verificationStatus !== this.getVerificationStatus(updated.verificationStatus)) {
+          // Removing a filtered row shifts every later page, so reload before appending more history.
+          this.loadProcesses();
+        }
         this.messageService.add({
           severity: 'success',
           summary: 'Estado actualizado',
@@ -746,6 +758,7 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.destroyed = true;
     this.processesRequestId++;
     this.processesRequest?.unsubscribe();
+    this.cancelClientGroupRequests();
     this.scrollResizeObserver?.disconnect();
     if (this.scrollCheckFrame !== null) cancelAnimationFrame(this.scrollCheckFrame);
     this.closeDetail();
@@ -1644,10 +1657,10 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     // Fallback to target.mechanic_id resolved via technicians map
     if (process.target) {
-      const mechanicId = process.target['mechanic_id'];
+      const mechanicId = String(process.target['mechanic_id'] || '').trim();
       if (mechanicId) return formatUserName(this.techniciansMap[mechanicId]) || mechanicId;
     }
-    return 'Ninguno';
+    return [1, 18].includes(Number(process.type)) ? 'Sin técnico registrado' : 'Ninguno';
   }
 
   private loadTechnicians(): void {

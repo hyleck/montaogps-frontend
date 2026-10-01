@@ -425,6 +425,38 @@
 .process-client-route__current { font-weight: 600; }
 .process-client-route--unavailable { font-style: italic; }
 
+.process-client-group__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--process-border);
+    background: var(--process-surface-soft);
+    font-size: 0.76rem;
+}
+
+.process-client-group__progress { display: grid; gap: 4px; color: var(--process-muted); }
+.process-client-group__error { color: var(--process-client-heading-accent); overflow-wrap: anywhere; }
+.process-client-group__load-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--process-border);
+    border-radius: 8px;
+    color: var(--process-text);
+    background: var(--process-surface);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+.process-client-group__load-more:hover { border-color: var(--process-accent); }
+.process-client-group__load-more:focus-visible { outline: 2px solid var(--process-accent); outline-offset: 2px; }
+.process-client-group__load-more:disabled { cursor: wait; opacity: 0.7; }
+
 @media (max-width: 600px) {
     .process-client-group__header { align-items: flex-start; flex-wrap: wrap; gap: 12px; padding: 14px; }
     .process-client-group__identity { flex-basis: 100%; align-items: flex-start; gap: 12px; }
@@ -432,6 +464,8 @@
     .process-client-group__icon { flex-basis: 40px; height: 40px; border-radius: 10px; }
     .process-client-group__count { margin-inline-start: 52px; }
     .process-client-route { gap: 6px; padding: 10px 14px; }
+    .process-client-group__footer { padding: 12px 14px; }
+    .process-client-group__load-more { width: 100%; }
 }
 
 :host ::ng-deep .process-client-group > p-table,

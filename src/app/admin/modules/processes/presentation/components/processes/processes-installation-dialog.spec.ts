@@ -58,7 +58,7 @@ describe('Processes installation dialog', () => {
       imports: [ProcessesModule, NoopAnimationsModule, TranslateModule.forRoot()],
       providers: [
         provideRouter([]),
-        { provide: ProcessesService, useValue: { getPaginated: () => of({ data: [], total: 0 }) } },
+        { provide: ProcessesService, useValue: { getClientGroups: () => of({ groups: [], total: 0, totalGroups: 0, page: 1, lastPage: 1 }) } },
         { provide: UserService, useValue: users },
         { provide: VehicleBrandsService, useValue: { getAllBrands: () => Promise.resolve([]) } },
         { provide: ColorsService, useValue: { getAllColors: () => Promise.resolve([]) } },

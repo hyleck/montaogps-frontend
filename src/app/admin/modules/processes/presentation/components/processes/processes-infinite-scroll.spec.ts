@@ -13,21 +13,35 @@ import { TargetsService } from 'src/app/core/services/targets.service';
 import { UserService } from 'src/app/core/services/user.service';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { ProcessesModule } from '../../processes.module';
-import { PaginatedProcessResponse, ProcessItem, ProcessesService } from '../../services/processes.service';
+import { ProcessItem, ProcessesService } from '../../services/processes.service';
 import { ProcessesComponent } from './processes.component';
 
 describe('Processes infinite scroll', () => {
   let fixture: ComponentFixture<ProcessesComponent>;
   let component: ProcessesComponent;
   let viewport: HTMLElement;
-  let requests: Array<{ page: number; limit: number; filters: any; response: Subject<PaginatedProcessResponse> }>;
+  let requests: Array<{ page: number; limit: number; filters: any; processLimit: number; response: Subject<ReturnType<typeof groupResponse>> }>;
 
   function rows(start: number, count: number): ProcessItem[] {
     return Array.from({ length: count }, (_, index) => ({
       _id: `process-${start + index}`, type: 22, readOnly: true,
-      target: { name: `Vehículo ${start + index}` }, user: {}, creator: {},
-      registrationDate: '2026-09-01T12:00:00Z', createdAt: '2026-09-01T12:00:00Z',
-    } as ProcessItem));
+      target: { _id: `target-${start + index}`, name: `Vehículo ${start + index}`, parent_id: `client-${Math.floor((start + index) / 2)}` },
+      user: { _id: 'requester' }, creator: {}, description: 'Renovación pendiente',
+      reference: `target-${start + index}`, before: {}, after: {},
+      registrationDate: '2026-09-01T12:00:00Z', createdAt: '2026-09-01T12:00:00Z', updatedAt: '2026-09-01T12:00:00Z',
+    }));
+  }
+
+  function groupResponse(data: ProcessItem[], total: number, page: number, lastPage: number) {
+    const owners = [...new Set(data.map(row => String(row.target['parent_id'])))];
+    return {
+      groups: owners.map(id => {
+        const processes = data.filter(row => row.target['parent_id'] === id);
+        return { id, name: id, contact: '', route: [], total: processes.length,
+          processes, page: 1, lastPage: 1 };
+      }),
+      total, totalGroups: Math.ceil(total / 2), page, lastPage,
+    };
   }
 
   beforeEach(async () => {
@@ -37,9 +51,9 @@ describe('Processes infinite scroll', () => {
       providers: [
         provideRouter([]),
         { provide: ProcessesService, useValue: {
-          getPaginated: (page: number, limit: number, filters: any) => {
-            const response = new Subject<PaginatedProcessResponse>();
-            requests.push({ page, limit, filters, response });
+          getClientGroups: (page: number, limit: number, filters: any, processLimit: number) => {
+            const response = new Subject<ReturnType<typeof groupResponse>>();
+            requests.push({ page, limit, filters, processLimit, response });
             return response.asObservable();
           },
           searchClients: () => of([]),
@@ -67,7 +81,7 @@ describe('Processes infinite scroll', () => {
   afterEach(() => fixture.destroy());
 
   function respond(index: number, data: ProcessItem[], total: number, lastPage: number): void {
-    requests[index].response.next({ data, total, page: requests[index].page, lastPage });
+    requests[index].response.next(groupResponse(data, total, requests[index].page, lastPage));
     requests[index].response.complete();
     fixture.detectChanges();
   }
@@ -88,9 +102,24 @@ describe('Processes infinite scroll', () => {
     await fixture.whenStable();
   }
 
-  it('uses the actual table container to append rows without rendering a paginator', async () => {
+  it('loads all history initially and restores unbounded dates when filters are cleared', () => {
+    expect(component.dateFrom).toBeNull();
+    expect(component.dateTo).toBeNull();
+    expect(requests[0].filters).toEqual({});
+    component.dateFrom = new Date(2026, 8, 1);
+    component.dateTo = new Date(2026, 8, 30);
+    component.applyFilters();
+    expect(requests[1].filters.dateFrom).toBe(component.dateFrom.toISOString());
+    component.clearFilters();
+    expect(component.dateFrom).toBeNull();
+    expect(component.dateTo).toBeNull();
+    expect(requests[2].filters).toEqual({});
+  });
+
+  it('uses the actual scroll container to append complete client cards without a global paginator', async () => {
     expect(requests.length).toBe(1);
-    expect(requests[0].limit).toBe(20);
+    expect(requests[0].limit).toBe(10);
+    expect(requests[0].processLimit).toBe(20);
     respond(0, rows(0, 20), 40, 2);
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelector('.p-paginator')).toBeNull();
@@ -127,7 +156,7 @@ describe('Processes infinite scroll', () => {
     expect(requests.map(request => request.page)).toEqual([1, 2, 3]);
   });
 
-  it('deduplicates overlapping pages and concurrent scroll events', async () => {
+  it('deduplicates overlapping client pages and concurrent scroll events', async () => {
     const dimensions = metrics();
     respond(0, rows(0, 20), 39, 2);
     dimensions.top = 1700;
@@ -196,7 +225,7 @@ describe('Processes infinite scroll', () => {
     expect(component.loadingMore).toBeFalse();
     expect(viewport.scrollTop).toBe(0);
     expect(requests[2].page).toBe(1);
-    oldRequest.next({ data: rows(20, 20), total: 60, page: 2, lastPage: 3 });
+    oldRequest.next(groupResponse(rows(20, 20), 60, 2, 3));
     respond(2, rows(100, 1), 1, 1);
     expect(component.processes.map(process => process._id)).toEqual(['process-100']);
   });
@@ -240,7 +269,7 @@ describe('Processes infinite scroll', () => {
     component.loadMoreProcesses();
     fixture.destroy();
     expect(requests[1].response.observed).toBeFalse();
-    requests[1].response.next({ data: rows(20, 20), total: 40, page: 2, lastPage: 2 });
+    requests[1].response.next(groupResponse(rows(20, 20), 40, 2, 2));
     await new Promise(resolve => requestAnimationFrame(resolve));
     expect(requests.length).toBe(2);
     expect(component.processes.length).toBe(20);
