@@ -26,6 +26,7 @@ import * as XLSX from 'xlsx-js-style';
 import { MessageService } from 'primeng/api';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
+import { isOfficeReviewProcess } from 'src/app/core/utils/office-review-process.util';
 import { renewalFilterDate } from 'src/app/core/utils/renewal-expiration-filter.util';
 import { ProcessTemplateConfiguration } from '../process-templates-dialog/process-templates-dialog.component';
 
@@ -513,7 +514,7 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const data = allProcesses.map(p => ({
       'Fecha': this.getProcessDate(p)?.toLocaleDateString('es-DO') || '',
-      'Tipo': this.getTypeLabel(p.type),
+      'Tipo': this.getTypeLabel(p.type, p),
       'Estado': this.getVerificationStatusLabel(p.verificationStatus),
       'Target': this.getTargetName(p.target),
       'IMEI': this.getTargetImei(p.target),
@@ -590,6 +591,7 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
       20: '2E7D32',  // Pre-renovación
       21: '0284C7',  // Cambio de vehículo
       22: 'B45309',  // Renovación pendiente
+      23: '2563EB',  // Revisión
     };
 
     // Apply type colors to column B (Tipo)
@@ -597,7 +599,7 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
       const cell = ws[`B${i + 2}`];
       if (cell) {
         cell.s = {
-          font: { color: { rgb: typeColors[p.type] || '000000' }, bold: true }
+          font: { color: { rgb: typeColors[isOfficeReviewProcess(p.type, p) ? 23 : p.type] || '000000' }, bold: true }
         };
       }
     });
@@ -607,11 +609,13 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     XLSX.writeFile(wb, `procesos_${new Date().toISOString().split('T')[0]}.xlsx`);
   }
 
-  getTypeLabel(type: number): string {
+  getTypeLabel(type: number, process?: ProcessItem): string {
+    if (isOfficeReviewProcess(type, process)) return PROCESS_TYPE_LABELS[23];
     return PROCESS_TYPE_LABELS[type] || `Tipo ${type}`;
   }
 
-  getTypeSeverity(type: number): string {
+  getTypeSeverity(type: number, process?: ProcessItem): string {
+    if (isOfficeReviewProcess(type, process)) return 'info';
     const severities: { [key: number]: string } = {
       1: 'success',   // Instalación
       2: 'info',      // Mod. Fecha Instalación
@@ -635,6 +639,7 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
       20: 'success',  // Pre-renovación
       21: 'info',     // Cambio de vehículo
       22: 'warn',     // Renovación pendiente
+      23: 'info',     // Revisión
     };
     return severities[type] || 'info';
   }
@@ -1587,6 +1592,7 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
         automatic_activation: 17,
         reinstallation: 18,
         uninstall: 19,
+        office_review: 23,
       };
       return processTypes[normalizedType]
         ? this.getTypeLabel(processTypes[normalizedType])

@@ -49,7 +49,7 @@ export class ProcessTemplatesDialogComponent implements OnChanges, OnDestroy {
     { name: 'Renovar ( Facturación al contado )', type: 20, icon: 'pi pi-calendar-plus', description: 'Consulta las renovaciones con facturación al contado.' },
     { name: 'Instalación', type: 1, icon: 'pi pi-map-marker', description: 'Consulta las instalaciones registradas.' },
     { name: 'Reinstalación', type: 18, icon: 'pi pi-sync', description: 'Consulta las reinstalaciones registradas.' },
-    { name: 'Revisión', type: 10, icon: 'pi pi-search', description: 'Consulta las revisiones registradas.' },
+    { name: 'Revisión', type: 23, icon: 'pi pi-search', description: 'Consulta las revisiones de oficina registradas.' },
     { name: 'Desinstalación', type: 19, icon: 'pi pi-minus-circle', description: 'Consulta las desinstalaciones registradas.' },
     { name: 'Renovación pendiente', type: 22, icon: 'pi pi-clock', description: 'Consulta los dispositivos de un cliente por fecha de vencimiento.' },
   ];

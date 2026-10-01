@@ -35,6 +35,7 @@ import { InventoryService } from 'src/app/core/services/inventory.service';
 import { environment } from 'src/environments/environment';
 import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
+import { isOfficeReviewProcess } from 'src/app/core/utils/office-review-process.util';
 import { SmsCommandsDialogComponent } from 'src/app/shareds/components/sms-commands-dialog/sms-commands-dialog.component';
 
 
@@ -5073,8 +5074,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     hasActiveOfficeReviewProcess(): boolean {
         return this.processList.some(process => {
             const after = (process.after || {}) as Record<string, any>;
-            return Number(process.type) === 10
-                && String(after['origin'] || '').trim() === 'office_management'
+            return isOfficeReviewProcess(process.type, process)
                 && String(after['status'] || '').trim() === 'in_progress';
         });
     }
@@ -5588,10 +5588,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Método para obtener el nombre del tipo de proceso
     getProcessTypeName(type: number, process?: ProcessResponse): string {
-        const after = (process?.after || {}) as Record<string, any>;
-        if (Number(type) === 10 && String(after['origin'] || '') === 'office_management') {
-            return 'Revisión de oficina';
-        }
+        if (isOfficeReviewProcess(type, process)) return 'Revisión';
         const typeNames: { [key: number]: string } = {
             1: 'Instalación inicial',
             2: 'Fecha de instalación',
@@ -5613,7 +5610,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             18: 'Reinstalación',
             19: 'Desinstalación',
             20: 'Renovar ( Facturación al contado )',
-            21: 'Cambio de vehículo'
+            21: 'Cambio de vehículo',
+            23: 'Revisión'
         };
         return typeNames[type] || `Proceso desconocido`;
     }
@@ -5715,7 +5713,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     // Método para obtener el ícono según el tipo de proceso
-    getProcessIcon(type: number): string {
+    getProcessIcon(type: number, process?: ProcessResponse): string {
+        if (isOfficeReviewProcess(type, process)) return 'pi pi-search';
         const iconMap: { [key: number]: string } = {
             1: 'pi pi-wrench',        // Instalación real
             2: 'pi pi-calendar',      // Modificación de fecha de instalación
@@ -5737,13 +5736,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             18: 'pi pi-refresh',      // Reinstalación
             19: 'pi pi-times-circle', // Desinstalación
             20: 'pi pi-wallet',       // Pre-renovación
-            21: 'pi pi-car'           // Cambio de vehículo
+            21: 'pi pi-car',          // Cambio de vehículo
+            23: 'pi pi-search'        // Revisión
         };
         return iconMap[type] || 'pi pi-circle';
     }
 
     // Método para obtener la clase de estado del proceso
-    getProcessStatusClass(type: number): string {
+    getProcessStatusClass(type: number, process?: ProcessResponse): string {
+        if (isOfficeReviewProcess(type, process)) return 'status-office-review';
         const statusMap: { [key: number]: string } = {
             1: 'status-installation', // Instalación real
             2: 'status-installation-date', // Modificación de fecha de instalación
@@ -5765,7 +5766,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             18: 'status-reinstallation', // Reinstalación
             19: 'status-uninstallation', // Desinstalación
             20: 'status-service-renewal', // Pre-renovación
-            21: 'status-plan-change'     // Cambio de vehículo
+            21: 'status-plan-change',    // Cambio de vehículo
+            23: 'status-office-review'   // Revisión
         };
         return statusMap[type] || 'status-default';
     }
@@ -5773,7 +5775,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Método para obtener el texto de estado del proceso
     getProcessStatusText(type: number, process?: ProcessResponse): string {
         const after = (process?.after || {}) as Record<string, any>;
-        if (Number(type) === 10 && String(after['origin'] || '') === 'office_management') {
+        if (isOfficeReviewProcess(type, process)) {
             return String(after['status'] || '') === 'in_progress' ? 'EN CURSO' : 'FINALIZADA';
         }
         const statusMap: { [key: number]: string } = {

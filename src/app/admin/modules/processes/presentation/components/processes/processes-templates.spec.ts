@@ -4,6 +4,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { of, Subject, throwError } from 'rxjs';
+import * as XLSX from 'xlsx-js-style';
 import { RenewalLinksService } from 'src/app/core/services/renewal-links.service';
 import { ProcessRenewalLinksDialogComponent } from '../process-renewal-links-dialog/process-renewal-links-dialog.component';
 import { AuthService } from 'src/app/core/services/auth.service';
@@ -156,6 +157,45 @@ describe('Processes filter templates integration', () => {
     }, 20]);
     expect(component.selectedClient).toBeNull();
     expect(component.templateFiltersApplied).toBeTrue();
+  });
+
+  it('filters office reviews as type 23 and keeps technical checks as type 10', () => {
+    expect(component.typeOptions).toContain({ label: 'Revisión', value: 23 });
+    expect(component.typeOptions).toContain({ label: 'Chequeo', value: 10 });
+    openTemplates();
+    const reviewTemplate = dialog().templates.find(template => template.name === 'Revisión')!;
+    expect(reviewTemplate.type).toBe(23);
+    dialog().chooseTemplate(reviewTemplate);
+    dialog().generate();
+    expect(service.getClientGroups.calls.mostRecent().args[2]?.types).toEqual([23]);
+
+    component.onProcessTypesChange([10]);
+    expect(service.getClientGroups.calls.mostRecent().args[2]?.types).toEqual([10]);
+  });
+
+  it('renders and exports new and legacy office reviews without relabeling ordinary checks', async () => {
+    const rows = [
+      { _id: 'review', type: 23, after: { status: 'in_progress' } },
+      { _id: 'legacy-review', type: 10, after: { origin: 'office_management', status: 'completed' } },
+      { _id: 'check', type: 10, after: { processType: 'checkup' } },
+    ].map(row => ({ ...row, target: {}, user: {}, creator: {},
+      createdAt: '2026-10-01T12:00:00Z' } as ProcessItem));
+    service.getClientGroups.and.returnValue(of(groupResponse(rows)));
+    service.getPaginated.and.returnValue(of({ data: rows, total: 3, page: 1, lastPage: 1 }));
+    component.loadProcesses();
+    fixture.detectChanges();
+    const labels = Array.from(fixture.nativeElement.querySelectorAll('tbody p-tag') as NodeListOf<HTMLElement>)
+      .map(element => element.textContent?.trim());
+    expect(labels).toEqual(['Revisión', 'Revisión', 'Chequeo']);
+
+    const write = spyOn(XLSX, 'writeFile').and.stub();
+    await component.exportExcel();
+    expect(write).toHaveBeenCalledTimes(1);
+    const sheet = write.calls.mostRecent().args[0].Sheets['Procesos'];
+    expect([sheet['B2'].v, sheet['B3'].v, sheet['B4'].v]).toEqual(['Revisión', 'Revisión', 'Chequeo']);
+    expect(sheet['B2'].s.font.color.rgb).toBe('2563EB');
+    expect(sheet['B3'].s.font.color.rgb).toBe('2563EB');
+    expect(sheet['B4'].s.font.color.rgb).toBe('00838F');
   });
 
   it('replaces the template summary with the visible history scope after a manual change or reset', () => {

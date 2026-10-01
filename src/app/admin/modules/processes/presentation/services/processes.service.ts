@@ -12,6 +12,7 @@ export interface ProcessClientRouteEntry {
 export interface ProcessItem {
   _id: string;
   type: number;
+  sourceKey?: string;
   readOnly?: boolean;
   description: string;
   details?: string;
@@ -154,6 +155,7 @@ export const PROCESS_TYPE_LABELS: { [key: number]: string } = {
   20: 'Renovar ( Facturación al contado )',
   21: 'Cambio de vehículo',
   22: 'Renovación pendiente',
+  23: 'Revisión',
 };
 
 @Injectable({

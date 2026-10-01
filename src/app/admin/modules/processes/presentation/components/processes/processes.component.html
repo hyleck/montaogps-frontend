@@ -230,8 +230,8 @@
                             </td>
                             <td>
                                 <div class="process-type-cell">
-                                    <p-tag [value]="getTypeLabel(process.type)"
-                                        [severity]="getTypeSeverity(process.type)" [rounded]="true">
+                                    <p-tag [value]="getTypeLabel(process.type, process)"
+                                        [severity]="getTypeSeverity(process.type, process)" [rounded]="true">
                                     </p-tag>
                                 </div>
                             </td>
@@ -340,7 +340,7 @@
             <div class="detail-dialog-heading__icon"><i class="pi pi-history"></i></div>
             <div>
                 <span>Auditoría de proceso</span>
-                <strong>{{ selectedProcess ? getTypeLabel(selectedProcess.type) : 'Proceso' }}</strong>
+                <strong>{{ selectedProcess ? getTypeLabel(selectedProcess.type, selectedProcess) : 'Proceso' }}</strong>
             </div>
         </div>
     </ng-template>

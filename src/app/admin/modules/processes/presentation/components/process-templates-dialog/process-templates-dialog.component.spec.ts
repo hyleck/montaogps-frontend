@@ -67,7 +67,7 @@ describe('ProcessTemplatesDialogComponent', () => {
 
   it('generates each template with its exact process type', async () => {
     const generated = spyOn(component.generated, 'emit');
-    for (const type of [4, 20, 1, 18, 10, 19, 22]) {
+    for (const type of [4, 20, 1, 18, 23, 19, 22]) {
       await open();
       choose(type);
       if (type === 22) component.clientDraft = client;

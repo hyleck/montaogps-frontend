@@ -1915,14 +1915,14 @@
                                     <div class="process-header">
                                         <div class="process-left">
                                             <div class="process-icon">
-                                                <i [class]="getProcessIcon(process.type)"></i>
+                                                <i [class]="getProcessIcon(process.type, process)"></i>
                                             </div>
                                             <div class="process-info">
                                                 <div class="process-type">
                                                     <span class="type-name">{{ getProcessTypeName(process.type, process)
                                                         }}</span>
                                                     <span class="process-status"
-                                                        [class]="getProcessStatusClass(process.type)">
+                                                        [class]="getProcessStatusClass(process.type, process)">
                                                         {{ getProcessStatusText(process.type, process) }}
                                                     </span>
                                                 </div>

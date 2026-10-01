@@ -295,6 +295,7 @@ export interface CreateProcessDto {
 export interface ProcessResponse {
   _id: string;
   type: number;
+  sourceKey?: string;
   registrationDate: string;
   description?: string;
   details?: string;
