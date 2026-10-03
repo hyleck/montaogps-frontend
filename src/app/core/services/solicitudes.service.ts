@@ -3,6 +3,19 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+export interface SolicitudBoardMove {
+    id: string;
+    status: string;
+    before_id: string | null;
+    expected_version: number;
+    before_expected_version?: number;
+}
+
+export interface SolicitudBoardMoveResult {
+    solicitud: Solicitud;
+    positions: Array<{ id: string; order: number; version: number }>;
+}
+
 export interface InstallationDetail {
     _id?: string;
     process_type?: string;
@@ -724,6 +737,10 @@ export class SolicitudesService {
         expected_version?: number;
     }>): Observable<Solicitud[]> {
         return this.http.patch<Solicitud[]>(`${this.apiUrl}/board/reorder`, { items });
+    }
+
+    moveOnBoard(input: SolicitudBoardMove): Observable<SolicitudBoardMoveResult> {
+        return this.http.patch<SolicitudBoardMoveResult>(`${this.apiUrl}/board/move`, input);
     }
 
     reassign(

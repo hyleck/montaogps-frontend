@@ -3,6 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+export interface PublicGoogleMapConfig {
+  name: string;
+  url: string;
+  key: string;
+}
+
 export interface SystemSettings {
   _id?: string;
   logo?: string;
@@ -75,6 +81,10 @@ export class SystemService {
    */
   getPublic(): Observable<SystemSettings[]> {
     return this.http.get<SystemSettings[]>(`${this.apiUrl}-public`);
+  }
+
+  getPublicGoogleMapConfig(): Observable<PublicGoogleMapConfig | null> {
+    return this.http.get<PublicGoogleMapConfig | null>(`${this.apiUrl}-public/google-map-config`);
   }
 
   /**

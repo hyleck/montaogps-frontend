@@ -446,7 +446,7 @@
                 </div>
             </div>
 
-            <div class="sol-kanban-card sol-kanban-card--received" *ngFor="let sol of recibidas; trackBy: trackBySolicitud"
+            <div class="sol-kanban-card sol-kanban-card--received" *ngFor="let sol of recibidas; trackBy: trackBySolicitud" [attr.data-solicitud-id]="sol._id"
                 (click)="!dragSuppressClick && editSolicitud(sol)" draggable="true"
                 (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
@@ -501,7 +501,7 @@
                 </div>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of pendientes; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of pendientes; trackBy: trackBySolicitud" [attr.data-solicitud-id]="sol._id" (click)="!dragSuppressClick && editSolicitud(sol)"
                 [draggable]="!isSolicitudLocked(sol)" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <div class="sol-card-title-block">
@@ -640,7 +640,7 @@
                 </div>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of enProgreso; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of enProgreso; trackBy: trackBySolicitud" [attr.data-solicitud-id]="sol._id" (click)="!dragSuppressClick && editSolicitud(sol)"
                 [draggable]="!isSolicitudLocked(sol)" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <div class="sol-card-title-block">
@@ -779,7 +779,7 @@
                 </div>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of porConfirmar; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of porConfirmar; trackBy: trackBySolicitud" [attr.data-solicitud-id]="sol._id" (click)="!dragSuppressClick && editSolicitud(sol)"
                 [draggable]="!isSolicitudLocked(sol)" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <div class="sol-card-title-block">
@@ -906,7 +906,7 @@
                 </div>
             </div>
             
-            <div class="sol-kanban-card sol-kanban-card--closed-summary sol-kanban-card--locked" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of completadas; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card sol-kanban-card--closed-summary sol-kanban-card--locked" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--request-locked]="isSolicitudLocked(sol)" *ngFor="let sol of completadas; trackBy: trackBySolicitud" [attr.data-solicitud-id]="sol._id" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="false">
                 <div class="sol-closed-head">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>

@@ -1,6 +1,6 @@
 /// <reference types="google.maps" />
 
-import { of, Subject } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { DEVICE_CANCELLATION_REASONS } from '../../../../../../core/constants/device-cancellation-reasons.constant';
 import { Solicitud } from '../../../../../../core/services/solicitudes.service';
 import { SolicitudesComponent } from './solicitudes.component';
@@ -62,6 +62,15 @@ describe('SolicitudesComponent scheduled date editing', () => {
                 order: item.order,
                 __v: (item.expected_version || 0) + 1,
             })))),
+            moveOnBoard: jasmine.createSpy('moveOnBoard').and.callFake((input: {
+                id: string; status: string; expected_version: number;
+            }) => of({
+                solicitud: {
+                    _id: input.id, type: 'instalacion', status: input.status,
+                    order: 10, __v: input.expected_version + 1,
+                },
+                positions: [],
+            })),
             reassign: jasmine.createSpy('reassign').and.returnValue(of({})),
             lock: jasmine.createSpy('lock').and.callFake((id: string, reason: string) => of({
                 _id: id,
@@ -2565,19 +2574,198 @@ describe('SolicitudesComponent scheduled date editing', () => {
         } as unknown as DragEvent, 'en_progreso');
         await Promise.resolve();
 
-        const payload = solicitudesService.reorder.calls.mostRecent().args[0] as Array<{
-            id: string;
-            status: string;
-            order: number;
-            expected_version?: number;
-        }>;
-        expect(payload.map(item => item.id)).toEqual([
-            'unlocked-target',
-            'request-being-moved',
-        ]);
-        expect(payload.some(item => item.id === 'locked-target')).toBeFalse();
+        expect(solicitudesService.moveOnBoard).toHaveBeenCalledOnceWith({
+            id: 'request-being-moved', status: 'en_progreso', before_id: null, expected_version: 2,
+        });
+        expect(solicitudesService.reorder).not.toHaveBeenCalled();
+        expect(unlockedTarget.order).toBe(0);
+        expect(unlockedTarget.__v).toBe(4);
         expect(lockedTarget.order).toBe(1);
         expect(lockedTarget.status).toBe('en_progreso');
+    });
+
+    describe('single-request board moves', () => {
+        function request(id: string, status = 'pendiente', order = 0): Solicitud {
+            return { _id: id, type: 'instalacion', status, order, __v: 3 };
+        }
+
+        function drop(
+            component: SolicitudesComponent,
+            moved: Solicitud,
+            status: string,
+            visible: Solicitud[] = [],
+            targetId?: string,
+            clientY = 0,
+        ): void {
+            const column = document.createElement('section');
+            column.className = 'sol-kanban-column';
+            visible.forEach(item => {
+                const card = document.createElement('article');
+                card.className = 'sol-kanban-card';
+                card.dataset['solicitudId'] = item._id;
+                if (item.locked) card.classList.add('sol-kanban-card--request-locked');
+                spyOn(card, 'getBoundingClientRect').and.returnValue({ top: 0, height: 100 } as DOMRect);
+                column.appendChild(card);
+            });
+            component.draggedSolicitud = moved;
+            component.onDrop({
+                preventDefault: jasmine.createSpy('preventDefault'),
+                target: targetId ? column.querySelector(`[data-solicitud-id="${targetId}"]`) : column,
+                clientY,
+            } as unknown as DragEvent, status);
+        }
+
+        it('sends one movement for columns containing more than 200 cards and leaves all other versions and orders intact', async () => {
+            const { component, solicitudesService } = createComponent();
+            const moved = request('moved');
+            const source = Array.from({ length: 220 }, (_, i) => request(`source-${i}`, 'pendiente', i + 20));
+            const target = Array.from({ length: 330 }, (_, i) => request(`target-${i}`, 'en_progreso', i + 50));
+            const before = JSON.stringify([...source, ...target]);
+            component.solicitudes = [moved, ...source, ...target];
+
+            drop(component, moved, 'en_progreso');
+            await Promise.resolve();
+
+            expect(solicitudesService.moveOnBoard).toHaveBeenCalledOnceWith({
+                id: 'moved', status: 'en_progreso', before_id: null, expected_version: 3,
+            });
+            expect(solicitudesService.reorder).not.toHaveBeenCalled();
+            expect(JSON.stringify([...source, ...target])).toBe(before);
+            expect(component.solicitudes.find(item => item._id === 'moved')).toEqual(jasmine.objectContaining({
+                status: 'en_progreso', order: 10, __v: 4,
+            }));
+        });
+
+        it('uses the next visible card as the anchor when filters hide cards and scheduled order differs from numeric order', async () => {
+            const { component, solicitudesService } = createComponent();
+            const moved = request('moved');
+            const hidden = request('hidden', 'en_progreso', 0);
+            const visibleFirst = request('visible-first', 'en_progreso', 99);
+            const visibleNext = request('visible-next', 'en_progreso', 8);
+            visibleFirst.scheduled_date = '2026-10-01T09:00:00Z';
+            visibleNext.scheduled_date = '2026-10-02T09:00:00Z';
+            visibleNext.__v = 12;
+            component.solicitudes = [hidden, moved, visibleNext, visibleFirst];
+
+            drop(component, moved, 'en_progreso', [visibleFirst, visibleNext], 'visible-first', 80);
+            await Promise.resolve();
+
+            expect(solicitudesService.moveOnBoard).toHaveBeenCalledOnceWith({
+                id: 'moved', status: 'en_progreso', before_id: 'visible-next',
+                expected_version: 3, before_expected_version: 12,
+            });
+            expect(hidden.order).toBe(0);
+        });
+
+        it('reorders the first card to the end of a column larger than 200 without submitting its neighbors', async () => {
+            const { component, solicitudesService } = createComponent();
+            const cards = Array.from({ length: 250 }, (_, i) => request(`card-${i}`, 'en_progreso', i));
+            component.solicitudes = cards;
+
+            drop(component, cards[0], 'en_progreso', cards, 'card-249', 80);
+            await Promise.resolve();
+
+            expect(solicitudesService.moveOnBoard).toHaveBeenCalledOnceWith({
+                id: 'card-0', status: 'en_progreso', before_id: null, expected_version: 3,
+            });
+            expect(cards[249].order).toBe(249);
+            expect(cards[1].__v).toBe(3);
+        });
+
+        it('keeps completion confirmation and sends the version saved by that dialog without rewriting closed cards', async () => {
+            const { component, solicitudesService } = createComponent();
+            const moved = request('finish-me', 'por_confirmar');
+            moved.__v = 7;
+            const closed = Array.from({ length: 250 }, (_, i) => request(`closed-${i}`, i % 2 ? 'cancelada' : 'completada', i));
+            const before = JSON.stringify(closed);
+            component.solicitudes = [moved, ...closed];
+            solicitudesService.update.and.returnValue(of({ ...moved, __v: 8 }));
+
+            drop(component, moved, 'completada', closed, 'closed-0');
+            expect(component.completionConfirmDialogVisible).toBeTrue();
+            expect(solicitudesService.moveOnBoard).not.toHaveBeenCalled();
+            expect(moved.status).toBe('por_confirmar');
+            await component.approveSolicitudCompletion();
+            await Promise.resolve();
+
+            expect(solicitudesService.update).toHaveBeenCalledWith('finish-me', jasmine.objectContaining({ expected_version: 7 }));
+            expect(solicitudesService.moveOnBoard).toHaveBeenCalledOnceWith({
+                id: 'finish-me', status: 'completada', before_id: null, expected_version: 8,
+            });
+            expect(JSON.stringify(closed)).toBe(before);
+            expect(component.solicitudes.find(item => item._id === 'finish-me')?.status).toBe('completada');
+        });
+
+        it('applies only returned position fields and preserves newer realtime updates', async () => {
+            const { component, solicitudesService } = createComponent();
+            const moved = request('moved');
+            const neighbor = { ...request('neighbor', 'en_progreso'), client_name: 'Cliente conservado', notes: 'Datos locales' };
+            const newer = { ...request('newer', 'en_progreso', 50), __v: 20 };
+            component.solicitudes = [moved, neighbor, newer];
+            solicitudesService.moveOnBoard.and.returnValue(of({
+                solicitud: { ...moved, status: 'en_progreso', order: 9, __v: 4, notes: 'Servidor' },
+                positions: [{ id: 'neighbor', order: 10, version: 4 }, { id: 'newer', order: 11, version: 5 }],
+            }));
+
+            drop(component, moved, 'en_progreso');
+            await Promise.resolve();
+
+            expect(component.solicitudes.find(item => item._id === 'neighbor')).toEqual({ ...neighbor, order: 10, __v: 4 });
+            expect(component.solicitudes.find(item => item._id === 'newer')).toBe(newer);
+            expect(component.solicitudes.find(item => item._id === 'moved')?.notes).toBe('Servidor');
+        });
+
+        it('restores the moved card after a conflict, reloads authoritative data and never mutates neighbors', async () => {
+            const { component, solicitudesService, messageService } = createComponent();
+            const moved = request('moved', 'pendiente', 23);
+            const neighbor = request('neighbor', 'en_progreso', 90);
+            const before = JSON.stringify(neighbor);
+            component.solicitudes = [moved, neighbor];
+            solicitudesService.moveOnBoard.and.returnValue(throwError(() => ({ status: 409, error: { message: 'El tablero cambió.' } })));
+
+            drop(component, moved, 'en_progreso');
+            await Promise.resolve();
+
+            expect(moved).toEqual(request('moved', 'pendiente', 23));
+            expect(JSON.stringify(neighbor)).toBe(before);
+            expect(component.loadSolicitudes).toHaveBeenCalledWith(false, { silent: true });
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ summary: 'No se pudo mover la solicitud' }));
+        });
+
+        it('does not start a second movement while the first request is pending', async () => {
+            const { component, solicitudesService } = createComponent();
+            const first = request('first');
+            const second = request('second');
+            const pending = new Subject<any>();
+            component.solicitudes = [first, second];
+            solicitudesService.moveOnBoard.and.returnValue(pending);
+
+            drop(component, first, 'en_progreso');
+            drop(component, second, 'en_progreso');
+            expect(solicitudesService.moveOnBoard).toHaveBeenCalledTimes(1);
+            expect(second.status).toBe('pendiente');
+            pending.next({ solicitud: { ...first, __v: 4 }, positions: [] });
+            pending.complete();
+            await Promise.resolve();
+        });
+
+        it('skips mixed-status and locked cards when resolving a pending-column anchor', async () => {
+            const { component, solicitudesService } = createComponent();
+            const moved = request('moved', 'en_progreso');
+            delete moved.__v;
+            const accepted = request('accepted', 'aceptada');
+            const locked = { ...request('locked'), locked: true };
+            const pending = request('pending');
+            delete pending.__v;
+            component.solicitudes = [moved, accepted, locked, pending];
+
+            drop(component, moved, 'pendiente', [accepted, locked, pending], 'accepted');
+            await Promise.resolve();
+
+            expect(solicitudesService.moveOnBoard).toHaveBeenCalledOnceWith({
+                id: 'moved', status: 'pendiente', before_id: 'pending', expected_version: 0, before_expected_version: 0,
+            });
+        });
     });
 
     it('places locked requests at the end of each calendar day', () => {

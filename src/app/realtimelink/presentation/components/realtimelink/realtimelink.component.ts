@@ -2,6 +2,7 @@ import { LastValidPositionCache } from 'src/app/shareds/helpers/gps-position.hel
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { Subscription, take, timeout } from 'rxjs';
 import { MapUtils } from '../../../../shareds/helpers/map.helper';
 import { SystemService } from '../../../../core/services/system.service';
 import { TargetsService } from '../../../../core/services/targets.service';
@@ -14,6 +15,9 @@ import { TargetsService } from '../../../../core/services/targets.service';
 })
 export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
     private readonly validPositions = new LastValidPositionCache();
+    private routeSubscription?: Subscription;
+    private mapConfigSubscription?: Subscription;
+    private destroyed = false;
     @ViewChild('mapContainer') mapContainer!: ElementRef;
 
     map: any;
@@ -39,11 +43,12 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
 
     ngOnInit(): void {
         // Leer los query parameters
-        this.route.queryParams.subscribe(async params => {
+        this.routeSubscription = this.route.queryParams.subscribe(async params => {
             const shortCode = params['c'] || params['code'];
             if (shortCode) {
                 try {
                     const linkData = await this.targetsService.resolvePublicRealtimeShortLink(shortCode);
+                    if (this.destroyed) return;
                     this.targetId = linkData.target_id || null;
                     this.apiKey = linkData.gkey || null;
 
@@ -120,6 +125,9 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.destroyed = true;
+        this.routeSubscription?.unsubscribe();
+        this.mapConfigSubscription?.unsubscribe();
         // Limpiar polling
         if (this.pollingInterval) {
             clearInterval(this.pollingInterval);
@@ -142,30 +150,42 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     private initializeMap(): void {
-        // Si tenemos API key del link, usarla directamente
-        if (this.apiKey) {
-            this.loadMapWithKey(this.apiKey);
-        } else {
-            // Si no, intentar obtenerla del servicio público (fallback)
-            this.systemService.getPublic().subscribe(systems => {
-                const config = MapUtils.getApiConfig(systems, this.provider);
-                if (!config) {
-                    console.error('No config found for provider:', this.provider);
-                    return;
-                }
-                this.loadMapWithKey(config.key);
-            }, error => {
-                console.error('Error loading system settings:', error);
+        this.mapConfigSubscription?.unsubscribe();
+        if (this.destroyed || this.isExpired) return;
+        const embeddedKey = this.apiKey;
+        const load = (key: string | null | undefined, url?: string) => {
+            if (this.destroyed || this.isExpired) return;
+            if (typeof key !== 'string' || !key.trim()) {
+                console.error('No Google Maps configuration available for this link');
+                return;
+            }
+            this.apiKey = key.trim();
+            this.loadMapWithKey(this.apiKey, url);
+        };
+
+        // Existing links contain a snapshot of the key; prefer the current browser configuration.
+        this.mapConfigSubscription = this.systemService.getPublicGoogleMapConfig()
+            .pipe(timeout(5000), take(1))
+            .subscribe({
+                next: config => {
+                    if (typeof config?.key === 'string' && config.key.trim()
+                        && typeof config?.url === 'string' && config.url.trim()) {
+                        load(config.key, config.url.trim());
+                    } else {
+                        load(embeddedKey);
+                    }
+                },
+                error: () => load(embeddedKey),
             });
-        }
     }
 
-    private loadMapWithKey(key: string): void {
+    private loadMapWithKey(key: string, configuredUrl?: string): void {
         const defaultUrl = this.provider === 'google'
             ? 'https://maps.googleapis.com/maps/api/js?key='
             : 'https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js';
 
-        MapUtils.loadMapScript(this.provider, key, defaultUrl).then(() => {
+        MapUtils.loadMapScript(this.provider, key, configuredUrl || defaultUrl).then(() => {
+            if (this.destroyed || this.isExpired || !this.mapContainer?.nativeElement) return;
             const { centerLat, centerLng, zoomLevel } = MapUtils.getInitialMapCenter(null);
             this.map = MapUtils.createMap(
                 this.provider,

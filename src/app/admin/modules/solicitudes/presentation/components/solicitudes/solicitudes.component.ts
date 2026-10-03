@@ -254,7 +254,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             });
         }
 
-        if (!this.draggedSolicitud) return;
+        if (!this.draggedSolicitud || this.boardReorderInFlight) return;
 
         const sol = this.draggedSolicitud;
         const oldStatus = sol.status;
@@ -280,8 +280,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.dragSuppressClick = true;
         setTimeout(() => this.dragSuppressClick = false, 200);
 
-        // Determine drop position
-        let dropIndex = -1;
+        // Resolve the next visible card by identity, including when the board is filtered.
+        let before: Solicitud | undefined;
         const targetCard = (event.target as HTMLElement).closest('.sol-kanban-card') as HTMLElement | null;
         if (targetCard && column) {
             const cards = Array.from(column.querySelectorAll<HTMLElement>('.sol-kanban-card'));
@@ -289,29 +289,20 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             const rect = targetCard.getBoundingClientRect();
             const midY = rect.top + rect.height / 2;
             const insertionBoundary = event.clientY < midY ? cardIdx : cardIdx + 1;
-            dropIndex = cards
-                .slice(0, insertionBoundary)
-                .filter(card =>
-                    !card.classList.contains('sol-kanban-card--request-locked')
-                    && !card.classList.contains('sol-dragging')
-                )
-                .length;
+            const byId = new Map(this.solicitudes.map(item => [item._id, item]));
+            before = cards.slice(insertionBoundary)
+                .map(card => byId.get(card.dataset['solicitudId']))
+                .find(item => item && item._id !== sol._id
+                    && item.status === newStatus
+                    && !this.isSolicitudLocked(item)
+                    && !this.isSolicitudClosed(item));
         }
 
-        // Locked requests stay fixed and must never be included in a reorder payload.
-        const columnItems = this.solicitudes
-            .filter(s =>
-                s.status === newStatus
-                && s._id !== sol._id
-                && !this.isSolicitudLocked(s)
-            )
-            .sort((a, b) => (a.order || 0) - (b.order || 0));
-
         // If same column and no valid drop target, skip
-        if (oldStatus === newStatus && dropIndex === -1) return;
+        if (oldStatus === newStatus && !targetCard) return;
 
         const applyDrop = () => {
-            void this.persistBoardDrop(sol, oldStatus, newStatus, columnItems, dropIndex);
+            void this.persistBoardDrop(sol, oldStatus, newStatus, before);
         };
 
         if (newStatus === 'completada' && oldStatus !== 'completada') {
@@ -328,62 +319,35 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         solicitud: Solicitud,
         oldStatus: string,
         newStatus: string,
-        targetItems: Solicitud[],
-        dropIndex: number,
+        before?: Solicitud,
     ): Promise<void> {
         if (this.boardReorderInFlight || !solicitud._id) return;
         this.boardReorderInFlight = true;
 
-        const sourceItems = oldStatus === newStatus
-            ? []
-            : this.solicitudes
-                .filter(item =>
-                    item.status === oldStatus
-                    && item._id !== solicitud._id
-                    && !this.isSolicitudLocked(item)
-                )
-                .sort((a, b) => (a.order || 0) - (b.order || 0));
-        const affected = [...new Map(
-            [...targetItems, ...sourceItems, solicitud]
-                .filter(item => !!item._id)
-                .map(item => [item._id!, item]),
-        ).values()];
-        const snapshot = new Map(
-            affected.map(item => [item._id!, {
-                status: item.status,
-                order: item.order,
-                version: item.__v,
-            }]),
-        );
+        const snapshot = { status: solicitud.status, order: solicitud.order, version: solicitud.__v };
 
         solicitud.status = newStatus;
-        if (dropIndex >= 0 && dropIndex <= targetItems.length) {
-            targetItems.splice(dropIndex, 0, solicitud);
-        } else {
-            targetItems.push(solicitud);
-        }
-        targetItems.forEach((item, index) => item.order = index);
-        sourceItems.forEach((item, index) => item.order = index);
         this.solicitudes = [...this.solicitudes];
-
-        const requestItems = [...new Map(
-            [...targetItems, ...sourceItems]
-                .filter(item => !!item._id)
-                .map(item => [item._id!, item]),
-        ).values()].map(item => ({
-            id: item._id!,
-            status: item.status,
-            order: item.order || 0,
-            expected_version: snapshot.get(item._id!)?.version,
-        }));
 
         try {
             const updated = await firstValueFrom(
-                this.solicitudesService.reorder(requestItems).pipe(
+                this.solicitudesService.moveOnBoard({
+                    id: solicitud._id,
+                    status: newStatus,
+                    before_id: before?._id || null,
+                    expected_version: Number(snapshot.version || 0),
+                    ...(before?._id ? { before_expected_version: Number(before.__v || 0) } : {}),
+                }).pipe(
                     timeout({ first: this.solicitudesLoadTimeoutMs }),
                 ),
             );
-            updated.forEach(item => this.upsertSolicitud(item));
+            const positions = new Map(updated.positions.map(position => [position.id, position]));
+            this.solicitudes = this.solicitudes.map(item => {
+                const position = item._id ? positions.get(item._id) : undefined;
+                if (!position || (item.__v !== undefined && item.__v > position.version)) return item;
+                return { ...item, order: position.order, __v: position.version };
+            });
+            this.upsertSolicitud(updated.solicitud);
             if (oldStatus !== newStatus) {
                 this.messageService.add({
                     severity: 'success',
@@ -392,13 +356,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 });
             }
         } catch (error) {
-            affected.forEach(item => {
-                const previous = snapshot.get(item._id!);
-                if (!previous) return;
-                item.status = previous.status;
-                item.order = previous.order;
-                item.__v = previous.version;
-            });
+            solicitud.status = snapshot.status;
+            solicitud.order = snapshot.order;
+            solicitud.__v = snapshot.version;
             this.solicitudes = [...this.solicitudes];
             this.messageService.add({
                 severity: 'error',
