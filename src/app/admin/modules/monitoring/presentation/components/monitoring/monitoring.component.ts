@@ -1921,15 +1921,27 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       return '-';
     }
 
-    const date = new Date(expirationDate);
-    if (isNaN(date.getTime())) {
+    // Un vencimiento guardado a medianoche UTC representa ese día del calendario,
+    // no el anterior. Mostrarlo en la hora del navegador lo atrasaba un día
+    // frente al día que usan el filtro de fechas y los estados vencido/vigente:
+    // un equipo del 1 de septiembre aparecía como «31 ago» dentro de un rango de
+    // septiembre. Las marcas de tiempo reales se muestran en hora dominicana.
+    const texto = typeof expirationDate === 'string'
+      ? expirationDate
+      : expirationDate instanceof Date ? expirationDate.toISOString() : '';
+    const diaDelCalendario = /^(\d{4}-\d{2}-\d{2})(T00:00:00(\.000)?Z)?$/.exec(texto);
+    const date = diaDelCalendario
+      ? this.normalizeDateOnly(diaDelCalendario[1])
+      : new Date(expirationDate);
+    if (!date || isNaN(date.getTime())) {
       return '-';
     }
 
     return date.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      ...(diaDelCalendario ? {} : { timeZone: 'America/Santo_Domingo' }),
     });
   }
 

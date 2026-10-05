@@ -141,4 +141,15 @@ describe('MonitoringComponent', () => {
       'oldest'
     ]);
   });
+it('muestra el vencimiento en el mismo día con el que lo compara el filtro', () => {
+    // Guardado a medianoche UTC: es el 1 de septiembre, no el 31 de agosto.
+    expect(component.formatExpirationDate('2026-09-01T00:00:00.000Z')).toBe('1 sept 2026');
+    expect(component.isDateInRange('2026-09-01T00:00:00.000Z', new Date(2026, 8, 1), new Date(2026, 8, 30))).toBeTrue();
+    // Guardado a medianoche dominicana: el mismo día por los dos caminos.
+    expect(component.formatExpirationDate('2026-09-01T04:00:00.000Z')).toBe('1 sept 2026');
+    // El día siguiente al rango no debe verse como el último día del rango.
+    expect(component.formatExpirationDate('2026-10-01T00:00:00.000Z')).toBe('1 oct 2026');
+    expect(component.isDateInRange('2026-10-01T00:00:00.000Z', new Date(2026, 8, 1), new Date(2026, 8, 30))).toBeFalse();
+    expect(component.formatExpirationDate('')).toBe('-');
+  });
 });
