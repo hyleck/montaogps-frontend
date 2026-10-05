@@ -169,7 +169,7 @@
         <span *ngIf="dateFrom || dateTo">Dispositivos vencidos o por vencer dentro de las fechas de vencimiento seleccionadas. Dejan de aparecer si una renovación mueve su vencimiento fuera de esos límites.</span>
         <span *ngIf="!dateFrom && !dateTo">Sin fechas se muestran solo los dispositivos actualmente vencidos. Dejan de aparecer cuando su renovación los deja vigentes.</span>
         <span *ngIf="!onlyPendingRenewals">En Renovación pendiente, el rango de fechas corresponde al vencimiento; en los demás procesos, al registro.</span>
-        <span *ngIf="!hasSelectedClient">Se muestran los vencimientos de todos los clientes; elige un cliente para generar su link de renovación.</span>
+        <span *ngIf="!hasSelectedClient">&nbsp;Se muestran los vencimientos de todos los clientes; elige un cliente para generar su link de renovación.</span>
     </p>
 
     <div *ngIf="hasPendingRenewalFilter && hasSelectedClient" class="process-renewal-link-actions">
