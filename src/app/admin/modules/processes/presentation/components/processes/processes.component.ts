@@ -197,10 +197,8 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     label,
     value: Number(key)
   }));
-  private readonly generalTypeOptions = this.allTypeOptions.filter(option => option.value !== 22);
-
   get typeOptions(): Array<{ label: string; value: number }> {
-    return this.hasSelectedClient ? this.allTypeOptions : this.generalTypeOptions;
+    return this.allTypeOptions;
   }
 
   get hasSelectedClient(): boolean {
@@ -297,13 +295,6 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadingMore = false;
     this.processesLoadError = '';
     if (this.processesScroll) this.processesScroll.nativeElement.scrollTop = 0;
-    if (this.hasPendingRenewalFilter && !this.hasSelectedClient) {
-      this.processes = [];
-      this.totalRecords = 0;
-      this.loading = false;
-      this.filtersExpanded = true;
-      return;
-    }
     const filters: ProcessFilters = {};
     if (this.selectedTypes.length) filters.types = [...this.selectedTypes];
     if (this.selectedCreator) filters.creator = this.selectedCreator;
@@ -411,11 +402,6 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   applyTemplate(configuration: ProcessTemplateConfiguration): void {
-    if (configuration.types.includes(22) && !configuration.client?.id?.trim()) {
-      this.messageService.add({ severity: 'warn', summary: 'Cliente obligatorio',
-        detail: 'Selecciona un cliente para consultar Renovación pendiente.', life: 4000 });
-      return;
-    }
     this.selectedTypes = [...configuration.types];
     this.selectedClient = configuration.client ? { ...configuration.client } : null;
     this.dateFrom = configuration.dateFrom ? new Date(configuration.dateFrom.getTime()) : null;
@@ -432,8 +418,8 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onProcessTypesChange(types: number[] | null): void {
-    types = (types ?? []).filter(type => type !== 22 || this.hasSelectedClient);
-    if (types?.includes(22) && !this.selectedTypes.includes(22)) {
+    types = types ?? [];
+    if (types.includes(22) && !this.selectedTypes.includes(22)) {
       // Renewal dates describe expiration rather than process registration.
       this.dateFrom = null;
       this.dateTo = null;
@@ -488,11 +474,6 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async exportExcel(): Promise<void> {
-    if (this.hasPendingRenewalFilter && !this.hasSelectedClient) {
-      this.messageService.add({ severity: 'warn', summary: 'Cliente obligatorio',
-        detail: 'Selecciona un cliente para exportar Renovación pendiente.', life: 4000 });
-      return;
-    }
     // Ensure brands/models are loaded before exporting
     if (Object.keys(this.brandsMap).length === 0) {
       await this.loadBrandsAndModels();
@@ -1739,7 +1720,6 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedClient = typeof client === 'object' && client?.id?.trim() ? client : null;
     this.templateFiltersApplied = false;
     if (!this.hasSelectedClient && (previouslySelected || this.hasPendingRenewalFilter)) {
-      this.selectedTypes = this.selectedTypes.filter(type => type !== 22);
       this.processes = [];
       this.totalRecords = 0;
       this.applyFilters();

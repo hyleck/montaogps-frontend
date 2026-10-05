@@ -368,19 +368,19 @@ describe('Processes filter templates integration', () => {
     expect(component.canVerifyProcess({ ...pending, type: 4, readOnly: false })).toBeTrue();
   });
 
-  it('only offers pending renewals after selecting a client and preserves other process types', () => {
-    expect(component.typeOptions.some(option => option.value === 22)).toBeFalse();
-    component.onProcessTypesChange([4, 22]);
-    expect(component.selectedTypes).toEqual([4]);
-    component.onClientFilterChange(client);
-    component.onClientSelected();
+  it('ofrece Renovación pendiente con y sin cliente, y conserva los demás tipos', () => {
     expect(component.typeOptions.some(option => option.value === 22)).toBeTrue();
     component.onProcessTypesChange([4, 22]);
     expect(component.selectedTypes).toEqual([4, 22]);
+    expect(service.getClientGroups.calls.mostRecent().args).toEqual([1, 10, { types: [4, 22] }, 20]);
+    component.onClientFilterChange(client);
+    component.onClientSelected();
+    expect(service.getClientGroups.calls.mostRecent().args)
+      .toEqual([1, 10, { types: [4, 22], client: client.id }, 20]);
     component.clearClientFilter();
-    expect(component.typeOptions.some(option => option.value === 22)).toBeFalse();
-    expect(component.selectedTypes).toEqual([4]);
-    expect(service.getClientGroups.calls.mostRecent().args).toEqual([1, 10, { types: [4] }, 20]);
+    expect(component.typeOptions.some(option => option.value === 22)).toBeTrue();
+    expect(component.selectedTypes).toEqual([4, 22]);
+    expect(service.getClientGroups.calls.mostRecent().args).toEqual([1, 10, { types: [4, 22] }, 20]);
   });
 
   it('cancels a pending response and removes renewal rows when the client is cleared', () => {
@@ -392,9 +392,10 @@ describe('Processes filter templates integration', () => {
     previous.next(groupResponse([{ _id: 'old-client-pending', type: 22 } as ProcessItem]));
     expect(component.processes).toEqual([]);
     expect(component.totalRecords).toBe(0);
-    expect(component.selectedTypes).toEqual([]);
+    // Al quitar el cliente, Renovación pendiente pasa a listar a todos.
+    expect(component.selectedTypes).toEqual([22]);
     expect(component.templateFiltersApplied).toBeFalse();
-    expect(service.getClientGroups.calls.mostRecent().args).toEqual([1, 10, {}, 20]);
+    expect(service.getClientGroups.calls.mostRecent().args).toEqual([1, 10, { types: [22] }, 20]);
   });
 
   it('treats free text or a blank client identifier as no client', () => {
@@ -402,24 +403,24 @@ describe('Processes filter templates integration', () => {
     component.selectedTypes = [22];
     component.onClientFilterChange('texto sin seleccionar');
     expect(component.selectedClient).toBeNull();
-    expect(component.selectedTypes).toEqual([]);
+    // Renovación pendiente sigue seleccionada: ahora lista a todos los clientes.
+    expect(component.selectedTypes).toEqual([22]);
     component.onClientFilterChange({ ...client, id: '   ' });
     expect(component.hasSelectedClient).toBeFalse();
-    expect(component.typeOptions.some(option => option.value === 22)).toBeFalse();
+    expect(component.typeOptions.some(option => option.value === 22)).toBeTrue();
   });
 
-  it('guards template generation, list loading and exporting without a selected client', async () => {
+  it('consulta y exporta Renovación pendiente sin cliente seleccionado', async () => {
     component.templatesDialogVisible = true;
     component.applyTemplate({ types: [22], client: null, dateFrom: null, dateTo: null });
-    expect(component.templatesDialogVisible).toBeTrue();
-    expect(component.selectedTypes).toEqual([]);
+    expect(component.selectedTypes).toEqual([22]);
+    expect(service.getClientGroups.calls.mostRecent().args).toEqual([1, 10, { types: [22] }, 20]);
     component.selectedTypes = [22, 4];
     component.loadProcesses();
+    expect(service.getClientGroups.calls.mostRecent().args).toEqual([1, 10, { types: [22, 4] }, 20]);
     await component.exportExcel();
-    expect(service.getClientGroups).not.toHaveBeenCalled();
-    expect(service.getPaginated).not.toHaveBeenCalled();
+    expect(service.getPaginated).toHaveBeenCalled();
     expect(component.loading).toBeFalse();
-    expect(component.processes).toEqual([]);
   });
   it('only offers renewal links when pending renewal and a client are selected', () => {
     expect(fixture.nativeElement.querySelector('.process-renewal-link-generate')).toBeNull();
