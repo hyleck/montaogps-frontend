@@ -284,7 +284,9 @@ export class AuthService {
   }
 
   isRootUser(): boolean {
-    return this.getCurrentUser()?.root === true;
+    // Algunas cuentas guardan root como la cadena «true».
+    const root = this.getCurrentUser()?.root as unknown;
+    return root === true || String(root).trim().toLowerCase() === 'true';
   }
 
   /** Personal interno de Montao (afiliación «empleado»). */

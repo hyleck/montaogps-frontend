@@ -10,7 +10,7 @@ describe('Permisos de los modelos de GPS', () => {
     Object.assign(component, {
       authService: {
         getCurrentUser: () => usuario,
-        isRootUser: () => usuario?.root === true,
+        isRootUser: () => String(usuario?.root).toLowerCase() === 'true',
         isEmployee: () => String(usuario?.affiliation_type_id || '').trim().toLowerCase() === 'empleado',
         hasPrivilege: (modulo: string, accion: string) => modulo === 'protocols' && privilegios[accion] === true,
       },
@@ -31,9 +31,10 @@ describe('Permisos de los modelos de GPS', () => {
     expect(component.canDeleteGpsModels()).toBeFalse();
   });
 
-  it('una cuenta root conserva el borrado', () => {
-    const component = construir({ affiliation_type_id: 'empleado', root: true });
-    expect(component.canDeleteGpsModels()).toBeTrue();
+  it('una cuenta root conserva el borrado, aunque root venga como texto', () => {
+    expect(construir({ affiliation_type_id: 'empleado', root: true }).canDeleteGpsModels()).toBeTrue();
+    expect(construir({ affiliation_type_id: 'empleado', root: 'true' }).canDeleteGpsModels()).toBeTrue();
+    expect(construir({ affiliation_type_id: 'empleado', root: 'false' }).canDeleteGpsModels()).toBeFalse();
   });
 
   it('un técnico o un cliente necesitan el permiso explícito', () => {
