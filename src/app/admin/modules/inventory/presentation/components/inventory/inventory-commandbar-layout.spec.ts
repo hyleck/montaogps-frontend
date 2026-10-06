@@ -31,7 +31,7 @@ describe('Inventory command bar responsive layout', () => {
         provideRouter([]),
         { provide: InventoryService, useValue: {} },
         { provide: ProtocolsService, useValue: {} },
-        { provide: AuthService, useValue: { hasPrivilege: () => true } },
+        { provide: AuthService, useValue: { hasPrivilege: () => true, isRootUser: () => true, isEmployee: () => true } },
         { provide: UserService, useValue: {} },
         { provide: SystemService, useValue: {} },
       ],

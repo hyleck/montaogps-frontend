@@ -39,7 +39,7 @@ for (const parent of [InventoryComponent, InventoryPackageDevicesComponent]) {
         providers: [provideRouter([]),
           { provide: InventoryService, useValue: inventory },
           { provide: ProtocolsService, useValue: {} },
-          { provide: AuthService, useValue: { hasPrivilege: () => true } },
+          { provide: AuthService, useValue: { hasPrivilege: () => true, isRootUser: () => true, isEmployee: () => true } },
           { provide: UserService, useValue: {} },
           { provide: SystemService, useValue: {} },
         ], schemas: [NO_ERRORS_SCHEMA],

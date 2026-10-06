@@ -285,12 +285,17 @@ export class InventoryComponent implements OnInit, OnDestroy {
     return this.authService.hasPrivilege('inventory', 'delete');
   }
 
+  // Cualquier empleado registra modelos de GPS; borrarlos queda en root.
   canReadGpsModels(): boolean {
-    return this.authService.hasPrivilege('protocols', 'read');
+    return this.authService.isRootUser()
+      || this.authService.isEmployee()
+      || this.authService.hasPrivilege('protocols', 'read');
   }
 
   canCreateGpsModels(): boolean {
-    return this.authService.hasPrivilege('protocols', 'create');
+    return this.authService.isRootUser()
+      || this.authService.isEmployee()
+      || this.authService.hasPrivilege('protocols', 'create');
   }
 
   canUpdateGpsModels(): boolean {
@@ -298,7 +303,7 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   canDeleteGpsModels(): boolean {
-    return this.authService.hasPrivilege('protocols', 'delete');
+    return this.authService.isRootUser();
   }
 
   private loadProtocols(): void {

@@ -283,6 +283,16 @@ export class AuthService {
     }
   }
 
+  isRootUser(): boolean {
+    return this.getCurrentUser()?.root === true;
+  }
+
+  /** Personal interno de Montao (afiliación «empleado»). */
+  isEmployee(): boolean {
+    const affiliationType = String(this.getCurrentUser()?.affiliation_type_id || '').trim().toLowerCase();
+    return affiliationType === 'empleado';
+  }
+
   canStartSupportSession(): boolean {
     const currentUser = this.getCurrentUser();
     const affiliationType = String(currentUser?.affiliation_type_id || '').trim().toLowerCase();

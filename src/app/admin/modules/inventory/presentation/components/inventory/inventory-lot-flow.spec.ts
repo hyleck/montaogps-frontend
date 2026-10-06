@@ -34,7 +34,7 @@ describe('Lot selection to conduce UI flow', () => {
       providers: [provideRouter([]),
         { provide: InventoryService, useValue: inventory },
         { provide: ProtocolsService, useValue: {} },
-        { provide: AuthService, useValue: { hasPrivilege: () => true } },
+        { provide: AuthService, useValue: { hasPrivilege: () => true, isRootUser: () => true, isEmployee: () => true } },
         { provide: UserService, useValue: {} },
         { provide: SystemService, useValue: {} },
       ], schemas: [NO_ERRORS_SCHEMA],

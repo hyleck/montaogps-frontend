@@ -27,7 +27,7 @@ describe('Incosis package cards', () => {
     spyOn(InventoryComponent.prototype, 'ngOnInit').and.stub();
     await TestBed.configureTestingModule({ declarations: [InventoryComponent], imports: [UserNamePipe, CommonModule, FormsModule, NoopAnimationsModule, TranslateModule.forRoot(), PrimengModule], providers: [provideRouter([]),
       { provide: InventoryService, useValue: { findAllPackages: () => of(structuredClone(rows)) } },
-      { provide: ProtocolsService, useValue: {} }, { provide: AuthService, useValue: { hasPrivilege: () => true } }, { provide: UserService, useValue: {} }, { provide: SystemService, useValue: {} },
+      { provide: ProtocolsService, useValue: {} }, { provide: AuthService, useValue: { hasPrivilege: () => true, isRootUser: () => true, isEmployee: () => true } }, { provide: UserService, useValue: {} }, { provide: SystemService, useValue: {} },
     ], schemas: [NO_ERRORS_SCHEMA] }).compileComponents();
     fixture = TestBed.createComponent(InventoryComponent);
     fixture.componentInstance.loadPackages(); fixture.detectChanges(); await fixture.whenStable();

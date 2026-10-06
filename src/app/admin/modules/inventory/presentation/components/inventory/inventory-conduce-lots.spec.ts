@@ -10,7 +10,7 @@ describe('Inventory conduces with lots', () => {
     component = Object.create(InventoryComponent.prototype);
     api = { createConduce: jasmine.createSpy().and.returnValue(of({ status: 'completed' })), resumeConduce: jasmine.createSpy().and.returnValue(of({ status: 'completed' })) };
     Object.assign(component, {
-      inventoryService: api, authService: { hasPrivilege: () => true },
+      inventoryService: api, authService: { hasPrivilege: () => true, isRootUser: () => true, isEmployee: () => true },
       messageService: { add: jasmine.createSpy() },
       shippingDevices: [], shippingSimcards: [], shippingLots: [],
       shippingDestinationWarehouse: 'destination', shippingDescription: '',
