@@ -110,6 +110,7 @@ export interface RenewalLinkSummary {
   execution?: RenewalLinkExecution;
   renewalMethod?: 'cash' | 'credit' | null;
   renewalMethodError?: string;
+  rangeChangeCount?: number;
   decisions?: Array<RenewalDecision & {
     name: string;
     imei: string;
@@ -142,6 +143,14 @@ export class RenewalLinksService {
 
   revoke(id: string): Observable<RenewalLinkSummary> {
     return this.http.patch<RenewalLinkSummary>(`${this.apiUrl}/${encodeURIComponent(id)}/revoke`, {});
+  }
+
+  /** Changes the expiration range and returns the link to pending under the same URL. */
+  updateRange(id: string, range: RenewalLinkDateRange): Observable<RenewalLinkSummary> {
+    return this.http.patch<RenewalLinkSummary>(`${this.apiUrl}/${encodeURIComponent(id)}/range`, {
+      ...(range.dateFrom ? { dateFrom: range.dateFrom } : {}),
+      ...(range.dateTo ? { dateTo: range.dateTo } : {}),
+    });
   }
 
   execute(id: string, request: ExecuteRenewalLink): Observable<RenewalLinkSummary> {

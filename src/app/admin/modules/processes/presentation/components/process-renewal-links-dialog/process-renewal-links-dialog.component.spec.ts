@@ -20,7 +20,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
   ] };
 
   beforeEach(async () => {
-    service = jasmine.createSpyObj('RenewalLinksService', ['create', 'getForClient', 'revoke', 'preview', 'execute']);
+    service = jasmine.createSpyObj('RenewalLinksService', ['create', 'getForClient', 'revoke', 'updateRange', 'preview', 'execute']);
     auth = jasmine.createSpyObj('AuthService', ['hasPrivilege', 'getCurrentUser']);
     auth.hasPrivilege.and.returnValue(true);
     auth.getCurrentUser.and.returnValue(null);
@@ -180,14 +180,53 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     expect(fixture.nativeElement.querySelector('#renewal-public-link')).toBeNull();
   });
 
-  it('rejects hidden or clientless creation and revocation of a submitted link', () => {
+  it('rejects hidden or clientless creation and annulment of a processed response', () => {
     component.generate();
     expect(service.create).not.toHaveBeenCalled();
     component.visible = true; component.generate();
     expect(service.create).not.toHaveBeenCalled();
     expect(component.error).toContain('Selecciona un cliente');
-    component.revoke(response);
+    open();
+    component.revoke(completedResponse());
     expect(service.revoke).not.toHaveBeenCalled();
+  });
+
+  it('annuls a submitted response after an explicit confirmation', () => {
+    service.revoke.and.returnValue(of({ ...response, status: 'revoked' }));
+    open();
+    component.askRevoke(response); fixture.detectChanges();
+    expect(service.revoke).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Se descartará la respuesta del cliente');
+    const confirm = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(button => button.textContent?.includes('Sí, anular'))!;
+    confirm.click(); fixture.detectChanges();
+    expect(service.revoke).toHaveBeenCalledOnceWith(response.id);
+    expect(component.links.find(link => link.id === response.id)?.status).toBe('revoked');
+  });
+
+  it('changes the range of a submitted response and returns it to pending', () => {
+    const reopened: RenewalLinkSummary = { ...active, id: response.id, deviceCount: 1, rangeChangeCount: 1,
+      expirationFilter: { mode: 'range', dateFrom: '2026-07-01', dateTo: '2026-08-31' } };
+    service.updateRange.and.returnValue(of(reopened));
+    open();
+    component.startRangeEdit(response);
+    component.rangeFrom = '2026-07-01'; component.rangeTo = '2026-08-31';
+    component.saveRange(response); fixture.detectChanges();
+    expect(service.updateRange).toHaveBeenCalledOnceWith(response.id, { dateFrom: '2026-07-01', dateTo: '2026-08-31' });
+    expect(component.links.find(link => link.id === response.id)).toEqual(reopened);
+    expect(component.editingRangeId).toBe('');
+    expect(fixture.nativeElement.textContent).toContain('volvió a quedar pendiente con 1 dispositivos');
+    expect(fixture.nativeElement.textContent).toContain('Rango modificado una vez');
+  });
+
+  it('validates the new range and never edits a response already being processed', () => {
+    open();
+    component.startRangeEdit(response);
+    component.rangeFrom = '2026-09-01'; component.rangeTo = '2026-08-01';
+    component.saveRange(response);
+    expect(component.rangeError).toContain('rango de vencimientos válido');
+    component.startRangeEdit(completedResponse());
+    component.saveRange(completedResponse());
+    expect(service.updateRange).not.toHaveBeenCalled();
   });
 
   it('ignores results after closing and when the selected client changes', () => {

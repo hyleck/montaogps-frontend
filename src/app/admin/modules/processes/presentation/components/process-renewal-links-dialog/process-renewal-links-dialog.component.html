@@ -38,19 +38,49 @@
         <p *ngIf="historyError" role="alert" class="renewal-links-error">{{ historyError }}</p>
         <p *ngIf="!loading && !historyError && !links.length" class="renewal-links-feedback">Este cliente aún no tiene enlaces de renovación.</p>
 
+        <p *ngIf="rangeMessage" class="renewal-links-feedback" role="status">{{ rangeMessage }}</p>
         <div class="renewal-link-list">
             <article *ngFor="let link of links" class="renewal-link-record" [class.renewal-link-record--selected]="selectedId === link.id">
                 <div>
                     <strong class="renewal-link-status" [class.renewal-link-status--submitted]="link.status === 'submitted'">{{ statusLabel(link.status) }}</strong>
                     <span>Creado {{ link.createdAt | date:'dd/MM/yyyy · HH:mm' }} · {{ link.deviceCount }} dispositivos</span>
                     <span>{{ expirationFilterLabel(link.expirationFilter) }}</span>
+                    <span *ngIf="link.rangeChangeCount">Rango modificado {{ link.rangeChangeCount === 1 ? 'una vez' : link.rangeChangeCount + ' veces' }}</span>
                     <span *ngIf="link.status === 'submitted'">{{ renewalCount(link) }} para renovar · {{ declineCount(link) }} sin renovar</span>
                     <span *ngIf="link.status === 'active'">Vence {{ link.expiresAt | date:'dd/MM/yyyy · HH:mm' }}</span>
                 </div>
-                <button *ngIf="link.status === 'submitted'" type="button" class="renewal-action" [disabled]="busy" (click)="selectResponse(link)">Ver respuesta</button>
-                <button *ngIf="link.status === 'active'" type="button" class="renewal-action" [disabled]="busy" (click)="revoke(link)">
-                    {{ revokingId === link.id ? 'Revocando…' : 'Revocar enlace' }}
-                </button>
+                <div class="renewal-link-record-actions">
+                    <button *ngIf="link.status === 'submitted'" type="button" class="renewal-action" [disabled]="busy" (click)="selectResponse(link)">Ver respuesta</button>
+                    <ng-container *ngIf="canModify(link) && editingRangeId !== link.id && confirmRevokeId !== link.id">
+                        <button type="button" class="renewal-action" [disabled]="busy" (click)="startRangeEdit(link)"><i class="pi pi-calendar" aria-hidden="true"></i> Cambiar rango</button>
+                        <button type="button" class="renewal-action" [disabled]="busy" (click)="askRevoke(link)">
+                            {{ revokingId === link.id ? 'Anulando…' : 'Anular enlace' }}
+                        </button>
+                    </ng-container>
+                </div>
+                <div *ngIf="confirmRevokeId === link.id" class="renewal-link-inline" role="group" aria-label="Confirmar anulación">
+                    <p>{{ link.status === 'submitted' ? 'Se descartará la respuesta del cliente y el enlace dejará de funcionar.' : 'El enlace dejará de funcionar para el cliente.' }} Esta acción no se puede deshacer.</p>
+                    <div class="renewal-links-actions">
+                        <button type="button" class="renewal-action renewal-action--primary" [disabled]="busy" (click)="revoke(link)">Sí, anular</button>
+                        <button type="button" class="renewal-action" [disabled]="busy" (click)="confirmRevokeId = ''">Cancelar</button>
+                    </div>
+                </div>
+                <form *ngIf="editingRangeId === link.id" class="renewal-link-inline" (ngSubmit)="saveRange(link)" aria-label="Cambiar rango de vencimientos">
+                    <p>Elige el nuevo rango de vencimientos.<ng-container *ngIf="link.status === 'submitted'"> La respuesta actual se descartará</ng-container> El enlace volverá a quedar pendiente con el mismo link para que el cliente lo revise otra vez. Sin fechas, incluye solo los vencidos.</p>
+                    <fieldset class="renewal-bulk-fields" [disabled]="busy">
+                        <label [for]="'range-from-' + link.id">Vencimiento desde
+                            <input [id]="'range-from-' + link.id" name="rangeFrom" type="date" [(ngModel)]="rangeFrom">
+                        </label>
+                        <label [for]="'range-to-' + link.id">Vencimiento hasta
+                            <input [id]="'range-to-' + link.id" name="rangeTo" type="date" [(ngModel)]="rangeTo">
+                        </label>
+                    </fieldset>
+                    <p *ngIf="rangeError" class="renewal-links-error" role="alert">{{ rangeError }}</p>
+                    <div class="renewal-links-actions">
+                        <button type="submit" class="renewal-action renewal-action--primary" [disabled]="busy">{{ savingRangeId === link.id ? 'Guardando…' : 'Guardar y reabrir' }}</button>
+                        <button type="button" class="renewal-action" [disabled]="!!savingRangeId" (click)="cancelRangeEdit()">Cancelar</button>
+                    </div>
+                </form>
             </article>
         </div>
     </section>

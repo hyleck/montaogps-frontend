@@ -39,6 +39,13 @@
 .renewal-link-list { display: grid; gap: 10px; }
 .renewal-link-record { justify-content: space-between; padding: 14px; border: 1px solid var(--renewal-border); border-radius: 10px; }
 .renewal-link-record--selected { border-color: var(--renewal-accent); }
+.renewal-link-record { flex-wrap: wrap; }
+.renewal-link-record > .renewal-link-record-actions { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.renewal-link-inline { flex-basis: 100%; padding-top: 12px; border-top: 1px solid var(--renewal-border); }
+.renewal-link-inline p { margin: 0 0 10px; }
+.renewal-link-inline fieldset { border: 0; padding: 0; margin: 0; }
+.renewal-link-inline label { display: flex; flex-direction: column; gap: 5px; font-weight: 600; font-size: .83rem; }
+.renewal-link-inline input { padding: 9px 10px; border: 1px solid var(--renewal-border); border-radius: 8px; background: var(--renewal-surface); color: var(--renewal-text); font: inherit; }
 .renewal-link-record .renewal-link-status { font-size: .85rem; }
 .renewal-link-status--submitted { color: #15803d; }
 .renewal-action { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 12px; min-height: 38px; border: 1px solid var(--renewal-border); border-radius: 8px; background: var(--renewal-surface); color: var(--renewal-text); font: inherit; font-size: .8rem; font-weight: 600; text-decoration: none; cursor: pointer; }
@@ -115,6 +122,8 @@
 ::ng-deep html.app-dark .process-renewal-links-dialog .renewal-response-overview__yes strong { color: #4ade80; }
 @media (max-width: 540px) {
     .renewal-link-record { align-items: flex-start; flex-direction: column; }
+    .renewal-link-record > .renewal-link-record-actions { justify-content: flex-start; width: 100%; }
+    .renewal-link-inline { width: 100%; }
     .renewal-links-actions .renewal-action { flex: 1; }
     .renewal-link-created { padding: 12px; }
     .renewal-bulk-fields { grid-template-columns: 1fr; }

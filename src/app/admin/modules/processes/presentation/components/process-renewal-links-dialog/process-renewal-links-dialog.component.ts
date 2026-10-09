@@ -35,6 +35,13 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   creating = false;
   loading = false;
   revokingId = '';
+  confirmRevokeId = '';
+  editingRangeId = '';
+  rangeFrom = '';
+  rangeTo = '';
+  savingRangeId = '';
+  rangeError = '';
+  rangeMessage = '';
   error = '';
   historyError = '';
   copyMessage = '';
@@ -124,7 +131,12 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     return 'El método de renovación no está disponible. Revisa la configuración en Incosis y actualiza la respuesta.';
   }
 
-  get busy(): boolean { return this.creating || this.loading || !!this.revokingId || this.executing; }
+  get busy(): boolean { return this.creating || this.loading || !!this.revokingId || !!this.savingRangeId || this.executing; }
+
+  /** Links can be edited or annulled until staff start processing the response. */
+  canModify(link: RenewalLinkSummary): boolean {
+    return link.status !== 'revoked' && !link.execution && link.client.id === this.client?.id;
+  }
 
   get executionValidation(): string { return this.action ? this.validateExecution() : ''; }
 
@@ -237,11 +249,18 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     }));
   }
 
+  askRevoke(link: RenewalLinkSummary): void {
+    if (this.busy || !this.canModify(link)) return;
+    this.cancelRangeEdit();
+    this.confirmRevokeId = link.id;
+  }
+
   revoke(link: RenewalLinkSummary): void {
-    if (this.busy || link.status !== 'active' || !this.visible) return;
+    if (this.busy || !this.canModify(link) || !this.visible) return;
     const generation = this.generation;
     this.revokingId = link.id;
-    this.error = '';
+    this.confirmRevokeId = '';
+    this.error = this.rangeMessage = '';
     this.requests.add(this.service.revoke(link.id).subscribe({
       next: updated => {
         if (generation !== this.generation) return;
@@ -252,7 +271,47 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
       error: error => {
         if (generation !== this.generation) return;
         this.revokingId = '';
-        this.error = getApiErrorMessage(error, 'No se pudo revocar el enlace.');
+        this.error = getApiErrorMessage(error, 'No se pudo anular el enlace.');
+      },
+    }));
+  }
+
+  startRangeEdit(link: RenewalLinkSummary): void {
+    if (this.busy || !this.canModify(link)) return;
+    this.confirmRevokeId = '';
+    this.editingRangeId = link.id;
+    this.rangeFrom = link.expirationFilter?.mode === 'range' ? link.expirationFilter.dateFrom || '' : '';
+    this.rangeTo = link.expirationFilter?.mode === 'range' ? link.expirationFilter.dateTo || '' : '';
+    this.rangeError = this.rangeMessage = '';
+  }
+
+  cancelRangeEdit(): void {
+    if (this.savingRangeId) return;
+    this.editingRangeId = this.rangeFrom = this.rangeTo = this.rangeError = '';
+  }
+
+  saveRange(link: RenewalLinkSummary): void {
+    if (this.busy || !this.visible || this.editingRangeId !== link.id || !this.canModify(link)) return;
+    const valid = (value: string) => !value || (/^\d{4}-\d{2}-\d{2}$/.test(value) && !!parseProcessDisplayDate(value));
+    if (!valid(this.rangeFrom) || !valid(this.rangeTo) || (this.rangeFrom && this.rangeTo && this.rangeFrom > this.rangeTo)) {
+      this.rangeError = 'Selecciona un rango de vencimientos válido.';
+      return;
+    }
+    const generation = this.generation;
+    this.savingRangeId = link.id;
+    this.rangeError = this.rangeMessage = this.error = '';
+    this.requests.add(this.service.updateRange(link.id, { dateFrom: this.rangeFrom || undefined, dateTo: this.rangeTo || undefined }).subscribe({
+      next: updated => {
+        if (generation !== this.generation) return;
+        this.savingRangeId = '';
+        this.links = this.links.map(item => item.id === updated.id ? updated : item);
+        this.editingRangeId = this.rangeFrom = this.rangeTo = '';
+        this.rangeMessage = `Rango actualizado. El enlace volvió a quedar pendiente con ${updated.deviceCount} dispositivos; el cliente puede revisarlo con el mismo enlace.`;
+      },
+      error: error => {
+        if (generation !== this.generation) return;
+        this.savingRangeId = '';
+        this.rangeError = getApiErrorMessage(error, 'No se pudo cambiar el rango del enlace.');
       },
     }));
   }
@@ -467,7 +526,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   }
 
   statusLabel(status: RenewalLinkSummary['status']): string {
-    return { active: 'Disponible', submitted: 'Respuesta recibida', expired: 'Vencido', revoked: 'Revocado' }[status];
+    return { active: 'Pendiente', submitted: 'Respuesta recibida', expired: 'Vencido', revoked: 'Anulado' }[status];
   }
 
   renewalCount(link: RenewalLinkSummary): number { return (link.decisions || []).filter(decision => decision.renew).length; }
@@ -490,6 +549,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     this.requests = new Subscription();
     this.creating = this.loading = false;
     this.executing = false;
-    this.revokingId = '';
+    this.revokingId = this.savingRangeId = this.confirmRevokeId = '';
+    this.editingRangeId = this.rangeError = this.rangeMessage = '';
   }
 }
