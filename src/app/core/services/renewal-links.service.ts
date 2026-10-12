@@ -35,6 +35,8 @@ export interface PublicRenewalInfo {
   expiresAt: string;
   status: 'active' | 'submitted';
   submittedAt?: string;
+  /** GPS left out because another response already confirmed their renewal. */
+  omittedConfirmedCount?: number;
   devices: PublicRenewalDevice[];
 }
 

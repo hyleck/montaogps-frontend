@@ -80,6 +80,16 @@ describe('PublicRenewalComponent', () => {
     expect((fixture.nativeElement.querySelector('.renewal-submit') as HTMLButtonElement).disabled).toBeTrue();
   });
 
+  it('tells the client how many devices were omitted because another request already confirmed them', () => {
+    service.getPublic.and.returnValue(of({ ...info, omittedConfirmedCount: 3 }));
+    render();
+    expect(fixture.nativeElement.textContent).toContain('3 dispositivos no aparecen porque ya los confirmaste para renovar en otra solicitud');
+    expect(fixture.nativeElement.querySelectorAll('.renewal-device').length).toBe(2);
+    service.getPublic.and.returnValue(of({ ...info, omittedConfirmedCount: 1 }));
+    component.reload(); render();
+    expect(fixture.nativeElement.textContent).toContain('Un dispositivo no aparece porque ya lo confirmaste');
+  });
+
   it('does not initialize active decisions from optional response flags', () => {
     service.getPublic.and.returnValue(of({ ...info, devices: info.devices.map(device => ({ ...device, renew: false })) }));
     render();

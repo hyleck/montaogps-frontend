@@ -38,6 +38,9 @@
                 <i class="pi pi-calendar" aria-hidden="true"></i>
                 <div><strong>Vencimientos incluidos</strong><span>{{ expirationRangeLabel }}</span></div>
             </section>
+            <div class="renewal-notice" *ngIf="!submitted && renewal.omittedConfirmedCount" role="status">
+                {{ renewal.omittedConfirmedCount === 1 ? 'Un dispositivo no aparece' : renewal.omittedConfirmedCount + ' dispositivos no aparecen' }} porque ya {{ renewal.omittedConfirmedCount === 1 ? 'lo confirmaste' : 'los confirmaste' }} para renovar en otra solicitud.
+            </div>
             <div class="renewal-notice" *ngIf="refreshNotice" role="status">{{ refreshNotice }}</div>
             <div class="renewal-notice renewal-notice--warning" *ngIf="submitError" role="alert">
                 <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
