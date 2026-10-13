@@ -11,7 +11,7 @@ describe('ProcessRenewalLinksOverviewDialogComponent', () => {
   const counts = { all: 3, active: 1, submitted: 1, pending_processing: 1, processed: 0, expired: 0, revoked: 1 };
   const page: RenewalLinksOverviewPage = { total: 3, counts, items: [
     { id: 'submitted', client: { id: 'c1', name: 'INVERSIONES MJ GARCIA' }, createdAt: '2026-10-01T12:00:00Z',
-      expiresAt: '2026-10-08T12:00:00Z', status: 'submitted', deviceCount: 2, submittedAt: '2026-10-02T12:00:00Z',
+      expiresAt: '2099-10-08T12:00:00Z', status: 'submitted', deviceCount: 2, submittedAt: '2026-10-02T12:00:00Z',
       createdBy: { id: 'u1', name: 'AYLINE MADERA' },
       expirationFilter: { mode: 'range', dateFrom: '2026-09-18', dateTo: '2026-10-12' },
       decisions: [
@@ -19,13 +19,13 @@ describe('ProcessRenewalLinksOverviewDialogComponent', () => {
         { deviceId: 'd2', name: 'Kia K5', imei: '222', renew: false },
       ] },
     { id: 'active', client: { id: 'c2', name: 'DTH AUTO SALES' }, createdAt: '2026-09-30T12:00:00Z',
-      expiresAt: '2026-10-20T12:00:00Z', status: 'active', deviceCount: 5 },
+      expiresAt: '2099-10-20T12:00:00Z', status: 'active', deviceCount: 5 },
     { id: 'revoked', client: { id: 'c3', name: 'Otro' }, createdAt: '2026-09-29T12:00:00Z',
       expiresAt: '2026-10-06T12:00:00Z', status: 'revoked', deviceCount: 1 },
   ] };
 
   beforeEach(async () => {
-    service = jasmine.createSpyObj('RenewalLinksService', ['listAll']);
+    service = jasmine.createSpyObj('RenewalLinksService', ['listAll', 'getShareLink', 'regenerateLink']);
     service.listAll.and.returnValue(of(page));
     await TestBed.configureTestingModule({ imports: [ProcessRenewalLinksOverviewDialogComponent, NoopAnimationsModule],
       providers: [{ provide: RenewalLinksService, useValue: service }] }).compileComponents();
@@ -79,6 +79,37 @@ describe('ProcessRenewalLinksOverviewDialogComponent', () => {
     component.loadMore();
     expect(service.listAll.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({ offset: 2 }));
     expect(component.links.map(link => link.id)).toEqual(['submitted', 'active', 'revoked']);
+  });
+
+  it('copies the same link again for open and answered links only', async () => {
+    const clipboard = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+    service.getShareLink.and.returnValue(of({ id: 'active', token: 'same-token', expiresAt: '2099-10-20T12:00:00Z' }));
+    open();
+    expect(component.canShare(page.items[0])).toBeTrue();
+    expect(component.canShare(page.items[1])).toBeTrue();
+    expect(component.canShare(page.items[2])).toBeFalse();
+    component.copyLink(page.items[1]);
+    await fixture.whenStable(); fixture.detectChanges();
+    const url = `${window.location.origin}/renovar/same-token`;
+    expect(clipboard).toHaveBeenCalledWith(url);
+    expect(component.shared).toEqual({ id: 'active', url, message: 'Enlace copiado.' });
+    expect((document.querySelector('#share-url-active') as HTMLInputElement).value).toBe(url);
+  });
+
+  it('offers a new link when an older one cannot be copied, warning that the old one stops working', async () => {
+    spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+    service.getShareLink.and.returnValue(throwError(() => ({ status: 409, error: { code: 'RENEWAL_LINK_UNAVAILABLE', message: 'x' } })));
+    service.regenerateLink.and.returnValue(of({ id: 'active', token: 'new-token', expiresAt: '2099-10-20T12:00:00Z' }));
+    open();
+    component.copyLink(page.items[1]); fixture.detectChanges();
+    expect(component.regenerateOfferId).toBe('active');
+    expect(service.regenerateLink).not.toHaveBeenCalled();
+    expect(text()).toContain('el enlace anterior dejará de funcionar');
+    component.confirmRegenerate(page.items[1]);
+    await fixture.whenStable();
+    expect(service.regenerateLink).toHaveBeenCalledOnceWith('active');
+    expect(component.shared?.url).toContain('/renovar/new-token');
+    expect(component.shared?.message).toContain('El anterior ya no funciona');
   });
 
   it('shows an error and lets staff retry', () => {

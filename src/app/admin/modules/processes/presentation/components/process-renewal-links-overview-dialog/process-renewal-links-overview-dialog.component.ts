@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { Subscription } from 'rxjs';
 import {
-  RenewalExpirationFilter, RenewalLinkSummary, RenewalLinksOverviewPage, RenewalLinksOverviewStatus, RenewalLinksService,
+  RenewalExpirationFilter, RenewalLinkShare, RenewalLinkSummary, RenewalLinksOverviewPage, RenewalLinksOverviewStatus, RenewalLinksService,
 } from 'src/app/core/services/renewal-links.service';
 import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
@@ -47,6 +47,11 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
   loadingMore = false;
   error = '';
   expandedId = '';
+  sharingId = '';
+  /** Link shown with its URL after copying, sharing or issuing a new one. */
+  shared: { id: string; url: string; message: string } | null = null;
+  shareError: { id: string; message: string } | null = null;
+  regenerateOfferId = '';
   private requests = new Subscription();
   private generation = 0;
 
@@ -99,6 +104,86 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
 
   open(link: OverviewLink): void { this.manage.emit(link); }
 
+  /** Only links the client can still open: waiting for an answer or answered, before they expire. */
+  canShare(link: OverviewLink): boolean {
+    return (link.status === 'active' || link.status === 'submitted') && Date.parse(link.expiresAt) > Date.now();
+  }
+
+  copyLink(link: OverviewLink): void { this.fetchShare(link, 'copy'); }
+
+  shareLink(link: OverviewLink): void { this.fetchShare(link, 'share'); }
+
+  confirmRegenerate(link: OverviewLink): void {
+    if (this.sharingId || this.regenerateOfferId !== link.id) return;
+    const generation = this.generation;
+    this.sharingId = link.id;
+    this.shareError = null;
+    this.requests.add(this.service.regenerateLink(link.id).subscribe({
+      next: share => {
+        if (generation !== this.generation) return;
+        this.sharingId = this.regenerateOfferId = '';
+        void this.deliver(link, share, 'copy', 'Enlace nuevo listo. El anterior ya no funciona: envíale este al cliente.');
+      },
+      error: error => {
+        if (generation !== this.generation) return;
+        this.sharingId = '';
+        this.shareError = { id: link.id, message: getApiErrorMessage(error, 'No se pudo generar el enlace nuevo.') };
+      },
+    }));
+  }
+
+  cancelRegenerate(): void { this.regenerateOfferId = ''; }
+
+  private fetchShare(link: OverviewLink, mode: 'copy' | 'share'): void {
+    if (this.sharingId || !this.canShare(link)) return;
+    const generation = this.generation;
+    this.sharingId = link.id;
+    this.shared = this.shareError = null;
+    this.regenerateOfferId = '';
+    this.requests.add(this.service.getShareLink(link.id).subscribe({
+      next: share => {
+        if (generation !== this.generation) return;
+        this.sharingId = '';
+        void this.deliver(link, share, mode);
+      },
+      error: error => {
+        if (generation !== this.generation) return;
+        this.sharingId = '';
+        if (error?.error?.code === 'RENEWAL_LINK_UNAVAILABLE') { this.regenerateOfferId = link.id; return; }
+        this.shareError = { id: link.id, message: getApiErrorMessage(error, 'No se pudo obtener el enlace.') };
+      },
+    }));
+  }
+
+  private async deliver(link: OverviewLink, share: RenewalLinkShare, mode: 'copy' | 'share', notice = ''): Promise<void> {
+    const url = `${window.location.origin}/renovar/${encodeURIComponent(share.token)}`;
+    const generation = this.generation;
+    let message = notice;
+    if (mode === 'share' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: 'Renovación Montao GPS', text: 'Selecciona los dispositivos que deseas renovar.', url });
+        message ||= 'Enlace compartido.';
+      } catch (error) {
+        if ((error as Error)?.name === 'AbortError') message ||= 'Puedes copiar el enlace desde el campo.';
+        else message ||= await this.copy(url);
+      }
+    } else {
+      const copied = await this.copy(url);
+      message = notice ? `${notice} ${copied}` : copied;
+    }
+    if (generation !== this.generation) return;
+    this.shared = { id: link.id, url, message };
+  }
+
+  private async copy(url: string): Promise<string> {
+    try {
+      await navigator.clipboard.writeText(url);
+      return 'Enlace copiado.';
+    } catch {
+      return 'Selecciona el enlace del campo y cópialo.';
+    }
+  }
+
   private load(offset: number): void {
     const generation = this.generation;
     if (offset) this.loadingMore = true; else this.loading = true;
@@ -125,6 +210,8 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
     this.requests.unsubscribe();
     this.requests = new Subscription();
     this.loading = this.loadingMore = false;
+    this.sharingId = this.regenerateOfferId = '';
+    this.shared = this.shareError = null;
   }
 
   clientName(link: OverviewLink): string { return formatUserName(link.client?.name) || 'Cliente'; }

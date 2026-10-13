@@ -77,6 +77,12 @@
 .overview-decision { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--overview-border); font-weight: 600; }
 .overview-decision--yes { color: var(--overview-yes); background: var(--overview-yes-soft); }
 
+.overview-share { margin: 0 14px 14px; padding: 12px; border-radius: 10px; background: var(--overview-soft); font-size: .84rem; }
+.overview-share p { margin: 0 0 10px; }
+.overview-share label { display: block; margin-bottom: 6px; font-weight: 600; }
+.overview-share input { width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid var(--overview-border); border-radius: 8px; background: var(--overview-surface); color: var(--overview-text); font: inherit; font-size: .82rem; }
+.overview-share__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.overview-link > .overview-error { margin: 0 14px 14px; }
 .overview-more { display: flex; justify-content: center; margin-top: 14px; }
 .overview-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
 .overview-footer span { color: var(--overview-muted); font-size: .82rem; }

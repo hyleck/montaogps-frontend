@@ -121,6 +121,12 @@ export interface RenewalLinkSummary {
   }>;
 }
 
+export interface RenewalLinkShare {
+  id: string;
+  token: string;
+  expiresAt: string;
+}
+
 export type RenewalLinksOverviewStatus = 'all' | 'active' | 'submitted' | 'pending_processing' | 'processed' | 'expired' | 'revoked';
 
 export interface RenewalLinksOverviewQuery {
@@ -166,6 +172,16 @@ export class RenewalLinksService {
     if (query.offset) params = params.set('offset', String(query.offset));
     if (query.limit) params = params.set('limit', String(query.limit));
     return this.http.get<RenewalLinksOverviewPage>(`${this.apiUrl}/all`, { params });
+  }
+
+  /** The public URL token the client already has, to copy or forward it again. */
+  getShareLink(id: string): Observable<RenewalLinkShare> {
+    return this.http.get<RenewalLinkShare>(`${this.apiUrl}/${encodeURIComponent(id)}/link`);
+  }
+
+  /** Issues a new public URL for the link; the previous one stops working. */
+  regenerateLink(id: string): Observable<RenewalLinkShare> {
+    return this.http.post<RenewalLinkShare>(`${this.apiUrl}/${encodeURIComponent(id)}/link`, {});
   }
 
   revoke(id: string): Observable<RenewalLinkSummary> {
