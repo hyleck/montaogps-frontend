@@ -160,6 +160,20 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Honda');
   });
 
+  it('opens directly on the response chosen from the overview', () => {
+    fixture.componentRef.setInput('initialLinkId', response.id);
+    open('responses');
+    expect(component.responseVisible).toBeTrue();
+    expect(component.selectedLink?.id).toBe(response.id);
+  });
+
+  it('highlights a link from the overview that has no response yet', () => {
+    fixture.componentRef.setInput('initialLinkId', active.id);
+    open('responses');
+    expect(component.responseVisible).toBeFalse();
+    expect(component.highlightedId).toBe(active.id);
+  });
+
   it('blocks repeated generation until the current request finishes', () => {
     const pending = new Subject<CreatedRenewalLink>();
     service.create.and.returnValue(pending);

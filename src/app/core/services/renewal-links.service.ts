@@ -121,6 +121,21 @@ export interface RenewalLinkSummary {
   }>;
 }
 
+export type RenewalLinksOverviewStatus = 'all' | 'active' | 'submitted' | 'pending_processing' | 'processed' | 'expired' | 'revoked';
+
+export interface RenewalLinksOverviewQuery {
+  status?: RenewalLinksOverviewStatus;
+  search?: string;
+  offset?: number;
+  limit?: number;
+}
+
+export interface RenewalLinksOverviewPage {
+  items: Array<RenewalLinkSummary & { createdBy?: { id: string; name: string } }>;
+  total: number;
+  counts: Record<RenewalLinksOverviewStatus, number>;
+}
+
 @Injectable({ providedIn: 'root' })
 export class RenewalLinksService {
   private readonly apiUrl = `${environment.apiUrl}/process/renewal-links`;
@@ -141,6 +156,16 @@ export class RenewalLinksService {
 
   getForClient(clientId: string): Observable<RenewalLinkSummary[]> {
     return this.http.get<RenewalLinkSummary[]>(this.apiUrl, { params: new HttpParams().set('clientId', clientId) });
+  }
+
+  /** Every renewal link sent to any client, newest first. */
+  listAll(query: RenewalLinksOverviewQuery = {}): Observable<RenewalLinksOverviewPage> {
+    let params = new HttpParams();
+    if (query.status && query.status !== 'all') params = params.set('status', query.status);
+    if (query.search?.trim()) params = params.set('search', query.search.trim());
+    if (query.offset) params = params.set('offset', String(query.offset));
+    if (query.limit) params = params.set('limit', String(query.limit));
+    return this.http.get<RenewalLinksOverviewPage>(`${this.apiUrl}/all`, { params });
   }
 
   revoke(id: string): Observable<RenewalLinkSummary> {

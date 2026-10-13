@@ -24,6 +24,8 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   @Input() mode: 'generate' | 'responses' = 'generate';
   @Input() dateFrom: Date | null = null;
   @Input() dateTo: Date | null = null;
+  /** Link to focus when the dialog opens from the overview of every client's links. */
+  @Input() initialLinkId = '';
   @Output() visibleChange = new EventEmitter<boolean>();
   @Output() processed = new EventEmitter<void>();
 
@@ -31,6 +33,8 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   linkUrl = '';
   links: RenewalLinkSummary[] = [];
   selectedId = '';
+  highlightedId = '';
+  private initialLinkApplied = false;
   responseVisible = false;
   creating = false;
   loading = false;
@@ -171,6 +175,8 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
       this.responseVisible = false;
       this.resetExecution();
       this.error = this.historyError = this.copyMessage = '';
+      this.highlightedId = '';
+      this.initialLinkApplied = false;
       if (this.mode === 'generate') this.generate();
       else this.refresh();
     }
@@ -234,6 +240,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
         if (generation !== this.generation) return;
         this.links = links;
         this.loading = false;
+        if (this.applyInitialLink()) return;
         if (!this.selectedLink) {
           if (this.responseVisible) this.historyError = 'Esta respuesta ya no está disponible. Selecciona otra respuesta del cliente.';
           this.selectedId = '';
@@ -247,6 +254,17 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
         this.historyError = getApiErrorMessage(error, 'No se pudieron cargar los enlaces del cliente.');
       },
     }));
+  }
+
+  private applyInitialLink(): boolean {
+    if (this.initialLinkApplied || !this.initialLinkId) return false;
+    this.initialLinkApplied = true;
+    const link = this.links.find(item => item.id === this.initialLinkId);
+    if (!link) return false;
+    this.highlightedId = link.id;
+    if (link.status !== 'submitted') return false;
+    this.selectResponse(link);
+    return true;
   }
 
   askRevoke(link: RenewalLinkSummary): void {

@@ -40,7 +40,7 @@
 
         <p *ngIf="rangeMessage" class="renewal-links-feedback" role="status">{{ rangeMessage }}</p>
         <div class="renewal-link-list">
-            <article *ngFor="let link of links" class="renewal-link-record" [class.renewal-link-record--selected]="selectedId === link.id">
+            <article *ngFor="let link of links" class="renewal-link-record" [class.renewal-link-record--selected]="selectedId === link.id || highlightedId === link.id">
                 <div>
                     <strong class="renewal-link-status" [class.renewal-link-status--submitted]="link.status === 'submitted'">{{ statusLabel(link.status) }}</strong>
                     <span>Creado {{ link.createdAt | date:'dd/MM/yyyy · HH:mm' }} · {{ link.deviceCount }} dispositivos</span>

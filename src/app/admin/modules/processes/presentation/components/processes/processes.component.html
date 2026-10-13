@@ -30,6 +30,11 @@
                 (click)="templatesDialogVisible = true">
             </button>
 
+            <button type="button" pButton icon="pi pi-link" label="Enlaces de renovación"
+                class="p-button-outlined processes-templates-button processes-renewal-links-button" aria-haspopup="dialog"
+                (click)="openRenewalOverview()">
+            </button>
+
             <button type="button" pButton icon="pi pi-file-excel" label="Exportar"
                 class="p-button-outlined processes-export-button" (click)="exportExcel()">
             </button>
@@ -325,10 +330,16 @@
     (generated)="applyTemplate($event)">
 </app-process-templates-dialog>
 
-<app-process-renewal-links-dialog *ngIf="renewalLinksDialogVisible" [(visible)]="renewalLinksDialogVisible"
-    [client]="renewalLinksClient" [mode]="renewalLinksMode" [dateFrom]="dateFrom" [dateTo]="dateTo"
+<app-process-renewal-links-dialog *ngIf="renewalLinksDialogVisible" [visible]="renewalLinksDialogVisible"
+    (visibleChange)="onRenewalLinksVisibleChange($event)"
+    [client]="renewalLinksClient" [mode]="renewalLinksMode" [initialLinkId]="renewalLinksInitialId"
+    [dateFrom]="renewalLinksInitialId ? null : dateFrom" [dateTo]="renewalLinksInitialId ? null : dateTo"
     (processed)="onRenewalResponseProcessed()">
 </app-process-renewal-links-dialog>
+
+<app-process-renewal-links-overview-dialog *ngIf="renewalOverviewVisible" [(visible)]="renewalOverviewVisible"
+    (manage)="manageRenewalLink($event)">
+</app-process-renewal-links-overview-dialog>
 
 <p-dialog [(visible)]="detailDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"
     (onHide)="closeDetail()"

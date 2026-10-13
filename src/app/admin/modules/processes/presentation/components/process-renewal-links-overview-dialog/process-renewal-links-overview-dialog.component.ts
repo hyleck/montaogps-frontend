@@ -1,0 +1,164 @@
+import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { DialogModule } from 'primeng/dialog';
+import { Subscription } from 'rxjs';
+import {
+  RenewalExpirationFilter, RenewalLinkSummary, RenewalLinksOverviewPage, RenewalLinksOverviewStatus, RenewalLinksService,
+} from 'src/app/core/services/renewal-links.service';
+import { formatUserName } from 'src/app/core/utils/user-name.util';
+import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
+import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
+import { renewalExpirationFilterLabel } from 'src/app/core/utils/renewal-expiration-filter.util';
+
+type OverviewLink = RenewalLinksOverviewPage['items'][number];
+
+const PAGE_SIZE = 30;
+
+@Component({
+  selector: 'app-process-renewal-links-overview-dialog',
+  standalone: true,
+  imports: [CommonModule, FormsModule, DialogModule],
+  templateUrl: './process-renewal-links-overview-dialog.component.html',
+  styleUrls: ['./process-renewal-links-overview-dialog.component.css'],
+})
+export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, OnDestroy {
+  @Input() visible = false;
+  @Output() visibleChange = new EventEmitter<boolean>();
+  /** Opens the client's renewal dialog on this link to review, process, change its range or annul it. */
+  @Output() manage = new EventEmitter<RenewalLinkSummary>();
+
+  readonly statusOptions: Array<{ value: RenewalLinksOverviewStatus; label: string }> = [
+    { value: 'all', label: 'Todos' },
+    { value: 'active', label: 'Esperando respuesta' },
+    { value: 'pending_processing', label: 'Por procesar' },
+    { value: 'submitted', label: 'Respondidos' },
+    { value: 'processed', label: 'Procesados' },
+    { value: 'expired', label: 'Vencidos' },
+    { value: 'revoked', label: 'Anulados' },
+  ];
+
+  status: RenewalLinksOverviewStatus = 'all';
+  search = '';
+  links: OverviewLink[] = [];
+  total = 0;
+  counts: Partial<RenewalLinksOverviewPage['counts']> = {};
+  loading = false;
+  loadingMore = false;
+  error = '';
+  expandedId = '';
+  private requests = new Subscription();
+  private generation = 0;
+
+  constructor(private readonly service: RenewalLinksService) {}
+
+  get hasMore(): boolean { return this.links.length < this.total; }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['visible'] && this.visible) this.reload();
+    if (!this.visible) this.cancel();
+  }
+
+  ngOnDestroy(): void { this.cancel(); }
+
+  close(): void {
+    this.cancel();
+    this.visible = false;
+    this.visibleChange.emit(false);
+  }
+
+  onVisibleChange(visible: boolean): void { if (!visible) this.close(); }
+
+  setStatus(status: RenewalLinksOverviewStatus): void {
+    if (this.status === status) return;
+    this.status = status;
+    this.reload();
+  }
+
+  applySearch(): void { this.reload(); }
+
+  clearSearch(): void {
+    if (!this.search) return;
+    this.search = '';
+    this.reload();
+  }
+
+  reload(): void {
+    this.cancel();
+    this.links = [];
+    this.total = 0;
+    this.expandedId = '';
+    this.load(0);
+  }
+
+  loadMore(): void {
+    if (!this.loading && !this.loadingMore && this.hasMore) this.load(this.links.length);
+  }
+
+  toggle(link: OverviewLink): void { this.expandedId = this.expandedId === link.id ? '' : link.id; }
+
+  open(link: OverviewLink): void { this.manage.emit(link); }
+
+  private load(offset: number): void {
+    const generation = this.generation;
+    if (offset) this.loadingMore = true; else this.loading = true;
+    this.error = '';
+    this.requests.add(this.service.listAll({ status: this.status, search: this.search, offset, limit: PAGE_SIZE }).subscribe({
+      next: page => {
+        if (generation !== this.generation) return;
+        this.loading = this.loadingMore = false;
+        const known = new Set(this.links.map(link => link.id));
+        this.links = [...this.links, ...page.items.filter(link => !known.has(link.id))];
+        this.total = page.total;
+        this.counts = page.counts;
+      },
+      error: error => {
+        if (generation !== this.generation) return;
+        this.loading = this.loadingMore = false;
+        this.error = getApiErrorMessage(error, 'No se pudieron cargar los enlaces de renovación.');
+      },
+    }));
+  }
+
+  private cancel(): void {
+    this.generation++;
+    this.requests.unsubscribe();
+    this.requests = new Subscription();
+    this.loading = this.loadingMore = false;
+  }
+
+  clientName(link: OverviewLink): string { return formatUserName(link.client?.name) || 'Cliente'; }
+  creatorName(link: OverviewLink): string { return formatUserName(link.createdBy?.name) || ''; }
+  rangeLabel(filter?: RenewalExpirationFilter): string { return renewalExpirationFilterLabel(filter); }
+  renewCount(link: OverviewLink): number { return (link.decisions || []).filter(decision => decision.renew).length; }
+  declineCount(link: OverviewLink): number { return (link.decisions || []).filter(decision => !decision.renew).length; }
+  displayDate(value?: string): Date | null { return parseProcessDisplayDate(value); }
+
+  statusLabel(link: OverviewLink): string {
+    if (link.status === 'active') return 'Esperando respuesta';
+    if (link.status === 'expired') return 'Vencido sin respuesta';
+    if (link.status === 'revoked') return 'Anulado';
+    if (link.execution) {
+      return link.execution.status === 'completed' ? 'Procesado'
+        : link.execution.status === 'partial' ? 'Procesado con pendientes' : 'En proceso';
+    }
+    return this.renewCount(link) ? 'Por procesar' : 'Respondido sin renovaciones';
+  }
+
+  statusTone(link: OverviewLink): 'waiting' | 'action' | 'done' | 'muted' {
+    if (link.status === 'active') return 'waiting';
+    if (link.status === 'submitted' && !link.execution && this.renewCount(link)) return 'action';
+    if (link.status === 'submitted' && (link.execution?.status === 'completed' || !this.renewCount(link))) return 'done';
+    if (link.status === 'submitted') return 'action';
+    return 'muted';
+  }
+
+  resultLabel(link: OverviewLink, deviceId: string): string {
+    const result = link.execution?.results.find(item => item.deviceId === deviceId);
+    if (!result) return '';
+    if (result.status === 'succeeded') return link.execution?.action === 'pre_renewal' ? 'Renovación al contado registrada' : 'Renovado';
+    return result.status === 'failed' ? 'No completado' : 'Pendiente';
+  }
+
+  trackLink(_index: number, link: OverviewLink): string { return link.id; }
+}

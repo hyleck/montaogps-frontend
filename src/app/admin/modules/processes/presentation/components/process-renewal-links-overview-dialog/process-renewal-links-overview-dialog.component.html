@@ -1,0 +1,90 @@
+<p-dialog *ngIf="visible" [visible]="true" (visibleChange)="onVisibleChange($event)" [modal]="true"
+    [draggable]="false" [resizable]="false" [style]="{ width: '1120px', maxWidth: '96vw' }"
+    styleClass="process-renewal-overview-dialog">
+    <ng-template pTemplate="header">
+        <div class="overview-heading">
+            <i class="pi pi-link" aria-hidden="true"></i>
+            <div><strong>Enlaces de renovación</strong><span>Todos los enlaces enviados a los clientes</span></div>
+        </div>
+    </ng-template>
+
+    <section class="overview-content">
+        <div class="overview-toolbar">
+            <div class="overview-statuses" role="tablist" aria-label="Filtrar por estado">
+                <button *ngFor="let option of statusOptions" type="button" role="tab" class="overview-status-chip"
+                    [class.overview-status-chip--active]="status === option.value" [attr.aria-selected]="status === option.value"
+                    [disabled]="loading" (click)="setStatus(option.value)">
+                    {{ option.label }}<span *ngIf="counts[option.value] !== undefined">{{ counts[option.value] }}</span>
+                </button>
+            </div>
+            <form class="overview-search" (ngSubmit)="applySearch()" role="search">
+                <i class="pi pi-search" aria-hidden="true"></i>
+                <input type="search" name="overview-search" [(ngModel)]="search" placeholder="Buscar cliente" aria-label="Buscar cliente">
+                <button *ngIf="search" type="button" class="overview-icon-button" aria-label="Limpiar búsqueda" (click)="clearSearch()"><i class="pi pi-times" aria-hidden="true"></i></button>
+                <button type="submit" class="overview-action">Buscar</button>
+            </form>
+        </div>
+
+        <p *ngIf="loading" class="overview-feedback" role="status"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Cargando enlaces…</p>
+        <p *ngIf="error" class="overview-error" role="alert">{{ error }} <button type="button" class="overview-text-button" (click)="reload()">Reintentar</button></p>
+        <p *ngIf="!loading && !error && !links.length" class="overview-feedback">No hay enlaces de renovación {{ search ? 'para esa búsqueda' : 'con ese estado' }}.</p>
+
+        <div class="overview-list">
+            <article *ngFor="let link of links; trackBy: trackLink" class="overview-link" [class.overview-link--expanded]="expandedId === link.id">
+                <div class="overview-link__main">
+                    <div class="overview-link__client">
+                        <strong>{{ clientName(link) }}</strong>
+                        <span>Enviado {{ link.createdAt | date:'dd/MM/yyyy · h:mm a' }}<ng-container *ngIf="creatorName(link)"> por {{ creatorName(link) }}</ng-container></span>
+                    </div>
+                    <div class="overview-link__range">
+                        <span class="overview-caption">Vencimientos</span>
+                        <span>{{ rangeLabel(link.expirationFilter) }}</span>
+                    </div>
+                    <div class="overview-link__devices">
+                        <span class="overview-caption">Dispositivos</span>
+                        <strong>{{ link.deviceCount }}</strong>
+                    </div>
+                    <div class="overview-link__answer">
+                        <span class="overview-status" [ngClass]="'overview-status--' + statusTone(link)">{{ statusLabel(link) }}</span>
+                        <span *ngIf="link.status === 'submitted'"><b class="overview-yes">{{ renewCount(link) }} renovar</b> · {{ declineCount(link) }} no renovar</span>
+                        <span *ngIf="link.submittedAt">Respondió {{ link.submittedAt | date:'dd/MM/yyyy · h:mm a' }}</span>
+                        <span *ngIf="link.status === 'active'">Disponible hasta {{ link.expiresAt | date:'dd/MM/yyyy' }}</span>
+                        <span *ngIf="link.rangeChangeCount">Rango modificado {{ link.rangeChangeCount === 1 ? 'una vez' : link.rangeChangeCount + ' veces' }}</span>
+                    </div>
+                    <div class="overview-link__actions">
+                        <button *ngIf="link.decisions?.length" type="button" class="overview-action" [attr.aria-expanded]="expandedId === link.id" (click)="toggle(link)">
+                            <i class="pi" [ngClass]="expandedId === link.id ? 'pi-chevron-up' : 'pi-chevron-down'" aria-hidden="true"></i>
+                            {{ expandedId === link.id ? 'Ocultar selección' : 'Ver selección' }}
+                        </button>
+                        <button type="button" class="overview-action overview-action--primary" (click)="open(link)">Gestionar</button>
+                    </div>
+                </div>
+
+                <div *ngIf="expandedId === link.id" class="overview-decisions">
+                    <table>
+                        <thead><tr><th>Dispositivo</th><th>Vencimiento al responder</th><th>Selección del cliente</th><th *ngIf="link.execution">Resultado</th></tr></thead>
+                        <tbody>
+                            <tr *ngFor="let decision of link.decisions">
+                                <td><strong>{{ decision.name || decision.imei }}</strong><small>IMEI {{ decision.imei }}<ng-container *ngIf="decision.plate"> · {{ decision.plate }}</ng-container></small></td>
+                                <td>{{ (displayDate(decision.expirationDate) | date:'dd/MM/yyyy') || 'Sin fecha' }}</td>
+                                <td><span class="overview-decision" [class.overview-decision--yes]="decision.renew">{{ decision.renew ? 'Renovar' : 'No renovar' }}</span></td>
+                                <td *ngIf="link.execution">{{ decision.renew ? (resultLabel(link, decision.deviceId) || 'Por procesar') : 'Sin acción' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </div>
+
+        <div *ngIf="hasMore && !loading" class="overview-more">
+            <button type="button" class="overview-action" [disabled]="loadingMore" (click)="loadMore()">{{ loadingMore ? 'Cargando…' : 'Cargar más (' + (total - links.length) + ')' }}</button>
+        </div>
+    </section>
+
+    <ng-template pTemplate="footer">
+        <div class="overview-footer">
+            <span>{{ links.length }} de {{ total }} enlaces</span>
+            <button type="button" class="overview-action" (click)="close()">Cerrar</button>
+        </div>
+    </ng-template>
+</p-dialog>

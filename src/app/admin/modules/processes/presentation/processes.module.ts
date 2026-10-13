@@ -10,6 +10,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { DeviceRecordsComponent } from 'src/app/shareds/components/device-records/device-records.component';
 import { ProcessTemplatesDialogComponent } from './components/process-templates-dialog/process-templates-dialog.component';
 import { ProcessRenewalLinksDialogComponent } from './components/process-renewal-links-dialog/process-renewal-links-dialog.component';
+import { ProcessRenewalLinksOverviewDialogComponent } from './components/process-renewal-links-overview-dialog/process-renewal-links-overview-dialog.component';
 
 @NgModule({
   declarations: [
@@ -18,6 +19,7 @@ import { ProcessRenewalLinksDialogComponent } from './components/process-renewal
   imports: [
     ProcessTemplatesDialogComponent,
     ProcessRenewalLinksDialogComponent,
+    ProcessRenewalLinksOverviewDialogComponent,
     UserNamePipe,
     DeviceRecordsComponent,
     DeviceLabelPipe,
