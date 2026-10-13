@@ -553,20 +553,25 @@ export class ManagementComponent implements OnInit, OnDestroy {
         return;
       }
 
+      // The card is drawn where its first member appears, so a primary GPS that
+      // loads later does not move its additional installation down the list.
       const linkedImei = this.getTargetLinkedGpsImei(target);
-      if (linkedImei && byImei.has(linkedImei)) {
+      const primary = linkedImei && byImei.has(linkedImei) ? byImei.get(linkedImei) : target;
+      const primaryId = String(primary?._id || '');
+      if (!primaryId || consumed.has(primaryId)) {
         return;
       }
 
-      const currentImei = this.getTargetImei(target);
+      const currentImei = this.getTargetImei(primary);
       const linkedTargets = (linkedGroups.get(currentImei) || [])
         .filter(linkedTarget => {
           const linkedTargetId = String(linkedTarget?._id || '');
-          return linkedTargetId && linkedTargetId !== targetId && !consumed.has(linkedTargetId);
+          return linkedTargetId && linkedTargetId !== primaryId && !consumed.has(linkedTargetId);
         });
 
       if (linkedTargets.length > 0) {
-        const groupTargets = [target, ...linkedTargets];
+        const groupTargets = [primary, ...linkedTargets];
+        target = primary;
 
         rows.push({
           ...target,
@@ -588,6 +593,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
     });
 
     return rows;
+  }
+
+  private uniqueTargetsById<T extends { _id?: any }>(targets: T[]): T[] {
+    const seen = new Set<string>();
+    return targets.filter(target => {
+      const id = String(target?._id || '');
+      if (!id) return true;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
   }
 
   private getTargetImei(target: any): string {
@@ -5033,12 +5049,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const uniqueSharedTargets = filteredSharedTargets.filter(t => !ownTargetIds.has(t._id));
       const combinedTargets = [...uniqueSharedTargets, ...targets];
 
+      // Linked companions keep a GPS and its additional installations together
+      // even when they belong to different pages. They are not counted for the
+      // offset, and a page that later contains them does not duplicate them.
+      const linkedTargets = targetsResponse.linkedDevices || [];
       // Si es la primera carga, reemplazar. Si es scroll infinito, agregar
       if (resetPagination) {
-        this.targets = combinedTargets;
+        this.targets = this.uniqueTargetsById([...combinedTargets, ...linkedTargets]);
       } else {
         // Para scroll infinito, solo agregar los targets propios (no los compartidos)
-        this.targets = [...this.targets, ...targets];
+        this.targets = this.uniqueTargetsById([...this.targets, ...targets, ...linkedTargets]);
       }
 
       // Verificar si hay más targets disponibles

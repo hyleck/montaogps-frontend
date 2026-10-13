@@ -9,6 +9,8 @@ import { CreateTargetDto, Target, UpdateTargetDto, StopTimeResponse, RouteHistor
 export interface TargetsResponse {
   devices: Target[];
   totalCount: number;
+  /** Linked GPS of this page that fall on another page; not counted for paging. */
+  linkedDevices?: Target[];
 }
 
 export interface TargetStatusResponse {
