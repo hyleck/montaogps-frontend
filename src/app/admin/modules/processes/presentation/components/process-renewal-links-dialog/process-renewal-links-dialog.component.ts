@@ -10,6 +10,7 @@ import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 import { PROCESS_TYPE_LABELS } from '../../services/processes.service';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
 import { renewalExpirationFilterLabel, renewalFilterDate } from 'src/app/core/utils/renewal-expiration-filter.util';
+import { copyText } from 'src/app/core/utils/clipboard.util';
 
 @Component({
   selector: 'app-process-renewal-links-dialog',
@@ -524,11 +525,9 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     if (!this.linkUrl) return;
     const generation = this.generation;
     const linkUrl = this.linkUrl;
-    try {
-      await navigator.clipboard.writeText(linkUrl);
-      if (generation === this.generation && linkUrl === this.linkUrl) this.copyMessage = 'Enlace copiado.';
-    } catch {
-      if (generation === this.generation && linkUrl === this.linkUrl) this.copyMessage = 'Selecciona el enlace y cópialo desde el campo.';
+    const copied = await copyText(linkUrl);
+    if (generation === this.generation && linkUrl === this.linkUrl) {
+      this.copyMessage = copied ? 'Enlace copiado.' : 'Selecciona el enlace y cópialo desde el campo.';
     }
   }
 

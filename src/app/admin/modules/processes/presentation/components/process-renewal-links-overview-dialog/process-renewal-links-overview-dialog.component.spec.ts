@@ -96,6 +96,20 @@ describe('ProcessRenewalLinksOverviewDialogComponent', () => {
     expect((document.querySelector('#share-url-active') as HTMLInputElement).value).toBe(url);
   });
 
+  it('still copies when the browser refuses the Clipboard API, and offers a direct Copiar button', async () => {
+    spyOn(navigator.clipboard, 'writeText').and.rejectWith(new DOMException('Write permission denied.', 'NotAllowedError'));
+    const exec = spyOn(document, 'execCommand').and.returnValues(false, true);
+    service.getShareLink.and.returnValue(of({ id: 'active', token: 'same-token', expiresAt: '2099-10-20T12:00:00Z' }));
+    open();
+    component.copyLink(page.items[1]);
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(component.shared?.message).toContain('pulsa «Copiar»');
+    const button = Array.from(document.querySelectorAll('.overview-share__url button')) as HTMLButtonElement[];
+    button[0].click(); fixture.detectChanges();
+    expect(exec).toHaveBeenCalledTimes(2);
+    expect(component.shared?.message).toBe('Enlace copiado.');
+  });
+
   it('offers a new link when an older one cannot be copied, warning that the old one stops working', async () => {
     spyOn(navigator.clipboard, 'writeText').and.resolveTo();
     service.getShareLink.and.returnValue(throwError(() => ({ status: 409, error: { code: 'RENEWAL_LINK_UNAVAILABLE', message: 'x' } })));

@@ -10,6 +10,7 @@ import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
 import { renewalExpirationFilterLabel } from 'src/app/core/utils/renewal-expiration-filter.util';
+import { copyText, copyWithSelection } from 'src/app/core/utils/clipboard.util';
 
 type OverviewLink = RenewalLinksOverviewPage['items'][number];
 
@@ -176,12 +177,14 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
   }
 
   private async copy(url: string): Promise<string> {
-    try {
-      await navigator.clipboard.writeText(url);
-      return 'Enlace copiado.';
-    } catch {
-      return 'Selecciona el enlace del campo y cópialo.';
-    }
+    return await copyText(url) ? 'Enlace copiado.' : 'El navegador no permitió copiarlo solo: pulsa «Copiar».';
+  }
+
+  /** Copies the URL already shown, straight from the click, so the browser always allows it. */
+  copyShown(): void {
+    if (!this.shared) return;
+    this.shared = { ...this.shared,
+      message: copyWithSelection(this.shared.url) ? 'Enlace copiado.' : 'Selecciona el enlace del campo y cópialo con Cmd+C.' };
   }
 
   private load(offset: number): void {

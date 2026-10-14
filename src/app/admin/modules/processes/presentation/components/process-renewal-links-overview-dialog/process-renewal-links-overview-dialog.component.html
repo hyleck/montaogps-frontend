@@ -77,7 +77,10 @@
                 </div>
                 <div *ngIf="shared?.id === link.id" class="overview-share" role="status">
                     <label [for]="'share-url-' + link.id">{{ shared?.message }}</label>
-                    <input [id]="'share-url-' + link.id" data-activity-private readonly [value]="shared?.url" (focus)="$any($event.target).select()">
+                    <div class="overview-share__url">
+                        <input [id]="'share-url-' + link.id" data-activity-private readonly [value]="shared?.url" (focus)="$any($event.target).select()">
+                        <button type="button" class="overview-action overview-action--primary" (click)="copyShown()"><i class="pi pi-copy" aria-hidden="true"></i> Copiar</button>
+                    </div>
                 </div>
                 <p *ngIf="shareError?.id === link.id" class="overview-error" role="alert">{{ shareError?.message }}</p>
 

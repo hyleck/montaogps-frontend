@@ -81,6 +81,8 @@
 .overview-share p { margin: 0 0 10px; }
 .overview-share label { display: block; margin-bottom: 6px; font-weight: 600; }
 .overview-share input { width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid var(--overview-border); border-radius: 8px; background: var(--overview-surface); color: var(--overview-text); font: inherit; font-size: .82rem; }
+.overview-share__url { display: flex; gap: 8px; }
+.overview-share__url input { flex: 1; min-width: 0; }
 .overview-share__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .overview-link > .overview-error { margin: 0 14px 14px; }
 .overview-more { display: flex; justify-content: center; margin-top: 14px; }
