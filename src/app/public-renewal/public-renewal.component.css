@@ -91,3 +91,9 @@ h1 { font-size: clamp(25px, 3vw, 34px); line-height: 1.2; letter-spacing: -.035e
 @media (max-width: 760px) { .renewal-page { padding: 22px 16px; } .renewal-layout { grid-template-columns: 1fr; gap: 18px; } .renewal-summary { position: static; padding: 20px; } .renewal-summary dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; } .renewal-summary dl > div { display: grid; justify-content: start; gap: 9px; margin: 0; } .renewal-summary dt { font-size: 12px; } .renewal-intro { padding: 26px 0 24px; } .renewal-device { padding: 16px; } .renewal-options { margin-left: 0; } .renewal-confirmed { gap: 12px; } .renewal-confirmed h1 { font-size: 26px; } .renewal-confirmed__icon { width: 39px; height: 39px; font-size: 19px; } }
 @media (max-width: 380px) { .renewal-summary dt { display: grid; gap: 5px; } .renewal-device__details { flex-direction: column; } .renewal-brand { padding-bottom: 18px; } }
 @media (prefers-reduced-motion: reduce) { .renewal-spinner { animation: none; } }
+
+.renewal-account { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 18px 0 8px; padding: 8px 12px; border-radius: 10px; background: var(--renewal-soft); color: var(--renewal-muted); font-size: .85rem; font-weight: 600; }
+.renewal-account > i.pi-users { color: var(--renewal-accent); }
+.renewal-account .pi-angle-right { font-size: .75rem; }
+.renewal-account__current { color: var(--renewal-text); }
+.renewal-account small { margin-left: auto; font-weight: 500; }

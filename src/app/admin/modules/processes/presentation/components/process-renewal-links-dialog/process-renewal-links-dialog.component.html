@@ -208,7 +208,14 @@
             <div class="renewal-response-table" [class.renewal-response-table--preview]="action && canProcess" [attr.aria-busy]="previewLoading">
                 <table>
                     <thead><tr><th>Dispositivo</th><th>{{ action && canProcess ? 'Vencimiento actual' : 'Vencimiento al responder' }}</th><th *ngIf="action && canProcess">Al confirmar</th><th>Selección</th><th *ngIf="response.execution">Resultado</th></tr></thead>
-                    <tbody><tr *ngFor="let decision of response.decisions">
+                    <tbody><ng-container *ngFor="let group of responseGroups">
+                    <tr *ngIf="responseGroups.length > 1" class="renewal-account-row"><td [attr.colspan]="responseColumns(response)">
+                        <i class="pi pi-users" aria-hidden="true"></i>
+                        <ng-container *ngFor="let name of group.path; let last = last"><span [class.renewal-account-current]="last">{{ name | userName }}</span><i *ngIf="!last" class="pi pi-angle-right" aria-hidden="true"></i></ng-container>
+                        <span *ngIf="!group.path.length">Otra cuenta</span>
+                        <small>{{ group.items.length }} {{ group.items.length === 1 ? 'dispositivo' : 'dispositivos' }}</small>
+                    </td></tr>
+                    <tr *ngFor="let decision of group.items">
                         <td><strong>{{ decision.name || decision.imei }}</strong><small>IMEI {{ decision.imei }}<span *ngIf="decision.plate"> · {{ decision.plate }}</span></small></td>
                         <td class="renewal-preview-date">
                             <ng-container *ngIf="action && canProcess; else responseExpiration">
@@ -243,7 +250,7 @@
                             </ng-container>
                             <ng-template #excludedDecision>Sin acción</ng-template>
                         </td>
-                    </tr></tbody>
+                    </tr></ng-container></tbody>
                 </table>
             </div>
             <div *ngIf="confirmationVisible" class="renewal-bulk-confirmation" role="group" aria-label="Confirmar acción">

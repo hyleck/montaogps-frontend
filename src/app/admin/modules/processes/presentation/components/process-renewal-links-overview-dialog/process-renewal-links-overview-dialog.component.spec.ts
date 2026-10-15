@@ -61,6 +61,19 @@ describe('ProcessRenewalLinksOverviewDialogComponent', () => {
     expect(rows[1]).toContain('No renovar');
   });
 
+  it('groups the client selection by subaccount', () => {
+    const withAccounts = { ...page, items: [{ ...page.items[0], decisions: [
+      { ...page.items[0].decisions![0], account: { path: ['INVERSIONES MJ'] } },
+      { ...page.items[0].decisions![1], account: { path: ['INVERSIONES MJ', 'JOSE FRANCISCO'] } },
+    ] }] };
+    service.listAll.and.returnValue(of(withAccounts));
+    open();
+    component.toggle(withAccounts.items[0]); fixture.detectChanges();
+    const headers = Array.from(document.querySelectorAll('.overview-account-row')).map(row => row.textContent || '');
+    expect(headers.length).toBe(2);
+    expect(headers[1]).toContain('Jose Francisco');
+  });
+
   it('filters by status and client, and opens a link to manage it', () => {
     open();
     component.setStatus('pending_processing');

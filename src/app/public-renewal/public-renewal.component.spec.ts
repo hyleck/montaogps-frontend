@@ -90,6 +90,26 @@ describe('PublicRenewalComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Un dispositivo no aparece porque ya lo confirmaste');
   });
 
+  it('groups the devices by subaccount like the monitoring module and searches by account name', () => {
+    service.getPublic.and.returnValue(of({ ...info, devices: [
+      { ...info.devices[0], account: { path: ['MARIA PEREZ'] } },
+      { ...info.devices[1], account: { path: ['MARIA PEREZ', 'COOP NORTE'] } },
+    ] }));
+    render();
+    const headers = Array.from(fixture.nativeElement.querySelectorAll('.renewal-account') as NodeListOf<HTMLElement>).map(item => item.textContent || '');
+    expect(headers.length).toBe(2);
+    expect(headers[1]).toContain('Coop Norte');
+    expect(headers[1]).toContain('1 dispositivo');
+    component.query = 'norte'; render();
+    expect(fixture.nativeElement.querySelectorAll('.renewal-device').length).toBe(1);
+  });
+
+  it('shows no account headers when every device is in the same account', () => {
+    service.getPublic.and.returnValue(of({ ...info, devices: info.devices.map(device => ({ ...device, account: { path: ['MARIA PEREZ'] } })) }));
+    render();
+    expect(fixture.nativeElement.querySelectorAll('.renewal-account').length).toBe(0);
+  });
+
   it('does not initialize active decisions from optional response flags', () => {
     service.getPublic.and.returnValue(of({ ...info, devices: info.devices.map(device => ({ ...device, renew: false })) }));
     render();

@@ -20,12 +20,19 @@ export interface RenewalLinkDateRange {
   dateTo?: string;
 }
 
+export interface RenewalDeviceAccount {
+  id?: string;
+  /** Route from the link's client to the account that owns the GPS. */
+  path: string[];
+}
+
 export interface PublicRenewalDevice {
   id: string;
   name: string;
   imei: string;
   plate?: string;
   expirationDate?: string;
+  account?: RenewalDeviceAccount;
   renew?: boolean;
 }
 
@@ -118,6 +125,7 @@ export interface RenewalLinkSummary {
     imei: string;
     plate?: string;
     expirationDate?: string;
+    account?: RenewalDeviceAccount;
   }>;
 }
 

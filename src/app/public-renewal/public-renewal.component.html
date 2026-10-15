@@ -78,7 +78,16 @@
                         <button type="button" class="renewal-text-button" (click)="query = ''">Ver todos los dispositivos</button>
                     </div>
 
-                    <article *ngFor="let device of filteredDevices; trackBy: trackDevice" class="renewal-device"
+                    <ng-container *ngFor="let group of deviceGroups; trackBy: trackGroup">
+                    <h3 *ngIf="showAccountHeaders" class="renewal-account" [attr.aria-label]="'Cuenta ' + (group.path.join(', ') || 'sin cuenta')">
+                        <i class="pi pi-users" aria-hidden="true"></i>
+                        <ng-container *ngFor="let name of group.path; let last = last">
+                            <span [class.renewal-account__current]="last">{{ name | userName }}</span><i *ngIf="!last" class="pi pi-angle-right" aria-hidden="true"></i>
+                        </ng-container>
+                        <span *ngIf="!group.path.length">Otra cuenta</span>
+                        <small>{{ group.items.length }} {{ group.items.length === 1 ? 'dispositivo' : 'dispositivos' }}</small>
+                    </h3>
+                    <article *ngFor="let device of group.items; trackBy: trackDevice" class="renewal-device"
                         [class.renewal-device--chosen]="decisionFor(device.id) !== undefined" [attr.data-device-id]="device.id">
                         <div class="renewal-device__identity">
                             <span class="renewal-device__icon"><i class="pi pi-car" aria-hidden="true"></i></span>
@@ -107,6 +116,7 @@
                             {{ decisionFor(device.id) === true ? 'Renovar' : (decisionFor(device.id) === false ? 'No renovar' : 'Sin decisión registrada') }}
                         </span>
                     </article>
+                    </ng-container>
                 </section>
 
                 <aside class="renewal-summary" aria-labelledby="renewal-summary-heading">

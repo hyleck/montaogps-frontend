@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { Subscription } from 'rxjs';
 import {
   RenewalExpirationFilter, RenewalLinkShare, RenewalLinkSummary, RenewalLinksOverviewPage, RenewalLinksOverviewStatus, RenewalLinksService,
@@ -11,6 +12,7 @@ import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
 import { renewalExpirationFilterLabel } from 'src/app/core/utils/renewal-expiration-filter.util';
 import { copyText, copyWithSelection } from 'src/app/core/utils/clipboard.util';
+import { groupByRenewalAccount, RenewalAccountGroup } from 'src/app/core/utils/renewal-account-groups.util';
 
 type OverviewLink = RenewalLinksOverviewPage['items'][number];
 
@@ -19,7 +21,7 @@ const PAGE_SIZE = 30;
 @Component({
   selector: 'app-process-renewal-links-overview-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogModule],
+  imports: [CommonModule, FormsModule, DialogModule, UserNamePipe],
   templateUrl: './process-renewal-links-overview-dialog.component.html',
   styleUrls: ['./process-renewal-links-overview-dialog.component.css'],
 })
@@ -248,6 +250,10 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
     if (!result) return '';
     if (result.status === 'succeeded') return link.execution?.action === 'pre_renewal' ? 'Renovación al contado registrada' : 'Renovado';
     return result.status === 'failed' ? 'No completado' : 'Pendiente';
+  }
+
+  decisionGroups(link: OverviewLink): RenewalAccountGroup<NonNullable<OverviewLink['decisions']>[number]>[] {
+    return groupByRenewalAccount(link.decisions || []);
   }
 
   trackLink(_index: number, link: OverviewLink): string { return link.id; }

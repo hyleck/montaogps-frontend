@@ -113,6 +113,11 @@
 .renewal-result--success > strong { color: #15803d; }
 .renewal-result--failed > strong { color: var(--renewal-accent); }
 .renewal-bulk :is(input, select, textarea):focus-visible { outline: 2px solid var(--renewal-accent); outline-offset: 2px; }
+.renewal-account-row td { background: var(--renewal-soft); color: var(--renewal-muted); font-size: .82rem; font-weight: 600; }
+.renewal-account-row td > i.pi-users { color: var(--renewal-accent); margin-right: 6px; }
+.renewal-account-row .pi-angle-right { font-size: .72rem; margin: 0 5px; }
+.renewal-account-current { color: var(--renewal-text); }
+.renewal-account-row small { margin-left: 10px; font-weight: 500; }
 ::ng-deep html.app-dark .process-renewal-links-dialog.p-dialog { --renewal-text: #f4f4f5; --renewal-muted: #a1a1aa; --renewal-surface: #202024; --renewal-border: #3f3f46; --renewal-accent: #f87171; --renewal-soft: #3b2529; }
 ::ng-deep html.app-dark .process-renewal-links-dialog .renewal-action--primary { color: #18181b; }
 ::ng-deep html.app-dark .process-renewal-links-dialog .renewal-link-status--submitted,

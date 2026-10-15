@@ -88,12 +88,20 @@
                     <table>
                         <thead><tr><th>Dispositivo</th><th>Vencimiento al responder</th><th>Selección del cliente</th><th *ngIf="link.execution">Resultado</th></tr></thead>
                         <tbody>
-                            <tr *ngFor="let decision of link.decisions">
+                            <ng-container *ngFor="let group of decisionGroups(link); let groups = count">
+                            <tr *ngIf="groups > 1" class="overview-account-row"><td [attr.colspan]="link.execution ? 4 : 3">
+                                <i class="pi pi-users" aria-hidden="true"></i>
+                                <ng-container *ngFor="let name of group.path; let last = last"><span [class.overview-account-current]="last">{{ name | userName }}</span><i *ngIf="!last" class="pi pi-angle-right" aria-hidden="true"></i></ng-container>
+                                <span *ngIf="!group.path.length">Otra cuenta</span>
+                                <small>{{ group.items.length }} {{ group.items.length === 1 ? 'dispositivo' : 'dispositivos' }}</small>
+                            </td></tr>
+                            <tr *ngFor="let decision of group.items">
                                 <td><strong>{{ decision.name || decision.imei }}</strong><small>IMEI {{ decision.imei }}<ng-container *ngIf="decision.plate"> · {{ decision.plate }}</ng-container></small></td>
                                 <td>{{ (displayDate(decision.expirationDate) | date:'dd/MM/yyyy') || 'Sin fecha' }}</td>
                                 <td><span class="overview-decision" [class.overview-decision--yes]="decision.renew">{{ decision.renew ? 'Renovar' : 'No renovar' }}</span></td>
                                 <td *ngIf="link.execution">{{ decision.renew ? (resultLabel(link, decision.deviceId) || 'Por procesar') : 'Sin acción' }}</td>
                             </tr>
+                            </ng-container>
                         </tbody>
                     </table>
                 </div>

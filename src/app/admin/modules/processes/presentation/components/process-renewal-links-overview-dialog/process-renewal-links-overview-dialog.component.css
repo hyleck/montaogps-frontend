@@ -85,6 +85,11 @@
 .overview-share__url input { flex: 1; min-width: 0; }
 .overview-share__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .overview-link > .overview-error { margin: 0 14px 14px; }
+.overview-account-row td { background: var(--overview-soft); color: var(--overview-muted); font-weight: 600; }
+.overview-account-row td > i.pi-users { color: var(--overview-accent); margin-right: 6px; }
+.overview-account-row .pi-angle-right { font-size: .72rem; margin: 0 5px; }
+.overview-account-current { color: var(--overview-text); }
+.overview-account-row small { margin-left: 10px; font-weight: 500; display: inline !important; }
 .overview-more { display: flex; justify-content: center; margin-top: 14px; }
 .overview-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
 .overview-footer span { color: var(--overview-muted); font-size: .82rem; }

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
+import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { Subscription } from 'rxjs';
 import { CreatedRenewalLink, ExecuteRenewalLink, RenewalExpirationFilter, RenewalLinkAction, RenewalLinkExecutionResult, RenewalLinkPreview, RenewalLinkPreviewItem, RenewalLinkSummary, RenewalLinksService } from 'src/app/core/services/renewal-links.service';
 import { AuthService } from 'src/app/core/services/auth.service';
@@ -11,11 +12,12 @@ import { PROCESS_TYPE_LABELS } from '../../services/processes.service';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
 import { renewalExpirationFilterLabel, renewalFilterDate } from 'src/app/core/utils/renewal-expiration-filter.util';
 import { copyText } from 'src/app/core/utils/clipboard.util';
+import { groupByRenewalAccount, RenewalAccountGroup } from 'src/app/core/utils/renewal-account-groups.util';
 
 @Component({
   selector: 'app-process-renewal-links-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, DialogModule],
+  imports: [CommonModule, FormsModule, DialogModule, UserNamePipe],
   templateUrl: './process-renewal-links-dialog.component.html',
   styleUrls: ['./process-renewal-links-dialog.component.css'],
 })
@@ -91,6 +93,15 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
 
   get selectedLink(): RenewalLinkSummary | undefined {
     return this.links.find(link => link.id === this.selectedId && link.client.id === this.client?.id && link.status === 'submitted');
+  }
+
+  /** The client's choices grouped by account, like the monitoring module (Cliente › Subcliente). */
+  get responseGroups(): RenewalAccountGroup<NonNullable<RenewalLinkSummary['decisions']>[number]>[] {
+    return groupByRenewalAccount(this.selectedLink?.decisions || []);
+  }
+
+  responseColumns(response: RenewalLinkSummary): number {
+    return 3 + (this.action && this.canProcess ? 1 : 0) + (response.execution ? 1 : 0);
   }
 
   get responseClientName(): string {

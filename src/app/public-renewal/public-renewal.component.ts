@@ -8,6 +8,7 @@ import { PublicRenewalDevice, PublicRenewalInfo, RenewalDecision, RenewalLinksSe
 import { parseProcessDisplayDate } from '../core/utils/process-date.util';
 import { renewalExpirationFilterLabel } from '../core/utils/renewal-expiration-filter.util';
 import { UserNamePipe } from '../shareds/pipes/user-name.pipe';
+import { groupByRenewalAccount, RenewalAccountGroup } from '../core/utils/renewal-account-groups.util';
 
 interface RenewalDeviceView extends PublicRenewalDevice {
   expiration: Date | null;
@@ -107,7 +108,22 @@ export class PublicRenewalComponent implements OnInit, OnDestroy {
   get filteredDevices(): RenewalDeviceView[] {
     const query = this.searchText(this.query);
     if (!query) return this.devices;
-    return this.devices.filter(device => this.searchText(`${device.name} ${device.imei} ${device.plate || ''}`).includes(query));
+    return this.devices.filter(device => this.searchText(
+      `${device.name} ${device.imei} ${device.plate || ''} ${(device.account?.path || []).join(' ')}`).includes(query));
+  }
+
+  /** The GPS grouped by the account that owns them, like the monitoring module (Cliente › Subcliente). */
+  get deviceGroups(): RenewalAccountGroup<RenewalDeviceView>[] {
+    return groupByRenewalAccount(this.filteredDevices);
+  }
+
+  /** Headers only when the client's GPS are spread across more than one account. */
+  get showAccountHeaders(): boolean {
+    return groupByRenewalAccount(this.devices).length > 1;
+  }
+
+  trackGroup(_index: number, group: RenewalAccountGroup<RenewalDeviceView>): string {
+    return group.key;
   }
 
   decisionFor(deviceId: string): boolean | undefined {
