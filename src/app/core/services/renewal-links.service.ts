@@ -42,6 +42,9 @@ export interface PublicRenewalInfo {
   expiresAt: string;
   status: 'active' | 'submitted';
   submittedAt?: string;
+  /** Choices already marked on an open link, to resume where the client left off. */
+  draft?: RenewalDecision[];
+  draftUpdatedAt?: string;
   /** GPS left out because another response already confirmed their renewal. */
   omittedConfirmedCount?: number;
   devices: PublicRenewalDevice[];
@@ -214,6 +217,16 @@ export class RenewalLinksService {
 
   getPublic(token: string): Observable<PublicRenewalInfo> {
     return this.publicHttp.get<PublicRenewalInfo>(`${environment.apiUrl}/public/renewals/${encodeURIComponent(token)}`);
+  }
+
+  /** Saves the choices marked so far; reopening the link restores them. */
+  saveDraftPublic(token: string, decisions: RenewalDecision[]): Observable<{ savedAt: string; count: number }> {
+    return this.publicHttp.put<{ savedAt: string; count: number }>(this.publicDraftUrl(token), { decisions });
+  }
+
+  /** URL of the draft endpoint, also used to save the last change while the page closes. */
+  publicDraftUrl(token: string): string {
+    return `${environment.apiUrl}/public/renewals/${encodeURIComponent(token)}/draft`;
   }
 
   submitPublic(token: string, decisions: RenewalDecision[]): Observable<PublicRenewalInfo> {

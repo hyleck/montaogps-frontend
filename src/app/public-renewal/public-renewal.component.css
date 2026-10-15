@@ -97,3 +97,5 @@ h1 { font-size: clamp(25px, 3vw, 34px); line-height: 1.2; letter-spacing: -.035e
 .renewal-account .pi-angle-right { font-size: .75rem; }
 .renewal-account__current { color: var(--renewal-text); }
 .renewal-account small { margin-left: auto; font-weight: 500; }
+
+.renewal-draft-state { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .8rem; color: var(--renewal-muted); }

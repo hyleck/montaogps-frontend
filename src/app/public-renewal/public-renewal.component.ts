@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Meta } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
@@ -33,10 +33,18 @@ export class PublicRenewalComponent implements OnInit, OnDestroy {
   submitError = '';
   refreshNotice = '';
   submittedOn: Date | null = null;
+  /** Choices recovered from the link when it was reopened. */
+  restoredCount = 0;
   linkExpiresOn: Date | null = null;
 
   private token = '';
   private decisions = new Map<string, boolean>();
+  /** Saving the marked choices on the link: '' (nothing to save), saving, saved or failed. */
+  draftState: '' | 'saving' | 'saved' | 'failed' = '';
+  private draftTimer: ReturnType<typeof setTimeout> | null = null;
+  private draftDirty = false;
+  private draftSubscription?: Subscription;
+  private static readonly DRAFT_DELAY_MS = 700;
   private routeSubscription?: Subscription;
   private loadSubscription?: Subscription;
   private submitSubscription?: Subscription;
@@ -66,7 +74,9 @@ export class PublicRenewalComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.flushDraftOnExit();
     this.requestVersion++;
+    this.draftSubscription?.unsubscribe();
     this.routeSubscription?.unsubscribe();
     this.loadSubscription?.unsubscribe();
     this.submitSubscription?.unsubscribe();
@@ -134,12 +144,74 @@ export class PublicRenewalComponent implements OnInit, OnDestroy {
     if (!this.canEdit() || !this.devices.some(device => device.id === deviceId)) return;
     this.decisions.set(deviceId, renew);
     this.submitError = '';
+    this.scheduleDraftSave();
   }
 
   selectAll(renew: boolean): void {
     if (!this.canEdit()) return;
     for (const device of this.devices) this.decisions.set(device.id, renew);
     this.submitError = '';
+    this.scheduleDraftSave();
+  }
+
+  /** The last change is sent even if the client closes the page right after marking it. */
+  @HostListener('window:pagehide')
+  onPageHide(): void { this.flushDraftOnExit(); }
+
+  @HostListener('document:visibilitychange')
+  onVisibilityChange(): void {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') this.flushDraftOnExit();
+  }
+
+  private draftChoices(): RenewalDecision[] {
+    return this.devices.filter(device => this.decisions.has(device.id))
+      .map(device => ({ deviceId: device.id, renew: this.decisions.get(device.id)! }));
+  }
+
+  private scheduleDraftSave(): void {
+    if (this.info?.status !== 'active' || !this.token) return;
+    this.draftDirty = true;
+    this.draftState = 'saving';
+    if (this.draftTimer) clearTimeout(this.draftTimer);
+    this.draftTimer = setTimeout(() => this.saveDraft(), PublicRenewalComponent.DRAFT_DELAY_MS);
+  }
+
+  private saveDraft(): void {
+    this.draftTimer = null;
+    if (!this.draftDirty || this.info?.status !== 'active') return;
+    const version = this.requestVersion;
+    this.draftDirty = false;
+    this.draftSubscription?.unsubscribe();
+    this.draftSubscription = this.renewalLinks.saveDraftPublic(this.token, this.draftChoices()).subscribe({
+      next: () => {
+        if (version !== this.requestVersion) return;
+        if (!this.draftDirty) this.draftState = 'saved';
+      },
+      error: () => {
+        if (version !== this.requestVersion) return;
+        // Keep the choices on screen and try again with the next change or on retry.
+        this.draftDirty = true;
+        this.draftState = 'failed';
+      },
+    });
+  }
+
+  retryDraftSave(): void {
+    if (this.draftState === 'failed') { this.draftDirty = true; this.saveDraft(); }
+  }
+
+  private flushDraftOnExit(): void {
+    if (!this.draftDirty || this.info?.status !== 'active' || !this.token || typeof fetch !== 'function') return;
+    if (this.draftTimer) { clearTimeout(this.draftTimer); this.draftTimer = null; }
+    this.draftDirty = false;
+    try {
+      void fetch(this.renewalLinks.publicDraftUrl(this.token), {
+        method: 'PUT', keepalive: true, headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decisions: this.draftChoices() }),
+      }).catch(() => undefined);
+    } catch {
+      // Nothing else can be done while the page closes.
+    }
   }
 
   reload(): void {
@@ -158,6 +230,7 @@ export class PublicRenewalComponent implements OnInit, OnDestroy {
     this.info = null;
     this.devices = [];
     this.decisions.clear();
+    this.restoredCount = 0;
     this.submittedOn = null;
     this.linkExpiresOn = null;
     if (!this.token) {
@@ -182,6 +255,9 @@ export class PublicRenewalComponent implements OnInit, OnDestroy {
     if (!this.canSubmit) return;
     const version = this.requestVersion;
     const decisions: RenewalDecision[] = this.devices.map(device => ({ deviceId: device.id, renew: this.decisions.get(device.id)! }));
+    if (this.draftTimer) { clearTimeout(this.draftTimer); this.draftTimer = null; }
+    this.draftDirty = false;
+    this.draftSubscription?.unsubscribe();
     this.submitting = true;
     this.submitError = '';
     this.refreshNotice = '';
@@ -228,7 +304,15 @@ export class PublicRenewalComponent implements OnInit, OnDestroy {
       for (const device of info.devices) {
         if (typeof device.renew === 'boolean') this.decisions.set(device.id, device.renew);
       }
+      this.draftState = '';
+      return;
     }
+    const visible = new Set(this.devices.map(device => device.id));
+    for (const choice of info.draft || []) {
+      if (visible.has(choice.deviceId) && typeof choice.renew === 'boolean') this.decisions.set(choice.deviceId, choice.renew);
+    }
+    this.restoredCount = this.decisions.size;
+    this.draftState = this.decisions.size ? 'saved' : '';
   }
 
   private setLoadError(status?: number): void {

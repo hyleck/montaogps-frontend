@@ -29,7 +29,7 @@
                 <div>
                     <span class="renewal-eyebrow">{{ renewal.client.name | userName }}</span>
                     <h1>Recibimos tu selección</h1>
-                    <p>La selección quedó registrada. Puedes consultar el detalle a continuación.</p>
+                    <p>La selección quedó registrada y ya no se puede modificar. Puedes volver a este enlace cuando quieras para consultarla.</p>
                     <span class="renewal-confirmed__date" *ngIf="submittedOn">Confirmada el {{ submittedOn | date:'dd/MM/yyyy, h:mm a' }}</span>
                 </div>
             </header>
@@ -40,6 +40,9 @@
             </section>
             <div class="renewal-notice" *ngIf="!submitted && renewal.omittedConfirmedCount" role="status">
                 {{ renewal.omittedConfirmedCount === 1 ? 'Un dispositivo no aparece' : renewal.omittedConfirmedCount + ' dispositivos no aparecen' }} porque ya {{ renewal.omittedConfirmedCount === 1 ? 'lo confirmaste' : 'los confirmaste' }} para renovar en otra solicitud.
+            </div>
+            <div class="renewal-notice" *ngIf="!submitted && restoredCount && !refreshNotice" role="status">
+                Recuperamos tu selección anterior: {{ restoredCount === 1 ? '1 dispositivo marcado' : restoredCount + ' dispositivos marcados' }}. Puedes seguir eligiendo.
             </div>
             <div class="renewal-notice" *ngIf="refreshNotice" role="status">{{ refreshNotice }}</div>
             <div class="renewal-notice renewal-notice--warning" *ngIf="submitError" role="alert">
@@ -128,6 +131,11 @@
                         <div class="renewal-summary__pending" *ngIf="!submitted"><dt><i class="pi pi-clock" aria-hidden="true"></i> Por elegir</dt><dd>{{ undecidedCount }}</dd></div>
                     </dl>
                     <ng-container *ngIf="!submitted && devices.length">
+                        <p class="renewal-draft-state" *ngIf="draftState" role="status" aria-live="polite">
+                            <ng-container *ngIf="draftState === 'saving'"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Guardando tu selección…</ng-container>
+                            <ng-container *ngIf="draftState === 'saved'"><i class="pi pi-cloud" aria-hidden="true"></i> Selección guardada. Si cierras esta página, al volver seguirá aquí.</ng-container>
+                            <ng-container *ngIf="draftState === 'failed'"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i> No se pudo guardar tu avance. <button type="button" class="renewal-text-button" (click)="retryDraftSave()">Reintentar</button></ng-container>
+                        </p>
                         <p *ngIf="undecidedCount">Elige una opción para los {{ undecidedCount }} dispositivos pendientes.</p>
                         <p *ngIf="!undecidedCount">Revisa tu selección antes de enviarla.</p>
                         <button type="button" class="renewal-primary renewal-submit" [disabled]="!canSubmit" (click)="confirmSelection()">

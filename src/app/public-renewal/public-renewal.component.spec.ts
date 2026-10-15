@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Meta } from '@angular/platform-browser';
 import { ActivatedRoute, convertToParamMap, ParamMap, Router } from '@angular/router';
 import { BehaviorSubject, of, Subject, throwError } from 'rxjs';
@@ -30,7 +30,9 @@ describe('PublicRenewalComponent', () => {
   };
 
   beforeEach(async () => {
-    service = jasmine.createSpyObj('RenewalLinksService', ['getPublic', 'submitPublic']);
+    service = jasmine.createSpyObj('RenewalLinksService', ['getPublic', 'submitPublic', 'saveDraftPublic', 'publicDraftUrl']);
+    service.saveDraftPublic.and.returnValue(of({ savedAt: '2026-10-15T12:00:00.000Z', count: 1 }));
+    service.publicDraftUrl.and.returnValue('https://api.example.test/public/renewals/token-one/draft');
     service.getPublic.and.returnValue(of(info));
     service.submitPublic.and.returnValue(of(submitted));
     params = new BehaviorSubject(convertToParamMap({ token: 'token-one' }));
@@ -109,6 +111,41 @@ describe('PublicRenewalComponent', () => {
     render();
     expect(fixture.nativeElement.querySelectorAll('.renewal-account').length).toBe(0);
   });
+
+  it('restores the choices saved on the link when the client reopens it', () => {
+    service.getPublic.and.returnValue(of({ ...info, draft: [{ deviceId: info.devices[0].id, renew: true }, { deviceId: 'gone', renew: true }] }));
+    render();
+    expect(component.decisionFor(info.devices[0].id)).toBeTrue();
+    expect(component.renewCount).toBe(1);
+    expect(component.undecidedCount).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain('Recuperamos tu selección anterior: 1 dispositivo marcado');
+  });
+
+  it('saves each change on the link shortly after the client marks it', fakeAsync(() => {
+    render();
+    component.setDecision(info.devices[0].id, true);
+    component.setDecision(info.devices[1].id, false);
+    expect(component.draftState).toBe('saving');
+    tick(700);
+    expect(service.saveDraftPublic).toHaveBeenCalledOnceWith('token-one', [
+      { deviceId: info.devices[0].id, renew: true }, { deviceId: info.devices[1].id, renew: false },
+    ]);
+    expect(component.draftState).toBe('saved');
+    render();
+    expect(fixture.nativeElement.textContent).toContain('Selección guardada');
+  }));
+
+  it('keeps the choices on screen and offers to retry when saving fails', fakeAsync(() => {
+    service.saveDraftPublic.and.returnValue(throwError(() => ({ status: 0 })));
+    render();
+    component.selectAll(true);
+    tick(700);
+    expect(component.draftState).toBe('failed');
+    expect(component.renewCount).toBe(2);
+    service.saveDraftPublic.and.returnValue(of({ savedAt: 'x', count: 2 }));
+    component.retryDraftSave();
+    expect(component.draftState).toBe('saved');
+  }));
 
   it('does not initialize active decisions from optional response flags', () => {
     service.getPublic.and.returnValue(of({ ...info, devices: info.devices.map(device => ({ ...device, renew: false })) }));
