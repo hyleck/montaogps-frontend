@@ -14,7 +14,10 @@ const LABELED_VALUE = new RegExp(
   `^\\s*(?:[NSEWO]\\s*)?${NUMBER}(?:\\s*°)?(?:\\s*[NSEWO](?![A-Za-z0-9_:=]))?(?=$|[\\s,;|#)\\]]|\\.(?=$|\\s))`, 'i',
 );
 const LABEL = /\b(latitude|latitud|lat|longitude|longitud|long|lng|lon)\b\s*(?::|=)?\s*/gi;
-const URL_TOKEN = /(?:[a-z][a-z0-9+.-]*:\/\/|(?<![\w.@/-])(?:www\.)?(?:maps\.)?google\.com\/)[^\s<>"']+/gi;
+// No lookbehind: Safari before 16.4 cannot even load a module that contains one,
+// which left the management screen blank on older Macs. The character before a
+// bare google.com link is captured and given back unchanged instead.
+const URL_TOKEN = /([a-z][a-z0-9+.-]*:\/\/[^\s<>"']+)|(^|[^\w.@/-])((?:www\.)?(?:maps\.)?google\.com\/[^\s<>"']+)/gi;
 const LOCATION_PREFIX = /^(?:gps|coordinates|coordenadas|location|ubicaci[oó]n|position|posici[oó]n|loc)(?:\s*[:=]\s*|\s+)/i;
 
 /** Extracts a decimal GPS fix without changing or rendering the original SMS. */
@@ -24,10 +27,13 @@ export function extractSmsLocation(content: unknown): SmsLocation | null {
 
   // Remove every URL from plain-text parsing, including untrusted domains and
   // schemes. Numeric query parameters must never be mistaken for a bare fix.
-  const plain = content.replace(URL_TOKEN, (value, index: number) => {
+  const plain = content.replace(URL_TOKEN, (_match, schemeUrl: string | undefined, prefix: string | undefined,
+    bareUrl: string | undefined, index: number) => {
+    const before = schemeUrl ? '' : prefix || '';
+    const value = schemeUrl || bareUrl || '';
     const location = locationFromGoogleUrl(value);
-    if (location) candidates.push({ index, location });
-    return ' '.repeat(value.length);
+    if (location) candidates.push({ index: index + before.length, location });
+    return before + ' '.repeat(value.length);
   });
   const labels = Array.from(plain.matchAll(new RegExp(LABEL.source, LABEL.flags))).map(match => ({
     axis: (match[1].toLowerCase().startsWith('lat') ? 'latitude' : 'longitude') as Axis,
