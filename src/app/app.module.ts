@@ -1,5 +1,6 @@
 import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
-import { NgModule, inject, provideAppInitializer } from '@angular/core';
+import { ErrorHandler, NgModule, inject, provideAppInitializer } from '@angular/core';
+import { BlankPageErrorHandler } from './core/services/blank-page-error-handler';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -45,6 +46,7 @@ export function HttpLoaderFactory(http: HttpClient) {
   ],
   providers: [
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
+    { provide: ErrorHandler, useClass: BlankPageErrorHandler },
     providePrimeNG({
       theme: {
         preset: Aura,

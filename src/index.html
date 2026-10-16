@@ -99,6 +99,7 @@
         <h1>No se pudo cargar Montao GPS</h1>
         <p>Puede ser la conexión o una actualización de la plataforma en curso. Espera unos segundos y vuelve a intentarlo.</p>
         <button type="button" class="montao-arranque-reintentar">Volver a intentar</button>
+        <p class="montao-arranque-detalle" id="montao-arranque-fallo-detalle"></p>
       </div>
       <div class="montao-arranque-aviso">
         <h1>Tu navegador no puede abrir Montao GPS</h1>
@@ -149,14 +150,51 @@
         return !!(raiz && raiz.children && raiz.children.length > 0);
       }
 
+      var arrancoEn = 0;
+      var falloPendiente = null;
       function ocultar() {
         if (terminado) { return; }
         terminado = true;
+        arrancoEn = new Date().getTime();
         guardarReintento(false);
-        if (pantalla && pantalla.parentNode) {
-          pantalla.parentNode.removeChild(pantalla);
-        }
+        // Se oculta en vez de quitarse: si la app falla justo después de
+        // arrancar y deja la página vacía, se vuelve a mostrar con el motivo.
+        if (pantalla) { pantalla.style.display = 'none'; }
+        // Un error que llegó mientras arrancaba se revisa ahora que la app ya está.
+        if (falloPendiente !== null) { falloTrasArrancar(falloPendiente, true); }
       }
+
+      function paginaVacia() {
+        var raiz = document.getElementsByTagName('app-root')[0];
+        if (!raiz) { return true; }
+        var texto = (raiz.innerText || raiz.textContent || '').replace(/\s+/g, '');
+        var visual = raiz.querySelector('img, canvas, svg, video, iframe');
+        return texto.length < 5 && !visual;
+      }
+
+      // La app avisa aquí cuando no puede abrir una pantalla (por ejemplo, un
+      // módulo que el navegador no logra cargar), en cualquier momento.
+      window.montaoFalloDeNavegacion = function (mensaje) { falloTrasArrancar(mensaje, true); };
+
+      function falloTrasArrancar(mensaje, sinLimite) {
+        if (!pantalla) { return; }
+        if (!arrancoEn) { falloPendiente = mensaje || ''; return; }
+        if (!sinLimite && new Date().getTime() - arrancoEn > 20000) { return; }
+        setTimeout(function () {
+          if (!paginaVacia()) { return; }
+          var detalle = document.getElementById('montao-arranque-fallo-detalle');
+          if (detalle) {
+            detalle.textContent = 'Datos para soporte: ' + navigator.userAgent + (mensaje ? ' · ' + String(mensaje).slice(0, 180) : '');
+          }
+          pantalla.className = 'montao-arranque--fallo';
+          pantalla.style.display = '';
+        }, 1500);
+      }
+
+      window.addEventListener('unhandledrejection', function (evento) {
+        var motivo = evento && evento.reason;
+        falloTrasArrancar(motivo && (motivo.message || motivo));
+      });
 
       function mostrar(estado) {
         if (terminado || !pantalla) { return; }
@@ -211,6 +249,7 @@
             || evento.message.indexOf('Unexpected token') > -1
             || evento.message.indexOf('Unexpected identifier') > -1);
         if (esScript || esSintaxis) { falloDeCarga(); }
+        falloTrasArrancar(evento && (evento.message || (evento.error && evento.error.message)));
       }, true);
     })();
   </script>
