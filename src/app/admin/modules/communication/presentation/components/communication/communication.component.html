@@ -121,6 +121,9 @@
                 <div class="comm-contact__info">
                     <div class="comm-contact__top">
                         <div class="comm-contact__name">{{ getConversationDisplayName(conv) }}</div>
+                        <span *ngIf="conv.ad_referral" class="comm-contact__ad-badge" [title]="adReferralTitle(conv.ad_referral)">
+                            <i class="pi pi-megaphone" aria-hidden="true"></i>{{ adReferralLabel(conv.ad_referral) }}
+                        </span>
                         <div class="comm-contact__time">{{ getTimeAgo(conv.last_message_time) }}</div>
                         </div>
                         <div class="comm-contact__bottom">
@@ -339,6 +342,19 @@
                 </button>
             </section>
 
+            <section *ngIf="selectedConversation.ad_referral as ad" class="comm-ad-context" aria-label="Anuncio de origen">
+                <img *ngIf="ad.thumbnail_url || ad.image_url" class="comm-ad-context__media" [src]="ad.thumbnail_url || ad.image_url" alt="" referrerpolicy="no-referrer">
+                <div *ngIf="!(ad.thumbnail_url || ad.image_url)" class="comm-ad-context__icon"><i class="pi pi-megaphone" aria-hidden="true"></i></div>
+                <div class="comm-ad-context__copy">
+                    <span>Llegó desde {{ ad.source_type === 'post' ? 'una publicación' : 'un anuncio' }}<ng-container *ngIf="ad.received_at"> · {{ ad.received_at | date:'dd/MM/yyyy, h:mm a' }}</ng-container></span>
+                    <strong>{{ ad.headline || 'Anuncio de Facebook o Instagram' }}</strong>
+                    <small *ngIf="ad.body">{{ ad.body }}</small>
+                </div>
+                <a *ngIf="ad.source_url" [href]="ad.source_url" target="_blank" rel="noopener noreferrer">
+                    <i class="pi pi-external-link" aria-hidden="true"></i> Ver anuncio
+                </a>
+            </section>
+
             <!-- Messages -->
             <div class="comm-chat__messages" #messagesContainer (scroll)="onMessagesScroll($event)">
                 <div *ngIf="loadingMessages" class="comm-loading">
@@ -410,6 +426,10 @@
                             </span>
                         </div>
                         <div class="comm-message__content">
+                            <div *ngIf="msg.adReferral" class="comm-message__ad" [title]="adReferralTitle(msg.adReferral)">
+                                <i class="pi pi-megaphone" aria-hidden="true"></i>
+                                <span>Desde {{ msg.adReferral.source_type === 'post' ? 'publicación' : 'anuncio' }}<ng-container *ngIf="msg.adReferral.headline">: {{ msg.adReferral.headline }}</ng-container></span>
+                            </div>
                             <div *ngIf="msg.from === 'incoming'" class="comm-msg-sig comm-msg-sig--customer">
                                 <i class="pi pi-user comm-msg-sig-icon"></i>
                                 <span>{{ getIncomingCustomerSignature() }}</span>

@@ -98,6 +98,8 @@ interface ChatConversation {
     description?: string;
   }>;
   campaign_active?: boolean;
+  /** Click-to-WhatsApp ad or post the contact wrote from (Facebook/Instagram). */
+  ad_referral?: WhatsAppAdReferral | null;
   conversation_objectives?: ConversationObjective[];
   translation_language?: string;
   translation_language_name?: string;
@@ -112,8 +114,23 @@ interface MessageTranslation {
   translated_at?: string;
 }
 
+export interface WhatsAppAdReferral {
+  source_type?: string;
+  source_id?: string;
+  source_url?: string;
+  headline?: string;
+  body?: string;
+  media_type?: string;
+  image_url?: string;
+  video_url?: string;
+  thumbnail_url?: string;
+  welcome_message?: string;
+  received_at?: string;
+}
+
 interface ChatMessage {
   id?: number;
+  adReferral?: WhatsAppAdReferral;
   from: 'me' | 'incoming' | 'system';
   status?: string;
   type?: string;
@@ -4689,6 +4706,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             }
           : undefined,
         senderName: String(msg.sender || ''),
+        adReferral: msg.ad_referral || undefined,
         esterFeedback: this.esterFeedbackByMessageId.get(Number(msg.id)),
         translations: msg.translations || {},
       };
@@ -6692,6 +6710,16 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   getInitials(name: string): string {
     const parts = name.split(' ');
     return parts.map(p => p[0] || '').slice(0, 2).join('').toUpperCase();
+  }
+
+  adReferralLabel(referral?: WhatsAppAdReferral | null): string {
+    return referral?.source_type === 'post' ? 'Publicación' : 'Anuncio';
+  }
+
+  adReferralTitle(referral?: WhatsAppAdReferral | null): string {
+    if (!referral) return '';
+    const origin = referral.source_type === 'post' ? 'una publicación' : 'un anuncio';
+    return `Escribió desde ${origin} de Facebook/Instagram${referral.headline ? `: ${referral.headline}` : ''}`;
   }
 
   getConversationDisplayName(conversation: ChatConversation): string {
