@@ -762,6 +762,7 @@ export class MarkerService {
       // Búsqueda rápida en múltiples ubicaciones posibles
       const ignitionSources = [
         target?.traccarInfo?.geolocation?.attributes?.ignition,
+        target?.traccarInfo?.lastLocation?.attributes?.ignition,
         target?.traccarInfo?.attributes?.ignition,
         target?.traccarInfo?.geolocation?.ignition
       ];
@@ -777,10 +778,8 @@ export class MarkerService {
         }
       }
 
-      // Si no hay datos explícitos de ignición, inferir por velocidad
-      const result = getMovingSpeedKmh(target?.traccarInfo) > 0 ? 'on' : 'off';
-      // console.log('🔋 DEBUG: Infiriendo por velocidad:', speed, '→', result);
-      return result;
+      // Sin dato real del equipo no se adivina el estado del motor.
+      return null;
 
     } catch (error) {
       console.warn('⚠️ Error obteniendo estado de ignición:', error);

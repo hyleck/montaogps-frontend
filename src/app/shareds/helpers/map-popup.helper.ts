@@ -1,6 +1,6 @@
 import { getGpsLocationTimestamp, getValidTargetPosition } from './gps-position.helper';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
-import { getConnectionDisplay, getMovingSpeedKmh } from './device-movement.helper';
+import { getConnectionDisplay } from './device-movement.helper';
 // utils/popup-builder.ts
 
 export class PopupBuilder {
@@ -836,6 +836,7 @@ export class PopupBuilder {
       
       // Búsqueda rápida en ubicaciones conocidas
       const ignitionValue = target?.traccarInfo?.geolocation?.attributes?.ignition ??
+                           target?.traccarInfo?.lastLocation?.attributes?.ignition ??
                            target?.traccarInfo?.attributes?.ignition ??
                            target?.traccarInfo?.geolocation?.ignition;
       
@@ -843,7 +844,7 @@ export class PopupBuilder {
         return ignitionValue ? 'on' : 'off';
       }
       
-      // Inferir por velocidad como fallback
-      return getMovingSpeedKmh(target?.traccarInfo) > 0 ? 'on' : 'off';
+      // Sin dato real del equipo no se adivina el estado del motor.
+      return null;
     }
   }

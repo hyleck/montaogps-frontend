@@ -4,6 +4,7 @@ import { SystemService, SystemSettings } from '../../../core/services/system.ser
 import { RouteHistoryResponse } from '../../../core/interfaces';
 
 import { MapUtils } from '../../helpers/map.helper';
+import { isMovingSpeedKnots } from 'src/app/shareds/helpers/device-movement.helper';
 
 export interface ReportsMapInfoPanelItem {
   label: string;
@@ -268,7 +269,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     const google = (window as any).google;
 
     // Filtrar posiciones con velocidad 0 para mostrar solo el recorrido real
-    const movingPositions = this.routeHistory.positions.filter(pos => pos.speed > 0);
+    const movingPositions = this.routeHistory.positions.filter(pos => isMovingSpeedKnots(pos.speed));
     const allPositions = this.routeHistory.positions;
     
 
@@ -550,7 +551,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
     // Preparar datos de reproducción - incluir paradas como puntos especiales
     const movingPositions = [...this.routeHistory.positions]
-      .filter(position => position.speed > 0)
+      .filter(position => isMovingSpeedKnots(position.speed))
       .sort((a, b) => new Date(a.eventTime || a.fixTime).getTime() - new Date(b.eventTime || b.fixTime).getTime());
     
     // Crear secuencia combinada: movimiento + paradas en orden cronológico
@@ -690,7 +691,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     
     // Filtrar posiciones con velocidad 0 y ordenar por timestamp
     const allPositions = [...this.routeHistory.positions]
-      .filter(position => position.speed > 0) // Ignorar posiciones con velocidad 0
+      .filter(position => isMovingSpeedKnots(position.speed)) // Ignorar posiciones detenidas o con ruido del GPS
       .sort((a, b) => new Date(a.eventTime || a.fixTime).getTime() - new Date(b.eventTime || b.fixTime).getTime());
     
 
@@ -1611,7 +1612,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
     for (let i = 0; i < newPositions.length; i++) {
       const position = newPositions[i];
-      const hasMovement = position.speed > 0;
+      const hasMovement = isMovingSpeedKnots(position.speed);
 
       if (!hasMovement) {
         // Posición sin movimiento (velocidad 0)
@@ -1728,7 +1729,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
     for (let i = 0; i < sortedPositions.length; i++) {
       const position = sortedPositions[i];
-      const hasMovement = position.speed > 0;
+      const hasMovement = isMovingSpeedKnots(position.speed);
 
       if (!hasMovement) {
         // Posición sin movimiento (velocidad 0)

@@ -15,6 +15,7 @@ import { firstValueFrom } from 'rxjs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
+import { isMovingSpeedKnots } from 'src/app/shareds/helpers/device-movement.helper';
 
 export interface ReportFilter {
   reportType: string;
@@ -2036,13 +2037,13 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
       
               // Calcular estadísticas de filtrado por velocidad
         const totalPositions = this.routeHistory!.totalPositions;
-        const movingPositions = this.routeHistory!.positions.filter(pos => pos.speed > 0).length;
+        const movingPositions = this.routeHistory!.positions.filter(pos => isMovingSpeedKnots(pos.speed)).length;
         const stoppedPositions = totalPositions - movingPositions;
         
         this.messageService.add({
           severity: 'success',
           summary: this.translate.instant('reports.streaming_complete'),
-          detail: `${totalPositions} posiciones cargadas (${this.progressiveLoading.totalBlocks} bloques). ${movingPositions} con movimiento, ${stoppedPositions} detenidas (velocidad 0)`,
+          detail: `${totalPositions} posiciones cargadas (${this.progressiveLoading.totalBlocks} bloques). ${movingPositions} con movimiento, ${stoppedPositions} detenidas`,
           life: 8000
         });
     }

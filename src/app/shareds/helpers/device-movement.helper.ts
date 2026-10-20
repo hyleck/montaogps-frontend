@@ -5,6 +5,14 @@ export const MIN_MOVING_SPEED_KMH = 5;
 /** A last position older than this does not describe what the vehicle is doing now. */
 export const MAX_MOVING_POSITION_AGE_MS = 10 * 60 * 1000;
 
+/** History positions carry Traccar speed in knots; ~5 km/h. */
+export const MIN_MOVING_SPEED_KNOTS = MIN_MOVING_SPEED_KMH / 1.852;
+
+export function isMovingSpeedKnots(speed: unknown): boolean {
+  const knots = Number(speed);
+  return Number.isFinite(knots) && knots >= MIN_MOVING_SPEED_KNOTS;
+}
+
 const REPORTING_STATUSES = ['online', 'señal débil'];
 
 function currentLocation(traccarInfo: any): any {

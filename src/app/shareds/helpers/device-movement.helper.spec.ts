@@ -1,4 +1,4 @@
-import { getMovingSpeedKmh } from './device-movement.helper';
+import { getMovingSpeedKmh, isMovingSpeedKnots } from './device-movement.helper';
 
 describe('Device movement', () => {
   const now = new Date('2026-10-20T15:00:00Z').getTime();
@@ -36,5 +36,15 @@ describe('Device movement', () => {
   it('falls back to lastLocation', () => {
     const { geolocation, ...rest } = info(30) as any;
     expect(getMovingSpeedKmh({ ...rest, lastLocation: geolocation }, now)).toBe(56);
+  });
+});
+
+describe('History movement', () => {
+  it('treats history speeds under ~5 km/h as parked drift', () => {
+    expect(isMovingSpeedKnots(0)).toBeFalse();
+    expect(isMovingSpeedKnots(1.6)).toBeFalse();
+    expect(isMovingSpeedKnots(2.7)).toBeTrue();
+    expect(isMovingSpeedKnots(30)).toBeTrue();
+    expect(isMovingSpeedKnots(undefined)).toBeFalse();
   });
 });
