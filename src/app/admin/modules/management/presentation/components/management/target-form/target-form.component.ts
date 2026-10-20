@@ -37,6 +37,7 @@ import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.ut
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
 import { isOfficeReviewProcess } from 'src/app/core/utils/office-review-process.util';
 import { SmsCommandsDialogComponent } from 'src/app/shareds/components/sms-commands-dialog/sms-commands-dialog.component';
+import { getMovingSpeedKmh } from 'src/app/shareds/helpers/device-movement.helper';
 
 
 
@@ -3737,14 +3738,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     getGpsSpeedLabel(): string {
         const traccarInfo = this.target?.traccarInfo as any;
-        const speed = traccarInfo?.geolocation?.speed ?? traccarInfo?.speed;
+        const speed = (traccarInfo?.geolocation ?? traccarInfo?.lastLocation)?.speed;
         if (speed === undefined || speed === null || speed === '') return 'No disponible';
+        if (Number.isNaN(Number(speed))) return 'No disponible';
 
-        const numericSpeed = Number(speed);
-        if (Number.isNaN(numericSpeed)) return 'No disponible';
-
-        const speedInKmh = Math.max(0, Math.round(numericSpeed * 1.852));
-        return `${speedInKmh} km/h`;
+        return `${getMovingSpeedKmh(traccarInfo)} km/h`;
     }
 
     getGpsLastUpdateLabel(): string {

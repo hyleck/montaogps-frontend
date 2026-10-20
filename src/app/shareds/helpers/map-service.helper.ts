@@ -3,7 +3,7 @@ import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 // utils/marker-service.ts
 import mapboxgl from 'mapbox-gl';
 import { PopupBuilder } from './map-popup.helper';
-import { getMovingSpeedKmh } from './device-movement.helper';
+import { getConnectionDisplay, getMovingSpeedKmh, isReportingStatus } from './device-movement.helper';
 
 export class MarkerService {
   private static currentTargetId: string | null = null;
@@ -143,7 +143,7 @@ export class MarkerService {
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
           scale: 8,
-          fillColor: status === 'online' ? '#4CAF50' : '#F44336',
+          fillColor: getConnectionDisplay(status).color,
           fillOpacity: 0.8,
           strokeColor: '#FFFFFF',
           strokeWeight: 2
@@ -177,7 +177,7 @@ export class MarkerService {
       el.style.width = '20px';
       el.style.height = '20px';
       el.style.borderRadius = '50%';
-      el.style.backgroundColor = status === 'online' ? '#4CAF50' : '#F44336';
+      el.style.backgroundColor = getConnectionDisplay(status).color;
       el.style.border = '2px solid #FFF';
 
       marker = new mapboxgl.Marker(el).setLngLat([lng, lat]);
@@ -917,7 +917,7 @@ export class MarkerService {
     // Obtener tiempo de parada
     let stopTime: string | undefined = undefined;
     const deviceImei = target.device_imei || target.imei;
-    if (targetsService && deviceImei && status === 'online') {
+    if (targetsService && deviceImei && isReportingStatus(status)) {
       try {
         const stopTimeResponse = await targetsService.getStopTime(deviceImei);
         if (!stopTimeResponse.isMoving && stopTimeResponse.text && !stopTimeResponse.error) {

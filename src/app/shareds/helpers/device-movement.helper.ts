@@ -40,3 +40,15 @@ export function getMovingSpeedKmh(traccarInfo: any, now = Date.now()): number {
   const speedKmh = rawSpeedKmh(traccarInfo);
   return speedKmh >= MIN_MOVING_SPEED_KMH && hasRecentPosition(traccarInfo, now) ? speedKmh : 0;
 }
+
+/** Connection color and label; a weak signal device is still reporting, not disconnected. */
+export function getConnectionDisplay(status: unknown): { color: string; label: string } {
+  const normalized = String(status || '').toLowerCase();
+  if (normalized === 'online') return { color: '#4CAF50', label: 'Conectado' };
+  if (normalized === 'señal débil') return { color: '#FF9800', label: 'Señal débil' };
+  return { color: '#F44336', label: 'Desconectado' };
+}
+
+export function isReportingStatus(status: unknown): boolean {
+  return REPORTING_STATUSES.includes(String(status || '').toLowerCase());
+}

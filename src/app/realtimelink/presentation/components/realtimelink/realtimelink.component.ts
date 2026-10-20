@@ -6,6 +6,7 @@ import { Subscription, take, timeout } from 'rxjs';
 import { MapUtils } from '../../../../shareds/helpers/map.helper';
 import { SystemService } from '../../../../core/services/system.service';
 import { TargetsService } from '../../../../core/services/targets.service';
+import { isReportingStatus } from 'src/app/shareds/helpers/device-movement.helper';
 
 @Component({
     selector: 'app-realtimelink',
@@ -257,7 +258,7 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
 
                 // Actualizar ícono según estado y curso
                 const status = this.target.traccarInfo?.status || 'offline';
-                const isOffline = status !== 'online';
+                const isOffline = !isReportingStatus(status) && status !== 'Localizado';
                 const course = updatedTarget.traccarInfo?.['geolocation']?.['course'] || 0;
                 const markerType = MapUtils.getMapMarkerType();
 
@@ -315,7 +316,7 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
 
         // Obtener estado del target
         const status = this.target.traccarInfo?.status || 'offline';
-        const isOffline = status !== 'online';
+        const isOffline = !isReportingStatus(status) && status !== 'Localizado';
         const course = this.target.traccarInfo?.geolocation?.course || 0;
         const markerType = MapUtils.getMapMarkerType();
 
@@ -355,8 +356,8 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     private createCustomPopup(lat: number, lng: number, status: string): void {
-        const statusColor = status === 'online' ? '#16a34a' : '#dc2626';
-        const statusText = status === 'online' ? 'En línea' : 'Desconectado';
+        const statusColor = status === 'online' ? '#16a34a' : (isReportingStatus(status) ? '#d97706' : '#dc2626');
+        const statusText = status === 'online' ? 'En línea' : (isReportingStatus(status) ? 'Señal débil' : 'Desconectado');
 
         // Crear contenido del popup
         const popupContent = `

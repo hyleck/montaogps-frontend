@@ -3,6 +3,7 @@ import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 import { Component, OnInit, OnDestroy, Input, ElementRef, ViewChild, AfterViewInit, OnChanges } from '@angular/core';
 import { MapUtils } from '../../../../shareds/helpers/map.helper';
 import { SystemService } from '../../../../core/services/system.service';
+import { getMovingSpeedKmh } from 'src/app/shareds/helpers/device-movement.helper';
 
 @Component({
     selector: 'app-map-alert',
@@ -452,7 +453,7 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
 
                 const rawSpeed = Number(geo?.speed);
                 const speedText = Number.isFinite(rawSpeed)
-                    ? `${(rawSpeed * 1.852).toFixed(1)} km/h`
+                    ? `${getMovingSpeedKmh(target?.traccarInfo)} km/h`
                     : 'Sin datos';
                 const safeName = this.escapeHtml(formatDeviceLabel(target?.name || 'Dispositivo'));
                 const safeStatus = this.escapeHtml(statusText);

@@ -10,6 +10,7 @@ import { TranslateService } from '@ngx-translate/core';
 
 import { MapProvider, MapUtils } from '../../helpers/map.helper';
 import { MapThemeService } from '../../helpers/map-theme.helper';
+import { getMovingSpeedKmh } from 'src/app/shareds/helpers/device-movement.helper';
 
 @Component({
   selector: 'app-maps',
@@ -814,6 +815,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     if (status === 'offline') {
       return this.translate.instant('maps.statusOffline');
     }
+    if (status === 'unknown') {
+      return this.translate.instant('maps.statusUnknown');
+    }
     return this.selectedTarget.traccarStatus;
   }
 
@@ -826,8 +830,11 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   get currentSpeedDisplay(): string {
-    const speed = this.selectedTarget?.traccarInfo?.geolocation?.speed
-      ?? this.selectedTarget?.historicalLocation?.speed;
+    const traccarInfo = this.selectedTarget?.traccarInfo;
+    if (traccarInfo?.geolocation || traccarInfo?.lastLocation) {
+      return `${getMovingSpeedKmh(traccarInfo)} km/h`;
+    }
+    const speed = this.selectedTarget?.historicalLocation?.speed;
     if (speed === undefined || speed === null) {
       return this.translate.instant('maps.notAvailable');
     }

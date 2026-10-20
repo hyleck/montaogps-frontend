@@ -1,6 +1,6 @@
 import { getGpsLocationTimestamp, getValidTargetPosition } from './gps-position.helper';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
-import { getMovingSpeedKmh } from './device-movement.helper';
+import { getConnectionDisplay, getMovingSpeedKmh } from './device-movement.helper';
 // utils/popup-builder.ts
 
 export class PopupBuilder {
@@ -45,9 +45,8 @@ export class PopupBuilder {
         ? `<span style="color: #9C27B0; font-size: 11px; margin-left: 4px;">(${vehicleType})</span>`
         : '';
   
-      const formattedSpeed = speedKmh === 0 ? 'En línea' : `${speedKmh} km/h`;
-      const statusColor = status === 'online' ? '#4CAF50' : '#F44336';
-      const statusLabel = status === 'online' ? 'Conectado' : 'Desconectado';
+      const formattedSpeed = speedKmh === 0 ? 'Estacionado' : `${speedKmh} km/h`;
+      const { color: statusColor, label: statusLabel } = getConnectionDisplay(status);
 
       // Sección de estado de ignición (solo visible si el target tiene sensor configurado)
       // Calcular ignitionStatus rápidamente si no está disponible y tenemos target
@@ -761,7 +760,7 @@ export class PopupBuilder {
 
       // Actualizar velocidad
       if (updates.speedKmh !== undefined) {
-        const speedText = updates.speedKmh === 0 ? 'En línea' : `${updates.speedKmh} km/h`;
+        const speedText = updates.speedKmh === 0 ? 'Estacionado' : `${updates.speedKmh} km/h`;
         const speedElements = popupElement.querySelectorAll('[style*="color: #333"]');
         speedElements.forEach(element => {
           if (element.textContent?.includes('km/h') || element.textContent?.includes('Estacionado') || element.textContent?.includes('En línea')) {
@@ -772,11 +771,10 @@ export class PopupBuilder {
 
       // Actualizar estado
       if (updates.status !== undefined) {
-        const statusColor = updates.status === 'online' ? '#4CAF50' : '#F44336';
-        const statusLabel = updates.status === 'online' ? 'Conectado' : 'Desconectado';
-        const statusElements = popupElement.querySelectorAll('[style*="color: #4CAF50"], [style*="color: #F44336"]');
+        const { color: statusColor, label: statusLabel } = getConnectionDisplay(updates.status);
+        const statusElements = popupElement.querySelectorAll('[style*="color: #4CAF50"], [style*="color: #F44336"], [style*="color: #FF9800"]');
         statusElements.forEach(element => {
-          if (element.textContent?.includes('Conectado') || element.textContent?.includes('Desconectado')) {
+          if (element.textContent?.includes('Conectado') || element.textContent?.includes('Desconectado') || element.textContent?.includes('Señal débil')) {
             element.textContent = statusLabel;
             const elementStyle = element as HTMLElement;
             elementStyle.style.color = statusColor;
