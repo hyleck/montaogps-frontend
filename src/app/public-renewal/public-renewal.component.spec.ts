@@ -15,7 +15,6 @@ describe('PublicRenewalComponent', () => {
   let originalReferrer: string | null;
   const info: PublicRenewalInfo = {
     client: { name: 'MARÍA PÉREZ' },
-    expiresAt: '2026-10-31T18:00:00Z',
     status: 'active',
     devices: [
       { id: 'device-1', name: 'Camión Blanco', imei: '111111111111111', plate: 'L123456', expirationDate: '2026-08-26T00:00:00.000Z' },
@@ -154,7 +153,7 @@ describe('PublicRenewalComponent', () => {
     expect(component.undecidedCount).toBe(2);
   });
 
-  it('shows the saved expiration range even for an empty list, independently of the link validity', () => {
+  it('shows the saved expiration range even for an empty list, with no link deadline', () => {
     service.getPublic.and.returnValue(of({ ...info, devices: [],
       expirationFilter: { mode: 'range', dateFrom: '2026-09-01', dateTo: '2026-09-30' },
     }));
@@ -163,7 +162,7 @@ describe('PublicRenewalComponent', () => {
     expect(range).toContain('Del 01/09/2026 al 30/09/2026, ambas fechas incluidas');
     expect(range).not.toContain('31/10/2026');
     expect(fixture.nativeElement.textContent).toContain('cliente y sus subcuentas');
-    expect(fixture.nativeElement.querySelector('.renewal-footer').textContent).toContain('31/10/2026');
+    expect(fixture.nativeElement.querySelector('.renewal-footer')).toBeNull();
   });
 
   it('keeps the saved range visible after the client confirms their response', () => {
@@ -324,7 +323,7 @@ describe('PublicRenewalComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Enlace no disponible');
     expect(fixture.nativeElement.textContent).not.toContain('sensitive error');
     component.reload();
-    expect(component.loadError).toContain('venció o fue revocado');
+    expect(component.loadError).toContain('fue anulado');
     component.reload();
     expect(component.loadError).toContain('Solicita un nuevo enlace');
     expect(component.info).toBeNull();
@@ -388,7 +387,7 @@ describe('PublicRenewalComponent', () => {
     render();
     expect(component.info).toBeNull();
     expect(fixture.nativeElement.querySelector('.renewal-device')).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('venció o fue revocado');
+    expect(fixture.nativeElement.textContent).toContain('fue anulado');
   });
 
   it('cancels old token loads and ignores their responses when the URL token changes', () => {

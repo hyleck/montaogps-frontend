@@ -48,7 +48,6 @@
                         <span class="overview-status" [ngClass]="'overview-status--' + statusTone(link)">{{ statusLabel(link) }}</span>
                         <span *ngIf="link.status === 'submitted'"><b class="overview-yes">{{ renewCount(link) }} renovar</b> · {{ declineCount(link) }} no renovar</span>
                         <span *ngIf="link.submittedAt">Respondió {{ link.submittedAt | date:'dd/MM/yyyy · h:mm a' }}</span>
-                        <span *ngIf="link.status === 'active'">Disponible hasta {{ link.expiresAt | date:'dd/MM/yyyy' }}</span>
                         <span *ngIf="link.rangeChangeCount">Rango modificado {{ link.rangeChangeCount === 1 ? 'una vez' : link.rangeChangeCount + ' veces' }}</span>
                     </div>
                     <div class="overview-link__actions">

@@ -554,7 +554,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   }
 
   statusLabel(status: RenewalLinkSummary['status']): string {
-    return { active: 'Pendiente', submitted: 'Respuesta recibida', expired: 'Vencido', revoked: 'Anulado' }[status];
+    return { active: 'Pendiente', submitted: 'Respuesta recibida', revoked: 'Anulado' }[status];
   }
 
   renewalCount(link: RenewalLinkSummary): number { return (link.decisions || []).filter(decision => decision.renew).length; }

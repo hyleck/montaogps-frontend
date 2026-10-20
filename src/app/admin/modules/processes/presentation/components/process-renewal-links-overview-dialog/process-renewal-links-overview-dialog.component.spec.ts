@@ -8,10 +8,10 @@ describe('ProcessRenewalLinksOverviewDialogComponent', () => {
   let fixture: ComponentFixture<ProcessRenewalLinksOverviewDialogComponent>;
   let component: ProcessRenewalLinksOverviewDialogComponent;
   let service: jasmine.SpyObj<RenewalLinksService>;
-  const counts = { all: 3, active: 1, submitted: 1, pending_processing: 1, processed: 0, expired: 0, revoked: 1 };
+  const counts = { all: 3, active: 1, submitted: 1, pending_processing: 1, processed: 0, revoked: 1 };
   const page: RenewalLinksOverviewPage = { total: 3, counts, items: [
     { id: 'submitted', client: { id: 'c1', name: 'INVERSIONES MJ GARCIA' }, createdAt: '2026-10-01T12:00:00Z',
-      expiresAt: '2099-10-08T12:00:00Z', status: 'submitted', deviceCount: 2, submittedAt: '2026-10-02T12:00:00Z',
+      status: 'submitted', deviceCount: 2, submittedAt: '2026-10-02T12:00:00Z',
       createdBy: { id: 'u1', name: 'AYLINE MADERA' },
       expirationFilter: { mode: 'range', dateFrom: '2026-09-18', dateTo: '2026-10-12' },
       decisions: [
@@ -19,9 +19,9 @@ describe('ProcessRenewalLinksOverviewDialogComponent', () => {
         { deviceId: 'd2', name: 'Kia K5', imei: '222', renew: false },
       ] },
     { id: 'active', client: { id: 'c2', name: 'DTH AUTO SALES' }, createdAt: '2026-09-30T12:00:00Z',
-      expiresAt: '2099-10-20T12:00:00Z', status: 'active', deviceCount: 5 },
+      status: 'active', deviceCount: 5 },
     { id: 'revoked', client: { id: 'c3', name: 'Otro' }, createdAt: '2026-09-29T12:00:00Z',
-      expiresAt: '2026-10-06T12:00:00Z', status: 'revoked', deviceCount: 1 },
+      status: 'revoked', deviceCount: 1 },
   ] };
 
   beforeEach(async () => {

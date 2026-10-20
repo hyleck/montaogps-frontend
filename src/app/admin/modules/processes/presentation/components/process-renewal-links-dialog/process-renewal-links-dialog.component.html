@@ -19,7 +19,7 @@
             <h3>Enlace listo para compartir</h3>
             <p>Incluye {{ created.deviceCount }} dispositivos del cliente y sus subcuentas.</p>
             <p class="renewal-created-range"><strong>Vencimientos incluidos:</strong> {{ expirationFilterLabel(created.expirationFilter) }}.</p>
-            <p>Enlace disponible hasta {{ created.expiresAt | date:'dd/MM/yyyy · HH:mm' }}.</p>
+            <p>El enlace no vence: el cliente puede abrirlo cuando quiera mientras no lo anules.</p>
             <label for="renewal-public-link">Enlace público</label>
             <input id="renewal-public-link" data-activity-private [value]="linkUrl" readonly (focus)="$any($event.target).select()">
             <div class="renewal-links-actions">
@@ -47,7 +47,6 @@
                     <span>{{ expirationFilterLabel(link.expirationFilter) }}</span>
                     <span *ngIf="link.rangeChangeCount">Rango modificado {{ link.rangeChangeCount === 1 ? 'una vez' : link.rangeChangeCount + ' veces' }}</span>
                     <span *ngIf="link.status === 'submitted'">{{ renewalCount(link) }} para renovar · {{ declineCount(link) }} sin renovar</span>
-                    <span *ngIf="link.status === 'active'">Vence {{ link.expiresAt | date:'dd/MM/yyyy · HH:mm' }}</span>
                 </div>
                 <div class="renewal-link-record-actions">
                     <button *ngIf="link.status === 'submitted'" type="button" class="renewal-action" [disabled]="busy" (click)="selectResponse(link)">Ver respuesta</button>

@@ -39,7 +39,6 @@ export interface PublicRenewalDevice {
 export interface PublicRenewalInfo {
   expirationFilter?: RenewalExpirationFilter;
   client: { name: string };
-  expiresAt: string;
   status: 'active' | 'submitted';
   submittedAt?: string;
   /** Choices already marked on an open link, to resume where the client left off. */
@@ -60,7 +59,6 @@ export interface CreatedRenewalLink {
   id: string;
   token: string;
   client: RenewalLinkClient;
-  expiresAt: string;
   deviceCount: number;
 }
 
@@ -115,8 +113,7 @@ export interface RenewalLinkSummary {
   id: string;
   client: RenewalLinkClient;
   createdAt: string;
-  expiresAt: string;
-  status: 'active' | 'submitted' | 'revoked' | 'expired';
+  status: 'active' | 'submitted' | 'revoked';
   deviceCount: number;
   submittedAt?: string;
   execution?: RenewalLinkExecution;
@@ -135,10 +132,9 @@ export interface RenewalLinkSummary {
 export interface RenewalLinkShare {
   id: string;
   token: string;
-  expiresAt: string;
 }
 
-export type RenewalLinksOverviewStatus = 'all' | 'active' | 'submitted' | 'pending_processing' | 'processed' | 'expired' | 'revoked';
+export type RenewalLinksOverviewStatus = 'all' | 'active' | 'submitted' | 'pending_processing' | 'processed' | 'revoked';
 
 export interface RenewalLinksOverviewQuery {
   status?: RenewalLinksOverviewStatus;

@@ -12,8 +12,8 @@ describe('ProcessRenewalLinksDialogComponent', () => {
   let service: jasmine.SpyObj<RenewalLinksService>;
   let auth: jasmine.SpyObj<AuthService>;
   const client = { id: 'client-1', label: 'MARIA GARCIA', email: 'maria@example.com', phone: '8095550100' };
-  const created: CreatedRenewalLink = { id: 'link-1', token: 'secret-token', client: { id: client.id, name: client.label }, deviceCount: 2, expiresAt: '2026-10-06T12:00:00Z' };
-  const active: RenewalLinkSummary = { id: created.id, client: created.client, createdAt: '2026-09-29T12:00:00Z', expiresAt: created.expiresAt, status: 'active', deviceCount: 2 };
+  const created: CreatedRenewalLink = { id: 'link-1', token: 'secret-token', client: { id: client.id, name: client.label }, deviceCount: 2 };
+  const active: RenewalLinkSummary = { id: created.id, client: created.client, createdAt: '2026-09-29T12:00:00Z', status: 'active', deviceCount: 2 };
   const response: RenewalLinkSummary = { ...active, id: 'response-1', status: 'submitted', renewalMethod: 'credit', submittedAt: '2026-09-29T13:00:00Z', decisions: [
     { deviceId: 'device-1', name: 'Toyota', imei: '123', renew: true, expirationDate: '2026-09-20T00:00:00.000Z' },
     { deviceId: 'device-2', name: 'Honda', imei: '456', renew: false },

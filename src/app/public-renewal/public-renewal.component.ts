@@ -35,7 +35,6 @@ export class PublicRenewalComponent implements OnInit, OnDestroy {
   submittedOn: Date | null = null;
   /** Choices recovered from the link when it was reopened. */
   restoredCount = 0;
-  linkExpiresOn: Date | null = null;
 
   private token = '';
   private decisions = new Map<string, boolean>();
@@ -232,7 +231,6 @@ export class PublicRenewalComponent implements OnInit, OnDestroy {
     this.decisions.clear();
     this.restoredCount = 0;
     this.submittedOn = null;
-    this.linkExpiresOn = null;
     if (!this.token) {
       this.setLoadError(404);
       return;
@@ -298,7 +296,6 @@ export class PublicRenewalComponent implements OnInit, OnDestroy {
     this.info = info;
     this.devices = info.devices.map(device => ({ ...device, expiration: parseProcessDisplayDate(device.expirationDate) }));
     this.submittedOn = this.timestamp(info.submittedAt);
-    this.linkExpiresOn = this.timestamp(info.expiresAt);
     this.decisions.clear();
     if (info.status === 'submitted') {
       for (const device of info.devices) {
@@ -324,7 +321,7 @@ export class PublicRenewalComponent implements OnInit, OnDestroy {
     if ([400, 403, 404, 410].includes(status || 0)) {
       this.loadErrorTitle = 'Enlace no disponible';
       this.loadError = status === 410
-        ? 'Este enlace venció o fue revocado. Solicita un nuevo enlace a Montao GPS.'
+        ? 'Este enlace fue anulado. Solicita un nuevo enlace a Montao GPS.'
         : 'Este enlace no es válido o ya no está disponible. Solicita un nuevo enlace a Montao GPS.';
     } else {
       this.loadErrorTitle = 'No pudimos cargar tu solicitud';

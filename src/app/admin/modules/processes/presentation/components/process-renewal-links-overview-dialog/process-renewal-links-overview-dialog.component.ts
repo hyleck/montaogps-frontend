@@ -37,7 +37,6 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
     { value: 'pending_processing', label: 'Por procesar' },
     { value: 'submitted', label: 'Respondidos' },
     { value: 'processed', label: 'Procesados' },
-    { value: 'expired', label: 'Vencidos' },
     { value: 'revoked', label: 'Anulados' },
   ];
 
@@ -107,9 +106,9 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
 
   open(link: OverviewLink): void { this.manage.emit(link); }
 
-  /** Only links the client can still open: waiting for an answer or answered, before they expire. */
+  /** Only links the client can still open: waiting for an answer or answered. */
   canShare(link: OverviewLink): boolean {
-    return (link.status === 'active' || link.status === 'submitted') && Date.parse(link.expiresAt) > Date.now();
+    return link.status === 'active' || link.status === 'submitted';
   }
 
   copyLink(link: OverviewLink): void { this.fetchShare(link, 'copy'); }
@@ -228,7 +227,6 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
 
   statusLabel(link: OverviewLink): string {
     if (link.status === 'active') return 'Esperando respuesta';
-    if (link.status === 'expired') return 'Vencido sin respuesta';
     if (link.status === 'revoked') return 'Anulado';
     if (link.execution) {
       return link.execution.status === 'completed' ? 'Procesado'
