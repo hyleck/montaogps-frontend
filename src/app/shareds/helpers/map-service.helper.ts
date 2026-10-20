@@ -3,6 +3,7 @@ import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
 // utils/marker-service.ts
 import mapboxgl from 'mapbox-gl';
 import { PopupBuilder } from './map-popup.helper';
+import { getMovingSpeedKmh } from './device-movement.helper';
 
 export class MarkerService {
   private static currentTargetId: string | null = null;
@@ -80,8 +81,7 @@ export class MarkerService {
     this.currentTargetId = targetId;
     this.abortController = new AbortController();
     
-    const speedKnots = target?.traccarInfo?.geolocation?.speed || 0;
-    const speedKmh = Math.round(speedKnots * 1.852);
+    const speedKmh = getMovingSpeedKmh(target?.traccarInfo);
     const status = target?.traccarInfo?.status || 'desconocido';
     const vehicleType = vehicleTypeGetter?.(target.model);
     const title = target.name;
@@ -423,8 +423,7 @@ export class MarkerService {
     const position = getValidTargetPosition(target);
     if (!position) return;
     const { lat, lng } = position;
-    const speedKnots = target?.traccarInfo?.geolocation?.speed || 0;
-    const currentSpeedKmh = Math.round(speedKnots * 1.852);
+    const currentSpeedKmh = getMovingSpeedKmh(target?.traccarInfo);
     
     // console.log('📍 updatePosition: Coordenadas actuales:', { 
     //   lat: lat.toFixed(6), 
@@ -500,10 +499,7 @@ export class MarkerService {
       return;
     }
     
-    const finalSpeedKmh = speedKmh !== undefined ? speedKmh : (() => {
-      const speedKnots = target?.traccarInfo?.geolocation?.speed || 0;
-      return Math.round(speedKnots * 1.852);
-    })();
+    const finalSpeedKmh = speedKmh !== undefined ? speedKmh : getMovingSpeedKmh(target?.traccarInfo);
 
     const status = target?.traccarInfo?.status || 'desconocido';
     
@@ -782,8 +778,7 @@ export class MarkerService {
       }
 
       // Si no hay datos explícitos de ignición, inferir por velocidad
-      const speed = target?.traccarInfo?.geolocation?.speed || 0;
-      const result = speed > 0 ? 'on' : 'off';  
+      const result = getMovingSpeedKmh(target?.traccarInfo) > 0 ? 'on' : 'off';
       // console.log('🔋 DEBUG: Infiriendo por velocidad:', speed, '→', result);
       return result;
 

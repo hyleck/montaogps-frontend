@@ -4,6 +4,7 @@ import { VehicleBrandsService } from '@core/services/vehicle-brands.service';
 import { ColorsService } from '@core/services/colors.service';
 import { environment } from 'src/environments/environment';
 import { lastValueFrom } from 'rxjs';
+import { getMovingSpeedKmh } from 'src/app/shareds/helpers/device-movement.helper';
 
 export interface VehicleType {
   _id: string;
@@ -252,8 +253,11 @@ export class VehicleDataService {
    * Obtiene la velocidad del dispositivo formateada
    */
   getDeviceSpeed(target: any): string {
-    const speedInKnots = target?.traccarInfo?.speed || target?.originalTarget?.traccarInfo?.speed || 0;
-    const speedInKmh = this.convertKnotsToKmh(speedInKnots);
+    const traccarInfo = target?.traccarInfo?.geolocation || target?.traccarInfo?.lastLocation
+      ? target.traccarInfo
+      : target?.originalTarget?.traccarInfo;
+    const speedInKmh = getMovingSpeedKmh(traccarInfo);
+    const speedInKnots = speedInKmh / 1.852;
     return this.formatSpeedDisplay(speedInKmh);
   }
 
@@ -261,8 +265,11 @@ export class VehicleDataService {
    * Obtiene datos completos de velocidad del dispositivo
    */
   getDeviceSpeedData(target: any): VehicleSpeedData {
-    const speedInKnots = target?.traccarInfo?.speed || target?.originalTarget?.traccarInfo?.speed || 0;
-    const speedInKmh = this.convertKnotsToKmh(speedInKnots);
+    const traccarInfo = target?.traccarInfo?.geolocation || target?.traccarInfo?.lastLocation
+      ? target.traccarInfo
+      : target?.originalTarget?.traccarInfo;
+    const speedInKmh = getMovingSpeedKmh(traccarInfo);
+    const speedInKnots = speedInKmh / 1.852;
     const displayText = this.formatSpeedDisplay(speedInKmh);
 
     return {

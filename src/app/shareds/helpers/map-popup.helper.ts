@@ -1,5 +1,6 @@
 import { getGpsLocationTimestamp, getValidTargetPosition } from './gps-position.helper';
 import { formatDeviceLabel } from 'src/app/shareds/pipes/device-label.pipe';
+import { getMovingSpeedKmh } from './device-movement.helper';
 // utils/popup-builder.ts
 
 export class PopupBuilder {
@@ -845,7 +846,6 @@ export class PopupBuilder {
       }
       
       // Inferir por velocidad como fallback
-      const speed = target?.traccarInfo?.geolocation?.speed || 0;
-      return speed > 0 ? 'on' : 'off';
+      return getMovingSpeedKmh(target?.traccarInfo) > 0 ? 'on' : 'off';
     }
   }
