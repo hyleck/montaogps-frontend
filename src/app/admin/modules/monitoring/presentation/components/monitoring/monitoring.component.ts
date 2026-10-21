@@ -1622,22 +1622,23 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     return protocol ? protocol.name : deviceType;
   }
 
-  get availableSimCompanies(): string[] {
+  get availableSimCompanies(): Array<{ value: string; label: string }> {
     if (!this.monitoringResult?.data) {
       return [];
     }
 
-    const companies = new Set<string>();
+    // The filter compares case-insensitively, so "Nacionales" and "nacionales" are one company.
+    const companies = new Map<string, string>();
     this.monitoringResult.data.forEach(userData => {
       (userData.devices ?? []).forEach(device => {
-        const value = device?.sim_company;
-        if (value) {
-          companies.add(value.toString());
+        const value = device?.sim_company?.toString().trim().toLowerCase();
+        if (value && !companies.has(value)) {
+          companies.set(value, SIM_CARD_TYPES.find(type => type.value === value)?.label ?? device!.sim_company!.toString().trim());
         }
       });
     });
 
-    return Array.from(companies).sort((a, b) => a.localeCompare(b));
+    return Array.from(companies, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
   }
 
   // Getter to filter out users without devices and apply status/expiration filters
@@ -1688,7 +1689,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
         if (this._selectedSimCompanyFilter && this._selectedSimCompanyFilter !== '') {
           filteredDevices = filteredDevices.filter(device => {
-            const simCompany = device?.sim_company?.toString().toLowerCase() ?? '';
+            const simCompany = device?.sim_company?.toString().trim().toLowerCase() ?? '';
             return simCompany === this._selectedSimCompanyFilter.toLowerCase();
           });
         }

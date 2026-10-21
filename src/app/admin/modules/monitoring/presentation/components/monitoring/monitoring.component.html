@@ -498,8 +498,8 @@
           <label>{{ 'MONITORING.FILTERS_SIM_COMPANY' | translate }}</label>
           <select [(ngModel)]="selectedSimCompanyFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_ALL_SIM_COMPANIES' | translate }}</option>
-            <option *ngFor="let company of availableSimCompanies" [value]="company">
-              {{ company }}
+            <option *ngFor="let company of availableSimCompanies" [value]="company.value">
+              {{ company.label }}
             </option>
           </select>
         </div>
