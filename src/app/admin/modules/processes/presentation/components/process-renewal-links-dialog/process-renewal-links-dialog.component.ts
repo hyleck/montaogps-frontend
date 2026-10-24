@@ -29,6 +29,8 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   @Input() dateTo: Date | null = null;
   /** Link to focus when the dialog opens from the overview of every client's links. */
   @Input() initialLinkId = '';
+  /** Opens the initial link straight into adding or removing GPS (root only). */
+  @Input() initialAction: '' | 'devices' = '';
   @Output() visibleChange = new EventEmitter<boolean>();
   @Output() processed = new EventEmitter<void>();
 
@@ -281,6 +283,10 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     const link = this.links.find(item => item.id === this.initialLinkId);
     if (!link) return false;
     this.highlightedId = link.id;
+    if (this.initialAction === 'devices' && this.canEditDevices(link)) {
+      this.startDeviceEdit(link);
+      return true;
+    }
     if (link.status !== 'submitted') return false;
     this.selectResponse(link);
     return true;

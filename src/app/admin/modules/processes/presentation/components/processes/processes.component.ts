@@ -193,6 +193,7 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
   renewalLinksMode: 'generate' | 'responses' = 'generate';
   renewalLinksClient: { id: string; label: string; email?: string; phone?: string } | null = null;
   renewalLinksInitialId = '';
+  renewalLinksInitialAction: '' | 'devices' = '';
   renewalOverviewVisible = false;
   private reopenRenewalOverview = false;
 
@@ -442,6 +443,7 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.renewalLinksClient = { ...this.selectedClient! };
     this.renewalLinksMode = mode;
     this.renewalLinksInitialId = '';
+    this.renewalLinksInitialAction = '';
     this.reopenRenewalOverview = false;
     this.renewalLinksDialogVisible = true;
   }
@@ -452,11 +454,12 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /** Opens a link from the overview in its client's dialog; closing it returns to the overview. */
-  manageRenewalLink(link: { id: string; client: { id: string; name: string } }): void {
+  manageRenewalLink(link: { id: string; client: { id: string; name: string } }, action: '' | 'devices' = ''): void {
     if (!link?.id || !link.client?.id) return;
     this.renewalLinksClient = { id: link.client.id, label: link.client.name };
     this.renewalLinksMode = 'responses';
     this.renewalLinksInitialId = link.id;
+    this.renewalLinksInitialAction = action;
     this.reopenRenewalOverview = true;
     this.renewalOverviewVisible = false;
     this.renewalLinksDialogVisible = true;
@@ -466,6 +469,7 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     this.renewalLinksDialogVisible = visible;
     if (visible) return;
     this.renewalLinksInitialId = '';
+    this.renewalLinksInitialAction = '';
     if (this.reopenRenewalOverview) {
       this.reopenRenewalOverview = false;
       this.renewalOverviewVisible = true;

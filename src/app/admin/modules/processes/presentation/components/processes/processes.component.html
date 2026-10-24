@@ -332,13 +332,13 @@
 
 <app-process-renewal-links-dialog *ngIf="renewalLinksDialogVisible" [visible]="renewalLinksDialogVisible"
     (visibleChange)="onRenewalLinksVisibleChange($event)"
-    [client]="renewalLinksClient" [mode]="renewalLinksMode" [initialLinkId]="renewalLinksInitialId"
+    [client]="renewalLinksClient" [mode]="renewalLinksMode" [initialLinkId]="renewalLinksInitialId" [initialAction]="renewalLinksInitialAction"
     [dateFrom]="renewalLinksInitialId ? null : dateFrom" [dateTo]="renewalLinksInitialId ? null : dateTo"
     (processed)="onRenewalResponseProcessed()">
 </app-process-renewal-links-dialog>
 
 <app-process-renewal-links-overview-dialog *ngIf="renewalOverviewVisible" [(visible)]="renewalOverviewVisible"
-    (manage)="manageRenewalLink($event)">
+    (manage)="manageRenewalLink($event)" (editDevices)="manageRenewalLink($event, 'devices')">
 </app-process-renewal-links-overview-dialog>
 
 <p-dialog [(visible)]="detailDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"

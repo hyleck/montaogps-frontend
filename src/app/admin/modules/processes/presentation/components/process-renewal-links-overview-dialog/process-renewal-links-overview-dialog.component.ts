@@ -8,6 +8,7 @@ import {
   RenewalExpirationFilter, RenewalLinkShare, RenewalLinkSummary, RenewalLinksOverviewPage, RenewalLinksOverviewStatus, RenewalLinksService,
 } from 'src/app/core/services/renewal-links.service';
 import { formatUserName } from 'src/app/core/utils/user-name.util';
+import { AuthService } from 'src/app/core/services/auth.service';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
 import { renewalExpirationFilterLabel } from 'src/app/core/utils/renewal-expiration-filter.util';
@@ -30,6 +31,8 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
   @Output() visibleChange = new EventEmitter<boolean>();
   /** Opens the client's renewal dialog on this link to review, process, change its range or annul it. */
   @Output() manage = new EventEmitter<RenewalLinkSummary>();
+  /** Root only: opens the link ready to add or remove GPS. */
+  @Output() editDevices = new EventEmitter<RenewalLinkSummary>();
 
   readonly statusOptions: Array<{ value: RenewalLinksOverviewStatus; label: string }> = [
     { value: 'all', label: 'Todos' },
@@ -57,7 +60,7 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
   private requests = new Subscription();
   private generation = 0;
 
-  constructor(private readonly service: RenewalLinksService) {}
+  constructor(private readonly service: RenewalLinksService, private readonly auth: AuthService) {}
 
   get hasMore(): boolean { return this.links.length < this.total; }
 
@@ -105,6 +108,13 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
   toggle(link: OverviewLink): void { this.expandedId = this.expandedId === link.id ? '' : link.id; }
 
   open(link: OverviewLink): void { this.manage.emit(link); }
+
+  /** Root users can add or remove GPS until the response starts being processed. */
+  canEditDevices(link: OverviewLink): boolean {
+    return this.auth.isRootUser() && (link.status === 'active' || link.status === 'submitted') && !link.execution;
+  }
+
+  editLinkDevices(link: OverviewLink): void { if (this.canEditDevices(link)) this.editDevices.emit(link); }
 
   /** Only links the client can still open: waiting for an answer or answered. */
   canShare(link: OverviewLink): boolean {

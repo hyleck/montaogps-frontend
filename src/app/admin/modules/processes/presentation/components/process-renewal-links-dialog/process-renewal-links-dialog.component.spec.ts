@@ -983,4 +983,15 @@ describe('ProcessRenewalLinksDialogComponent', () => {
       expect(service.updateDevices).not.toHaveBeenCalled();
     });
   });
+  it('opens straight into editing the GPS when asked from the links overview', () => {
+    auth.isRootUser.and.returnValue(true);
+    service.getForClient.and.returnValue(of([active, response]));
+    service.deviceOptions.and.returnValue(of([{ id: 'd1', name: 'Toyota Rav4', imei: '111', inLink: true, addedManually: false }]));
+    fixture.componentRef.setInput('initialLinkId', response.id);
+    fixture.componentRef.setInput('initialAction', 'devices');
+    open('responses');
+    expect(component.editingDevicesId).toBe(response.id);
+    expect(component.responseVisible).toBeFalse();
+    expect(service.deviceOptions).toHaveBeenCalledOnceWith(response.id);
+  });
 });

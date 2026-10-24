@@ -63,6 +63,9 @@
                                 <i class="pi pi-share-alt" aria-hidden="true"></i> Reenviar
                             </button>
                         </ng-container>
+                        <button *ngIf="canEditDevices(link)" type="button" class="overview-action" (click)="editLinkDevices(link)">
+                            <i class="pi pi-list-check" aria-hidden="true"></i> Agregar o quitar
+                        </button>
                         <button type="button" class="overview-action overview-action--primary" (click)="open(link)">Gestionar</button>
                     </div>
                 </div>

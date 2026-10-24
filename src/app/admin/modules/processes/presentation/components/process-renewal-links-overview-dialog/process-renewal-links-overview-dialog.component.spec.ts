@@ -3,11 +3,13 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 import { RenewalLinksOverviewPage, RenewalLinksService } from 'src/app/core/services/renewal-links.service';
 import { ProcessRenewalLinksOverviewDialogComponent } from './process-renewal-links-overview-dialog.component';
+import { AuthService } from 'src/app/core/services/auth.service';
 
 describe('ProcessRenewalLinksOverviewDialogComponent', () => {
   let fixture: ComponentFixture<ProcessRenewalLinksOverviewDialogComponent>;
   let component: ProcessRenewalLinksOverviewDialogComponent;
   let service: jasmine.SpyObj<RenewalLinksService>;
+  let auth: jasmine.SpyObj<AuthService>;
   const counts = { all: 3, active: 1, submitted: 1, pending_processing: 1, processed: 0, revoked: 1 };
   const page: RenewalLinksOverviewPage = { total: 3, counts, items: [
     { id: 'submitted', client: { id: 'c1', name: 'INVERSIONES MJ GARCIA' }, createdAt: '2026-10-01T12:00:00Z',
@@ -26,9 +28,11 @@ describe('ProcessRenewalLinksOverviewDialogComponent', () => {
 
   beforeEach(async () => {
     service = jasmine.createSpyObj('RenewalLinksService', ['listAll', 'getShareLink', 'regenerateLink']);
+    auth = jasmine.createSpyObj('AuthService', ['isRootUser']);
+    auth.isRootUser.and.returnValue(false);
     service.listAll.and.returnValue(of(page));
     await TestBed.configureTestingModule({ imports: [ProcessRenewalLinksOverviewDialogComponent, NoopAnimationsModule],
-      providers: [{ provide: RenewalLinksService, useValue: service }] }).compileComponents();
+      providers: [{ provide: RenewalLinksService, useValue: service }, { provide: AuthService, useValue: auth }] }).compileComponents();
     fixture = TestBed.createComponent(ProcessRenewalLinksOverviewDialogComponent);
     component = fixture.componentInstance;
   });
@@ -143,5 +147,19 @@ describe('ProcessRenewalLinksOverviewDialogComponent', () => {
     service.listAll.and.returnValue(throwError(() => ({ error: { message: 'Sin conexión' } })));
     open();
     expect(component.error).toContain('Sin conexión');
+  });
+  it('offers adding or removing GPS only to root users, on links not yet processed', () => {
+    fixture.componentRef.setInput('visible', true); fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Agregar o quitar');
+    auth.isRootUser.and.returnValue(true);
+    fixture.detectChanges();
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .filter(button => button.textContent?.includes('Agregar o quitar'));
+    expect(buttons.length).toBe(2);
+    expect(component.canEditDevices(page.items.find(item => item.status === 'revoked')!)).toBeFalse();
+    const emitted: string[] = [];
+    component.editDevices.subscribe(link => emitted.push(link.id));
+    buttons[0].click();
+    expect(emitted).toEqual(['submitted']);
   });
 });
