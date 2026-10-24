@@ -49,6 +49,11 @@ export interface PublicRenewalInfo {
   devices: PublicRenewalDevice[];
 }
 
+export interface RenewalLinkDeviceOption extends PublicRenewalDevice {
+  inLink: boolean;
+  addedManually: boolean;
+}
+
 export interface RenewalLinkClient {
   id: string;
   name: string;
@@ -120,6 +125,8 @@ export interface RenewalLinkSummary {
   renewalMethod?: 'cash' | 'credit' | null;
   renewalMethodError?: string;
   rangeChangeCount?: number;
+  /** Number of times a root user added or removed GPS by hand. */
+  deviceChangeCount?: number;
   decisions?: Array<RenewalDecision & {
     name: string;
     imei: string;
@@ -193,6 +200,16 @@ export class RenewalLinksService {
 
   revoke(id: string): Observable<RenewalLinkSummary> {
     return this.http.patch<RenewalLinkSummary>(`${this.apiUrl}/${encodeURIComponent(id)}/revoke`, {});
+  }
+
+  /** Root only: the client's GPS, marking which ones the link includes. */
+  deviceOptions(id: string): Observable<RenewalLinkDeviceOption[]> {
+    return this.http.get<RenewalLinkDeviceOption[]>(`${this.apiUrl}/${encodeURIComponent(id)}/devices`);
+  }
+
+  /** Root only: adds or removes GPS and returns the link to pending under the same URL. */
+  updateDevices(id: string, changes: { add: string[]; remove: string[] }): Observable<RenewalLinkSummary> {
+    return this.http.patch<RenewalLinkSummary>(`${this.apiUrl}/${encodeURIComponent(id)}/devices`, changes);
   }
 
   /** Changes the expiration range and returns the link to pending under the same URL. */

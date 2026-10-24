@@ -46,12 +46,14 @@
                     <span>Creado {{ link.createdAt | date:'dd/MM/yyyy · HH:mm' }} · {{ link.deviceCount }} dispositivos</span>
                     <span>{{ expirationFilterLabel(link.expirationFilter) }}</span>
                     <span *ngIf="link.rangeChangeCount">Rango modificado {{ link.rangeChangeCount === 1 ? 'una vez' : link.rangeChangeCount + ' veces' }}</span>
+                    <span *ngIf="link.deviceChangeCount">Dispositivos editados {{ link.deviceChangeCount === 1 ? 'una vez' : link.deviceChangeCount + ' veces' }}</span>
                     <span *ngIf="link.status === 'submitted'">{{ renewalCount(link) }} para renovar · {{ declineCount(link) }} sin renovar</span>
                 </div>
                 <div class="renewal-link-record-actions">
                     <button *ngIf="link.status === 'submitted'" type="button" class="renewal-action" [disabled]="busy" (click)="selectResponse(link)">Ver respuesta</button>
-                    <ng-container *ngIf="canModify(link) && editingRangeId !== link.id && confirmRevokeId !== link.id">
+                    <ng-container *ngIf="canModify(link) && editingRangeId !== link.id && editingDevicesId !== link.id && confirmRevokeId !== link.id">
                         <button type="button" class="renewal-action" [disabled]="busy" (click)="startRangeEdit(link)"><i class="pi pi-calendar" aria-hidden="true"></i> Cambiar rango</button>
+                        <button *ngIf="canEditDevices(link)" type="button" class="renewal-action" [disabled]="busy" (click)="startDeviceEdit(link)"><i class="pi pi-list-check" aria-hidden="true"></i> Agregar o quitar</button>
                         <button type="button" class="renewal-action" [disabled]="busy" (click)="askRevoke(link)">
                             {{ revokingId === link.id ? 'Anulando…' : 'Anular enlace' }}
                         </button>
@@ -64,6 +66,33 @@
                         <button type="button" class="renewal-action" [disabled]="busy" (click)="confirmRevokeId = ''">Cancelar</button>
                     </div>
                 </div>
+                <form *ngIf="editingDevicesId === link.id" class="renewal-link-inline" (ngSubmit)="saveDevices(link)" aria-label="Agregar o quitar dispositivos">
+                    <p>Marca los dispositivos que debe incluir el enlace. Los que agregues se quedan aunque estén fuera del rango.<ng-container *ngIf="link.status === 'submitted'"> La respuesta actual se descartará.</ng-container> El enlace volverá a quedar pendiente con el mismo link para que el cliente lo revise otra vez.</p>
+                    <p *ngIf="loadingDevices" class="renewal-links-feedback" role="status">Cargando dispositivos del cliente…</p>
+                    <ng-container *ngIf="!loadingDevices && deviceOptions.length">
+                        <label [for]="'device-search-' + link.id">Buscar
+                            <input [id]="'device-search-' + link.id" name="deviceSearch" type="search" [(ngModel)]="deviceSearch" placeholder="Nombre, IMEI, placa o cuenta" [disabled]="!!savingDevicesId">
+                        </label>
+                        <p class="renewal-device-summary">{{ deviceSelection.size }} de {{ deviceOptions.length }} en el enlace<ng-container *ngIf="deviceEditChanges.add.length"> · {{ deviceEditChanges.add.length }} por agregar</ng-container><ng-container *ngIf="deviceEditChanges.remove.length"> · {{ deviceEditChanges.remove.length }} por quitar</ng-container></p>
+                        <div class="renewal-device-options" role="group" aria-label="Dispositivos del cliente">
+                            <label *ngFor="let option of filteredDeviceOptions" class="renewal-device-option" [class.renewal-device-option--changed]="deviceSelection.has(option.id) !== option.inLink">
+                                <input type="checkbox" [checked]="deviceSelection.has(option.id)" [disabled]="!!savingDevicesId" (change)="toggleDevice(option)">
+                                <span>
+                                    <strong>{{ option.name || option.imei }}</strong>
+                                    <small>{{ option.imei }}<ng-container *ngIf="option.plate"> · {{ option.plate }}</ng-container> · {{ option.expirationDate ? ('Vence ' + (displayDate(option.expirationDate) | date:'dd/MM/yyyy')) : 'Sin vencimiento' }}<ng-container *ngIf="option.addedManually"> · Agregado a mano</ng-container></small>
+                                    <small *ngIf="option.account?.path?.length"><ng-container *ngFor="let name of option.account?.path; let last = last">{{ name | userName }}<ng-container *ngIf="!last"> › </ng-container></ng-container></small>
+                                </span>
+                            </label>
+                            <p *ngIf="!filteredDeviceOptions.length" class="renewal-links-feedback">Ningún dispositivo coincide con la búsqueda.</p>
+                        </div>
+                    </ng-container>
+                    <p *ngIf="!loadingDevices && !deviceOptions.length && !devicesError" class="renewal-links-feedback">El cliente no tiene dispositivos disponibles.</p>
+                    <p *ngIf="devicesError" class="renewal-links-error" role="alert">{{ devicesError }}</p>
+                    <div class="renewal-links-actions">
+                        <button type="submit" class="renewal-action renewal-action--primary" [disabled]="busy || loadingDevices">{{ savingDevicesId === link.id ? 'Guardando…' : 'Guardar y reabrir' }}</button>
+                        <button type="button" class="renewal-action" [disabled]="!!savingDevicesId" (click)="cancelDeviceEdit()">Cancelar</button>
+                    </div>
+                </form>
                 <form *ngIf="editingRangeId === link.id" class="renewal-link-inline" (ngSubmit)="saveRange(link)" aria-label="Cambiar rango de vencimientos">
                     <p>Elige el nuevo rango de vencimientos.<ng-container *ngIf="link.status === 'submitted'"> La respuesta actual se descartará</ng-container> El enlace volverá a quedar pendiente con el mismo link para que el cliente lo revise otra vez. Sin fechas, incluye solo los vencidos.</p>
                     <fieldset class="renewal-bulk-fields" [disabled]="busy">

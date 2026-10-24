@@ -47,6 +47,14 @@
 .renewal-link-inline label { display: flex; flex-direction: column; gap: 5px; font-weight: 600; font-size: .83rem; }
 .renewal-link-inline input { padding: 9px 10px; border: 1px solid var(--renewal-border); border-radius: 8px; background: var(--renewal-surface); color: var(--renewal-text); font: inherit; }
 .renewal-link-record .renewal-link-status { font-size: .85rem; }
+.renewal-device-summary { color: var(--renewal-muted); font-size: .8rem; margin: 10px 0 6px !important; }
+.renewal-device-options { display: grid; gap: 6px; max-height: 340px; overflow-y: auto; margin-bottom: 10px; padding-right: 4px; }
+.renewal-link-inline .renewal-device-option { display: grid; grid-template-columns: auto minmax(0, 1fr); flex-direction: row; align-items: start; gap: 10px; padding: 9px 10px; border: 1px solid var(--renewal-border); border-radius: 8px; font-weight: 400; cursor: pointer; }
+.renewal-link-inline .renewal-device-option input { margin-top: 3px; padding: 0; }
+.renewal-device-option--changed { border-color: var(--renewal-accent) !important; background: var(--renewal-soft); }
+.renewal-device-option span { display: grid; gap: 2px; min-width: 0; }
+.renewal-device-option strong { font-size: .84rem; overflow-wrap: anywhere; }
+.renewal-device-option small { color: var(--renewal-muted); font-size: .76rem; overflow-wrap: anywhere; }
 .renewal-link-status--submitted { color: #15803d; }
 .renewal-action { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 12px; min-height: 38px; border: 1px solid var(--renewal-border); border-radius: 8px; background: var(--renewal-surface); color: var(--renewal-text); font: inherit; font-size: .8rem; font-weight: 600; text-decoration: none; cursor: pointer; }
 .renewal-action--primary { background: var(--renewal-accent); border-color: var(--renewal-accent); color: #fff; }

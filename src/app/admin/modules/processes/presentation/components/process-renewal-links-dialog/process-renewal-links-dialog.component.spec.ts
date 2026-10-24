@@ -20,8 +20,9 @@ describe('ProcessRenewalLinksDialogComponent', () => {
   ] };
 
   beforeEach(async () => {
-    service = jasmine.createSpyObj('RenewalLinksService', ['create', 'getForClient', 'revoke', 'updateRange', 'preview', 'execute']);
-    auth = jasmine.createSpyObj('AuthService', ['hasPrivilege', 'getCurrentUser']);
+    service = jasmine.createSpyObj('RenewalLinksService', ['create', 'getForClient', 'revoke', 'updateRange', 'deviceOptions', 'updateDevices', 'preview', 'execute']);
+    auth = jasmine.createSpyObj('AuthService', ['hasPrivilege', 'getCurrentUser', 'isRootUser']);
+    auth.isRootUser.and.returnValue(false);
     auth.hasPrivilege.and.returnValue(true);
     auth.getCurrentUser.and.returnValue(null);
     service.create.and.returnValue(of(created));
@@ -928,5 +929,58 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     pending.next(previewItems({ deviceId: 'device-1', renew: true, canExecute: true, effect: 'renewal' }));
     expect(processed).not.toHaveBeenCalled();
     expect(service.execute).not.toHaveBeenCalled();
+  });
+  describe('manual device edits', () => {
+    const options = [
+      { id: 'd1', name: 'Toyota Rav4', imei: '111', expirationDate: '2026-10-09T04:00:00Z', inLink: true, addedManually: false },
+      { id: 'd2', name: 'Kia K5', imei: '222', plate: 'A123', inLink: true, addedManually: false },
+      { id: 'd3', name: 'Honda CR-V', imei: '333', account: { path: ['MARIA GARCIA', 'SUCURSAL NORTE'] }, inLink: false, addedManually: false },
+    ];
+
+    it('is offered only to root users', () => {
+      open();
+      expect(fixture.nativeElement.textContent).not.toContain('Agregar o quitar');
+      expect(component.canEditDevices(active)).toBeFalse();
+      auth.isRootUser.and.returnValue(true);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Agregar o quitar');
+      expect(component.canEditDevices(completedResponse())).toBeFalse();
+    });
+
+    it('lets root add and remove GPS and reopens the link', () => {
+      auth.isRootUser.and.returnValue(true);
+      service.deviceOptions.and.returnValue(of(options));
+      const reopened: RenewalLinkSummary = { ...active, deviceCount: 2, deviceChangeCount: 1 };
+      service.updateDevices.and.returnValue(of(reopened));
+      open();
+      component.startDeviceEdit(active); fixture.detectChanges();
+      expect(service.deviceOptions).toHaveBeenCalledOnceWith(active.id);
+      expect(fixture.nativeElement.textContent).toContain('2 de 3 en el enlace');
+      expect(fixture.nativeElement.textContent).toContain('Maria Garcia › Sucursal Norte');
+      component.deviceSearch = 'honda';
+      expect(component.filteredDeviceOptions.map(option => option.id)).toEqual(['d3']);
+      component.toggleDevice(options[2]);
+      component.toggleDevice(options[1]);
+      expect(component.deviceEditChanges).toEqual({ add: ['d3'], remove: ['d2'] });
+      component.saveDevices(active); fixture.detectChanges();
+      expect(service.updateDevices).toHaveBeenCalledOnceWith(active.id, { add: ['d3'], remove: ['d2'] });
+      expect(component.links.find(link => link.id === active.id)).toEqual(reopened);
+      expect(component.editingDevicesId).toBe('');
+      expect(fixture.nativeElement.textContent).toContain('Dispositivos editados una vez');
+    });
+
+    it('does not save without changes or with an empty link', () => {
+      auth.isRootUser.and.returnValue(true);
+      service.deviceOptions.and.returnValue(of(options));
+      open();
+      component.startDeviceEdit(active);
+      component.saveDevices(active);
+      expect(component.devicesError).toContain('al menos un dispositivo');
+      component.toggleDevice(options[0]);
+      component.toggleDevice(options[1]);
+      component.saveDevices(active);
+      expect(component.devicesError).toContain('conservar al menos un dispositivo');
+      expect(service.updateDevices).not.toHaveBeenCalled();
+    });
   });
 });

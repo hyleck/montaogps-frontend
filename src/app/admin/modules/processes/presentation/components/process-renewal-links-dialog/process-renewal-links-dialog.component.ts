@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { UserNamePipe } from 'src/app/shareds/pipes/user-name.pipe';
 import { Subscription } from 'rxjs';
-import { CreatedRenewalLink, ExecuteRenewalLink, RenewalExpirationFilter, RenewalLinkAction, RenewalLinkExecutionResult, RenewalLinkPreview, RenewalLinkPreviewItem, RenewalLinkSummary, RenewalLinksService } from 'src/app/core/services/renewal-links.service';
+import { CreatedRenewalLink, ExecuteRenewalLink, RenewalExpirationFilter, RenewalLinkAction, RenewalLinkDeviceOption, RenewalLinkExecutionResult, RenewalLinkPreview, RenewalLinkPreviewItem, RenewalLinkSummary, RenewalLinksService } from 'src/app/core/services/renewal-links.service';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { formatUserName } from 'src/app/core/utils/user-name.util';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
@@ -49,6 +49,13 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   savingRangeId = '';
   rangeError = '';
   rangeMessage = '';
+  editingDevicesId = '';
+  savingDevicesId = '';
+  loadingDevices = false;
+  deviceOptions: RenewalLinkDeviceOption[] = [];
+  deviceSelection = new Set<string>();
+  deviceSearch = '';
+  devicesError = '';
   error = '';
   historyError = '';
   copyMessage = '';
@@ -147,7 +154,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     return 'El método de renovación no está disponible. Revisa la configuración en Incosis y actualiza la respuesta.';
   }
 
-  get busy(): boolean { return this.creating || this.loading || !!this.revokingId || !!this.savingRangeId || this.executing; }
+  get busy(): boolean { return this.creating || this.loading || !!this.revokingId || !!this.savingRangeId || !!this.savingDevicesId || this.executing; }
 
   /** Links can be edited or annulled until staff start processing the response. */
   canModify(link: RenewalLinkSummary): boolean {
@@ -306,8 +313,100 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     }));
   }
 
+  /** Only root users can add or remove GPS by hand. */
+  canEditDevices(link: RenewalLinkSummary): boolean {
+    return this.auth.isRootUser() && this.canModify(link);
+  }
+
+  get filteredDeviceOptions(): RenewalLinkDeviceOption[] {
+    const term = this.deviceSearch.trim().toLowerCase();
+    if (!term) return this.deviceOptions;
+    return this.deviceOptions.filter(option => [option.name, option.imei, option.plate, ...(option.account?.path || [])]
+      .some(value => String(value || '').toLowerCase().includes(term)));
+  }
+
+  get deviceEditChanges(): { add: string[]; remove: string[] } {
+    return {
+      add: this.deviceOptions.filter(option => !option.inLink && this.deviceSelection.has(option.id)).map(option => option.id),
+      remove: this.deviceOptions.filter(option => option.inLink && !this.deviceSelection.has(option.id)).map(option => option.id),
+    };
+  }
+
+  startDeviceEdit(link: RenewalLinkSummary): void {
+    if (this.busy || !this.canEditDevices(link)) return;
+    this.cancelRangeEdit();
+    this.confirmRevokeId = '';
+    this.editingDevicesId = link.id;
+    this.deviceOptions = [];
+    this.deviceSelection = new Set();
+    this.deviceSearch = this.devicesError = this.rangeMessage = '';
+    this.loadingDevices = true;
+    const generation = this.generation;
+    this.requests.add(this.service.deviceOptions(link.id).subscribe({
+      next: options => {
+        if (generation !== this.generation || this.editingDevicesId !== link.id) return;
+        this.loadingDevices = false;
+        this.deviceOptions = options;
+        this.deviceSelection = new Set(options.filter(option => option.inLink).map(option => option.id));
+      },
+      error: error => {
+        if (generation !== this.generation || this.editingDevicesId !== link.id) return;
+        this.loadingDevices = false;
+        this.devicesError = getApiErrorMessage(error, 'No se pudieron cargar los dispositivos del cliente.');
+      },
+    }));
+  }
+
+  toggleDevice(option: RenewalLinkDeviceOption): void {
+    if (this.savingDevicesId) return;
+    const next = new Set(this.deviceSelection);
+    if (next.has(option.id)) next.delete(option.id); else next.add(option.id);
+    this.deviceSelection = next;
+  }
+
+  cancelDeviceEdit(): void {
+    if (this.savingDevicesId) return;
+    this.editingDevicesId = this.deviceSearch = this.devicesError = '';
+    this.deviceOptions = [];
+    this.deviceSelection = new Set();
+    this.loadingDevices = false;
+  }
+
+  saveDevices(link: RenewalLinkSummary): void {
+    if (this.busy || !this.visible || this.editingDevicesId !== link.id || !this.canEditDevices(link)) return;
+    const changes = this.deviceEditChanges;
+    if (!changes.add.length && !changes.remove.length) {
+      this.devicesError = 'Marca o desmarca al menos un dispositivo.';
+      return;
+    }
+    if (!this.deviceSelection.size) {
+      this.devicesError = 'El enlace debe conservar al menos un dispositivo.';
+      return;
+    }
+    const generation = this.generation;
+    this.savingDevicesId = link.id;
+    this.devicesError = this.rangeMessage = this.error = '';
+    this.requests.add(this.service.updateDevices(link.id, changes).subscribe({
+      next: updated => {
+        if (generation !== this.generation) return;
+        this.savingDevicesId = '';
+        this.links = this.links.map(item => item.id === updated.id ? updated : item);
+        this.editingDevicesId = this.deviceSearch = '';
+        this.deviceOptions = [];
+        this.deviceSelection = new Set();
+        this.rangeMessage = `Dispositivos actualizados. El enlace volvió a quedar pendiente con ${updated.deviceCount} dispositivos; el cliente puede revisarlo con el mismo enlace.`;
+      },
+      error: error => {
+        if (generation !== this.generation) return;
+        this.savingDevicesId = '';
+        this.devicesError = getApiErrorMessage(error, 'No se pudieron actualizar los dispositivos del enlace.');
+      },
+    }));
+  }
+
   startRangeEdit(link: RenewalLinkSummary): void {
     if (this.busy || !this.canModify(link)) return;
+    this.cancelDeviceEdit();
     this.confirmRevokeId = '';
     this.editingRangeId = link.id;
     this.rangeFrom = link.expirationFilter?.mode === 'range' ? link.expirationFilter.dateFrom || '' : '';
@@ -579,5 +678,9 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     this.executing = false;
     this.revokingId = this.savingRangeId = this.confirmRevokeId = '';
     this.editingRangeId = this.rangeError = this.rangeMessage = '';
+    this.editingDevicesId = this.savingDevicesId = this.deviceSearch = this.devicesError = '';
+    this.deviceOptions = [];
+    this.deviceSelection = new Set();
+    this.loadingDevices = false;
   }
 }
