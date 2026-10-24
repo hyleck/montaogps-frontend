@@ -127,6 +127,8 @@ export interface RenewalLinkSummary {
   rangeChangeCount?: number;
   /** Number of times a root user added or removed GPS by hand. */
   deviceChangeCount?: number;
+  /** Number of times staff undid the client's confirmation. */
+  confirmationUndoCount?: number;
   decisions?: Array<RenewalDecision & {
     name: string;
     imei: string;
@@ -196,6 +198,11 @@ export class RenewalLinksService {
   /** Issues a new public URL for the link; the previous one stops working. */
   regenerateLink(id: string): Observable<RenewalLinkShare> {
     return this.http.post<RenewalLinkShare>(`${this.apiUrl}/${encodeURIComponent(id)}/link`, {});
+  }
+
+  /** Returns a confirmed link to pending under the same URL, with the client's choices still marked. */
+  undoConfirmation(id: string): Observable<RenewalLinkSummary> {
+    return this.http.patch<RenewalLinkSummary>(`${this.apiUrl}/${encodeURIComponent(id)}/undo-confirmation`, {});
   }
 
   revoke(id: string): Observable<RenewalLinkSummary> {

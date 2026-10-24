@@ -25,6 +25,7 @@
             </form>
         </div>
 
+        <p *ngIf="undoMessage" class="overview-feedback" role="status">{{ undoMessage }}</p>
         <p *ngIf="loading" class="overview-feedback" role="status"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Cargando enlaces…</p>
         <p *ngIf="error" class="overview-error" role="alert">{{ error }} <button type="button" class="overview-text-button" (click)="reload()">Reintentar</button></p>
         <p *ngIf="!loading && !error && !links.length" class="overview-feedback">No hay enlaces de renovación {{ search ? 'para esa búsqueda' : 'con ese estado' }}.</p>
@@ -63,6 +64,9 @@
                                 <i class="pi pi-share-alt" aria-hidden="true"></i> Reenviar
                             </button>
                         </ng-container>
+                        <button *ngIf="canUndoConfirmation(link)" type="button" class="overview-action" [disabled]="!!undoingId" (click)="askUndoConfirmation(link)">
+                            <i class="pi pi-undo" aria-hidden="true"></i> Deshacer confirmación
+                        </button>
                         <button *ngIf="canEditDevices(link)" type="button" class="overview-action" (click)="editLinkDevices(link)">
                             <i class="pi pi-list-check" aria-hidden="true"></i> Agregar o quitar
                         </button>
@@ -70,6 +74,14 @@
                     </div>
                 </div>
 
+                <div *ngIf="undoOfferId === link.id" class="overview-share" role="group" aria-label="Deshacer confirmación">
+                    <p>El enlace volverá a quedar <strong>esperando respuesta</strong> con el mismo link. El cliente verá lo que había marcado y podrá cambiarlo y confirmar otra vez. La respuesta actual queda guardada en el historial.</p>
+                    <div class="overview-share__actions">
+                        <button type="button" class="overview-action overview-action--primary" [disabled]="!!undoingId" (click)="confirmUndoConfirmation(link)">{{ undoingId === link.id ? 'Deshaciendo…' : 'Sí, deshacer' }}</button>
+                        <button type="button" class="overview-action" [disabled]="!!undoingId" (click)="cancelUndoConfirmation()">Cancelar</button>
+                    </div>
+                </div>
+                <p *ngIf="undoError?.id === link.id" class="overview-error" role="alert">{{ undoError?.message }}</p>
                 <div *ngIf="regenerateOfferId === link.id" class="overview-share" role="group" aria-label="Generar enlace nuevo">
                     <p>Este enlace se envió antes de que se pudiera volver a copiar. Puedes generar uno nuevo para reenviarlo: el cliente conserva sus dispositivos y su respuesta, pero <strong>el enlace anterior dejará de funcionar</strong>.</p>
                     <div class="overview-share__actions">

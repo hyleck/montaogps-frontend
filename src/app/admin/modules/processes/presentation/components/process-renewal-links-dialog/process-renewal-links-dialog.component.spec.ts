@@ -20,7 +20,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
   ] };
 
   beforeEach(async () => {
-    service = jasmine.createSpyObj('RenewalLinksService', ['create', 'getForClient', 'revoke', 'updateRange', 'deviceOptions', 'updateDevices', 'preview', 'execute']);
+    service = jasmine.createSpyObj('RenewalLinksService', ['create', 'getForClient', 'revoke', 'updateRange', 'deviceOptions', 'updateDevices', 'undoConfirmation', 'preview', 'execute']);
     auth = jasmine.createSpyObj('AuthService', ['hasPrivilege', 'getCurrentUser', 'isRootUser']);
     auth.isRootUser.and.returnValue(false);
     auth.hasPrivilege.and.returnValue(true);
@@ -993,5 +993,20 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     expect(component.editingDevicesId).toBe(response.id);
     expect(component.responseVisible).toBeFalse();
     expect(service.deviceOptions).toHaveBeenCalledOnceWith(response.id);
+  });
+  it('undoes a confirmed response and returns the link to pending', () => {
+    const reopened: RenewalLinkSummary = { ...response, status: 'active', decisions: undefined, submittedAt: undefined, confirmationUndoCount: 1 };
+    service.undoConfirmation.and.returnValue(of(reopened));
+    open();
+    expect(component.canUndoConfirmation(active)).toBeFalse();
+    expect(component.canUndoConfirmation(completedResponse())).toBeFalse();
+    component.undoConfirmation(response);
+    expect(service.undoConfirmation).not.toHaveBeenCalled();
+    component.askUndoConfirmation(response); fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Sí, deshacer');
+    component.undoConfirmation(response); fixture.detectChanges();
+    expect(service.undoConfirmation).toHaveBeenCalledOnceWith(response.id);
+    expect(component.links.find(link => link.id === response.id)).toEqual(reopened);
+    expect(fixture.nativeElement.textContent).toContain('Confirmación deshecha una vez');
   });
 });

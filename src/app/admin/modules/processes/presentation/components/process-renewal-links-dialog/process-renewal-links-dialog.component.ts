@@ -52,6 +52,8 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   rangeError = '';
   rangeMessage = '';
   editingDevicesId = '';
+  confirmUndoId = '';
+  undoingId = '';
   savingDevicesId = '';
   loadingDevices = false;
   deviceOptions: RenewalLinkDeviceOption[] = [];
@@ -156,7 +158,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     return 'El método de renovación no está disponible. Revisa la configuración en Incosis y actualiza la respuesta.';
   }
 
-  get busy(): boolean { return this.creating || this.loading || !!this.revokingId || !!this.savingRangeId || !!this.savingDevicesId || this.executing; }
+  get busy(): boolean { return this.creating || this.loading || !!this.revokingId || !!this.savingRangeId || !!this.savingDevicesId || !!this.undoingId || this.executing; }
 
   /** Links can be edited or annulled until staff start processing the response. */
   canModify(link: RenewalLinkSummary): boolean {
@@ -315,6 +317,41 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
         if (generation !== this.generation) return;
         this.revokingId = '';
         this.error = getApiErrorMessage(error, 'No se pudo anular el enlace.');
+      },
+    }));
+  }
+
+  /** A confirmed response can be undone until staff start processing it. */
+  canUndoConfirmation(link: RenewalLinkSummary): boolean {
+    return link.status === 'submitted' && this.canModify(link);
+  }
+
+  askUndoConfirmation(link: RenewalLinkSummary): void {
+    if (this.busy || !this.canUndoConfirmation(link)) return;
+    this.cancelRangeEdit();
+    this.cancelDeviceEdit();
+    this.confirmRevokeId = '';
+    this.confirmUndoId = link.id;
+    this.error = this.rangeMessage = '';
+  }
+
+  undoConfirmation(link: RenewalLinkSummary): void {
+    if (this.busy || !this.visible || this.confirmUndoId !== link.id || !this.canUndoConfirmation(link)) return;
+    const generation = this.generation;
+    this.undoingId = link.id;
+    this.error = this.rangeMessage = '';
+    this.requests.add(this.service.undoConfirmation(link.id).subscribe({
+      next: updated => {
+        if (generation !== this.generation) return;
+        this.undoingId = this.confirmUndoId = '';
+        this.links = this.links.map(item => item.id === updated.id ? updated : item);
+        if (this.selectedId === updated.id) { this.selectedId = ''; this.responseVisible = false; }
+        this.rangeMessage = 'Confirmación deshecha. El enlace volvió a quedar pendiente con lo que el cliente había marcado; puede revisarlo y confirmarlo otra vez con el mismo enlace.';
+      },
+      error: error => {
+        if (generation !== this.generation) return;
+        this.undoingId = '';
+        this.error = getApiErrorMessage(error, 'No se pudo deshacer la confirmación.');
       },
     }));
   }
@@ -685,6 +722,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
     this.revokingId = this.savingRangeId = this.confirmRevokeId = '';
     this.editingRangeId = this.rangeError = this.rangeMessage = '';
     this.editingDevicesId = this.savingDevicesId = this.deviceSearch = this.devicesError = '';
+    this.confirmUndoId = this.undoingId = '';
     this.deviceOptions = [];
     this.deviceSelection = new Set();
     this.loadingDevices = false;

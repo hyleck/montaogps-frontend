@@ -57,6 +57,10 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
   shared: { id: string; url: string; message: string } | null = null;
   shareError: { id: string; message: string } | null = null;
   regenerateOfferId = '';
+  undoOfferId = '';
+  undoingId = '';
+  undoMessage = '';
+  undoError: { id: string; message: string } | null = null;
   private requests = new Subscription();
   private generation = 0;
 
@@ -115,6 +119,38 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
   }
 
   editLinkDevices(link: OverviewLink): void { if (this.canEditDevices(link)) this.editDevices.emit(link); }
+
+  /** A confirmed response can be undone until staff start processing it. */
+  canUndoConfirmation(link: OverviewLink): boolean { return link.status === 'submitted' && !link.execution; }
+
+  askUndoConfirmation(link: OverviewLink): void {
+    if (this.undoingId || !this.canUndoConfirmation(link)) return;
+    this.undoOfferId = link.id;
+    this.undoError = null;
+    this.undoMessage = '';
+  }
+
+  cancelUndoConfirmation(): void { if (!this.undoingId) this.undoOfferId = ''; }
+
+  confirmUndoConfirmation(link: OverviewLink): void {
+    if (this.undoingId || this.undoOfferId !== link.id || !this.canUndoConfirmation(link)) return;
+    const generation = this.generation;
+    this.undoingId = link.id;
+    this.undoError = null;
+    this.requests.add(this.service.undoConfirmation(link.id).subscribe({
+      next: () => {
+        if (generation !== this.generation) return;
+        this.undoingId = this.undoOfferId = '';
+        this.reload();
+        this.undoMessage = `Se deshizo la confirmación de ${this.clientName(link)}. El enlace volvió a quedar esperando respuesta con lo que había marcado.`;
+      },
+      error: error => {
+        if (generation !== this.generation) return;
+        this.undoingId = '';
+        this.undoError = { id: link.id, message: getApiErrorMessage(error, 'No se pudo deshacer la confirmación.') };
+      },
+    }));
+  }
 
   /** Only links the client can still open: waiting for an answer or answered. */
   canShare(link: OverviewLink): boolean {
@@ -226,6 +262,8 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
     this.loading = this.loadingMore = false;
     this.sharingId = this.regenerateOfferId = '';
     this.shared = this.shareError = null;
+    this.undoingId = this.undoOfferId = this.undoMessage = '';
+    this.undoError = null;
   }
 
   clientName(link: OverviewLink): string { return formatUserName(link.client?.name) || 'Cliente'; }

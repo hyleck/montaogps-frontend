@@ -46,18 +46,27 @@
                     <span>Creado {{ link.createdAt | date:'dd/MM/yyyy · HH:mm' }} · {{ link.deviceCount }} dispositivos</span>
                     <span>{{ expirationFilterLabel(link.expirationFilter) }}</span>
                     <span *ngIf="link.rangeChangeCount">Rango modificado {{ link.rangeChangeCount === 1 ? 'una vez' : link.rangeChangeCount + ' veces' }}</span>
+                    <span *ngIf="link.confirmationUndoCount">Confirmación deshecha {{ link.confirmationUndoCount === 1 ? 'una vez' : link.confirmationUndoCount + ' veces' }}</span>
                     <span *ngIf="link.deviceChangeCount">Dispositivos editados {{ link.deviceChangeCount === 1 ? 'una vez' : link.deviceChangeCount + ' veces' }}</span>
                     <span *ngIf="link.status === 'submitted'">{{ renewalCount(link) }} para renovar · {{ declineCount(link) }} sin renovar</span>
                 </div>
                 <div class="renewal-link-record-actions">
                     <button *ngIf="link.status === 'submitted'" type="button" class="renewal-action" [disabled]="busy" (click)="selectResponse(link)">Ver respuesta</button>
-                    <ng-container *ngIf="canModify(link) && editingRangeId !== link.id && editingDevicesId !== link.id && confirmRevokeId !== link.id">
+                    <ng-container *ngIf="canModify(link) && editingRangeId !== link.id && editingDevicesId !== link.id && confirmRevokeId !== link.id && confirmUndoId !== link.id">
+                        <button *ngIf="canUndoConfirmation(link)" type="button" class="renewal-action" [disabled]="busy" (click)="askUndoConfirmation(link)"><i class="pi pi-undo" aria-hidden="true"></i> Deshacer confirmación</button>
                         <button type="button" class="renewal-action" [disabled]="busy" (click)="startRangeEdit(link)"><i class="pi pi-calendar" aria-hidden="true"></i> Cambiar rango</button>
                         <button *ngIf="canEditDevices(link)" type="button" class="renewal-action" [disabled]="busy" (click)="startDeviceEdit(link)"><i class="pi pi-list-check" aria-hidden="true"></i> Agregar o quitar</button>
                         <button type="button" class="renewal-action" [disabled]="busy" (click)="askRevoke(link)">
                             {{ revokingId === link.id ? 'Anulando…' : 'Anular enlace' }}
                         </button>
                     </ng-container>
+                </div>
+                <div *ngIf="confirmUndoId === link.id" class="renewal-link-inline" role="group" aria-label="Confirmar deshacer confirmación">
+                    <p>El enlace volverá a quedar pendiente con el mismo link. El cliente verá lo que había marcado y podrá cambiarlo y confirmar otra vez. La respuesta actual queda guardada en el historial.</p>
+                    <div class="renewal-links-actions">
+                        <button type="button" class="renewal-action renewal-action--primary" [disabled]="busy" (click)="undoConfirmation(link)">{{ undoingId === link.id ? 'Deshaciendo…' : 'Sí, deshacer' }}</button>
+                        <button type="button" class="renewal-action" [disabled]="!!undoingId" (click)="confirmUndoId = ''">Cancelar</button>
+                    </div>
                 </div>
                 <div *ngIf="confirmRevokeId === link.id" class="renewal-link-inline" role="group" aria-label="Confirmar anulación">
                     <p>{{ link.status === 'submitted' ? 'Se descartará la respuesta del cliente y el enlace dejará de funcionar.' : 'El enlace dejará de funcionar para el cliente.' }} Esta acción no se puede deshacer.</p>

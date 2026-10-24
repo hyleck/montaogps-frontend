@@ -27,7 +27,7 @@ describe('ProcessRenewalLinksOverviewDialogComponent', () => {
   ] };
 
   beforeEach(async () => {
-    service = jasmine.createSpyObj('RenewalLinksService', ['listAll', 'getShareLink', 'regenerateLink']);
+    service = jasmine.createSpyObj('RenewalLinksService', ['listAll', 'getShareLink', 'regenerateLink', 'undoConfirmation']);
     auth = jasmine.createSpyObj('AuthService', ['isRootUser']);
     auth.isRootUser.and.returnValue(false);
     service.listAll.and.returnValue(of(page));
@@ -161,5 +161,20 @@ describe('ProcessRenewalLinksOverviewDialogComponent', () => {
     component.editDevices.subscribe(link => emitted.push(link.id));
     buttons[0].click();
     expect(emitted).toEqual(['submitted']);
+  });
+  it('undoes a confirmed response after asking, and reloads the list', () => {
+    service.undoConfirmation.and.returnValue(of({ ...page.items[0], status: 'active', decisions: undefined }));
+    fixture.componentRef.setInput('visible', true); fixture.detectChanges();
+    const submitted = page.items[0];
+    expect(component.canUndoConfirmation(submitted)).toBeTrue();
+    expect(component.canUndoConfirmation(page.items[1])).toBeFalse();
+    expect(component.canUndoConfirmation({ ...submitted, execution: { status: 'completed' } as any })).toBeFalse();
+    component.askUndoConfirmation(submitted); fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Sí, deshacer');
+    service.listAll.calls.reset();
+    component.confirmUndoConfirmation(submitted); fixture.detectChanges();
+    expect(service.undoConfirmation).toHaveBeenCalledOnceWith('submitted');
+    expect(service.listAll).toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Se deshizo la confirmación');
   });
 });
