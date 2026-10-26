@@ -2058,3 +2058,28 @@
   color: var(--monitoringSectionTitleText);
   margin: 0;
 }
+
+.monitoring-more-blocks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+  color: var(--monitoringDescriptionText, inherit);
+  font-size: 0.9rem;
+}
+
+.monitoring-more-blocks__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border: 1px solid var(--monitoringDevicesSectionBorder, rgba(127, 127, 127, 0.4));
+  border-radius: 8px;
+  background: var(--monitoringDevicesSectionBackground, transparent);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}

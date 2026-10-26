@@ -152,4 +152,23 @@ it('muestra el vencimiento en el mismo día con el que lo compara el filtro', ()
     expect(component.isDateInRange('2026-10-01T00:00:00.000Z', new Date(2026, 8, 1), new Date(2026, 8, 30))).toBeFalse();
     expect(component.formatExpirationDate('')).toBe('-');
   });
+  it('shows the report accounts in pages and restarts at the first page when a filter changes', () => {
+    const block = (id: string, sim: string) => ({ route: [{ id: 'root' }, { id }], devices: [{ _id: id + '-gps', sim_company: sim }] });
+    component.monitoringResult = { data: Array.from({ length: 60 }, (_, i) => block('u' + i, i % 2 ? 'global-e' : 'nacionales')) } as any;
+    expect(component.filteredMonitoringData.length).toBe(60);
+    expect(component.visibleMonitoringBlocks).toBe(25);
+    component.showMoreMonitoringBlocks();
+    expect(component.visibleMonitoringBlocks).toBe(50);
+    expect(component.filteredMonitoringData.length).toBe(60);
+    expect(component.visibleMonitoringBlocks).toBe(50);
+    component.selectedSimCompanyFilter = 'global-e';
+    expect(component.filteredMonitoringData.length).toBe(30);
+    expect(component.visibleMonitoringBlocks).toBe(25);
+  });
+
+  it('tracks each report block by its own account, not the shared root', () => {
+    expect(component.trackByUser(0, { route: [{ id: 'root' }, { id: 'a' }] })).toBe('a');
+    expect(component.trackByUser(1, { route: [{ id: 'root' }, { id: 'b' }] })).toBe('b');
+    expect(component.trackByUser(2, { route: [] })).toBe(2);
+  });
 });

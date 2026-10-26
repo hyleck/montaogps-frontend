@@ -679,7 +679,7 @@
 
       <!-- Users with devices -->
       <ng-container *ngIf="visualizationMode === 'list'">
-        <div *ngFor="let userData of monitoringData; let i = index; trackBy: trackByUser" class="monitoring-block"
+        <div *ngFor="let userData of monitoringData | slice:0:visibleMonitoringBlocks; let i = index; trackBy: trackByUser" class="monitoring-block"
           [class.monitoring-block--no-assistance]="hasNoAssistance(userData)">
         <!-- User Path as Breadcrumbs -->
         <div class="user-breadcrumbs monitoring-block-toolbar">
@@ -785,6 +785,12 @@
             </ng-template>
           </p-table>
         </div>
+        </div>
+        <div *ngIf="monitoringData.length > visibleMonitoringBlocks" class="monitoring-more-blocks">
+          <span>Mostrando {{ visibleMonitoringBlocks }} de {{ monitoringData.length }} cuentas</span>
+          <button type="button" class="monitoring-more-blocks__button" (click)="showMoreMonitoringBlocks()">
+            <i class="pi pi-angle-down" aria-hidden="true"></i> Mostrar {{ monitoringBlockPageSize }} más
+          </button>
         </div>
       </ng-container>
     </ng-container>

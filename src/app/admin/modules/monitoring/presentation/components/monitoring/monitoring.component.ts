@@ -134,6 +134,13 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   private _selectedSimStatusFilter: string = '';
   private _selectedActivationFilter: string = 'all';
   private _selectedAccountSizeFilter: number | null = null;
+  /**
+   * The daily report has ~1,500 accounts, each with its own table. Rendering
+   * them all at once froze the page when opening or changing the filters, so
+   * the list shows them in pages.
+   */
+  readonly monitoringBlockPageSize = 25;
+  visibleMonitoringBlocks = this.monitoringBlockPageSize;
   private _expirationFromDate: Date | null = null;
   private _expirationToDate: Date | null = null;
   private _activationFromDate: Date | null = null;
@@ -1817,6 +1824,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     this.filteredMonitoringRenewalsSource = this._renewedDeviceIds;
     this.filteredMonitoringDataCache = filteredData;
     this.monitoringSummaryStatsSource = null;
+    // A new result or filter starts again from the first page of accounts.
+    this.visibleMonitoringBlocks = this.monitoringBlockPageSize;
 
     return filteredData;
   }
@@ -2608,8 +2617,14 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   trackByUser(index: number, userData: any): any {
-    // Use the first route item's id as unique identifier, fallback to index
-    return userData.route && userData.route.length > 0 ? userData.route[0].id : index;
+    // The last route item is the account itself; the first one is the shared
+    // root, which made every block look like the same item.
+    const route = Array.isArray(userData?.route) ? userData.route : [];
+    return route.length ? route[route.length - 1]?.id ?? index : index;
+  }
+
+  showMoreMonitoringBlocks(): void {
+    this.visibleMonitoringBlocks += this.monitoringBlockPageSize;
   }
 
   trackByDevice(index: number, device: any): string | number {
