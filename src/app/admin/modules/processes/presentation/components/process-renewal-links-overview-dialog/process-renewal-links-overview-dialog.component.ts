@@ -121,7 +121,8 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
   editLinkDevices(link: OverviewLink): void { if (this.canEditDevices(link)) this.editDevices.emit(link); }
 
   /** A confirmed response can be undone until staff start processing it. */
-  canUndoConfirmation(link: OverviewLink): boolean { return link.status === 'submitted' && !link.execution; }
+  /** A confirmed response can be undone; if it was processed, its renewals are reverted too. */
+  canUndoConfirmation(link: OverviewLink): boolean { return link.status === 'submitted' && link.execution?.status !== 'processing'; }
 
   askUndoConfirmation(link: OverviewLink): void {
     if (this.undoingId || !this.canUndoConfirmation(link)) return;
@@ -142,7 +143,7 @@ export class ProcessRenewalLinksOverviewDialogComponent implements OnChanges, On
         if (generation !== this.generation) return;
         this.undoingId = this.undoOfferId = '';
         this.reload();
-        this.undoMessage = `Se deshizo la confirmación de ${this.clientName(link)}. El enlace volvió a quedar esperando respuesta con lo que había marcado.`;
+        this.undoMessage = `Se deshizo la confirmación de ${this.clientName(link)}${link.execution?.succeeded ? ` y se ${link.execution.succeeded === 1 ? 'revirtió su renovación' : `revirtieron sus ${link.execution.succeeded} renovaciones`}` : ''}. El enlace volvió a quedar esperando respuesta con lo que había marcado.`;
       },
       error: error => {
         if (generation !== this.generation) return;

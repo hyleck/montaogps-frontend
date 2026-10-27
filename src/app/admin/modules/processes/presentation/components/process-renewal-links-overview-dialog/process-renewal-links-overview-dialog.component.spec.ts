@@ -168,7 +168,8 @@ describe('ProcessRenewalLinksOverviewDialogComponent', () => {
     const submitted = page.items[0];
     expect(component.canUndoConfirmation(submitted)).toBeTrue();
     expect(component.canUndoConfirmation(page.items[1])).toBeFalse();
-    expect(component.canUndoConfirmation({ ...submitted, execution: { status: 'completed' } as any })).toBeFalse();
+    expect(component.canUndoConfirmation({ ...submitted, execution: { status: 'completed' } as any })).toBeTrue();
+    expect(component.canUndoConfirmation({ ...submitted, execution: { status: 'processing' } as any })).toBeFalse();
     component.askUndoConfirmation(submitted); fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Sí, deshacer');
     service.listAll.calls.reset();

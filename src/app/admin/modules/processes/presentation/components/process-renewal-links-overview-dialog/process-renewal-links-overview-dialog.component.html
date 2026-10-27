@@ -76,6 +76,7 @@
 
                 <div *ngIf="undoOfferId === link.id" class="overview-share" role="group" aria-label="Deshacer confirmación">
                     <p>El enlace volverá a quedar <strong>esperando respuesta</strong> con el mismo link. El cliente verá lo que había marcado y podrá cambiarlo y confirmar otra vez. La respuesta actual queda guardada en el historial.</p>
+                    <p *ngIf="link.execution?.succeeded" class="overview-error"><strong>Esta respuesta ya se procesó:</strong> se revertirán {{ link.execution?.succeeded === 1 ? 'su renovación' : 'sus ' + link.execution?.succeeded + ' renovaciones' }}. {{ link.execution?.action === 'pre_renewal' ? 'Dejarán de estar pendientes de facturar en Incosis.' : 'Cada GPS vuelve al vencimiento que tenía antes.' }} Si Incosis ya facturó alguna, no se hará ningún cambio.</p>
                     <div class="overview-share__actions">
                         <button type="button" class="overview-action overview-action--primary" [disabled]="!!undoingId" (click)="confirmUndoConfirmation(link)">{{ undoingId === link.id ? 'Deshaciendo…' : 'Sí, deshacer' }}</button>
                         <button type="button" class="overview-action" [disabled]="!!undoingId" (click)="cancelUndoConfirmation()">Cancelar</button>

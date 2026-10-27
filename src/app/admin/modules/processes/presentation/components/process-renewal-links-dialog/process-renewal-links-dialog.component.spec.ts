@@ -999,7 +999,7 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     service.undoConfirmation.and.returnValue(of(reopened));
     open();
     expect(component.canUndoConfirmation(active)).toBeFalse();
-    expect(component.canUndoConfirmation(completedResponse())).toBeFalse();
+    expect(component.canUndoConfirmation(completedResponse())).toBeTrue();
     component.undoConfirmation(response);
     expect(service.undoConfirmation).not.toHaveBeenCalled();
     component.askUndoConfirmation(response); fixture.detectChanges();
@@ -1008,5 +1008,18 @@ describe('ProcessRenewalLinksDialogComponent', () => {
     expect(service.undoConfirmation).toHaveBeenCalledOnceWith(response.id);
     expect(component.links.find(link => link.id === response.id)).toEqual(reopened);
     expect(fixture.nativeElement.textContent).toContain('Confirmación deshecha una vez');
+  });
+  it('warns that undoing a processed response reverts its renewals, also from the response view', () => {
+    const processed = completedResponse();
+    service.getForClient.and.returnValue(of([active, processed]));
+    open();
+    component.selectResponse(processed); fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Deshacer confirmación');
+    component.undoFromResponse(); fixture.detectChanges();
+    expect(component.responseVisible).toBeFalse();
+    expect(component.confirmUndoId).toBe(processed.id);
+    expect(component.revertedRenewalCount(processed)).toBe(processed.execution!.succeeded);
+    expect(fixture.nativeElement.textContent).toContain('Esta respuesta ya se procesó');
+    expect(component.canUndoConfirmation({ ...processed, execution: { ...processed.execution!, status: 'processing' } })).toBeFalse();
   });
 });

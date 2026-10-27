@@ -52,8 +52,8 @@
                 </div>
                 <div class="renewal-link-record-actions">
                     <button *ngIf="link.status === 'submitted'" type="button" class="renewal-action" [disabled]="busy" (click)="selectResponse(link)">Ver respuesta</button>
+                    <button *ngIf="canUndoConfirmation(link) && confirmUndoId !== link.id && confirmRevokeId !== link.id && editingRangeId !== link.id && editingDevicesId !== link.id" type="button" class="renewal-action" [disabled]="busy" (click)="askUndoConfirmation(link)"><i class="pi pi-undo" aria-hidden="true"></i> Deshacer confirmación</button>
                     <ng-container *ngIf="canModify(link) && editingRangeId !== link.id && editingDevicesId !== link.id && confirmRevokeId !== link.id && confirmUndoId !== link.id">
-                        <button *ngIf="canUndoConfirmation(link)" type="button" class="renewal-action" [disabled]="busy" (click)="askUndoConfirmation(link)"><i class="pi pi-undo" aria-hidden="true"></i> Deshacer confirmación</button>
                         <button type="button" class="renewal-action" [disabled]="busy" (click)="startRangeEdit(link)"><i class="pi pi-calendar" aria-hidden="true"></i> Cambiar rango</button>
                         <button *ngIf="canEditDevices(link)" type="button" class="renewal-action" [disabled]="busy" (click)="startDeviceEdit(link)"><i class="pi pi-list-check" aria-hidden="true"></i> Agregar o quitar</button>
                         <button type="button" class="renewal-action" [disabled]="busy" (click)="askRevoke(link)">
@@ -63,6 +63,7 @@
                 </div>
                 <div *ngIf="confirmUndoId === link.id" class="renewal-link-inline" role="group" aria-label="Confirmar deshacer confirmación">
                     <p>El enlace volverá a quedar pendiente con el mismo link. El cliente verá lo que había marcado y podrá cambiarlo y confirmar otra vez. La respuesta actual queda guardada en el historial.</p>
+                    <p *ngIf="revertedRenewalCount(link)" class="renewal-links-error"><strong>Esta respuesta ya se procesó:</strong> se revertirán {{ revertedRenewalCount(link) === 1 ? 'su renovación' : 'sus ' + revertedRenewalCount(link) + ' renovaciones' }}. {{ link.execution?.action === 'pre_renewal' ? 'Dejarán de estar pendientes de facturar en Incosis.' : 'Cada GPS vuelve al vencimiento que tenía antes.' }} Si Incosis ya facturó alguna, no se hará ningún cambio.</p>
                     <div class="renewal-links-actions">
                         <button type="button" class="renewal-action renewal-action--primary" [disabled]="busy" (click)="undoConfirmation(link)">{{ undoingId === link.id ? 'Deshaciendo…' : 'Sí, deshacer' }}</button>
                         <button type="button" class="renewal-action" [disabled]="!!undoingId" (click)="confirmUndoId = ''">Cancelar</button>
@@ -304,6 +305,7 @@
 
     <ng-template pTemplate="footer">
         <div class="renewal-links-footer">
+            <button *ngIf="selectedLink && canUndoConfirmation(selectedLink)" type="button" class="renewal-action" [disabled]="executing || busy" (click)="undoFromResponse()"><i class="pi pi-undo" aria-hidden="true"></i> Deshacer confirmación</button>
             <button type="button" class="renewal-action" [disabled]="executing" (click)="backToResponses()"><i class="pi pi-arrow-left" aria-hidden="true"></i> Volver a respuestas</button>
             <button type="button" class="renewal-action" [disabled]="executing" (click)="close()">Cerrar</button>
         </div>

@@ -322,8 +322,21 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
   }
 
   /** A confirmed response can be undone until staff start processing it. */
+  /** A confirmed response can be undone; if it was processed, its renewals are reverted too. */
   canUndoConfirmation(link: RenewalLinkSummary): boolean {
-    return link.status === 'submitted' && this.canModify(link);
+    return link.status === 'submitted' && link.client.id === this.client?.id && link.execution?.status !== 'processing';
+  }
+
+  /** Renewals registered by the processing that undoing the response will revert. */
+  revertedRenewalCount(link: RenewalLinkSummary): number {
+    return link.execution?.succeeded ?? 0;
+  }
+
+  undoFromResponse(): void {
+    const link = this.selectedLink;
+    if (!link || this.executing || !this.canUndoConfirmation(link)) return;
+    this.backToResponses();
+    this.askUndoConfirmation(link);
   }
 
   askUndoConfirmation(link: RenewalLinkSummary): void {
@@ -346,7 +359,7 @@ export class ProcessRenewalLinksDialogComponent implements OnChanges, OnDestroy 
         this.undoingId = this.confirmUndoId = '';
         this.links = this.links.map(item => item.id === updated.id ? updated : item);
         if (this.selectedId === updated.id) { this.selectedId = ''; this.responseVisible = false; }
-        this.rangeMessage = 'Confirmación deshecha. El enlace volvió a quedar pendiente con lo que el cliente había marcado; puede revisarlo y confirmarlo otra vez con el mismo enlace.';
+        this.rangeMessage = `Confirmación deshecha${link.execution?.succeeded ? ` y ${link.execution.succeeded === 1 ? 'su renovación revertida' : `sus ${link.execution.succeeded} renovaciones revertidas`}` : ''}. El enlace volvió a quedar pendiente con lo que el cliente había marcado; puede revisarlo y confirmarlo otra vez con el mismo enlace.`;
       },
       error: error => {
         if (generation !== this.generation) return;
