@@ -53,9 +53,25 @@ describe('TargetFormComponent renewal dates and invoice refresh', () => {
         selectYears(component, 2);
         spyOn(console, 'log');
         component.processForm.type = 'renewal';
+        // Registered within 60 days of the expiration, so it counts from it.
+        component.processForm.registrationDate = '2025-10-20';
         component.onProcessTypeChange();
         selectYears(component, 1);
         expect(component.processForm.newRenewalDate).toBe('2026-09-28');
+    });
+
+    it('counts from the registration day when the GPS expired more than 60 days before', () => {
+        const component = build();
+        spyOn(console, 'log');
+        component.processForm.type = 'renewal';
+        component.processForm.registrationDate = '2026-08-04';
+        component.onProcessTypeChange();
+        expect(component.processForm.newRenewalDate).toBe('2026-08-04');
+        expect(component.isLapsedRenewal).toBeTrue();
+        selectYears(component, 1);
+        expect(component.processForm.newRenewalDate).toBe('2027-08-04');
+        component.processForm.registrationDate = '2025-11-20';
+        expect(component.isLapsedRenewal).toBeFalse();
     });
 
     it('does not shift or mutate an invalid date', () => {

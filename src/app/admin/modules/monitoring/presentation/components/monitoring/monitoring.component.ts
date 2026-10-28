@@ -18,6 +18,7 @@ import { MessageService } from 'primeng/api';
 import * as ExcelJS from 'exceljs';
 import { MonitoringLocationFilterChange } from '../monitoring-map/monitoring-map.component';
 import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
+import { addYearsToCalendarDay, renewalStartDay, todayServiceDay } from 'src/app/core/utils/lapsed-renewal.util';
 
 @Component({
   selector: 'app-monitoring',
@@ -1280,18 +1281,9 @@ export class MonitoringComponent implements OnInit, OnDestroy {
             const renewalYears = typeof renewalYearsRaw === 'string' ? parseInt(renewalYearsRaw, 10) : renewalYearsRaw;
 
             if (expDate && renewalYears && !isNaN(renewalYears)) {
-              // Timezone-safe date calculation: add years directly
-              const year = expDate.getFullYear();
-              const month = expDate.getMonth();
-              const day = expDate.getDate();
-
-              const newDate = new Date(year + renewalYears, month, day);
-
-              // Format as YYYY-MM-DD manually to be safe
-              const newYear = newDate.getFullYear();
-              const newMonth = String(newDate.getMonth() + 1).padStart(2, '0');
-              const newDay = String(newDate.getDate()).padStart(2, '0');
-              const newExpDateCalculated = `${newYear}-${newMonth}-${newDay}`;
+              // Counts from the old expiration, or from today when it expired more than 60 days ago.
+              const startDay = renewalStartDay(device.expiration_date, todayServiceDay()) || todayServiceDay();
+              const newExpDateCalculated = addYearsToCalendarDay(startDay, renewalYears);
 
               details = `Renovar ( Facturación a crédito ) por ${renewalYears} año(s). Nueva fecha de expiración: ${newExpDateCalculated}.`;
               (device as any)._calculatedNewExpiration = newExpDateCalculated;
@@ -1983,9 +1975,10 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         return '-';
       }
 
-      // Calculate new date
-      const newDate = new Date(expDate);
-      newDate.setFullYear(newDate.getFullYear() + years);
+      // Counts from the old expiration, or from today when it expired more than 60 days ago.
+      const startDay = renewalStartDay(currentExpiration, todayServiceDay()) || todayServiceDay();
+      const [newYear, newMonth, newDay] = addYearsToCalendarDay(startDay, years).split('-').map(Number);
+      const newDate = new Date(newYear, newMonth - 1, newDay);
 
       return newDate.toLocaleDateString('es-ES', {
         year: 'numeric',

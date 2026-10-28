@@ -38,6 +38,7 @@ import { parseProcessDisplayDate } from 'src/app/core/utils/process-date.util';
 import { isOfficeReviewProcess } from 'src/app/core/utils/office-review-process.util';
 import { SmsCommandsDialogComponent } from 'src/app/shareds/components/sms-commands-dialog/sms-commands-dialog.component';
 import { getMovingSpeedKmh } from 'src/app/shareds/helpers/device-movement.helper';
+import { isLapsedForRenewal, renewalStartDay } from 'src/app/core/utils/lapsed-renewal.util';
 
 
 
@@ -4817,9 +4818,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }
 
         if (this.isRenewalProcessType()) {
-            // Pre-llenar con la fecha de expiración actual (para renovación)
+            // Pre-llenar con la fecha desde la que cuenta la renovación: la expiración
+            // actual, o el día de registro si vence hace más de 60 días.
             if (this.target.expiration_date) {
-                this.processForm.newRenewalDate = this.target.expiration_date;
+                this.processForm.newRenewalDate = renewalStartDay(this.target.expiration_date,
+                    this.processForm.registrationDate || this.getTodayInputDate()) || this.target.expiration_date;
             }
             this.processForm.renewalYears = null;
         }
@@ -4905,6 +4908,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.renewalDateAnchor = anchor;
         this.lastSelectedRenewalYears = years;
         this.lastCalculatedRenewalDate = this.processForm.newRenewalDate;
+    }
+
+    /** The GPS expired more than 60 days before the renewal: it counts from the registration day. */
+    get isLapsedRenewal(): boolean {
+        return this.isRenewalProcessType() && isLapsedForRenewal(this.target?.expiration_date,
+            this.processForm.registrationDate || this.getTodayInputDate());
     }
 
     private resetRenewalDateCalculation(): void {

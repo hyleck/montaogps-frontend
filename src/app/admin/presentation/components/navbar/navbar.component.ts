@@ -60,6 +60,7 @@ import {
   AlertPresetCard,
   AlertPresetCategory,
 } from './alert-presets.catalog';
+import { renewalStartDay } from 'src/app/core/utils/lapsed-renewal.util';
 
 interface RealtimeGeneratedTargetLink {
   target_id: string;
@@ -4187,7 +4188,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
           throw new Error('El objetivo no tiene una fecha de expiración para renovar.');
         }
         const years = Number(this.bulkProcessForm.renewalYears);
-        const newDate = this.addYearsToDateInput(target.expiration_date, years);
+        // Counts from the old expiration, or from the registration day when it expired more than 60 days ago.
+        const startDay = renewalStartDay(target.expiration_date, this.bulkProcessForm.registrationDate)
+          || String(target.expiration_date).substring(0, 10);
+        const newDate = this.addYearsToDateInput(startDay, years);
         const isCashRenewal = this.bulkProcessForm.type === 'cash_renewal';
         return {
           update: isCashRenewal ? {} : { expiration_date: newDate, last_change_date: new Date() },

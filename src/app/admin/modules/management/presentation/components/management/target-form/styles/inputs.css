@@ -242,3 +242,11 @@
 .color-option {
     min-height: 34px;
 }
+
+.target-form__hint {
+    display: block;
+    margin-top: 6px;
+    color: #b45309;
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
