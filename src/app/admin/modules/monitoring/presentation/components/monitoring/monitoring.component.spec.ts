@@ -171,4 +171,15 @@ it('muestra el vencimiento en el mismo día con el que lo compara el filtro', ()
     expect(component.trackByUser(1, { route: [{ id: 'root' }, { id: 'b' }] })).toBe('b');
     expect(component.trackByUser(2, { route: [] })).toBe(2);
   });
+  it('keeps the same SIM company options between checks so the select stays open', () => {
+    component.monitoringResult = { data: [
+      { route: [{ id: 'a' }], devices: [{ _id: 'g1', sim_company: 'Nacionales' }, { _id: 'g2', sim_company: 'global-e' }] },
+      { route: [{ id: 'b' }], devices: [{ _id: 'g3', sim_company: 'nacionales' }] },
+    ] } as any;
+    const first = component.availableSimCompanies;
+    expect(first.map(option => option.value)).toEqual(['global-e', 'nacionales']);
+    expect(component.availableSimCompanies).toBe(first);
+    component.monitoringResult = { data: [{ route: [{ id: 'c' }], devices: [{ _id: 'g4', sim_company: 'global-m' }] }] } as any;
+    expect(component.availableSimCompanies.map(option => option.value)).toEqual(['global-m']);
+  });
 });

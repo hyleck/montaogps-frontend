@@ -1621,9 +1621,17 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     return protocol ? protocol.name : deviceType;
   }
 
+  // Cached per report: a new list on every change detection made Angular
+  // redraw the <option>s, which closed the select as soon as it opened.
+  private simCompaniesSource: unknown = null;
+  private simCompaniesCache: Array<{ value: string; label: string }> = [];
+
   get availableSimCompanies(): Array<{ value: string; label: string }> {
     if (!this.monitoringResult?.data) {
       return [];
+    }
+    if (this.simCompaniesSource === this.monitoringResult.data) {
+      return this.simCompaniesCache;
     }
 
     // The filter compares case-insensitively, so "Nacionales" and "nacionales" are one company.
@@ -1637,7 +1645,10 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       });
     });
 
-    return Array.from(companies, ([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
+    this.simCompaniesSource = this.monitoringResult.data;
+    this.simCompaniesCache = Array.from(companies, ([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    return this.simCompaniesCache;
   }
 
   // Getter to filter out users without devices and apply status/expiration filters
