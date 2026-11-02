@@ -2874,37 +2874,45 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   addShippingSimcard(): void {
-    const iccid = this.shippingSimcardInput.trim();
-    if (!iccid || this.shippingSimcards.some(s => s.iccid === iccid)) return;
+    const code = this.shippingSimcardInput.trim();
+    if (!code || this.shippingSimcards.some(s => s.iccid === code || s.idsim === code)) return;
 
-    this.inventoryService.searchAllSimcards(iccid).subscribe({
-      next: (response) => {
-        const simcard = response.data?.find(s => s.iccid === iccid);
-
-        if (!simcard) {
+    this.inventoryService.findSimcardsByIdentifier(code).subscribe({
+      next: (matches) => {
+        if (!matches?.length) {
           this.messageService.add({
             severity: 'warn',
             summary: 'No encontrada',
-            detail: `La simcard ${iccid} no existe en inventario. Debe registrarla desde Simcards antes de crear el conduce.`,
+            detail: `La simcard ${code} no existe en inventario. Debe registrarla desde Simcards antes de crear el conduce.`,
           });
           return;
         }
+
+        if (matches.length > 1) {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Código ambiguo',
+            detail: `El código ${code} coincide con varias simcards. Use el número completo.`,
+          });
+          return;
+        }
+
+        const simcard = matches[0];
+        if (this.shippingSimcards.some(item => String(item._id) === String(simcard._id))) return;
 
         if (this.isAlreadyAtShippingDestination(simcard)) {
           this.messageService.add({
             severity: 'warn',
             summary: 'Traslado no permitido',
-            detail: `La simcard ${iccid} ya pertenece al almacén destino.`,
+            detail: `La simcard ${simcard.iccid} ya pertenece al almacén destino.`,
           });
           return;
         }
 
         // Simcard exists, no package needed
-        if (!this.shippingSimcards.find(s => s.iccid === iccid)) {
-          this.shippingSimcards.push(simcard);
-          this.shippingSimcardInput = '';
-          this.messageService.add({ severity: 'success', summary: 'Agregado', detail: `Simcard ${iccid} preparada para envío.` });
-        }
+        this.shippingSimcards.push(simcard);
+        if (this.shippingSimcardInput.trim() === code) this.shippingSimcardInput = '';
+        this.messageService.add({ severity: 'success', summary: 'Agregado', detail: `Simcard ${simcard.iccid} preparada para envío.` });
       },
       error: (error) => {
         this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'Error al buscar el simcard.') });

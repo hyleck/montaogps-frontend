@@ -1347,10 +1347,10 @@
 
         <!-- Simcards Section -->
         <div class="field col-6 m-0 p-0 pl-2">
-          <label for="shippingSimcardInput" class="font-bold block mb-2">Agregar Simcards (ICCID)</label>
+          <label for="shippingSimcardInput" class="font-bold block mb-2">Agregar Simcards (ICCID o ID SIM)</label>
           <div style="display: flex; gap: 0.5rem; align-items: stretch; box-sizing: border-box;">
             <input type="text" id="shippingSimcardInput" [(ngModel)]="shippingSimcardInput"
-              placeholder="Ingrese ICCID y presione Enter..." class="form-input"
+              placeholder="Ingrese ICCID o ID SIM y presione Enter..." class="form-input"
               style="flex: 1; box-sizing: border-box;" (keyup.enter)="addShippingSimcard()" />
             <button type="button" pButton icon="pi pi-plus" class="p-button-success"
               (click)="addShippingSimcard()"></button>

@@ -66,3 +66,47 @@ describe('Conduce barcode scans', () => {
     expect((component as any).messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ detail: 'El código coincide con varios registros.' }));
   });
 });
+
+describe('Conduce simcard scans', () => {
+  let component: InventoryComponent;
+  let api: any;
+  const simcard = { _id: 'sim-id', iccid: '8097797106', idsim: '2510290351225', sim_company: 'nacionales', storage_id: { _id: 'source' } };
+  const message = () => (component as any).messageService.add;
+  beforeEach(() => {
+    component = Object.create(InventoryComponent.prototype);
+    api = { findSimcardsByIdentifier: jasmine.createSpy().and.returnValue(of([simcard])) };
+    Object.assign(component, { inventoryService: api, messageService: { add: jasmine.createSpy() },
+      shippingSimcardInput: '2510290351225', shippingSimcards: [], shippingDestinationWarehouse: 'destination' });
+  });
+
+  it('adds a national SIM scanned by its ID SIM', () => {
+    component.addShippingSimcard();
+    expect(api.findSimcardsByIdentifier).toHaveBeenCalledWith('2510290351225');
+    expect(component.shippingSimcards).toEqual([simcard as any]);
+    expect(component.shippingSimcardInput).toBe('');
+  });
+
+  it('does not add the same SIM from its ID SIM and its number', () => {
+    component.addShippingSimcard();
+    component.shippingSimcardInput = '809-779-7106';
+    component.addShippingSimcard();
+    expect(component.shippingSimcards.length).toBe(1);
+  });
+
+  it('does not add missing or ambiguous SIMs', () => {
+    api.findSimcardsByIdentifier.and.returnValue(of([]));
+    component.addShippingSimcard();
+    expect(message()).toHaveBeenCalledWith(jasmine.objectContaining({ summary: 'No encontrada' }));
+    api.findSimcardsByIdentifier.and.returnValue(of([simcard, { ...simcard, _id: 'other' }]));
+    component.addShippingSimcard();
+    expect(message()).toHaveBeenCalledWith(jasmine.objectContaining({ summary: 'Código ambiguo' }));
+    expect(component.shippingSimcards).toEqual([]);
+  });
+
+  it('keeps the destination warehouse restriction', () => {
+    component.shippingDestinationWarehouse = 'source';
+    component.addShippingSimcard();
+    expect(component.shippingSimcards).toEqual([]);
+    expect(message()).toHaveBeenCalledWith(jasmine.objectContaining({ summary: 'Traslado no permitido' }));
+  });
+});
