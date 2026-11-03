@@ -114,22 +114,20 @@
 
             <div class="filter-field">
                 <label>{{ onlyPendingRenewals ? 'Vencimiento desde' : hasPendingRenewalFilter ? 'Fecha desde' : 'Registrado desde' }}</label>
-                <p-calendar [(ngModel)]="dateFrom" dateFormat="dd/mm/yy"
+                <p-datepicker [(ngModel)]="dateFrom" dateFormat="dd/mm/yy"
                     (ngModelChange)="templateFiltersApplied = false"
-                    placeholder="Fecha inicial" [showIcon]="true" [showTime]="!hasPendingRenewalFilter"
-                    [hourFormat]="'24'" [showSeconds]="false" appendTo="body"
+                    placeholder="Fecha inicial" [showIcon]="true" appendTo="body"
                     (onSelect)="applyFilters()" (onClear)="applyFilters()">
-                </p-calendar>
+                </p-datepicker>
             </div>
 
             <div class="filter-field">
                 <label>{{ onlyPendingRenewals ? 'Vencimiento hasta' : hasPendingRenewalFilter ? 'Fecha hasta' : 'Registrado hasta' }}</label>
-                <p-calendar [(ngModel)]="dateTo" dateFormat="dd/mm/yy"
+                <p-datepicker [(ngModel)]="dateTo" dateFormat="dd/mm/yy"
                     (ngModelChange)="templateFiltersApplied = false"
-                    placeholder="Fecha final" [showIcon]="true" [showTime]="!hasPendingRenewalFilter"
-                    [hourFormat]="'24'" [showSeconds]="false" appendTo="body"
+                    placeholder="Fecha final" [showIcon]="true" appendTo="body"
                     (onSelect)="applyFilters()" (onClear)="applyFilters()">
-                </p-calendar>
+                </p-datepicker>
             </div>
 
             <div class="filter-panel-actions">

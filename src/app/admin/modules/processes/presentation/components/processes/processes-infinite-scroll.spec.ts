@@ -109,7 +109,7 @@ describe('Processes infinite scroll', () => {
     component.dateFrom = new Date(2026, 8, 1);
     component.dateTo = new Date(2026, 8, 30);
     component.applyFilters();
-    expect(requests[1].filters.dateFrom).toBe(component.dateFrom.toISOString());
+    expect(requests[1].filters.dateFrom).toBe('2026-09-01');
     component.clearFilters();
     expect(component.dateFrom).toBeNull();
     expect(component.dateTo).toBeNull();
@@ -201,14 +201,14 @@ describe('Processes infinite scroll', () => {
     expect(component.processes).toEqual([lateExpiry]);
   });
 
-  it('preserves the selected hours when filtering historical processes', () => {
+  it('sends whole calendar days when filtering historical processes', () => {
     metrics();
     component.selectedTypes = [4];
     component.dateFrom = new Date(2027, 0, 31, 14, 30);
     component.dateTo = new Date(2027, 0, 31, 15, 45);
     component.applyFilters();
     expect(requests[1].filters).toEqual({ types: [4],
-      dateFrom: component.dateFrom.toISOString(), dateTo: component.dateTo.toISOString() });
+      dateFrom: '2027-01-31', dateTo: '2027-01-31' });
   });
 
   it('clears rows and scroll position and ignores an old page after filters change', () => {

@@ -7,6 +7,7 @@ import { ProcessesRoutingModule } from './processes-routing.module';
 import { ProcessesComponent } from './components/processes/processes.component';
 import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.module';
 import { TranslateModule } from '@ngx-translate/core';
+import { DatePickerModule } from 'primeng/datepicker';
 import { DeviceRecordsComponent } from 'src/app/shareds/components/device-records/device-records.component';
 import { ProcessTemplatesDialogComponent } from './components/process-templates-dialog/process-templates-dialog.component';
 import { ProcessRenewalLinksDialogComponent } from './components/process-renewal-links-dialog/process-renewal-links-dialog.component';
@@ -27,6 +28,7 @@ import { ProcessRenewalLinksOverviewDialogComponent } from './components/process
     FormsModule,
     ProcessesRoutingModule,
     PrimengModule,
+    DatePickerModule,
     TranslateModule
   ]
 })

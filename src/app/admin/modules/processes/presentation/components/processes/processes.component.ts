@@ -305,8 +305,8 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
     if (this.selectedClient?.id) filters.client = this.selectedClient.id;
     if (this.selectedVerificationStatus) filters.verificationStatus = this.selectedVerificationStatus;
-    if (this.dateFrom) filters.dateFrom = this.hasPendingRenewalFilter ? renewalFilterDate(this.dateFrom) : this.dateFrom.toISOString();
-    if (this.dateTo) filters.dateTo = this.hasPendingRenewalFilter ? renewalFilterDate(this.dateTo) : this.dateTo.toISOString();
+    if (this.dateFrom) filters.dateFrom = renewalFilterDate(this.dateFrom);
+    if (this.dateTo) filters.dateTo = renewalFilterDate(this.dateTo);
     if (this.searchQuery?.trim()) filters.search = this.searchQuery.trim();
     this.activeFilters = filters;
     this.fetchProcessesPage(1);
@@ -521,8 +521,8 @@ export class ProcessesComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
     if (this.selectedClient?.id) filters.client = this.selectedClient.id;
     if (this.selectedVerificationStatus) filters.verificationStatus = this.selectedVerificationStatus;
-    if (this.dateFrom) filters.dateFrom = this.hasPendingRenewalFilter ? renewalFilterDate(this.dateFrom) : this.dateFrom.toISOString();
-    if (this.dateTo) filters.dateTo = this.hasPendingRenewalFilter ? renewalFilterDate(this.dateTo) : this.dateTo.toISOString();
+    if (this.dateFrom) filters.dateFrom = renewalFilterDate(this.dateFrom);
+    if (this.dateTo) filters.dateTo = renewalFilterDate(this.dateTo);
     if (this.searchQuery?.trim()) filters.search = this.searchQuery.trim();
 
     const res = await this.processesService.getPaginated(1, 10000, filters).toPromise();

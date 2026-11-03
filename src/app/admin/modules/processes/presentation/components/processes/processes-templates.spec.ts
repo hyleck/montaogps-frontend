@@ -123,7 +123,7 @@ describe('Processes filter templates integration', () => {
 
     expect(service.getClientGroups).toHaveBeenCalledWith(1, 10, {
       types: [4], client: client.id,
-      dateFrom: configuration.dateFrom!.toISOString(), dateTo: configuration.dateTo!.toISOString(),
+      dateFrom: '2026-09-01', dateTo: '2026-09-30',
     }, 20);
     expect(component.currentPage).toBe(1);
     expect(component.processes).toEqual([renewal]);
@@ -153,7 +153,7 @@ describe('Processes filter templates integration', () => {
     component.loadMoreProcesses();
     component.loadMoreProcesses();
     expect(service.getClientGroups.calls.mostRecent().args).toEqual([3, 10, {
-      types: [20], dateFrom: configuration.dateFrom!.toISOString(), dateTo: configuration.dateTo!.toISOString(),
+      types: [20], dateFrom: '2026-09-01', dateTo: '2026-09-30',
     }, 20]);
     expect(component.selectedClient).toBeNull();
     expect(component.templateFiltersApplied).toBeTrue();
@@ -488,4 +488,37 @@ describe('Processes filter templates integration', () => {
     expect(component.renewalLinksDialogVisible).toBeFalse();
   });
 
+  it('keeps the date filter calendar next to its field after going back a month', async () => {
+    const consoleError = spyOn(console, 'error');
+    const settle = async () => { fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges(); };
+    const click = (element: HTMLElement) => {
+      for (const type of ['mousedown', 'mouseup', 'click']) {
+        element.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }));
+      }
+    };
+    const panel = () => document.querySelector('.p-datepicker-panel') as HTMLElement;
+    component.filtersExpanded = true;
+    await settle();
+    const input = fixture.nativeElement.querySelector('.filter-field p-datepicker input') as HTMLInputElement;
+
+    click(input);
+    await settle();
+    click(panel().querySelector('.p-datepicker-prev-button') as HTMLElement);
+    await settle();
+    await new Promise(resolve => setTimeout(resolve));
+    const days = Array.from(panel().querySelectorAll('td:not(.p-datepicker-other-month) .p-datepicker-day')) as HTMLElement[];
+    click(days.find(day => day.textContent?.trim() === '1')!);
+    await settle();
+    expect(component.dateFrom?.getDate()).toBe(1);
+
+    if (panel()) click(document.body);
+    await settle();
+    click(input);
+    await settle();
+    expect(panel().style.left).not.toBe('0px');
+    expect(Math.abs(panel().getBoundingClientRect().left - input.getBoundingClientRect().left)).toBeLessThan(5);
+    expect(consoleError).not.toHaveBeenCalled();
+    click(document.body);
+    await settle();
+  });
 });
